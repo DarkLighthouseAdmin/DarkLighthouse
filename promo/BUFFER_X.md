@@ -1,77 +1,112 @@
-# Buffer queue — @DarkLighthouses
+# X posts — @DarkLighthouses (actually funny edition)
 
-Storefront: https://www.darklighthousesolutions.com  
-NetSuite: https://www.darklighthousesolutions.com/netsuite-adf.html  
-
-In Buffer: add each as a post → Channel = X (@DarkLighthouses) → Schedule ~1/day.
+Use https://darklighthouseadmin.github.io/DarkLighthouse/ until custom domain HTTPS is green.
+NetSuite: …/netsuite-adf.html
 
 ---
 
-## Post 1 (today / pin later)
+## 1
+```
+I asked NetSuite for rows.
+NetSuite said "hasMore: true" 47 times like a clingy ex.
 
-Shipped a catalog of data engineering starter kits.
+Anyway I wrote a bridge that keeps asking until it shuts up, dumps JSON in Blob, and lets ADF pretend it was elegant.
 
-Hero: NetSuite → Azure Data Factory bridge (SuiteQL + TBA → Blob for ADF Web Activity). Also ClickHouse, Salesforce middleware, validation, and more.
+https://darklighthouseadmin.github.io/DarkLighthouse/netsuite-adf.html
+```
 
-One-time download. You own the code.
+## 2
+```
+Vendor: our NetSuite connector is only $8,000/year
+Me: what if… ZIP
+Vendor: you can’t just ZIP enterprise integration
+Me: watch me
 
-https://www.darklighthousesolutions.com/netsuite-adf.html
+$349. Mock mode. TBA. Pagination. Docker.
+https://darklighthouseadmin.github.io/DarkLighthouse/netsuite-adf.html
+```
 
----
+## 3
+```
+Data engineering career progression:
 
-## Post 2
+1. write SQL
+2. write more SQL
+3. argue about medallion layers on Slack
+4. buy someone’s medallion kit so you can go outside
 
-SuiteAnalytics Connect pricing is painful when you only need scheduled SuiteQL into Blob for ADF.
+https://darklighthouseadmin.github.io/DarkLighthouse/
+```
 
-Shape that works:
-ADF Web Activity → small API → NetSuite TBA + SuiteQL pages → JSON in Azure Blob → rest in ADF.
+## 4
+```
+My validation suite’s love language is quarantine CSVs.
 
-Starter kit (mock mode included):
-https://www.darklighthousesolutions.com/netsuite-adf.html
+Bad rows don’t go to prod.
+They go to timeout. Like my last situationship.
 
----
+https://darklighthouseadmin.github.io/DarkLighthouse/
+```
 
-## Post 3
+## 5
+```
+Unpopular opinion:
+If your ADF pipeline depends on “Bob’s personal NetSuite password in a Key Vault secret named temp_final_FINAL2” you don’t have a pipeline. You have a hostage situation.
 
-ClickHouse log analytics without starting from an empty repo.
+TBA tokens exist. I put them in a kit.
+https://darklighthouseadmin.github.io/DarkLighthouse/netsuite-adf.html
+```
 
-Bronze → Silver → Gold medallion pipeline, schema-agnostic ingest, chaos verify pass.
+## 6
+```
+ClickHouse log analytics starter:
+bronze / silver / gold
 
-https://www.darklighthousesolutions.com/
+Also ships with:
+“run this and watch it scream before prod does”
 
----
+https://darklighthouseadmin.github.io/DarkLighthouse/
+```
 
-## Post 4
+## 7
+```
+Consulting tip:
 
-If your “NetSuite extract” is a notebook that forgets pagination, you’re going to drop rows.
+Client: can you build NetSuite → ADF
+You: absolutely (opens Polar)
+You: (buys $349 bridge)
+You: (invoices $12k for “architecture + hardening”)
+You: everyone’s happy except SuiteAnalytics Connect’s quota
 
-hasMore exists for a reason. Limit/offset until it’s false.
+I’m not saying do this.
+I’m saying the kit exists.
+https://darklighthouseadmin.github.io/DarkLighthouse/netsuite-adf.html
+```
 
-https://www.darklighthousesolutions.com/netsuite-adf.html
+## 8
+```
+Great Expectations: a whole framework
+Me: 99 dollars of pandas and spite
 
----
+Both catch nulls.
+Only one fits in a ZIP your client can open on a Thursday.
 
-## Post 5
+https://darklighthouseadmin.github.io/DarkLighthouse/
+```
 
-Data validation before Silver:
-null thresholds, Z-score outliers, quarantine export — one-command demo on 1,000 messy rows.
+## 9
+```
+“We’ll just do a quick SuiteQL extract”
 
-https://www.darklighthousesolutions.com/
+Narrator: they did not paginate
 
----
+https://darklighthouseadmin.github.io/DarkLighthouse/netsuite-adf.html
+```
 
-## Post 6
+## 10
+```
+Dark Lighthouse Solutions:
+we sell boring infrastructure so you can have interesting weekends.
 
-Full catalog (one-time Polar checkouts):
-NetSuite→ADF, ClickHouse, Salesforce middleware, API gateway, RBAC, Terraform, RAG, billing webhooks, cost monitor.
-
-https://www.darklighthousesolutions.com/
-
----
-
-## Post 7
-
-Boring infrastructure sells.
-If you’re a consultant billing clients for NetSuite/ADF glue, a $349 bridge beats another $15k custom rebuild.
-
-https://www.darklighthousesolutions.com/netsuite-adf.html
+https://darklighthouseadmin.github.io/DarkLighthouse/
+```
