@@ -167,35 +167,28 @@
       0%, 100% { opacity: 0.75; }
       50% { opacity: 1; }
     }
-    /* puppet-show paper wave flats on sticks */
+    /* image-asset puppet waves + boat */
     .wave-prop {
-      animation: prop-slide 3.6s ease-in-out infinite;
+      animation: prop-slide 4s ease-in-out infinite;
     }
     .wave-prop-2 {
-      animation-duration: 4.4s;
-      animation-delay: -1.5s;
-    }
-    .wave-prop-3 {
       animation-duration: 5.2s;
-      animation-delay: -2.8s;
+      animation-delay: -1.8s;
     }
     @keyframes prop-slide {
-      0%, 100% { transform: translateX(10px); }
-      50% { transform: translateX(-14px); }
+      0%, 100% { transform: translateX(12px); }
+      50% { transform: translateX(-16px); }
     }
     .boat {
-      transform-origin: 280px 422px;
-      animation: boat-bob 4.2s ease-in-out infinite;
-    }
-    .boat-window-glow {
-      animation: lantern-pulse 2.8s ease-in-out infinite;
+      transform-origin: 268px 390px;
+      animation: boat-bob 4.5s ease-in-out infinite;
     }
     @keyframes boat-bob {
-      0% { transform: translate(0, 0) rotate(-1.2deg); }
-      25% { transform: translate(8px, -7px) rotate(0.6deg); }
-      50% { transform: translate(-6px, 4px) rotate(1.2deg); }
-      75% { transform: translate(7px, -5px) rotate(-0.5deg); }
-      100% { transform: translate(0, 0) rotate(-1.2deg); }
+      0% { transform: translate(0, 0) rotate(-1deg); }
+      25% { transform: translate(10px, -8px) rotate(0.7deg); }
+      50% { transform: translate(-8px, 5px) rotate(1.2deg); }
+      75% { transform: translate(8px, -6px) rotate(-0.5deg); }
+      100% { transform: translate(0, 0) rotate(-1deg); }
     }
     @media (max-width: 720px) {
       .hero {
@@ -326,6 +319,21 @@
       white-space: nowrap;
     }
     .buy:hover { background: var(--beacon); color: #1a1208; }
+    .buy.soon,
+    span.buy.soon {
+      cursor: default;
+      pointer-events: none;
+      opacity: 0.65;
+      color: var(--muted, #9a8f7e);
+      border-color: rgba(154, 143, 126, 0.35);
+      background: rgba(154, 143, 126, 0.08);
+      font-weight: 500;
+    }
+    .buy.soon:hover,
+    span.buy.soon:hover {
+      background: rgba(154, 143, 126, 0.08);
+      color: var(--muted, #9a8f7e);
+    }
     .tag {
       display: inline-block;
       font-size: 0.72rem;
@@ -341,6 +349,17 @@
       background: rgba(94, 207, 154, 0.08);
     }
     .bundles .buy:hover { background: var(--ok); color: #062016; }
+    .bundles .buy.soon,
+    .bundles span.buy.soon {
+      color: var(--muted, #9a8f7e);
+      border-color: rgba(154, 143, 126, 0.35);
+      background: rgba(154, 143, 126, 0.08);
+    }
+    .bundles .buy.soon:hover,
+    .bundles span.buy.soon:hover {
+      background: rgba(154, 143, 126, 0.08);
+      color: var(--muted, #9a8f7e);
+    }
 
     .kit-toolbar {
       display: flex;
@@ -481,16 +500,16 @@
       </div>
     </div>
     <div class="lighthouse-scene" aria-hidden="true">
-      <svg viewBox="0 0 360 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 360 500" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
         <g id="lighthouse-scale" transform="translate(-18,-12) scale(1.14)">
         <!-- sweeping beacon -->
         <g class="beam">
           <path d="M152 78 L320 20 L320 200 Z" fill="url(#beamGrad)" />
         </g>
-        <!-- water / rocks under lighthouse only (waves own the right) -->
-        <ellipse cx="140" cy="455" rx="95" ry="22" fill="#061018" opacity="0.9" />
-        <path d="M30 435 C60 408 90 418 120 410 C145 404 165 422 190 418 C200 416 208 412 215 408 L215 460 L30 460 Z" fill="#0c2436" />
-        <path d="M45 438 C70 422 100 430 130 426 C155 422 175 438 200 434 L200 455 L45 455 Z" fill="#143248" opacity="0.8" />
+        <!-- one coherent sea plane under lighthouse + boat -->
+        <ellipse cx="170" cy="458" rx="160" ry="26" fill="#061018" opacity="0.9" />
+        <path d="M20 438 C70 408 120 420 170 412 C220 404 270 422 320 410 L330 470 L20 470 Z" fill="#0c2436" />
+        <path d="M40 442 C90 424 140 434 190 428 C240 422 280 438 320 430 L320 465 L40 465 Z" fill="#143248" opacity="0.85" />
         <!-- tower base / cliff -->
         <path d="M95 400 L110 320 L210 320 L225 400 Z" fill="#1a2e40" />
         <path d="M100 400 L112 330 L205 330 L218 400 Z" fill="#243a50" />
@@ -518,124 +537,22 @@
         <circle cx="160" cy="30" r="4" fill="#e8a54b" class="lantern-glow" />
         </g>
 
-        <!-- ============================================================
-             Paper-puppet waves (theater cutouts) + fishing boat
-             Z-order: back wave → mid wave → boat → front wave
-             Crests: smooth S-curve hooks tipping LEFT (toward lighthouse)
-             Sticks: ONLY under wave panels, pointing DOWN off-scene
-             ============================================================ -->
-
-        <!-- BACK wave panel (darkest, deepest) — clear of lighthouse body -->
+        <!-- Hero boat + puppet waves as PNG assets (not hand-drawn paths).
+             Scale: waves ~1/3–1/2 lighthouse height; boat clearly readable.
+             Z-order: back waves → boat → front waves -->
         <g class="wave-prop wave-prop-1">
-          <!-- repeating left-hook curl motif; flat bottom; sticks below -->
-          <path fill="#2a6d86" stroke="#163848" stroke-width="1.2" stroke-linejoin="round"
-            d="M228 458
-               L228 418
-               C236 418 240 404 246 394
-               C249 388 252 384 258 384
-               C252 385 249 390 250 396
-               C258 388 274 392 284 418
-               C292 418 296 404 302 394
-               C305 388 308 384 314 384
-               C308 385 305 390 306 396
-               C314 388 326 392 332 418
-               L336 418
-               L336 458
-               Z" />
-          <rect x="256" y="458" width="4" height="32" rx="1" fill="#8b5a2b" />
-          <rect x="308" y="458" width="4" height="32" rx="1" fill="#8b5a2b" />
+          <image href="assets/hero-waves-back.png" xlink:href="assets/hero-waves-back.png"
+            x="155" y="245" width="230" height="230" preserveAspectRatio="xMidYMax meet" />
         </g>
 
-        <!-- MID wave panel -->
-        <g class="wave-prop wave-prop-2">
-          <path fill="#3d8fad" stroke="#163848" stroke-width="1.1" stroke-linejoin="round"
-            d="M236 460
-               L236 424
-               C243 424 247 412 253 404
-               C256 398 259 396 264 396
-               C259 397 256 402 257 408
-               C264 402 277 406 287 424
-               C294 424 298 412 304 404
-               C307 398 310 396 315 396
-               C310 397 307 402 308 408
-               C315 402 328 406 336 424
-               L340 424
-               L340 460
-               Z" />
-          <rect x="268" y="460" width="3.5" height="28" rx="1" fill="#8b5a2b" />
-          <rect x="318" y="460" width="3.5" height="28" rx="1" fill="#8b5a2b" />
-        </g>
-
-        <!-- BOAT — sits IN the waves (between mid and front panels) -->
         <g class="boat">
-          <!-- red curved hull; bottom intersects wave fill -->
-          <path d="M230 426
-            C236 410 250 400 270 398
-            L316 398
-            C334 400 344 412 348 426
-            L344 436
-            L234 436
-            Z" fill="#e23b3b" stroke="#1a2430" stroke-width="1.2" stroke-linejoin="round" />
-          <!-- thin white waterline stripe -->
-          <path d="M238 422 C246 410 258 404 272 404 L312 404 C326 406 336 414 342 422
-            L340 426 C334 418 324 412 312 412 L272 412 C260 412 248 416 240 424 Z" fill="#ffffff" />
-          <!-- black tire fenders ON the hull (not stilts) -->
-          <circle cx="250" cy="424" r="5.2" fill="#1a1a1a" stroke="#111" stroke-width="0.8" />
-          <circle cx="250" cy="424" r="2" fill="#333" />
-          <circle cx="272" cy="424" r="5.2" fill="#1a1a1a" stroke="#111" stroke-width="0.8" />
-          <circle cx="272" cy="424" r="2" fill="#333" />
-          <circle cx="294" cy="424" r="5.2" fill="#1a1a1a" stroke="#111" stroke-width="0.8" />
-          <circle cx="294" cy="424" r="2" fill="#333" />
-          <circle cx="316" cy="424" r="5.2" fill="#1a1a1a" stroke="#111" stroke-width="0.8" />
-          <circle cx="316" cy="424" r="2" fill="#333" />
-          <!-- gray deck railing -->
-          <path d="M260 398 L260 388 L304 388 L304 398" fill="none" stroke="#6a7380" stroke-width="2" stroke-linejoin="round" />
-          <path d="M268 388 L268 398 M282 388 L282 398 M296 388 L296 398" stroke="#6a7380" stroke-width="1.5" />
-          <!-- white cabin -->
-          <path d="M294 398
-            L294 364
-            L302 356
-            L334 356
-            L338 364
-            L338 398
-            Z" fill="#f4f6f8" stroke="#1a2430" stroke-width="1.2" stroke-linejoin="round" />
-          <!-- large teal windows with warm amber glow inside -->
-          <path d="M300 390 L300 368 L308 362 L316 362 L316 390 Z" fill="#2a9fb0" stroke="#1a2430" stroke-width="1" />
-          <path d="M320 390 L320 362 L332 362 L332 368 L332 390 Z" fill="#2a9fb0" stroke="#1a2430" stroke-width="1" />
-          <ellipse class="boat-window-glow" cx="308" cy="376" rx="7" ry="9" fill="#ffe2a0" opacity="0.85" />
-          <ellipse class="boat-window-glow" cx="326" cy="376" rx="6" ry="9" fill="#ffe2a0" opacity="0.85" />
-          <ellipse class="boat-window-glow" cx="308" cy="374" rx="3.5" ry="4" fill="#fff6d0" />
-          <ellipse class="boat-window-glow" cx="326" cy="374" rx="3" ry="4" fill="#fff6d0" />
-          <!-- brown masts, red caps, thin rigging -->
-          <rect x="272" y="330" width="3.5" height="68" rx="0.5" fill="#8b5a2b" />
-          <circle cx="273.75" cy="330" r="3" fill="#e23b3b" stroke="#1a2430" stroke-width="0.8" />
-          <rect x="324" y="338" width="3" height="60" rx="0.5" fill="#8b5a2b" />
-          <circle cx="325.5" cy="338" r="2.6" fill="#e23b3b" stroke="#1a2430" stroke-width="0.8" />
-          <path d="M274 334 L294 356" stroke="#8a96a8" stroke-width="1.2" />
-          <path d="M274 334 L258 398" stroke="#8a96a8" stroke-width="1.1" />
-          <path d="M326 342 L338 356" stroke="#8a96a8" stroke-width="1.1" />
-          <path d="M274 350 L326 345" stroke="#8a96a8" stroke-width="1" />
+          <image href="assets/hero-boat.png" xlink:href="assets/hero-boat.png"
+            x="175" y="285" width="195" height="140" preserveAspectRatio="xMidYMax meet" />
         </g>
 
-        <!-- FRONT wave panel (lightest) — overlaps lower hull so boat sits IN water -->
-        <g class="wave-prop wave-prop-3">
-          <path fill="#5eb8d4" stroke="#163848" stroke-width="1" stroke-linejoin="round"
-            d="M242 462
-               L242 422
-               C249 422 253 410 259 402
-               C262 396 265 394 270 394
-               C265 395 262 400 263 406
-               C270 400 283 404 291 422
-               C297 422 301 410 307 402
-               C310 396 313 394 318 394
-               C313 395 310 400 311 406
-               C318 400 331 404 339 422
-               C345 422 349 412 355 404
-               L358 422
-               L358 462
-               Z" />
-          <rect x="274" y="462" width="3.5" height="26" rx="1" fill="#8b5a2b" />
-          <rect x="328" y="462" width="3.5" height="26" rx="1" fill="#8b5a2b" />
+        <g class="wave-prop wave-prop-2">
+          <image href="assets/hero-waves.png" xlink:href="assets/hero-waves.png"
+            x="162" y="300" width="220" height="220" preserveAspectRatio="xMidYMax meet" />
         </g>
 
         <defs>
@@ -685,7 +602,7 @@
           </div>
           <div class="meta">
             <span class="price">$199</span>
-            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create SKU 12 on Polar">Polar</a>
+            <span class="buy soon" title="Not listed on Polar yet — checkout coming soon">Coming soon</span>
           </div>
         </article>
         <article class="item" data-types="saas api" data-price="249" data-name="SaaS Auth + Polar Billing Shell">
@@ -696,7 +613,7 @@
           </div>
           <div class="meta">
             <span class="price">$249</span>
-            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create SKU 13 on Polar">Polar</a>
+            <span class="buy soon" title="Not listed on Polar yet — checkout coming soon">Coming soon</span>
           </div>
         </article>
         <article class="item" data-types="ai saas ops" data-price="149" data-name="AI Usage Metering Kit">
@@ -707,7 +624,7 @@
           </div>
           <div class="meta">
             <span class="price">$149</span>
-            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create SKU 14 on Polar">Polar</a>
+            <span class="buy soon" title="Not listed on Polar yet — checkout coming soon">Coming soon</span>
           </div>
         </article>
         <article class="item" data-types="ai" data-price="179" data-name="AI Agent Tools Starter">
@@ -718,7 +635,7 @@
           </div>
           <div class="meta">
             <span class="price">$179</span>
-            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create SKU 16 on Polar">Polar</a>
+            <span class="buy soon" title="Not listed on Polar yet — checkout coming soon">Coming soon</span>
           </div>
         </article>
         <article class="item" data-types="launch saas" data-price="79" data-name="Launch Waitlist Kit (Signal)">
@@ -729,7 +646,7 @@
           </div>
           <div class="meta">
             <span class="price">$79</span>
-            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create SKU 15 on Polar">Polar</a>
+            <span class="buy soon" title="Not listed on Polar yet — checkout coming soon">Coming soon</span>
           </div>
         </article>
         <article class="item" data-types="integrate data" data-price="349" data-name="NetSuite to ADF Enterprise Bridge">
@@ -901,7 +818,7 @@
           </div>
           <div class="meta">
             <span class="price">$599</span>
-            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create Indie SaaS Pack on Polar">Polar</a>
+            <span class="buy soon" title="Not listed on Polar yet — checkout coming soon">Coming soon</span>
           </div>
         </article>
         <article class="item">
