@@ -1,7 +1,7 @@
 # Paste-ready writeups (post next week)
 
-Storefront: https://darklighthouseadmin.github.io/DarkLighthouse/  
-NetSuite page: https://darklighthouseadmin.github.io/DarkLighthouse/netsuite-adf.html  
+Storefront: https://darklighthousesolutions.com/  
+NetSuite page: https://darklighthousesolutions.com/netsuite-adf.html  
 Checkout (SKU 11): https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I  
 Support: admin@darklighthousesolutions.com  
 Reddit: DarkLighthouseAdmin  
@@ -25,7 +25,7 @@ Token-Based Auth (not “get a bearer token every run”). Paginate until hasMor
 
 I packaged that path as a starter kit (FastAPI + Docker + mock mode) so you can prove the flow before wiring prod tokens.
 
-Details: https://darklighthouseadmin.github.io/DarkLighthouse/netsuite-adf.html
+Details: https://darklighthousesolutions.com/netsuite-adf.html
 
 If you’re mid-migration and want the boring parts done: happy to answer architecture questions in the comments.
 
@@ -54,7 +54,7 @@ Pattern that worked:
 I wrapped it as a small FastAPI service with Docker + MOCK_MODE so you can demo without prod NetSuite/Azure.
 
 Writeup + kit (affiliate/product — I sell this):  
-https://darklighthouseadmin.github.io/DarkLighthouse/netsuite-adf.html
+https://darklighthousesolutions.com/netsuite-adf.html
 
 Happy to share the request/response shape or Container Apps notes if useful.
 
@@ -99,7 +99,7 @@ ADF Web Activity + JSON in bronze is easy to reason about. Transform in ADF Data
 
 I published a starter that implements this path (FastAPI, Docker, mock mode, verify scripts):
 
-https://darklighthouseadmin.github.io/DarkLighthouse/netsuite-adf.html
+https://darklighthousesolutions.com/netsuite-adf.html
 
 One-time purchase via Polar. Commercial use allowed.
 
@@ -115,7 +115,7 @@ Moved checkout to Polar (MoR, ~5%+$0.50). Storefront on GitHub Pages.
 
 Hero SKU: NetSuite → ADF bridge ($349) — SuiteQL + TBA → Blob for Web Activity. Also ClickHouse, Salesforce middleware, validation, etc.
 
-Site: https://darklighthouseadmin.github.io/DarkLighthouse/
+Site: https://darklighthousesolutions.com/
 
 Still figuring out distribution (LinkedIn + niche Reddit). If you’ve sold boring B2B boilerplate, what actually moved units?
 
