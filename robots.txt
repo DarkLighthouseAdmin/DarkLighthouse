@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.darklighthousesolutions.com/sitemap.xml
+Sitemap: https://darklighthouseadmin.github.io/DarkLighthouse/sitemap.xml
