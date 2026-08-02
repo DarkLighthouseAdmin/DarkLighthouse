@@ -3,11 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dark Lighthouse Solutions — Data Engineering Kits</title>
-  <meta name="description" content="Production-ready data engineering starter kits. ClickHouse, NetSuite→ADF, Salesforce middleware, FastAPI, Terraform. One-time Polar downloads." />
-  <meta property="og:title" content="Dark Lighthouse Solutions — Data Engineering Kits" />
-  <meta property="og:description" content="Boilerplate that ships. One-time downloads for DE, integrations, and SaaS ops." />
+  <title>Dark Lighthouse Solutions | NetSuite ADF, ClickHouse &amp; Data Engineering Kits</title>
+  <meta name="description" content="One-time data engineering starter kits: NetSuite to Azure Data Factory (SuiteQL → Blob), ClickHouse log analytics, Salesforce middleware, FastAPI gateway, Terraform. Buy on Polar — you own the code." />
+  <meta name="keywords" content="NetSuite ADF, NetSuite SuiteQL, Azure Data Factory, ClickHouse starter kit, data engineering boilerplate, Salesforce middleware, FastAPI RBAC, Terraform data warehouse" />
+  <meta name="author" content="Dark Lighthouse Solutions" />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://darklighthouseadmin.github.io/DarkLighthouse/" />
+
+  <meta property="og:site_name" content="Dark Lighthouse Solutions" />
+  <meta property="og:title" content="Dark Lighthouse Solutions | NetSuite ADF &amp; Data Engineering Kits" />
+  <meta property="og:description" content="Production-shaped kits: NetSuite→ADF bridge, ClickHouse medallion pipeline, Salesforce middleware, and more. One-time Polar downloads." />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://darklighthouseadmin.github.io/DarkLighthouse/" />
+  <meta property="og:image" content="https://darklighthouseadmin.github.io/DarkLighthouse/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Dark Lighthouse Solutions | Data Engineering Kits" />
+  <meta name="twitter:description" content="NetSuite→ADF, ClickHouse, Salesforce, FastAPI kits. One-time download. You own the code." />
+  <meta name="twitter:image" content="https://darklighthouseadmin.github.io/DarkLighthouse/og.png" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "Dark Lighthouse Solutions",
+        "url": "https://darklighthouseadmin.github.io/DarkLighthouse/",
+        "email": "admin@darklighthousesolutions.com",
+        "description": "Data engineering starter kits sold as one-time downloads."
+      },
+      {
+        "@type": "WebSite",
+        "name": "Dark Lighthouse Solutions",
+        "url": "https://darklighthouseadmin.github.io/DarkLighthouse/",
+        "publisher": { "@type": "Organization", "name": "Dark Lighthouse Solutions" }
+      },
+      {
+        "@type": "ItemList",
+        "name": "Data engineering kits",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "NetSuite to ADF Enterprise Bridge",
+              "applicationCategory": "DeveloperApplication",
+              "offers": { "@type": "Offer", "price": "349.00", "priceCurrency": "USD" },
+              "url": "https://darklighthouseadmin.github.io/DarkLighthouse/netsuite-adf.html"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "ClickHouse Log Analytics Kit",
+              "applicationCategory": "DeveloperApplication",
+              "offers": { "@type": "Offer", "price": "199.00", "priceCurrency": "USD" },
+              "url": "https://darklighthouseadmin.github.io/DarkLighthouse/#kits"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Data Validation Suite",
+              "applicationCategory": "DeveloperApplication",
+              "offers": { "@type": "Offer", "price": "99.00", "priceCurrency": "USD" },
+              "url": "https://darklighthouseadmin.github.io/DarkLighthouse/#kits"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -237,6 +311,13 @@
       background: rgba(94, 207, 154, 0.08);
     }
     .bundles .buy:hover { background: var(--ok); color: #062016; }
+
+    .seo-block {
+      padding: 2.5rem 0 0.5rem;
+    }
+    .seo-block h2 { font-family: Fraunces, Georgia, serif; font-size: 1.5rem; margin-bottom: 0.75rem; }
+    .seo-block p { color: var(--muted); max-width: 62ch; margin-bottom: 0.85rem; }
+    .seo-block a.inline { color: var(--beacon-hot); }
 
     footer {
       padding: 2.5rem 0 3.5rem;
@@ -490,11 +571,27 @@
         </article>
       </div>
     </section>
+    <section class="wrap seo-block" id="netsuite">
+      <h2>NetSuite to Azure Data Factory without a $6k connector</h2>
+      <p>
+        Most teams hit the same wall: SuiteAnalytics Connect or a vendor connector costs thousands per year,
+        while a custom SuiteQL extract into Blob Storage is enough for ADF. Our
+        <a class="inline" href="netsuite-adf.html">NetSuite to ADF Enterprise Bridge</a>
+        is a FastAPI service that signs Token-Based Authentication requests, paginates SuiteQL until
+        <code>hasMore</code> is false, and writes JSON to Azure Blob for ADF Web Activity.
+      </p>
+      <p>
+        Also in the catalog: ClickHouse bronze/silver/gold log analytics, Salesforce middleware,
+        pandas validation with quarantine, FastAPI gateway + RBAC, Terraform warehouse infra,
+        billing webhooks, and cloud cost anomaly monitoring — one-time Polar downloads, commercial use allowed.
+      </p>
+    </section>
   </main>
 
   <footer class="wrap">
     <p><strong>Dark Lighthouse Solutions</strong> · Sold via Polar (merchant of record). Checkout handles tax.</p>
-    <p style="margin-top:0.5rem">Host this folder anywhere static (GitHub Pages, Cloudflare Pages, Netlify). Point Reddit / LinkedIn / X bios here — not at raw checkout links.</p>
+    <p style="margin-top:0.5rem">Support: <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
+    <p style="margin-top:0.5rem">Storefront: <a href="https://darklighthouseadmin.github.io/DarkLighthouse/">darklighthouseadmin.github.io/DarkLighthouse</a></p>
   </footer>
 </body>
 </html>
