@@ -803,97 +803,145 @@
         <h3>AI SaaS Starter (ForgeChat) — $199</h3>
         <p>Most “AI SaaS boilerplates” are either a blog post or a 40-file monster. ForgeChat is the middle: a typed Next.js App Router app with a marketing landing page, pricing that points at your Polar checkout link, a dashboard chat UI, and <code>POST /api/chat</code> that defaults to mock replies so demos do not burn tokens.</p>
         <p>Flip <code>MOCK_AI=false</code>, set an OpenAI key, and the same route talks to a real model. Point <code>NEXT_PUBLIC_POLAR_CHECKOUT_URL</code> at Polar and you have a shell you can show investors or early customers the same week.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_qFn5auIYe33QDFhDZwv3VvRC9DkXqIo1vSzcL4UWKV8?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku12_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_qFn5auIYe33QDFhDZwv3VvRC9DkXqIo1vSzcL4UWKV8?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku12_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-harbor">
         <h3>SaaS Auth + Polar Billing Shell (Harbor) — $249</h3>
         <p>ShipFast-shaped buyers need login and a money path, not another empty dashboard. Harbor wires Auth.js credentials (swap for OAuth later), gates <code>/dashboard</code> with middleware, and exposes <code>POST /api/webhooks/polar</code> with mock mode or HMAC verification.</p>
         <p>After <code>order.paid</code>, an in-memory entitlement flips so you can see provisioning work end-to-end before you drop in Postgres. Pair with ForgeChat for UI and the FastAPI Billing Webhook Handler if you want webhooks in a separate service.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_B41GDdIjXt7rGv3XYjJ8t25p2yl5KtoJMicTs3PKw4v?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku13_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_B41GDdIjXt7rGv3XYjJ8t25p2yl5KtoJMicTs3PKw4v?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku13_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-meter">
         <h3>AI Usage Metering Kit — $149</h3>
         <p>Unlimited tokens behind one API key is how AI products die. This kit issues keys, enforces request and token hard caps, emits soft-limit warnings, and fronts a metered chat proxy you can run fully offline in mock mode.</p>
         <p>Swap the JSON ledger for your database when you go live. It sits cleanly in front of ForgeChat-style routes or any FastAPI chat endpoint that needs spend gates.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_z9g6p0Mzjz18VUNL4T1GYE5Gr02lS5dchBUYf10kiHn?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku14_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_z9g6p0Mzjz18VUNL4T1GYE5Gr02lS5dchBUYf10kiHn?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku14_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-agent">
         <h3>AI Agent Tools Starter — $179</h3>
         <p>Tool-calling is the same boilerplate every time: schemas, a loop, safe execution, a trace. This kit gives you a registry (time, calc, echo demos), a mock agent that exercises the loop without an API key, and an optional OpenAI path that keeps calling tools until it answers.</p>
         <p>Hit <code>POST /v1/agent/run</code>, inspect the trace, then register your own tools. Complements Agentic RAG when you need actions, not just retrieval.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_US2yqJgS0uDhTcdM6ks5pLLDyOtdjHs5wvvjU2wj2lC?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku16_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_US2yqJgS0uDhTcdM6ks5pLLDyOtdjHs5wvvjU2wj2lC?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku16_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-signal">
         <h3>Launch Waitlist Kit (Signal) — $79</h3>
         <p>Before you have a product, you need a list. Signal is a one-page launch landing: email form, <code>POST /api/waitlist</code>, deduped JSON storage, and an admin page that exports CSV behind <code>ADMIN_TOKEN</code>.</p>
         <p>When you open paid early access, point the optional Polar CTA at checkout. Built for indie launches, not enterprise marketing automation.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_noAL9uo6zTz6s8ehjyH5dFFrgZSkQ4qGTIcLZ1zww8y?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku15_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_noAL9uo6zTz6s8ehjyH5dFFrgZSkQ4qGTIcLZ1zww8y?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku15_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-netsuite">
         <h3>NetSuite to ADF Enterprise Bridge — $349</h3>
         <p>Azure Data Factory has no native NetSuite connector. Teams either pay for SuiteAnalytics Connect / a managed connector or commission a custom bridge that becomes a maintenance problem. This kit is a Dockerized FastAPI service ADF can call with a Web Activity: SuiteQL in, paginated results out to Azure Blob / ADLS as JSON.</p>
         <p>Token-Based Authentication (OAuth 1.0a) signing, pagination past the 1,000-row SuiteQL limit, and mock mode so you prove the HTTP contract before TBA credentials exist.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku11_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku11_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-clickhouse">
         <h3>ClickHouse Log Analytics Kit — $199</h3>
         <p>Log analytics stalls on schema fights and half-built medallion folders. This kit ships Bronze → Silver → Gold for ClickHouse with schema-agnostic ingestion, Docker Compose, Grafana, and a chaos verify pass that throws messy rows at the pipeline on purpose.</p>
         <p>Use it as the starter for event or log lakes when you want a runnable path, not a slide deck about medallions.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_CeVsMT83DdoVXj8TNbubXqkOUzzDu35c5JOTy4KqR1I?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku1_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_CeVsMT83DdoVXj8TNbubXqkOUzzDu35c5JOTy4KqR1I?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku1_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-salesforce">
         <h3>Salesforce Middleware Boilerplate — $249</h3>
         <p>CRM-to-warehouse work usually starts as a brittle script that grows privileges and breaks silently. This boilerplate gives you middleware-shaped sync patterns for Salesforce objects into a medallion-style landing zone, with mock mode so demos do not need a sandbox token on day one.</p>
         <p>Extend the object list and mapping — do not reinvent auth, paging, and load orchestration from zero.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_1eA2FpIC2WMHjDS7kVNrpWs280uiyMfMOfZG90oYh1v?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku2_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_1eA2FpIC2WMHjDS7kVNrpWs280uiyMfMOfZG90oYh1v?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku2_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-rag">
         <h3>Agentic RAG SQL Pipeline — $249</h3>
         <p>Internal copilots need retrieval over warehouse context without letting a model invent destructive SQL. This kit shapes an agent-style loop over SQL-oriented context with offline demo paths so you can show the product shape before production warehouse credentials.</p>
         <p>Use it when “chat with our data” is the brief and you need a bounded starter, not an unbounded agent fantasy.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_IhhOw0zq7c8fSmrGfN5sE4zfGKhuXFiLY7j2a2bRjLP?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku8_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_IhhOw0zq7c8fSmrGfN5sE4zfGKhuXFiLY7j2a2bRjLP?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku8_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-terraform">
         <h3>Terraform AWS Data Warehouse Infra — $199</h3>
         <p>Every warehouse project rediscovers VPCs, private subnets, and storage glue. This Terraform baseline is aimed at warehouse-adjacent AWS so networking and data-plane scaffolding are boring again.</p>
         <p>Clone it, rename the workspace, and stop pasting half-remembered modules from the last engagement.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_aD9n8dq3e0jGCQ9ZHbrhSMp530z1pb1Qel53g0tMXJV?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku7_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_aD9n8dq3e0jGCQ9ZHbrhSMp530z1pb1Qel53g0tMXJV?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku7_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-gateway">
         <h3>Enterprise API Gateway Starter — $179</h3>
         <p>Service sprawl without an edge becomes a security and routing mess. This FastAPI gateway skeleton includes the auth and routing pieces teams usually copy-paste wrong under deadline.</p>
         <p>Put it in front of internal query APIs when you need one consistent door instead of five slightly different middleware stacks.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_fyBhn5IfLer4u0L9tVFQT57owdTzsBxZAyiWW4OjTAz?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku4_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_fyBhn5IfLer4u0L9tVFQT57owdTzsBxZAyiWW4OjTAz?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku4_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-webhooks">
         <h3>Billing Webhook Handler — $149</h3>
         <p>Billing webhooks that skip signature checks or replay events will provision twice or leak access. This kit verifies HMAC signatures on the raw body, routes subscription created/updated/cancelled-style events, and returns structured actions you can wire into provisioning.</p>
         <p>Offline verify proves forged signatures never reach business logic. Works as a pattern for Polar- or Stripe-shaped payloads.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_HPj3Bc2kNzWGy7lAJp3PgTN09p2FiIhORyUy73cbHrw?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku9_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_HPj3Bc2kNzWGy7lAJp3PgTN09p2FiIhORyUy73cbHrw?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku9_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-cost">
         <h3>Cloud Cost Anomaly Monitor — $149</h3>
         <p>Finance finds the spike in the monthly review. This monitor is shaped to catch anomalous cloud spend earlier — rolling baselines, spike detection, and alert hooks you can demo without waiting for a real bill shock.</p>
         <p>Point it at Cost Explorer-style exports when you are ready; keep mock data for sales demos.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_8zt0MQinjXoPi7DSneVCmSRqPwcMJ4UQoqOml1jjlTC?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku10_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_8zt0MQinjXoPi7DSneVCmSRqPwcMJ4UQoqOml1jjlTC?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku10_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-validation">
         <h3>Data Validation Suite — $99</h3>
         <p>Bad rows that slip into gold tables cost more than the pipeline that loaded them. This pandas suite checks null thresholds, Z-score outliers, and dtypes, then quarantines failures so downstream jobs see clean frames.</p>
         <p>One-command demo — no warehouse required to prove the gate works.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_ghzY1JQQIm6ITfbRfOI39egfrqkBZLNG5fwAE0vXqYs?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku3_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_ghzY1JQQIm6ITfbRfOI39egfrqkBZLNG5fwAE0vXqYs?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku3_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-rbac">
         <h3>FastAPI RBAC Middleware — $99</h3>
         <p>Authorization copied into every route drifts. This kit gives you a <code>build_require_role</code>-style factory on top of your existing user dependency: declare roles on the route, return 403 otherwise.</p>
         <p>Small surface area, typed, and meant to drop onto services you already run.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_IjrRUPPSjgp8RDIPPp2vmsSQQeDJWwhvsPsHw4A1UVD?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku6_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_IjrRUPPSjgp8RDIPPp2vmsSQQeDJWwhvsPsHw4A1UVD?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku6_essay">Buy</a>
+        </div></article>
 
       <article class="essay" id="kit-finance">
         <h3>Financial Metrics Aggregator — $79</h3>
         <p>Internal finance reporting keeps reimplementing MoM, YoY, and rolling averages in one-off notebooks. This kit packages those aggregations as reusable pieces for reporting pipelines.</p>
         <p>Cheap on purpose — the glue you should not rewrite every quarter.</p>
-      \n        <div class="essay-meta">\n          <a class="buy" href="https://buy.polar.sh/polar_cl_4G5LKpU3P2VIqeJZoBsaveZ3V27xqBMOiKVPH1Gqwqj?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku5_essay">Buy</a>\n        </div></article>
+      
+        <div class="essay-meta">
+          <a class="buy" href="https://buy.polar.sh/polar_cl_4G5LKpU3P2VIqeJZoBsaveZ3V27xqBMOiKVPH1Gqwqj?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku5_essay">Buy</a>
+        </div></article>
     </section>
 
   </main>
