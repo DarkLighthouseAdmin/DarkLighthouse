@@ -170,27 +170,27 @@
     /* stage-prop waves: slide left/right like flat cutouts on sticks */
     .wave-prop {
       transform-origin: center bottom;
-      animation: prop-slide 3.6s ease-in-out infinite;
+      animation: prop-slide 3.8s ease-in-out infinite;
     }
     .wave-prop-2 {
-      animation-duration: 4.4s;
-      animation-delay: -1.1s;
+      animation-duration: 4.6s;
+      animation-delay: -1.2s;
     }
     .wave-prop-3 {
-      animation-duration: 5s;
-      animation-delay: -2.2s;
+      animation-duration: 5.2s;
+      animation-delay: -2.4s;
     }
     @keyframes prop-slide {
-      0%, 100% { transform: translateX(10px); }
-      50% { transform: translateX(-14px); }
+      0%, 100% { transform: translateX(16px); }
+      50% { transform: translateX(-20px); }
     }
     .boat {
-      transform-origin: 248px 428px;
-      animation: boat-bob 5s ease-in-out infinite;
+      transform-origin: 255px 400px;
+      animation: boat-bob 5.2s ease-in-out infinite;
     }
     @keyframes boat-bob {
-      0%, 100% { transform: translate(0, 0) rotate(-0.8deg); }
-      50% { transform: translate(-6px, -2px) rotate(1deg); }
+      0%, 100% { transform: translate(0, 0) rotate(-1deg); }
+      50% { transform: translate(-10px, -4px) rotate(1.2deg); }
     }
     @media (max-width: 720px) {
       .hero {
@@ -476,7 +476,7 @@
       </div>
     </div>
     <div class="lighthouse-scene" aria-hidden="true">
-      <svg viewBox="0 0 320 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 370 500" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- sweeping beacon -->
         <g class="beam">
           <path d="M152 78 L320 20 L320 200 Z" fill="url(#beamGrad)" />
@@ -510,48 +510,55 @@
         <rect x="158" y="32" width="4" height="14" fill="#8a96a8" />
         <circle cx="160" cy="30" r="4" fill="#e8a54b" class="lantern-glow" />
 
-        <!-- stage-prop waves on wooden sticks (right side, sliding L/R) -->
+        <!-- stage-prop waves on wooden sticks (RIGHT, ~1/3-1/2 lighthouse tall) -->
         <g class="wave-prop wave-prop-1">
-          <path d="M195 438 C210 424 225 424 240 438 C255 452 270 452 285 438 C300 424 312 428 322 438 L322 452 L195 452 Z" fill="#1f6f8f" />
-          <path d="M198 442 C212 432 226 432 240 442 C254 452 268 452 282 442 C296 432 308 434 318 442" stroke="#3a9ab8" stroke-width="2" fill="none" stroke-linecap="round" />
-          <rect x="218" y="452" width="3" height="16" rx="1" fill="#6b4a2e" />
-          <rect x="268" y="452" width="3" height="16" rx="1" fill="#6b4a2e" />
-          <rect x="214" y="466" width="11" height="3" rx="1" fill="#8a6540" />
-          <rect x="264" y="466" width="11" height="3" rx="1" fill="#8a6540" />
+          <path d="M188 300 C205 250 230 245 252 300 C274 355 300 350 325 300 C340 270 352 280 360 300 L360 455 L188 455 Z" fill="#164f6a" />
+          <path d="M192 305 C210 265 232 262 252 305 C272 348 298 345 320 305 C334 280 348 288 356 305" stroke="#2a7a9a" stroke-width="4" fill="none" stroke-linecap="round" />
+          <rect x="220" y="455" width="5" height="28" rx="1.5" fill="#6b4a2e" />
+          <rect x="300" y="455" width="5" height="28" rx="1.5" fill="#6b4a2e" />
+          <rect x="213" y="480" width="19" height="5" rx="1.5" fill="#8a6540" />
+          <rect x="293" y="480" width="19" height="5" rx="1.5" fill="#8a6540" />
         </g>
         <g class="wave-prop wave-prop-2">
-          <path d="M210 448 C224 436 238 436 252 448 C266 460 280 460 294 448 C308 436 318 440 328 448 L328 460 L210 460 Z" fill="#2a8aad" opacity="0.95" />
-          <path d="M214 451 C226 443 240 443 252 451 C264 459 278 459 290 451 C302 443 314 445 324 451" stroke="#5eb8d4" stroke-width="1.8" fill="none" stroke-linecap="round" />
-          <rect x="232" y="460" width="3" height="14" rx="1" fill="#6b4a2e" />
-          <rect x="282" y="460" width="3" height="14" rx="1" fill="#6b4a2e" />
-          <rect x="228" y="472" width="11" height="3" rx="1" fill="#8a6540" />
-          <rect x="278" y="472" width="11" height="3" rx="1" fill="#8a6540" />
+          <path d="M200 330 C218 285 242 280 262 330 C282 380 308 375 332 330 C345 305 356 312 365 330 L365 458 L200 458 Z" fill="#1f6f8f" />
+          <path d="M205 335 C222 298 244 294 262 335 C280 376 306 372 328 335 C340 315 352 320 360 335" stroke="#3a9ab8" stroke-width="3.5" fill="none" stroke-linecap="round" />
+          <rect x="235" y="458" width="5" height="24" rx="1.5" fill="#6b4a2e" />
+          <rect x="310" y="458" width="5" height="24" rx="1.5" fill="#6b4a2e" />
+          <rect x="228" y="479" width="19" height="5" rx="1.5" fill="#8a6540" />
+          <rect x="303" y="479" width="19" height="5" rx="1.5" fill="#8a6540" />
         </g>
         <g class="wave-prop wave-prop-3">
-          <path d="M225 456 C238 446 250 446 262 456 C274 466 286 466 298 456 C310 446 320 450 330 456 L330 466 L225 466 Z" fill="#3aa0c0" opacity="0.9" />
-          <rect x="248" y="466" width="2.5" height="12" rx="1" fill="#6b4a2e" />
-          <rect x="288" y="466" width="2.5" height="12" rx="1" fill="#6b4a2e" />
-          <rect x="244" y="476" width="10" height="2.5" rx="1" fill="#8a6540" />
-          <rect x="284" y="476" width="10" height="2.5" rx="1" fill="#8a6540" />
+          <path d="M215 365 C232 325 254 322 272 365 C290 408 312 404 335 365 C348 342 358 348 366 365 L366 462 L215 462 Z" fill="#2a8aad" opacity="0.95" />
+          <path d="M220 370 C236 338 256 335 272 370 C288 405 310 402 330 370 C342 352 354 356 362 370" stroke="#5eb8d4" stroke-width="3" fill="none" stroke-linecap="round" />
+          <rect x="250" y="462" width="4.5" height="20" rx="1.5" fill="#6b4a2e" />
+          <rect x="318" y="462" width="4.5" height="20" rx="1.5" fill="#6b4a2e" />
+          <rect x="243" y="479" width="18" height="4.5" rx="1.5" fill="#8a6540" />
+          <rect x="311" y="479" width="18" height="4.5" rx="1.5" fill="#8a6540" />
         </g>
 
-        <!-- cutesy cartoon fishing boat (right, riding the prop waves) -->
+        <!-- cutesy fishing trawler (~1/4 lighthouse height) -->
         <g class="boat">
-          <!-- hull -->
-          <path d="M218 434 C222 426 230 422 248 422 C266 422 274 426 278 434 C276 438 272 440 248 440 C224 440 220 438 218 434 Z" fill="#c43c3c" />
-          <path d="M222 432 C226 428 232 426 248 426 C264 426 270 428 274 432 C272 434 268 435 248 435 C228 435 224 434 222 432 Z" fill="#f2efe8" />
-          <path d="M220 434 C224 437 232 438 248 438 C264 438 272 437 276 434 C274 436 268 438 248 438 C228 438 222 436 220 434 Z" fill="#9e2b2b" />
-          <!-- cabin -->
-          <rect x="250" y="412" width="22" height="14" rx="2" fill="#9aa3b0" />
-          <rect x="250" y="410" width="22" height="3" rx="1" fill="#7d8794" />
-          <rect x="253" y="415" width="4.5" height="5" rx="0.8" fill="#8ec8e8" />
-          <rect x="259" y="415" width="4.5" height="5" rx="0.8" fill="#8ec8e8" />
-          <rect x="265" y="415" width="4.5" height="5" rx="0.8" fill="#8ec8e8" />
-          <!-- masts -->
-          <rect x="234" y="400" width="2" height="24" rx="0.5" fill="#4a5564" />
-          <rect x="230" y="406" width="10" height="1.5" rx="0.5" fill="#4a5564" />
-          <path d="M236 408 L250 416" stroke="#4a5564" stroke-width="1.2" stroke-linecap="round" />
-          <rect x="270" y="404" width="1.6" height="18" rx="0.5" fill="#4a5564" />
+          <path d="M198 400 C205 378 218 368 248 366 C278 364 300 372 312 392 C314 400 312 408 308 412 L205 412 C198 408 196 404 198 400 Z" fill="#c43c3c" />
+          <path d="M204 392 C212 380 224 374 248 372 C272 370 292 376 304 390 C302 394 292 396 248 396 C220 396 208 394 204 392 Z" fill="#f2efe8" />
+          <path d="M205 408 C220 412 248 414 290 412 C300 410 306 408 308 406 C300 410 270 412 248 412 C220 412 208 410 205 408 Z" fill="#9e2b2b" />
+          <path d="M198 400 L204 368 L210 372 L206 400 Z" fill="#a83232" />
+          <rect x="252" y="348" width="42" height="28" rx="3" fill="#9aa3b0" />
+          <rect x="252" y="344" width="42" height="6" rx="2" fill="#7d8794" />
+          <rect x="257" y="354" width="9" height="10" rx="1.5" fill="#8ec8e8" />
+          <rect x="269" y="354" width="9" height="10" rx="1.5" fill="#8ec8e8" />
+          <rect x="281" y="354" width="9" height="10" rx="1.5" fill="#8ec8e8" />
+          <rect x="248" y="342" width="50" height="4" rx="1.5" fill="#6a7480" />
+          <rect x="228" y="300" width="4" height="72" rx="1" fill="#4a5564" />
+          <rect x="216" y="318" width="28" height="3.5" rx="1" fill="#4a5564" />
+          <path d="M232 322 L258 350" stroke="#4a5564" stroke-width="2" stroke-linecap="round" />
+          <rect x="292" y="320" width="3.5" height="52" rx="1" fill="#4a5564" />
+          <path d="M294 328 L318 348" stroke="#4a5564" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M294 340 L312 356" stroke="#4a5564" stroke-width="2" stroke-linecap="round" />
+          <path d="M230 340 L198 360" stroke="#5a6574" stroke-width="3" stroke-linecap="round" />
+          <circle cx="198" cy="360" r="3" fill="#5a6574" />
+          <rect x="244" y="336" width="8" height="14" rx="1.5" fill="#6a7480" />
+          <rect x="244" y="334" width="8" height="4" rx="1" fill="#c43c3c" />
+          <path d="M210 378 L248 376 L290 380" stroke="#d8dee8" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7" />
         </g>
 
         <defs>
