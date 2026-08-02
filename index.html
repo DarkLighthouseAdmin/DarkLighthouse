@@ -159,6 +159,22 @@
     .lantern-glow {
       animation: lantern-pulse 2.8s ease-in-out infinite;
     }
+    .wave {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: wave-drift 5.5s ease-in-out infinite;
+    }
+    .wave-a { opacity: 0.55; }
+    .wave-b {
+      animation-duration: 7.2s;
+      animation-delay: -1.4s;
+      opacity: 0.42;
+    }
+    .wave-c {
+      animation-duration: 6.1s;
+      animation-delay: -2.8s;
+      opacity: 0.28;
+    }
     @keyframes beam-sweep {
       from { transform: rotate(-38deg); opacity: 0.55; }
       to { transform: rotate(42deg); opacity: 0.95; }
@@ -166,6 +182,18 @@
     @keyframes lantern-pulse {
       0%, 100% { opacity: 0.75; }
       50% { opacity: 1; }
+    }
+    @keyframes wave-drift {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(-18px); }
+    }
+    .boat {
+      transform-origin: 52px 438px;
+      animation: boat-bob 4.4s ease-in-out infinite;
+    }
+    @keyframes boat-bob {
+      0%, 100% { transform: translate(0, 0) rotate(-1.5deg); }
+      50% { transform: translate(10px, -3px) rotate(1.8deg); }
     }
     @media (max-width: 720px) {
       .hero {
@@ -312,12 +340,115 @@
     }
     .bundles .buy:hover { background: var(--ok); color: #062016; }
 
+    .kit-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1rem;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 0 1.25rem;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .filters button {
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 0.4rem 0.7rem;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    }
+    .filters button:hover {
+      color: var(--ink);
+      border-color: rgba(232, 165, 75, 0.4);
+    }
+    .filters button.is-active {
+      color: #1a1208;
+      background: var(--beacon);
+      border-color: var(--beacon);
+    }
+    .sort-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .sort-wrap select {
+      font-family: inherit;
+      font-size: 0.8rem;
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 0.4rem 0.55rem;
+    }
+    .catalog-empty {
+      display: none;
+      color: var(--muted);
+      padding: 1rem 0 0.5rem;
+      font-size: 0.95rem;
+    }
+    .catalog-empty.is-visible { display: block; }
+    .item.is-hidden { display: none; }
+
     .seo-block {
       padding: 2.5rem 0 0.5rem;
     }
     .seo-block h2 { font-family: Fraunces, Georgia, serif; font-size: 1.5rem; margin-bottom: 0.75rem; }
     .seo-block p { color: var(--muted); max-width: 62ch; margin-bottom: 0.85rem; }
     .seo-block a.inline { color: var(--beacon-hot); }
+
+    .essays { padding-top: 2rem; }
+    .essay {
+      padding: 1.35rem 0 1.5rem;
+      border-top: 1px solid var(--line);
+    }
+    .essay:first-of-type { border-top: none; padding-top: 0.25rem; }
+    .essay h3 {
+      font-family: Fraunces, Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin-bottom: 0.55rem;
+    }
+    .essay p {
+      color: var(--muted);
+      max-width: 68ch;
+      margin-bottom: 0.7rem;
+      font-size: 0.95rem;
+    }
+    .essay .essay-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 0.35rem;
+    }
+    .essay .essay-meta .price {
+      color: var(--ink);
+      font-size: 0.95rem;
+    }
+    .item h3 a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .item h3 a:hover { color: var(--beacon-hot); }
+    .more {
+      display: inline-block;
+      margin-top: 0.35rem;
+      font-size: 0.8rem;
+      color: var(--beacon-hot);
+      text-decoration: none;
+    }
+    .more:hover { text-decoration: underline; }
 
     footer {
       padding: 2.5rem 0 3.5rem;
@@ -381,6 +512,20 @@
         <path d="M148 58 L160 42 L172 58 Z" fill="#2a3848" />
         <rect x="158" y="32" width="4" height="14" fill="#8a96a8" />
         <circle cx="160" cy="30" r="4" fill="#e8a54b" class="lantern-glow" />
+        <!-- waves in front of the cliff base -->
+        <path class="wave wave-a" d="M-20 444 C15 432 45 456 80 444 C115 432 145 456 180 444 C215 432 245 456 280 444 C305 436 325 450 345 442 L345 475 L-20 475 Z" fill="#2a8aad" />
+        <path class="wave wave-b" d="M-25 450 C10 440 45 462 85 450 C125 438 160 462 200 450 C240 438 275 460 310 450 C325 446 338 454 350 448 L350 478 L-25 478 Z" fill="#3aa0c0" />
+        <path class="wave wave-c" d="M-15 456 C20 448 55 466 95 456 C135 446 170 466 210 456 C250 446 280 464 315 456 C330 452 340 458 350 454 L350 480 L-15 480 Z" fill="#5ecf9a" />
+        <!-- little red-and-white fishing boat (port side) -->
+        <g class="boat">
+          <path d="M18 442 L28 430 L78 430 L86 442 Z" fill="#c43c3c" />
+          <path d="M22 438 L30 432 L74 432 L80 438 Z" fill="#f4f1ea" />
+          <path d="M26 442 L30 436 L74 436 L78 442 Z" fill="#9e2b2b" />
+          <rect x="46" y="412" width="2.5" height="20" fill="#3a2a1a" />
+          <path d="M48.5 414 L66 420 L48.5 424 Z" fill="#f4f1ea" stroke="#c43c3c" stroke-width="1" />
+          <circle cx="34" cy="434" r="1.6" fill="#1a2430" />
+          <circle cx="70" cy="434" r="1.6" fill="#1a2430" />
+        </g>
         <defs>
           <linearGradient id="beamGrad" x1="152" y1="78" x2="320" y2="110" gradientUnits="userSpaceOnUse">
             <stop stop-color="#ffc56b" stop-opacity="0.55" />
@@ -396,8 +541,86 @@
     <section class="wrap" id="kits">
       <h2 class="section-head">Kits</h2>
       <p class="section-sub">Each ZIP is self-demonstrating — mock mode or verify scripts so you can prove it before wiring prod credentials.</p>
-      <div class="catalog">
-        <article class="item">
+      <div class="kit-toolbar">
+        <div class="filters" role="group" aria-label="Filter kits by type">
+          <button type="button" class="is-active" data-filter="all">All</button>
+          <button type="button" data-filter="ai">AI</button>
+          <button type="button" data-filter="saas">SaaS / billing</button>
+          <button type="button" data-filter="data">Data engineering</button>
+          <button type="button" data-filter="integrate">Integrations</button>
+          <button type="button" data-filter="api">APIs &amp; auth</button>
+          <button type="button" data-filter="infra">Infrastructure</button>
+          <button type="button" data-filter="ops">Ops / FinOps</button>
+          <button type="button" data-filter="launch">Launch</button>
+        </div>
+        <label class="sort-wrap">
+          Sort
+          <select id="kit-sort" aria-label="Sort kits">
+            <option value="default">Featured</option>
+            <option value="price-asc">Price · low to high</option>
+            <option value="price-desc">Price · high to low</option>
+            <option value="name-asc">Name · A–Z</option>
+          </select>
+        </label>
+      </div>
+      <p class="catalog-empty" id="kit-empty">No kits in this category — try All.</p>
+      <div class="catalog" id="kit-catalog">
+        <article class="item" data-types="ai saas" data-price="199" data-name="AI SaaS Starter (ForgeChat)">
+          <div>
+            <div class="tag">AI · SaaS · Next.js</div>
+            <h3>AI SaaS Starter (ForgeChat)</h3>
+            <p>Landing, Polar checkout CTA, dashboard chat, and mock/OpenAI API — ship an AI SaaS shell in a weekend.</p>
+          </div>
+          <div class="meta">
+            <span class="price">$199</span>
+            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create SKU 12 on Polar">Polar</a>
+          </div>
+        </article>
+        <article class="item" data-types="saas api" data-price="249" data-name="SaaS Auth + Polar Billing Shell">
+          <div>
+            <div class="tag">Auth · Polar · billing</div>
+            <h3>SaaS Auth + Polar Billing Shell</h3>
+            <p>Auth.js login, protected dashboard, Polar checkout CTA, and webhook entitlement provisioning with mock mode.</p>
+          </div>
+          <div class="meta">
+            <span class="price">$249</span>
+            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create SKU 13 on Polar">Polar</a>
+          </div>
+        </article>
+        <article class="item" data-types="ai saas ops" data-price="149" data-name="AI Usage Metering Kit">
+          <div>
+            <div class="tag">AI · usage · FastAPI</div>
+            <h3>AI Usage Metering Kit</h3>
+            <p>Per-key request/token limits, soft warnings, and a metered chat proxy with mock mode so you can gate AI spend.</p>
+          </div>
+          <div class="meta">
+            <span class="price">$149</span>
+            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create SKU 14 on Polar">Polar</a>
+          </div>
+        </article>
+        <article class="item" data-types="ai" data-price="179" data-name="AI Agent Tools Starter">
+          <div>
+            <div class="tag">AI · agents · tools</div>
+            <h3>AI Agent Tools Starter</h3>
+            <p>Tool-calling agent loop with registerable tools, mock mode, and FastAPI /v1/agent/run — offline verify included.</p>
+          </div>
+          <div class="meta">
+            <span class="price">$179</span>
+            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create SKU 16 on Polar">Polar</a>
+          </div>
+        </article>
+        <article class="item" data-types="launch saas" data-price="79" data-name="Launch Waitlist Kit (Signal)">
+          <div>
+            <div class="tag">Launch · waitlist</div>
+            <h3>Launch Waitlist Kit (Signal)</h3>
+            <p>One-page launch landing, email waitlist API, admin CSV export, and optional Polar early-bird CTA.</p>
+          </div>
+          <div class="meta">
+            <span class="price">$79</span>
+            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create SKU 15 on Polar">Polar</a>
+          </div>
+        </article>
+        <article class="item" data-types="integrate data" data-price="349" data-name="NetSuite to ADF Enterprise Bridge">
           <div>
             <div class="tag">NetSuite · Azure</div>
             <h3>NetSuite to ADF Enterprise Bridge</h3>
@@ -408,7 +631,7 @@
             <a class="buy" href="https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku11">Buy</a>
           </div>
         </article>
-        <article class="item">
+        <article class="item" data-types="data" data-price="199" data-name="ClickHouse Log Analytics Kit">
           <div>
             <div class="tag">ClickHouse · logs</div>
             <h3>ClickHouse Log Analytics Kit</h3>
@@ -419,7 +642,7 @@
             <a class="buy" href="https://buy.polar.sh/polar_cl_CeVsMT83DdoVXj8TNbubXqkOUzzDu35c5JOTy4KqR1I?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku1">Buy</a>
           </div>
         </article>
-        <article class="item">
+        <article class="item" data-types="integrate data" data-price="249" data-name="Salesforce Middleware Boilerplate">
           <div>
             <div class="tag">Salesforce</div>
             <h3>Salesforce Middleware Boilerplate</h3>
@@ -430,7 +653,7 @@
             <a class="buy" href="https://buy.polar.sh/polar_cl_1eA2FpIC2WMHjDS7kVNrpWs280uiyMfMOfZG90oYh1v?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku2">Buy</a>
           </div>
         </article>
-        <article class="item">
+        <article class="item" data-types="ai data" data-price="249" data-name="Agentic RAG SQL Pipeline">
           <div>
             <div class="tag">AI · RAG</div>
             <h3>Agentic RAG SQL Pipeline</h3>
@@ -441,7 +664,7 @@
             <a class="buy" href="https://buy.polar.sh/polar_cl_IhhOw0zq7c8fSmrGfN5sE4zfGKhuXFiLY7j2a2bRjLP?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku8">Buy</a>
           </div>
         </article>
-        <article class="item">
+        <article class="item" data-types="infra data" data-price="199" data-name="Terraform AWS Data Warehouse Infra">
           <div>
             <div class="tag">Terraform · AWS</div>
             <h3>Terraform AWS Data Warehouse Infra</h3>
@@ -452,7 +675,7 @@
             <a class="buy" href="https://buy.polar.sh/polar_cl_aD9n8dq3e0jGCQ9ZHbrhSMp530z1pb1Qel53g0tMXJV?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku7">Buy</a>
           </div>
         </article>
-        <article class="item">
+        <article class="item" data-types="api" data-price="179" data-name="Enterprise API Gateway Starter">
           <div>
             <div class="tag">API · FastAPI</div>
             <h3>Enterprise API Gateway Starter</h3>
@@ -463,7 +686,7 @@
             <a class="buy" href="https://buy.polar.sh/polar_cl_fyBhn5IfLer4u0L9tVFQT57owdTzsBxZAyiWW4OjTAz?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku4">Buy</a>
           </div>
         </article>
-        <article class="item">
+        <article class="item" data-types="saas ops" data-price="149" data-name="Billing Webhook Handler">
           <div>
             <div class="tag">Billing · webhooks</div>
             <h3>Billing Webhook Handler</h3>
@@ -474,7 +697,7 @@
             <a class="buy" href="https://buy.polar.sh/polar_cl_HPj3Bc2kNzWGy7lAJp3PgTN09p2FiIhORyUy73cbHrw?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku9">Buy</a>
           </div>
         </article>
-        <article class="item">
+        <article class="item" data-types="ops" data-price="149" data-name="Cloud Cost Anomaly Monitor">
           <div>
             <div class="tag">Cloud · cost</div>
             <h3>Cloud Cost Anomaly Monitor</h3>
@@ -485,7 +708,7 @@
             <a class="buy" href="https://buy.polar.sh/polar_cl_8zt0MQinjXoPi7DSneVCmSRqPwcMJ4UQoqOml1jjlTC?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku10">Buy</a>
           </div>
         </article>
-        <article class="item">
+        <article class="item" data-types="data" data-price="99" data-name="Data Validation Suite">
           <div>
             <div class="tag">Data quality</div>
             <h3>Data Validation Suite</h3>
@@ -496,7 +719,7 @@
             <a class="buy" href="https://buy.polar.sh/polar_cl_ghzY1JQQIm6ITfbRfOI39egfrqkBZLNG5fwAE0vXqYs?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku3">Buy</a>
           </div>
         </article>
-        <article class="item">
+        <article class="item" data-types="api" data-price="99" data-name="FastAPI RBAC Middleware">
           <div>
             <div class="tag">Auth · RBAC</div>
             <h3>FastAPI RBAC Middleware</h3>
@@ -507,7 +730,7 @@
             <a class="buy" href="https://buy.polar.sh/polar_cl_IjrRUPPSjgp8RDIPPp2vmsSQQeDJWwhvsPsHw4A1UVD?utm_source=storefront&utm_medium=web&utm_campaign=dls_kits&utm_content=sku6">Buy</a>
           </div>
         </article>
-        <article class="item">
+        <article class="item" data-types="data" data-price="79" data-name="Financial Metrics Aggregator">
           <div>
             <div class="tag">Finance · metrics</div>
             <h3>Financial Metrics Aggregator</h3>
@@ -560,6 +783,17 @@
         </article>
         <article class="item">
           <div>
+            <div class="tag">AI · SaaS</div>
+            <h3>Indie SaaS Pack</h3>
+            <p>ForgeChat + Harbor auth/billing + AI Usage Meter — retail $597.</p>
+          </div>
+          <div class="meta">
+            <span class="price">$449</span>
+            <a class="buy" href="https://polar.sh/dark-lighthouse-solutions" title="Checkout link pending — create Indie SaaS Pack on Polar">Polar</a>
+          </div>
+        </article>
+        <article class="item">
+          <div>
             <div class="tag">Everything</div>
             <h3>Full Portfolio</h3>
             <p>All 11 kits in one download set.</p>
@@ -571,21 +805,6 @@
         </article>
       </div>
     </section>
-    <section class="wrap seo-block" id="netsuite">
-      <h2>NetSuite to Azure Data Factory without a $6k connector</h2>
-      <p>
-        Most teams hit the same wall: SuiteAnalytics Connect or a vendor connector costs thousands per year,
-        while a custom SuiteQL extract into Blob Storage is enough for ADF. Our
-        <a class="inline" href="netsuite-adf/">NetSuite to ADF Enterprise Bridge</a>
-        is a FastAPI service that signs Token-Based Authentication requests, paginates SuiteQL until
-        <code>hasMore</code> is false, and writes JSON to Azure Blob for ADF Web Activity.
-      </p>
-      <p>
-        Also in the catalog: ClickHouse bronze/silver/gold log analytics, Salesforce middleware,
-        pandas validation with quarantine, FastAPI gateway + RBAC, Terraform warehouse infra,
-        billing webhooks, and cloud cost anomaly monitoring — one-time Polar downloads, commercial use allowed.
-      </p>
-    </section>
   </main>
 
   <footer class="wrap">
@@ -593,5 +812,59 @@
     <p style="margin-top:0.5rem">Support: <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
     <p style="margin-top:0.5rem">Storefront: <a href="https://darklighthouseadmin.github.io/DarkLighthouse/">darklighthousesolutions.com</a></p>
   </footer>
+  <script>
+    (function () {
+      var catalog = document.getElementById("kit-catalog");
+      if (!catalog) return;
+      var items = Array.prototype.slice.call(catalog.querySelectorAll(".item"));
+      var empty = document.getElementById("kit-empty");
+      var sortEl = document.getElementById("kit-sort");
+      var filter = "all";
+      var order = items.slice();
+
+      function apply() {
+        var visible = 0;
+        items.forEach(function (el) {
+          var types = (el.getAttribute("data-types") || "").split(/\s+/);
+          var match = filter === "all" || types.indexOf(filter) !== -1;
+          el.classList.toggle("is-hidden", !match);
+          if (match) visible += 1;
+        });
+        if (empty) empty.classList.toggle("is-visible", visible === 0);
+
+        var sort = sortEl ? sortEl.value : "default";
+        var sorted = items.slice();
+        if (sort === "price-asc") {
+          sorted.sort(function (a, b) {
+            return Number(a.dataset.price) - Number(b.dataset.price);
+          });
+        } else if (sort === "price-desc") {
+          sorted.sort(function (a, b) {
+            return Number(b.dataset.price) - Number(a.dataset.price);
+          });
+        } else if (sort === "name-asc") {
+          sorted.sort(function (a, b) {
+            return (a.dataset.name || "").localeCompare(b.dataset.name || "");
+          });
+        } else {
+          sorted = order.slice();
+        }
+        sorted.forEach(function (el) {
+          catalog.appendChild(el);
+        });
+      }
+
+      document.querySelectorAll(".filters button").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          filter = btn.getAttribute("data-filter") || "all";
+          document.querySelectorAll(".filters button").forEach(function (b) {
+            b.classList.toggle("is-active", b === btn);
+          });
+          apply();
+        });
+      });
+      if (sortEl) sortEl.addEventListener("change", apply);
+    })();
+  </script>
 </body>
 </html>
