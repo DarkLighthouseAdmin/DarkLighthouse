@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kit Guides &amp; Blog | Dark Lighthouse Solutions</title>
-  <meta name="description" content="Long-form guides for Dark Lighthouse digital kits — NetSuite→ADF, ClickHouse, HubSpot, AI SaaS shells, and more. Read first, buy on Polar." />
+  <title>Kit Guides | Dark Lighthouse Solutions</title>
+  <meta name="description" content="Field guides for Dark Lighthouse workshop kits — NetSuite→ADF, ClickHouse, HubSpot, AI SaaS shells, and more. Architecture notes first." />
   <link rel="canonical" href="https://darklighthousesolutions.com/kits/" />
   <meta name="robots" content="index,follow" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -38,16 +38,11 @@
       line-height: 1.15; margin: 0.9rem 0 0.75rem; letter-spacing: -0.02em;
     }
     .lede { color: var(--muted); font-size: 1.08rem; margin-bottom: 1.35rem; max-width: 52ch; }
-    .price { font-size: 1.55rem; font-weight: 600; margin-bottom: 1rem; }
-    .cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.5rem; }
-    .btn {
-      display: inline-block; background: var(--beacon); color: #1a1208; font-weight: 600;
-      text-decoration: none; padding: 0.85rem 1.35rem; border-radius: 4px;
+    .buy-quiet {
+      margin-top: 1.75rem; font-size: 0.92rem; color: var(--muted);
     }
-    .btn:hover { filter: brightness(1.08); }
-    .btn-ghost {
-      background: transparent; color: var(--ink); border: 1px solid var(--line);
-    }
+    .buy-quiet a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+    .buy-quiet a:hover { color: var(--beacon-hot); }
     h2 {
       font-family: Fraunces, Georgia, serif; font-size: 1.35rem;
       margin: 2.15rem 0 0.7rem; letter-spacing: -0.01em;
@@ -86,36 +81,36 @@
   <main class="wrap">
     <a class="back" href="/">← Storefront</a>
     <h1>Kit guides</h1>
-    <p class="lede">Blog-length explainers for every kit. Read the architecture, smirk at the jokes, then hit Polar when you’re ready — not before.</p>
+    <p class="lede">Long-form notes on each workshop kit — what problem it attacks, how to evaluate the code, and a realistic first week. Read first.</p>
     <div class="kit-list">
-      <a href="/kits/agentic-rag-sql/"><strong>Agentic RAG SQL Pipeline</strong> <span class="meta">— $249 · SKU 8</span></a>
-      <a href="/kits/agent-tools/"><strong>AI Agent Tools Starter</strong> <span class="meta">— $179 · SKU 16</span></a>
-      <a href="/kits/forgechat-ai-saas/"><strong>AI SaaS Starter (ForgeChat)</strong> <span class="meta">— $199 · SKU 12</span></a>
-      <a href="/kits/ai-usage-meter/"><strong>AI Usage Metering Kit</strong> <span class="meta">— $149 · SKU 14</span></a>
-      <a href="/kits/billing-webhooks/"><strong>Billing Webhook Handler</strong> <span class="meta">— $149 · SKU 9</span></a>
-      <a href="/kits/clickhouse-log-analytics/"><strong>ClickHouse Log Analytics Kit</strong> <span class="meta">— $199 · SKU 1</span></a>
-      <a href="/kits/cost-anomaly-monitor/"><strong>Cloud Cost Anomaly Monitor</strong> <span class="meta">— $149 · SKU 10</span></a>
-      <a href="/kits/data-validation-suite/"><strong>Data Validation Suite</strong> <span class="meta">— $99 · SKU 3</span></a>
-      <a href="/kits/chunk-embeddings/"><strong>Doc Chunk + Embeddings Pipeline</strong> <span class="meta">— $179 · SKU 20</span></a>
-      <a href="/kits/duckdb-analytics/"><strong>DuckDB Local Analytics Kit</strong> <span class="meta">— $149 · SKU 21</span></a>
-      <a href="/kits/api-gateway/"><strong>Enterprise API Gateway Starter</strong> <span class="meta">— $179 · SKU 4</span></a>
-      <a href="/kits/rbac-middleware/"><strong>FastAPI RBAC Middleware</strong> <span class="meta">— $99 · SKU 6</span></a>
-      <a href="/kits/feature-flags/"><strong>Feature Flags Kit</strong> <span class="meta">— $99 · SKU 24</span></a>
-      <a href="/kits/finance-aggregator/"><strong>Financial Metrics Aggregator</strong> <span class="meta">— $79 · SKU 5</span></a>
-      <a href="/kits/hubspot-sync/"><strong>HubSpot CRM Sync Middleware</strong> <span class="meta">— $249 · SKU 17</span></a>
-      <a href="/kits/job-scheduler/"><strong>Job Scheduler API</strong> <span class="meta">— $129 · SKU 23</span></a>
-      <a href="/kits/signal-waitlist/"><strong>Launch Waitlist Kit (Signal)</strong> <span class="meta">— $79 · SKU 15</span></a>
-      <a href="/kits/license-keys/"><strong>License Key Server</strong> <span class="meta">— $179 · SKU 19</span></a>
-      <a href="/kits/multitenant-orgs/"><strong>Multi-Tenant Orgs Kit</strong> <span class="meta">— $249 · SKU 18</span></a>
-      <a href="/kits/netsuite-adf/"><strong>NetSuite to ADF Enterprise Bridge</strong> <span class="meta">— $349 · SKU 11</span></a>
-      <a href="/kits/nps-feedback/"><strong>NPS / Feedback API</strong> <span class="meta">— $79 · SKU 28</span></a>
-      <a href="/kits/pdf-invoice/"><strong>PDF Invoice Generator API</strong> <span class="meta">— $129 · SKU 22</span></a>
-      <a href="/kits/rate-limit/"><strong>Rate Limit Middleware</strong> <span class="meta">— $99 · SKU 26</span></a>
-      <a href="/kits/harbor-auth-polar/"><strong>SaaS Auth + Polar Billing Shell (Harbor)</strong> <span class="meta">— $249 · SKU 13</span></a>
-      <a href="/kits/salesforce-middleware/"><strong>Salesforce Middleware Boilerplate</strong> <span class="meta">— $249 · SKU 2</span></a>
-      <a href="/kits/slack-alerts/"><strong>Slack Ops Alert Relay</strong> <span class="meta">— $79 · SKU 27</span></a>
-      <a href="/kits/terraform-aws-warehouse/"><strong>Terraform AWS Data Warehouse Infra</strong> <span class="meta">— $199 · SKU 7</span></a>
-      <a href="/kits/tx-email/"><strong>Transactional Email Kit</strong> <span class="meta">— $99 · SKU 25</span></a>
+      <a href="/kits/agentic-rag-sql/"><strong>Agentic RAG SQL Pipeline</strong> <span class="meta">— AI · RAG · SQL</span></a>
+      <a href="/kits/agent-tools/"><strong>AI Agent Tools Starter</strong> <span class="meta">— AI · tools</span></a>
+      <a href="/kits/forgechat-ai-saas/"><strong>AI SaaS Starter (ForgeChat)</strong> <span class="meta">— AI · SaaS · Next.js</span></a>
+      <a href="/kits/ai-usage-meter/"><strong>AI Usage Metering Kit</strong> <span class="meta">— AI · metering</span></a>
+      <a href="/kits/billing-webhooks/"><strong>Billing Webhook Handler</strong> <span class="meta">— webhooks · billing</span></a>
+      <a href="/kits/clickhouse-log-analytics/"><strong>ClickHouse Log Analytics Kit</strong> <span class="meta">— ClickHouse · medallion</span></a>
+      <a href="/kits/cost-anomaly-monitor/"><strong>Cloud Cost Anomaly Monitor</strong> <span class="meta">— FinOps · alerts</span></a>
+      <a href="/kits/data-validation-suite/"><strong>Data Validation Suite</strong> <span class="meta">— pandas · quality</span></a>
+      <a href="/kits/chunk-embeddings/"><strong>Doc Chunk + Embeddings Pipeline</strong> <span class="meta">— AI · RAG prep</span></a>
+      <a href="/kits/duckdb-analytics/"><strong>DuckDB Local Analytics Kit</strong> <span class="meta">— DuckDB · analytics</span></a>
+      <a href="/kits/api-gateway/"><strong>Enterprise API Gateway Starter</strong> <span class="meta">— FastAPI · edge</span></a>
+      <a href="/kits/rbac-middleware/"><strong>FastAPI RBAC Middleware</strong> <span class="meta">— FastAPI · RBAC</span></a>
+      <a href="/kits/feature-flags/"><strong>Feature Flags Kit</strong> <span class="meta">— Flags</span></a>
+      <a href="/kits/finance-aggregator/"><strong>Financial Metrics Aggregator</strong> <span class="meta">— finance · metrics</span></a>
+      <a href="/kits/hubspot-sync/"><strong>HubSpot CRM Sync Middleware</strong> <span class="meta">— HubSpot · CRM</span></a>
+      <a href="/kits/job-scheduler/"><strong>Job Scheduler API</strong> <span class="meta">— Ops · cron</span></a>
+      <a href="/kits/signal-waitlist/"><strong>Launch Waitlist Kit (Signal)</strong> <span class="meta">— Launch · waitlist</span></a>
+      <a href="/kits/license-keys/"><strong>License Key Server</strong> <span class="meta">— Licensing</span></a>
+      <a href="/kits/multitenant-orgs/"><strong>Multi-Tenant Orgs Kit</strong> <span class="meta">— SaaS · orgs</span></a>
+      <a href="/kits/netsuite-adf/"><strong>NetSuite to ADF Enterprise Bridge</strong> <span class="meta">— NetSuite · Azure · ADF</span></a>
+      <a href="/kits/nps-feedback/"><strong>NPS / Feedback API</strong> <span class="meta">— Feedback · NPS</span></a>
+      <a href="/kits/pdf-invoice/"><strong>PDF Invoice Generator API</strong> <span class="meta">— Billing · PDF</span></a>
+      <a href="/kits/rate-limit/"><strong>Rate Limit Middleware</strong> <span class="meta">— API · limits</span></a>
+      <a href="/kits/harbor-auth-polar/"><strong>SaaS Auth + Polar Billing Shell (Harbor)</strong> <span class="meta">— Auth.js · Polar</span></a>
+      <a href="/kits/salesforce-middleware/"><strong>Salesforce Middleware Boilerplate</strong> <span class="meta">— Salesforce · sync</span></a>
+      <a href="/kits/slack-alerts/"><strong>Slack Ops Alert Relay</strong> <span class="meta">— Slack · alerts</span></a>
+      <a href="/kits/terraform-aws-warehouse/"><strong>Terraform AWS Data Warehouse Infra</strong> <span class="meta">— Terraform · AWS</span></a>
+      <a href="/kits/tx-email/"><strong>Transactional Email Kit</strong> <span class="meta">— Email</span></a>
     </div>
     <footer class="site"><a href="/">darklighthousesolutions.com</a></footer>
   </main>

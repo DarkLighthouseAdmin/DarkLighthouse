@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetSuite to ADF Enterprise Bridge — $349 | Dark Lighthouse Solutions</title>
+  <title>NetSuite to ADF Enterprise Bridge — Guide | Dark Lighthouse Solutions</title>
   <meta name="description" content="Azure Data Factory has no native NetSuite connector. This Dockerized FastAPI bridge handles TBA auth and SuiteQL pagination so you can own the pipeline for" />
   <meta name="keywords" content="NetSuite ADF, SuiteQL extract, NetSuite TBA, Azure Data Factory NetSuite connector, SuiteAnalytics alternative" />
   <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://darklighthousesolutions.com/kits/netsuite-adf/" />
-  <meta property="og:title" content="NetSuite to ADF Enterprise Bridge — $349" />
+  <meta property="og:title" content="NetSuite to ADF Enterprise Bridge — Guide" />
   <meta property="og:description" content="Azure Data Factory has no native NetSuite connector. This Dockerized FastAPI bridge handles TBA auth and SuiteQL pagination so you can own the pipeline for" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="https://darklighthousesolutions.com/kits/netsuite-adf/" />
@@ -72,16 +72,11 @@
       line-height: 1.15; margin: 0.9rem 0 0.75rem; letter-spacing: -0.02em;
     }
     .lede { color: var(--muted); font-size: 1.08rem; margin-bottom: 1.35rem; max-width: 52ch; }
-    .price { font-size: 1.55rem; font-weight: 600; margin-bottom: 1rem; }
-    .cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.5rem; }
-    .btn {
-      display: inline-block; background: var(--beacon); color: #1a1208; font-weight: 600;
-      text-decoration: none; padding: 0.85rem 1.35rem; border-radius: 4px;
+    .buy-quiet {
+      margin-top: 1.75rem; font-size: 0.92rem; color: var(--muted);
     }
-    .btn:hover { filter: brightness(1.08); }
-    .btn-ghost {
-      background: transparent; color: var(--ink); border: 1px solid var(--line);
-    }
+    .buy-quiet a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+    .buy-quiet a:hover { color: var(--beacon-hot); }
     h2 {
       font-family: Fraunces, Georgia, serif; font-size: 1.35rem;
       margin: 2.15rem 0 0.7rem; letter-spacing: -0.01em;
@@ -119,15 +114,10 @@
 <body>
   <article class="wrap prose">
     <a class="back" href="/kits/">← All kit guides</a>
-    <div class="tag">NetSuite · Azure · ADF · SKU 11</div>
+    <div class="tag">NetSuite · Azure · ADF</div>
     <h1>Stop Paying Five Figures to Move NetSuite Data into Azure.</h1>
     <p class="lede">Azure Data Factory has no native NetSuite connector. This Dockerized FastAPI bridge handles TBA auth and SuiteQL pagination so you can own the pipeline for a one-time fee — not a SaaS subscription that outlives your marriage.</p>
-    <p class="reading">~1397 words · guide + pitch · updated for Polar checkout</p>
-    <p class="price">$349 · one-time Polar download</p>
-    <div class="cta-row">
-      <a class="btn" href="https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I?utm_source=storefront&amp;utm_medium=web&amp;utm_campaign=kit_page&amp;utm_content=sku11">Get the Kit — $349</a>
-      <a class="btn btn-ghost" href="/#kits">Browse catalog</a>
-    </div>
+    <p class="reading">~1052 words · field guide</p>
     <p class="joke">If your current NetSuite extract is a Jupyter notebook named final_final_v3_REALLY.ipynb, this page is a safe space.</p>
 
     <h2>Why NetSuite → Azure feels like a side quest designed by a villain</h2>
@@ -137,7 +127,7 @@
       <li>Option C: Hand-roll TBA HMAC-SHA256 at 11pm, then learn SuiteQL’s 1,000-row page limit the hard way when finance asks where January went.</li>
     </ul>
 
-    <h2>The solution in one breath</h2>
+    <h2>The shape of the solution</h2>
     <p>A stateless, Dockerized FastAPI microservice. ADF fires a Web Activity POST to /v1/extract with SuiteQL + a blob path. The service signs TBA, paginates until hasMore is false, and writes JSON to Azure Blob / ADLS Gen2. Secrets stay in .env — not in your ADF JSON like a ransom note.</p>
     <ul>
       <li>TBA authentication solved — OAuth 1.0a HMAC-SHA256 handshake without inventing cryptography from vibes</li>
@@ -167,15 +157,14 @@
   }
 }</pre>
 
-    <h2>What NetSuite to ADF Enterprise Bridge is actually for (and what it isn’t)</h2>
-    <p>Let’s get the pitch out of the way without the LinkedIn perfume: NetSuite to ADF Enterprise Bridge is a one-time $349 download from Dark Lighthouse Solutions. It sits in the NetSuite · Azure · ADF corner of the catalog. You buy it on Polar, unzip it, run verify or mock mode, and decide if it belongs in your stack — before anyone schedules a “discovery workshop” that costs more than the kit.</p>
-    <p>What it is not: a managed SaaS, a 24/7 support desk with a Slack white-glove, or a promise that your org chart will suddenly make sense. It’s a consulting-shaped asset we got tired of rebuilding — the same way you get tired of rebuilding TBA signatures, webhook HMAC, or yet another waitlist form that somehow requires Kubernetes.</p>
-    <p>If that sounds blunt, good. Blunt ships. The softer version is this: A stateless, Dockerized FastAPI microservice. ADF fires a Web Activity POST to /v1/extract with SuiteQL + a blob path. The service signs TBA, paginates until hasMore is false, and writes JSON to Azure Blob / ADLS Gen2. Secrets stay in .env — not in your ADF JSON like a ransom note.</p>
+    <h2>What NetSuite to ADF Enterprise Bridge is for (and what it isn’t)</h2>
+    <p>NetSuite to ADF Enterprise Bridge lives in the NetSuite · Azure · ADF lane. It’s a downloadable workshop folder — code you unzip, run in mock mode, and adapt — not a hosted product with seats, SLAs, or a customer success manager named Chad.</p>
+    <p>In plain terms: A stateless, Dockerized FastAPI microservice. ADF fires a Web Activity POST to /v1/extract with SuiteQL + a blob path. The service signs TBA, paginates until hasMore is false, and writes JSON to Azure Blob / ADLS Gen2. Secrets stay in .env — not in your ADF JSON like a ransom note.</p>
+    <p>If you came here for a soft-focus brand story about ‘empowering data journeys,’ you’re in the wrong harbor. This is notes from people who got tired of rebuilding the same bridge on every engagement.</p>
     <h2>The Tuesday-afternoon version of the problem</h2>
-    <p>Every kit on this site starts with a Tuesday afternoon. Someone asks for “a quick integration,” “a thin wrapper,” or “just wire Polar.” Three weeks later you’re debugging pagination at 11:40pm while Slack lights up like a Christmas tree that only plays error tones.</p>
-    <p>For NetSuite to ADF Enterprise Bridge, the recurring pain looks like this:</p>
-    <p>(1) Option A: Pay hundreds a month for SuiteAnalytics Connect ODBC and still configure half a zoo. (2) Option B: Buy a managed connector (Fivetran / Celigo / friends) and discover annual invoices that look like car payments. (3) Option C: Hand-roll TBA HMAC-SHA256 at 11pm, then learn SuiteQL’s 1,000-row page limit the hard way when finance asks where January went.</p>
-    <p>We’ve lived that loop as systems / data engineers. The joke writes itself: If your current NetSuite extract is a Jupyter notebook named final_final_v3_REALLY.ipynb, this page is a safe space. The unfunny part is the invoice — either yours (time) or your client’s (SaaS connectors that renew forever).</p>
+    <p>These kits start on a Tuesday afternoon. Someone asks for a ‘thin wrapper’ or a ‘quick sync.’ Three weeks later you’re debugging pagination while Slack blinks like a smoke alarm.</p>
+    <p>For this one, the pain usually shows up as: (1) Option A: Pay hundreds a month for SuiteAnalytics Connect ODBC and still configure half a zoo. (2) Option B: Buy a managed connector (Fivetran / Celigo / friends) and discover annual invoices that look like car payments. (3) Option C: Hand-roll TBA HMAC-SHA256 at 11pm, then learn SuiteQL’s 1,000-row page limit the hard way when finance asks where January went.</p>
+    <p>If your current NetSuite extract is a Jupyter notebook named final_final_v3_REALLY.ipynb, this page is a safe space.</p>
     <h2>The missing connector nobody wants to admit is missing</h2>
     <p>Azure Data Factory will happily talk to half the planet. NetSuite is somehow still “bring your own suffering.” That’s not a dig at Microsoft — it’s just the reality every NetSuite shop discovers around month two of the lakehouse roadmap.</p>
     <p>Teams either pay for SuiteAnalytics Connect, rent a managed sync product, or commission a custom bridge that becomes tribal knowledge the day the contractor vanishes into a ski trip. We built this kit because we were that contractor one too many times — and we wanted a reusable, readable, Dockerized answer instead of another private repo named netsuite_thing.</p>
@@ -185,29 +174,24 @@
     <h2>Mock mode is the adult supervision</h2>
     <p>Nothing says “enterprise ready” like wiring production TBA into a pipeline you haven’t smoke-tested. Mock mode returns deterministic rows so Web Activity, retries, and blob paths can be proven first.</p>
     <p>Then flip MOCK_MODE off, drop in tokens, and let the same contract hit the real tenant. Same shape. Fewer heart attacks.</p>
-    <h2>How we want you to evaluate it (without vibes)</h2>
-    <p>Open the README. Copy .env.example. Run the verify script or mock path. You should get a green, boring signal that the HTTP contract / core logic works. That boredom is the product. Flashy demos that only run on the author’s laptop are how “AI kits” earned a bad reputation.</p>
-    <p>Then read the modules like you’d read a colleague’s PR. If the structure feels like something you’d reuse on a client engagement — orgs, extractors, routers, buckets, flags, whatever this SKU is — keep going. If it feels like generated goo with no spine, email us. We’d rather refund reputation than collect confused one-stars.</p>
-    <p>SKU 11 ships with pieces aimed at: TBA authentication solved — OAuth 1.0a HMAC-SHA256 handshake without inventing cryptography from vibes; Automatic pagination until NetSuite says hasMore: false; Zero hardcoded secrets — env-driven config; Mock mode — prove the ADF contract before you touch prod tokens; and more in the ZIP.</p>
-    <h2>A realistic install story (no hero montage)</h2>
-    <p>Day 0: buy on Polar, unzip, skim LICENSE (commercial use for client work is the point). Day 0.5: mock/verify. Day 1: point env vars at non-prod credentials if you have them. Day 2: hang it behind ADF / your app / your cron — depending on the kit — and watch one happy path.</p>
-    <p>Day 3 is when you stop treating it like a demo and start treating it like glue: logging, retries, secrets in a real secret store, and the inevitable “can we also support X?” You own the code. Extend it. That’s why it’s a kit, not a seat license that charges you for the privilege of waiting on a vendor roadmap.</p>
-    <p>If your team’s process requires a 40-page design doc before a Dockerfile, cool — paste the architecture from this page into the doc and skip inventing a connector strategy from folklore.</p>
-    <h2>Where the humor stops and the engineering starts</h2>
-    <p>We put jokes on these pages because dry documentation is how good tools die unread. Humor is not a substitute for HMAC verification, pagination, role checks, or private subnets. If a paragraph made you smirk and then you skipped the verify script, we failed.</p>
-    <p>So here’s the non-comedy checklist for NetSuite to ADF Enterprise Bridge: secrets out of source control, mock before prod, verify in CI if you can, and don’t paste checkout URLs into random Discord servers like candy. Polar is the cash register. This page is the brochure. The ZIP is the workshop.</p>
-    <p>Dark Lighthouse is a consulting alias with a product habit. We sell reusable bridges because rewriting them for free was getting old — and because the market is full of either $0 tutorials or $50k services with nothing in between.</p>
-    <h2>Who should buy this (and who should keep walking)</h2>
-    <p>Buy NetSuite to ADF Enterprise Bridge if you’re a data/platform/SaaS engineer who recognizes the pain bullets above in your bones, needs something deployable this month, and prefers owning code to renting another logo.</p>
-    <p>Keep walking if you need a fully managed sync with an account manager, a white-label marketplace app, or a guarantee that NetSuite/Salesforce/AWS/OpenAI will never change an API. We package sharp tools. We don’t pretend vendors sit still.</p>
-    <p>Price is $349 once. Compare that to a week of senior time or a year of connector tax. If the math doesn’t work for your case, don’t buy — we’re not here to guilt-trip your roadmap.</p>
-    <h2>Closing pitch, then go touch grass (or docker compose)</h2>
-    <p>If you made it this far, you’re either buying or procrastinating productively. Both are fine. When you’re ready: Polar checkout, unzip, verify, mock, then prod. If something’s wrong with the advertised path, email admin@darklighthousesolutions.com or use Polar support within 14 days — digital goods can’t be “returned” like a sweater, but we can still act like adults about misfit expectations.</p>
-    <p>Next stop: the CTA button above/below, or the catalog if you want to bundle this with its siblings. NetSuite to ADF Enterprise Bridge is one lighthouse in the harbor. The whole point of the store is so you’re not rebuilding the harbor from driftwood every quarter.</p>
-
-    <h2>Pricing &amp; risk (adult conversation)</h2>
-    <p><strong>$349</strong> one-time via Polar (merchant of record). You own the code for commercial use under the included license.</p>
-    <p>Digital goods are weird — once downloaded, bits exist. We still say: if the kit doesn’t match what’s advertised, contact us within 14 days via Polar/support and we’ll make it right. That’s reputation math, not DRM cosplay.</p>
+    <h2>How to evaluate it without vibes</h2>
+    <p>Open the README. Copy .env.example. Run the verify script or mock path. You want a boring green signal that the contract works. Flashy demos that only run on the author’s laptop are how ‘kits’ earned a bad name.</p>
+    <p>Then read the modules like a colleague’s PR. If the structure looks reusable, keep going. If it feels like generated goo, close the tab — life’s short.</p>
+    <p>You’ll see pieces aimed at: TBA authentication solved — OAuth 1.0a HMAC-SHA256 handshake without inventing cryptography from vibes; Automatic pagination until NetSuite says hasMore: false; Zero hardcoded secrets — env-driven config; Mock mode — prove the ADF contract before you touch prod tokens; Docker / docker-compose ready for Container Apps or a VM that still remembers Ubuntu.</p>
+    <h2>A realistic first week (no hero montage)</h2>
+    <p>Day 0: unzip, skim the license, run verify/mock. Day 1: point env vars at non-prod credentials if you have them. Day 2: hang it behind ADF, your app, or cron — depending on what this kit is — and watch one happy path.</p>
+    <p>Day 3 is when you stop treating it like a demo: logging, retries, secrets in a real secret store, and the inevitable ‘can we also support X?’ You own the code. Extend it. That’s the whole point of a workshop asset versus renting another logo.</p>
+    <p>If your process requires a design doc before a Dockerfile, paste the architecture from this page into the doc and skip inventing folklore from Slack threads.</p>
+    <h2>Where the jokes stop</h2>
+    <p>Humor is here so the page isn’t a funeral. It is not a substitute for signature checks, pagination, role gates, or private networks. If you smirked and skipped verify, that’s on both of us.</p>
+    <p>Checklist: secrets out of git, mock before prod, verify in CI if you can. The ZIP is the workshop. This page is the field notes.</p>
+    <p>Dark Lighthouse is a consulting alias with a product habit — reusable bridges because rewriting them from scratch was getting old.</p>
+    <h2>Where it fits</h2>
+    <p>NetSuite to ADF Enterprise Bridge is aimed at data, platform, or SaaS engineers who recognize the pain bullets above and want a deployable starting point instead of a six-week inventing contest.</p>
+    <p>It won’t replace a fully managed sync, a white-glove marketplace app, or a promise that vendors never change APIs. Sharp tools, not frozen oceans.</p>
+    <h2>Wrap-up</h2>
+    <p>That’s the field notes for NetSuite to ADF Enterprise Bridge. Next step is the ZIP and the verify script — not another meeting. Questions: admin@darklighthousesolutions.com.</p>
+    <p>More bridges in the same style live on the kit guides index.</p>
 
     <h2>FAQ</h2>
     <h3>Who made this?</h3>
@@ -224,8 +208,9 @@
       Support: <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a>
     </div>
 
-    <p style="margin-top:1.75rem">
-      <a class="btn" href="https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I?utm_source=storefront&amp;utm_medium=web&amp;utm_campaign=kit_page&amp;utm_content=sku11">Get the Kit — $349</a>
+    <p class="buy-quiet">
+      <a href="https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I?utm_source=storefront&amp;utm_medium=web&amp;utm_campaign=kit_page&amp;utm_content=sku11">Download on Polar</a>
+      if you want the ZIP · <a href="/kits/">All guides</a>
     </p>
     <footer class="site">
       <a href="/kits/">All guides</a> · <a href="/">Storefront</a> · © Dark Lighthouse Solutions
