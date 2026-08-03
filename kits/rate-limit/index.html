@@ -17,7 +17,11 @@
   <script type="application/ld+json">
   {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
+  "@type": [
+    "SoftwareApplication",
+    "BlogPosting"
+  ],
+  "headline": "Token-bucket limits before abuse shows up on the bill.",
   "name": "Rate Limit Middleware",
   "applicationCategory": "DeveloperApplication",
   "description": "FastAPI dependency rate limiting. Protect chat and extract endpoints. Pair with usage metering for spend caps.",
@@ -51,7 +55,10 @@
         radial-gradient(ellipse 80% 50% at 80% 0%, rgba(232,165,75,0.16), transparent 50%),
         linear-gradient(180deg, #040a10, #0a1622 45%, #071018);
     }
-    .wrap { width: min(760px, calc(100% - 2rem)); margin: 0 auto; padding: 2.5rem 0 4rem; }
+    .wrap { width: min(720px, calc(100% - 2rem)); margin: 0 auto; padding: 2.5rem 0 4.5rem; }
+    .prose p { margin-bottom: 1.05rem; max-width: 68ch; }
+    .prose h2 { margin-top: 2.6rem; }
+    .reading { font-size: 0.8rem; color: var(--muted); margin: 0.35rem 0 1.25rem; }
     a { color: var(--beacon-hot); }
     .back { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
     .back:hover { color: var(--beacon-hot); }
@@ -110,11 +117,12 @@
   </style>
 </head>
 <body>
-  <article class="wrap">
+  <article class="wrap prose">
     <a class="back" href="/kits/">← All kit guides</a>
     <div class="tag">API · limits · SKU 26</div>
     <h1>Token-bucket limits before abuse shows up on the bill.</h1>
     <p class="lede">FastAPI dependency rate limiting. Protect chat and extract endpoints. Pair with usage metering for spend caps.</p>
+    <p class="reading">~1058 words · guide + pitch · updated for Polar checkout</p>
     <p class="price">$99 · one-time Polar download</p>
     <div class="cta-row">
       <a class="btn" href="https://buy.polar.sh/polar_cl_fajSYWSZL0HWQIvheDIvhN27s2O53E6fl5ig92gejKu?utm_source=storefront&amp;utm_medium=web&amp;utm_campaign=kit_page&amp;utm_content=sku26">Get the Kit — $99</a>
@@ -129,7 +137,7 @@
       <li>No 429 until the invoice.</li>
     </ul>
 
-    <h2>The solution</h2>
+    <h2>The solution in one breath</h2>
     <p>TokenBucket.allow(key) as a dependency. Tune rate/capacity per route.</p>
     <ul>
       <li>Token bucket</li>
@@ -146,15 +154,42 @@
       <li>LICENSE</li>
     </ul>
 
-    <h2>From the workshop</h2>
+    <h2>What Rate Limit Middleware is actually for (and what it isn’t)</h2>
+    <p>Let’s get the pitch out of the way without the LinkedIn perfume: Rate Limit Middleware is a one-time $99 download from Dark Lighthouse Solutions. It sits in the API · limits corner of the catalog. You buy it on Polar, unzip it, run verify or mock mode, and decide if it belongs in your stack — before anyone schedules a “discovery workshop” that costs more than the kit.</p>
+    <p>What it is not: a managed SaaS, a 24/7 support desk with a Slack white-glove, or a promise that your org chart will suddenly make sense. It’s a consulting-shaped asset we got tired of rebuilding — the same way you get tired of rebuilding TBA signatures, webhook HMAC, or yet another waitlist form that somehow requires Kubernetes.</p>
+    <p>If that sounds blunt, good. Blunt ships. The softer version is this: TokenBucket.allow(key) as a dependency. Tune rate/capacity per route.</p>
+    <h2>The Tuesday-afternoon version of the problem</h2>
+    <p>Every kit on this site starts with a Tuesday afternoon. Someone asks for “a quick integration,” “a thin wrapper,” or “just wire Polar.” Three weeks later you’re debugging pagination at 11:40pm while Slack lights up like a Christmas tree that only plays error tones.</p>
+    <p>For Rate Limit Middleware, the recurring pain looks like this:</p>
+    <p>(1) Retry storms. (2) Demo scripts that become load tests. (3) No 429 until the invoice.</p>
+    <p>We’ve lived that loop as systems / data engineers. The joke writes itself: Your API is not an all-you-can-eat buffet. Put up a velvet rope. The unfunny part is the invoice — either yours (time) or your client’s (SaaS connectors that renew forever).</p>
     <h2>429 is a feature</h2>
     <p>Better a clear limit than a silent meltdown.</p>
     <h2>Pair with metering</h2>
     <p>Rate limits pace. Metering prices. Together they save margins.</p>
+    <h2>How we want you to evaluate it (without vibes)</h2>
+    <p>Open the README. Copy .env.example. Run the verify script or mock path. You should get a green, boring signal that the HTTP contract / core logic works. That boredom is the product. Flashy demos that only run on the author’s laptop are how “AI kits” earned a bad reputation.</p>
+    <p>Then read the modules like you’d read a colleague’s PR. If the structure feels like something you’d reuse on a client engagement — orgs, extractors, routers, buckets, flags, whatever this SKU is — keep going. If it feels like generated goo with no spine, email us. We’d rather refund reputation than collect confused one-stars.</p>
+    <p>SKU 26 ships with pieces aimed at: Token bucket; Per-key limits; 429 path; Verify.</p>
+    <h2>A realistic install story (no hero montage)</h2>
+    <p>Day 0: buy on Polar, unzip, skim LICENSE (commercial use for client work is the point). Day 0.5: mock/verify. Day 1: point env vars at non-prod credentials if you have them. Day 2: hang it behind ADF / your app / your cron — depending on the kit — and watch one happy path.</p>
+    <p>Day 3 is when you stop treating it like a demo and start treating it like glue: logging, retries, secrets in a real secret store, and the inevitable “can we also support X?” You own the code. Extend it. That’s why it’s a kit, not a seat license that charges you for the privilege of waiting on a vendor roadmap.</p>
+    <p>If your team’s process requires a 40-page design doc before a Dockerfile, cool — paste the architecture from this page into the doc and skip inventing a connector strategy from folklore.</p>
+    <h2>Where the humor stops and the engineering starts</h2>
+    <p>We put jokes on these pages because dry documentation is how good tools die unread. Humor is not a substitute for HMAC verification, pagination, role checks, or private subnets. If a paragraph made you smirk and then you skipped the verify script, we failed.</p>
+    <p>So here’s the non-comedy checklist for Rate Limit Middleware: secrets out of source control, mock before prod, verify in CI if you can, and don’t paste checkout URLs into random Discord servers like candy. Polar is the cash register. This page is the brochure. The ZIP is the workshop.</p>
+    <p>Dark Lighthouse is a consulting alias with a product habit. We sell reusable bridges because rewriting them for free was getting old — and because the market is full of either $0 tutorials or $50k services with nothing in between.</p>
+    <h2>Who should buy this (and who should keep walking)</h2>
+    <p>Buy Rate Limit Middleware if you’re a data/platform/SaaS engineer who recognizes the pain bullets above in your bones, needs something deployable this month, and prefers owning code to renting another logo.</p>
+    <p>Keep walking if you need a fully managed sync with an account manager, a white-label marketplace app, or a guarantee that NetSuite/Salesforce/AWS/OpenAI will never change an API. We package sharp tools. We don’t pretend vendors sit still.</p>
+    <p>Price is $99 once. Compare that to a week of senior time or a year of connector tax. If the math doesn’t work for your case, don’t buy — we’re not here to guilt-trip your roadmap.</p>
+    <h2>Closing pitch, then go touch grass (or docker compose)</h2>
+    <p>If you made it this far, you’re either buying or procrastinating productively. Both are fine. When you’re ready: Polar checkout, unzip, verify, mock, then prod. If something’s wrong with the advertised path, email admin@darklighthousesolutions.com or use Polar support within 14 days — digital goods can’t be “returned” like a sweater, but we can still act like adults about misfit expectations.</p>
+    <p>Next stop: the CTA button above/below, or the catalog if you want to bundle this with its siblings. Rate Limit Middleware is one lighthouse in the harbor. The whole point of the store is so you’re not rebuilding the harbor from driftwood every quarter.</p>
 
-    <h2>Pricing &amp; risk</h2>
+    <h2>Pricing &amp; risk (adult conversation)</h2>
     <p><strong>$99</strong> one-time via Polar (merchant of record). You own the code for commercial use under the included license.</p>
-    <p>Digital goods are weird — once downloaded, bits exist. Still: if the kit doesn’t match what’s advertised, contact us within 14 days via Polar/support and we’ll make it right. We’re building a reputation, not a smash-and-grab ZIP stand.</p>
+    <p>Digital goods are weird — once downloaded, bits exist. We still say: if the kit doesn’t match what’s advertised, contact us within 14 days via Polar/support and we’ll make it right. That’s reputation math, not DRM cosplay.</p>
 
     <h2>FAQ</h2>
     <h3>Redis?</h3>
