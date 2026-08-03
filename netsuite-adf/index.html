@@ -3,37 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetSuite to Azure Data Factory Bridge | SuiteQL → Blob | Dark Lighthouse</title>
-  <meta name="description" content="NetSuite TBA + SuiteQL pagination microservice for Azure Data Factory Web Activity. Writes JSON to Azure Blob. Mock mode included. One-time $349 download — alternative to SuiteAnalytics Connect." />
-  <meta name="keywords" content="NetSuite ADF, NetSuite Azure Data Factory, SuiteQL extract, NetSuite TBA, NetSuite Blob Storage, SuiteAnalytics alternative" />
+  <title>NetSuite to ADF Enterprise Bridge — $349 | Dark Lighthouse Solutions</title>
+  <meta name="description" content="Azure Data Factory has no native NetSuite connector. This Dockerized FastAPI bridge handles TBA auth and SuiteQL pagination so you can own the pipeline for" />
+  <meta name="keywords" content="NetSuite ADF, SuiteQL extract, NetSuite TBA, Azure Data Factory NetSuite connector, SuiteAnalytics alternative" />
   <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://darklighthousesolutions.com/netsuite-adf/" />
   <meta property="og:title" content="NetSuite to ADF Enterprise Bridge — $349" />
-  <meta property="og:description" content="FastAPI + TBA SuiteQL → Azure Blob for ADF. Mock mode. One-time download." />
-  <meta property="og:type" content="product" />
+  <meta property="og:description" content="Azure Data Factory has no native NetSuite connector. This Dockerized FastAPI bridge handles TBA auth and SuiteQL pagination so you can own the pipeline for" />
+  <meta property="og:type" content="article" />
   <meta property="og:url" content="https://darklighthousesolutions.com/netsuite-adf/" />
   <meta property="og:image" content="https://darklighthousesolutions.com/og.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <script type="application/ld+json">
   {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "NetSuite to ADF Enterprise Bridge",
-    "applicationCategory": "DeveloperApplication",
-    "operatingSystem": "Windows, Linux, macOS, Docker",
-    "description": "FastAPI microservice for ADF Web Activity: NetSuite Token-Based Auth, SuiteQL pagination, Azure Blob JSON upload, mock mode.",
-    "offers": {
-      "@type": "Offer",
-      "price": "349.00",
-      "priceCurrency": "USD",
-      "url": "https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Dark Lighthouse Solutions",
-      "email": "admin@darklighthousesolutions.com"
-    }
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "NetSuite to ADF Enterprise Bridge",
+  "applicationCategory": "DeveloperApplication",
+  "description": "Azure Data Factory has no native NetSuite connector. This Dockerized FastAPI bridge handles TBA auth and SuiteQL pagination so you can own the pipeline for a one-time fee \u2014 not a SaaS subscription that outlives your marriage.",
+  "offers": {
+    "@type": "Offer",
+    "price": "349.00",
+    "priceCurrency": "USD",
+    "url": "https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Dark Lighthouse Solutions",
+    "url": "https://darklighthousesolutions.com/",
+    "email": "admin@darklighthousesolutions.com"
   }
+}
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -46,86 +46,155 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: "IBM Plex Sans", system-ui, sans-serif; color: var(--ink); background: var(--deep);
-      line-height: 1.6; min-height: 100vh;
+      line-height: 1.65; min-height: 100vh;
       background-image:
-        radial-gradient(ellipse 80% 50% at 80% 0%, rgba(232,165,75,0.18), transparent 50%),
-        linear-gradient(180deg, #040a10, #0a1622 50%, #071018);
+        radial-gradient(ellipse 80% 50% at 80% 0%, rgba(232,165,75,0.16), transparent 50%),
+        linear-gradient(180deg, #040a10, #0a1622 45%, #071018);
     }
-    .wrap { width: min(760px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 4rem; }
+    .wrap { width: min(760px, calc(100% - 2rem)); margin: 0 auto; padding: 2.5rem 0 4rem; }
     a { color: var(--beacon-hot); }
     .back { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
     .back:hover { color: var(--beacon-hot); }
-    h1 {
-      font-family: Fraunces, Georgia, serif; font-size: clamp(1.9rem, 4vw, 2.6rem);
-      line-height: 1.15; margin: 1.25rem 0 0.75rem; letter-spacing: -0.02em;
+    .tag {
+      display: inline-block; margin-top: 1.1rem; font-size: 0.75rem; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--beacon); border: 1px solid var(--line);
+      padding: 0.25rem 0.55rem; border-radius: 3px;
     }
-    .lede { color: var(--muted); font-size: 1.1rem; margin-bottom: 1.5rem; max-width: 42ch; }
-    .price { font-size: 1.75rem; font-weight: 600; margin-bottom: 1rem; }
+    h1 {
+      font-family: Fraunces, Georgia, serif; font-size: clamp(1.85rem, 4.2vw, 2.55rem);
+      line-height: 1.15; margin: 0.9rem 0 0.75rem; letter-spacing: -0.02em;
+    }
+    .lede { color: var(--muted); font-size: 1.08rem; margin-bottom: 1.35rem; max-width: 52ch; }
+    .price { font-size: 1.55rem; font-weight: 600; margin-bottom: 1rem; }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.5rem; }
     .btn {
       display: inline-block; background: var(--beacon); color: #1a1208; font-weight: 600;
-      text-decoration: none; padding: 0.85rem 1.35rem; border-radius: 4px; margin-right: 0.75rem;
+      text-decoration: none; padding: 0.85rem 1.35rem; border-radius: 4px;
     }
     .btn:hover { filter: brightness(1.08); }
     .btn-ghost {
       background: transparent; color: var(--ink); border: 1px solid var(--line);
     }
-    h2 { font-family: Fraunces, Georgia, serif; font-size: 1.35rem; margin: 2.25rem 0 0.75rem; }
+    h2 {
+      font-family: Fraunces, Georgia, serif; font-size: 1.35rem;
+      margin: 2.15rem 0 0.7rem; letter-spacing: -0.01em;
+    }
+    h3 { font-size: 1.02rem; margin: 1.25rem 0 0.45rem; color: var(--ink); }
     p, li { color: var(--muted); margin-bottom: 0.75rem; }
-    ul { padding-left: 1.2rem; margin-bottom: 1rem; }
-    code { color: var(--beacon-hot); font-size: 0.92em; }
+    ul, ol { padding-left: 1.25rem; margin-bottom: 1rem; }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88em; color: var(--beacon-hot);
+    }
+    pre {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+      padding: 0.95rem 1rem; overflow-x: auto; color: var(--ink); margin: 1rem 0 1.25rem;
+      white-space: pre-wrap;
+    }
     .panel {
       background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
-      padding: 1.1rem 1.2rem; margin: 1.25rem 0; color: var(--muted); font-size: 0.95rem;
+      padding: 1.05rem 1.15rem; margin: 1.2rem 0; color: var(--muted); font-size: 0.95rem;
     }
+    .joke {
+      border-left: 3px solid var(--beacon); padding-left: 0.85rem; margin: 1rem 0 1.25rem;
+      color: var(--muted); font-style: italic;
+    }
+    footer.site {
+      margin-top: 2.75rem; padding-top: 1.25rem; border-top: 1px solid var(--line);
+      font-size: 0.9rem; color: var(--muted);
+    }
+    .kit-list a { display: block; padding: 0.55rem 0; border-bottom: 1px solid var(--line); text-decoration: none; }
+    .kit-list a:hover { color: var(--beacon-hot); }
+    .kit-list .meta { color: var(--muted); font-size: 0.88rem; }
+
   </style>
 </head>
 <body>
   <article class="wrap">
-    <a class="back" href="../">← All kits</a>
-    <h1>NetSuite to Azure Data Factory Enterprise Bridge</h1>
-    <p class="lede">SuiteQL out of NetSuite. JSON into Azure Blob. ADF Web Activity triggers it. No SuiteAnalytics Connect license.</p>
-    <p class="price">$349 · one-time</p>
-    <p>
-      <a class="btn" href="https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I?utm_source=storefront&utm_medium=web&utm_campaign=seo_netsuite&utm_content=sku11">Buy on Polar</a>
-      <a class="btn btn-ghost" href="../">Browse catalog</a>
-    </p>
+    <a class="back" href="/kits/">← All kit guides</a>
+    <div class="tag">NetSuite · Azure · ADF · SKU 11</div>
+    <h1>Stop Paying Five Figures to Move NetSuite Data into Azure.</h1>
+    <p class="lede">Azure Data Factory has no native NetSuite connector. This Dockerized FastAPI bridge handles TBA auth and SuiteQL pagination so you can own the pipeline for a one-time fee — not a SaaS subscription that outlives your marriage.</p>
+    <p class="price">$349 · one-time Polar download</p>
+    <div class="cta-row">
+      <a class="btn" href="https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I?utm_source=storefront&amp;utm_medium=web&amp;utm_campaign=kit_page&amp;utm_content=sku11">Get the Kit — $349</a>
+      <a class="btn btn-ghost" href="/#kits">Browse catalog</a>
+    </div>
+    <p class="joke">If your current NetSuite extract is a Jupyter notebook named final_final_v3_REALLY.ipynb, this page is a safe space.</p>
 
-    <h2>What it is</h2>
-    <p>
-      A FastAPI microservice built for ADF <strong>Web Activity</strong>: you POST a SuiteQL query and destination blob name;
-      the service authenticates with NetSuite <strong>Token-Based Authentication</strong> (OAuth 1.0a TBA), paginates results until
-      <code>hasMore</code> is false, and uploads JSON to Azure Blob Storage.
-    </p>
-
-    <h2>Why teams buy this</h2>
+    <h2>Why NetSuite → Azure feels like a side quest designed by a villain</h2>
     <ul>
-      <li>SuiteAnalytics Connect and managed sync tools often run <strong>$1k–$10k+/year</strong></li>
-      <li>Custom builds for the same path commonly land in the <strong>$8k–$25k</strong> services range</li>
-      <li>This kit is a readable, deployable starting point (Docker / Container Apps) with <strong>MOCK_MODE</strong> so you can demo without prod credentials</li>
+      <li>Option A: Pay hundreds a month for SuiteAnalytics Connect ODBC and still configure half a zoo.</li>
+      <li>Option B: Buy a managed connector (Fivetran / Celigo / friends) and discover annual invoices that look like car payments.</li>
+      <li>Option C: Hand-roll TBA HMAC-SHA256 at 11pm, then learn SuiteQL’s 1,000-row page limit the hard way when finance asks where January went.</li>
     </ul>
+
+    <h2>The solution</h2>
+    <p>A stateless, Dockerized FastAPI microservice. ADF fires a Web Activity POST to /v1/extract with SuiteQL + a blob path. The service signs TBA, paginates until hasMore is false, and writes JSON to Azure Blob / ADLS Gen2. Secrets stay in .env — not in your ADF JSON like a ransom note.</p>
+    <ul>
+      <li>TBA authentication solved — OAuth 1.0a HMAC-SHA256 handshake without inventing cryptography from vibes</li>
+      <li>Automatic pagination until NetSuite says hasMore: false</li>
+      <li>Zero hardcoded secrets — env-driven config</li>
+      <li>Mock mode — prove the ADF contract before you touch prod tokens</li>
+      <li>Docker / docker-compose ready for Container Apps or a VM that still remembers Ubuntu</li>
+    </ul>
+
+    <h2>What's in the download</h2>
+    <ul>
+      <li>FastAPI app with /health and /v1/extract</li>
+      <li>NetSuiteTokenAuthenticator — TBA signing</li>
+      <li>NetSuiteSuiteQLExtractor — SuiteQL + pagination</li>
+      <li>AzureDataLakeUploader — JSON to Blob</li>
+      <li>Dockerfile + docker-compose.yml</li>
+      <li>README, .env.example, verify + demo scripts</li>
+      <li>Commercial license for client projects</li>
+    </ul>
+    <h2>What an ADF-style call can look like</h2>
+    <pre>{
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;url&quot;: &quot;https://bridge.example/v1/extract&quot;,
+  &quot;body&quot;: {
+    &quot;query&quot;: &quot;SELECT id, tranid FROM transaction&quot;,
+    &quot;destination_blob&quot;: &quot;bronze/netsuite/transactions/day.json&quot;
+  }
+}</pre>
+
+    <h2>From the workshop</h2>
+    <h2>The missing connector nobody wants to admit is missing</h2>
+    <p>Azure Data Factory will happily talk to half the planet. NetSuite is somehow still “bring your own suffering.” That’s not a dig at Microsoft — it’s just the reality every NetSuite shop discovers around month two of the lakehouse roadmap.</p>
+    <p>Teams either pay for SuiteAnalytics Connect, rent a managed sync product, or commission a custom bridge that becomes tribal knowledge the day the contractor vanishes into a ski trip. We built this kit because we were that contractor one too many times — and we wanted a reusable, readable, Dockerized answer instead of another private repo named netsuite_thing.</p>
+    <h2>TBA is not “just OAuth”</h2>
+    <p>NetSuite Token-Based Auth is OAuth 1.0a with opinions. The signature base string is a delicate lasagna of method, URL, and parameters. Get one encoding wrong and you get a 401 that means everything and nothing.</p>
+    <p>This kit’s authenticator exists so you don’t relearn that lasagna every fiscal year. Pair it with SuiteQL pagination and you stop writing one-off loops inside ADF that nobody wants to on-call.</p>
+    <h2>Mock mode is the adult supervision</h2>
+    <p>Nothing says “enterprise ready” like wiring production TBA into a pipeline you haven’t smoke-tested. Mock mode returns deterministic rows so Web Activity, retries, and blob paths can be proven first.</p>
+    <p>Then flip MOCK_MODE off, drop in tokens, and let the same contract hit the real tenant. Same shape. Fewer heart attacks.</p>
+
+    <h2>Pricing &amp; risk</h2>
+    <p><strong>$349</strong> one-time via Polar (merchant of record). You own the code for commercial use under the included license.</p>
+    <p>Digital goods are weird — once downloaded, bits exist. Still: if the kit doesn’t match what’s advertised, contact us within 14 days via Polar/support and we’ll make it right. We’re building a reputation, not a smash-and-grab ZIP stand.</p>
+
+    <h2>FAQ</h2>
+    <h3>Who made this?</h3>
+    <p>Dark Lighthouse Solutions — data engineers who got tired of rewriting the same NetSuite glue for enterprise clients and decided the glue deserved a ZIP file and a nap.</p>
+    <h3>Will it handle large extracts?</h3>
+    <p>Yes. The extractor loops pages until NetSuite reports hasMore: false. Your Azure bill may have opinions; SuiteQL will keep walking.</p>
+    <h3>Can I test without NetSuite?</h3>
+    <p>Mock mode verifies the HTTP contract in ADF before TBA credentials exist. Ideal for demos and for managers who say “just connect it” like USB.</p>
+    <h3>Refunds?</h3>
+    <p>Ask via Polar within 14 days if the kit doesn’t match the advertised engineering path. Digital goods are awkward — we still stand behind “this isn’t a blank README.”</p>
 
     <div class="panel">
-      Flow: ADF schedule → Web Activity → <code>POST /v1/extract</code> → NetSuite SuiteQL pages → Azure Blob JSON → ADF continues to silver/gold.
+      Built by <strong>Dark Lighthouse Solutions</strong> — IT / data engineers who got tired of reinventing the same bridges for clients.
+      Support: <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a>
     </div>
 
-    <h2>What’s included</h2>
-    <ul>
-      <li><code>NetSuiteTokenAuthenticator</code> — TBA HMAC-SHA256 signing</li>
-      <li><code>NetSuiteSuiteQLExtractor</code> — limit/offset until complete</li>
-      <li><code>AzureDataLakeUploader</code> — JSON to Blob via connection string</li>
-      <li>Docker / docker-compose / uvicorn on :8000</li>
-      <li>Verify + demo scripts; commercial license for client work</li>
-    </ul>
-
-    <h2>Requirements</h2>
-    <p>NetSuite TBA tokens (or mock mode), Azure Storage connection string (or mock mode), Python 3.10+ or Docker.</p>
-
-    <p style="margin-top:2rem">
-      <a class="btn" href="https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I?utm_source=storefront&utm_medium=web&utm_campaign=seo_netsuite&utm_content=sku11_footer">Buy — $349</a>
+    <p style="margin-top:1.75rem">
+      <a class="btn" href="https://buy.polar.sh/polar_cl_wxHzL3HgmiAQqjV72w8QZftRYE9CL0LCt1IT63LWS0I?utm_source=storefront&amp;utm_medium=web&amp;utm_campaign=kit_page&amp;utm_content=sku11">Get the Kit — $349</a>
     </p>
-    <p style="margin-top:1.5rem;font-size:0.9rem">
-      Questions: <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a>
-    </p>
+    <footer class="site">
+      <a href="/kits/">All guides</a> · <a href="/">Storefront</a> · © Dark Lighthouse Solutions
+    </footer>
   </article>
 </body>
 </html>
