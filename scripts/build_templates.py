@@ -25,12 +25,22 @@ PRODUCTS = [
   ("business-expense-invoice-log", "Small Business Expense & Invoice Log", 12, None, "sheet", None),
   ("debt-free-2027-planner", "2027 Digital Budget Planner (GoodNotes)", 12, None, "planner", None),
 ]
-# On Polar but no download attached yet -> shown as "coming soon", no buy button.
-COMING_SOON = [
-  ("meal-planner-grocery-list", "Meal Planner & Grocery List", 11, "Plan the week's meals and the grocery list writes itself: repeats merged, pantry staples skipped, sorted by aisle."),
-  ("moving-planner", "Moving Planner & Checklist", 12, "Timeline, budget, box inventory, address changes and utilities for a move, in one spreadsheet."),
-  ("monthly-budget-snapshot", "Monthly Budget Snapshot", 0, "A free one-page monthly budget. See where every dollar goes in about 10 minutes."),
+# Newer products with no listing kit: short text here, images from /workspace/marketing/pins-new
+# (cards/<slug>-cover.png = 4:3 card cover, <prefix>-pin-N.png = gallery photos, <slug>/pin-N.jpg = Pinterest pins).
+EXTRA = {
+  "monthly-budget-snapshot": ("snapshot", "A free one-page monthly budget: income, bills, spending and savings, with over-budget and unpaid bills flagged. About 10 minutes a month."),
+  "meal-planner-grocery-list": ("meal", "Plan the week's meals and the grocery list writes itself: repeats merged, pantry staples skipped, sorted by aisle."),
+  "moving-planner": ("moving", "Timeline, budget, box inventory, address changes and utilities for a move, in one spreadsheet."),
+}
+# Insert the new products into the singles list, right after the binder.
+_i = [p[0] for p in PRODUCTS].index("just-in-case-binder") + 1
+PRODUCTS[_i:_i] = [
+  ("monthly-budget-snapshot", "Monthly Budget Snapshot", 0, None, "sheet", "Free"),
+  ("meal-planner-grocery-list", "Meal Planner & Grocery List", 11, None, "sheet", "New"),
+  ("moving-planner", "Moving Planner & Checklist", 12, None, "sheet", "New"),
 ]
+# On Polar but no download attached yet -> shown as "coming soon", no buy button.
+COMING_SOON = []
 
 def img(src, dst, width):
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -41,6 +51,16 @@ def img(src, dst, width):
 
 def build_assets():
     for slug, *_ in PRODUCTS:
+        if slug in EXTRA:
+            pre = EXTRA[slug][0]
+            gal = [PINS_NEW / "cards" / f"{slug}-cover.png"] + sorted(PINS_NEW.glob(f"{pre}-pin-*.png"))
+            for i, m in enumerate(gal, 1):
+                img(m, ROOT / "assets/money" / slug / f"{i}.jpg", 1000)
+            for p in sorted((PINS_NEW / slug).glob("pin-*.jpg")):
+                d = ROOT / "pins" / slug / p.name
+                d.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(p, d)
+            continue
         mocks = sorted((KITS / slug / "mockups").glob("*.jpg"))[:4]
         for i, m in enumerate(mocks, 1):
             img(m, ROOT / "assets/money" / slug / f"{i}.jpg", 1000)
@@ -55,13 +75,15 @@ def build_assets():
         shutil.copy2(p, d)
 
 def short(slug):
+    if slug in EXTRA:
+        return EXTRA[slug][1]
     return json.load(open(KITS / slug / "listing.json"))["short"]
 
 def card(slug, name, price, was, group, badge):
     e = html.escape
     n = len(list((ROOT / "assets/money" / slug).glob("*.jpg")))
     gallery = " ".join(f"/assets/money/{slug}/{i}.jpg" for i in range(1, n + 1))
-    price_html = f"${price}" + (f' <s>{e(was)}</s>' if was else "")
+    price_html = ("Free" if price == 0 else f"${price}") + (f' <s>{e(was)}</s>' if was else "")
     badge_html = f'<span class="badge">{e(badge)}</span>' if badge else ""
     return f'''      <article class="card{' card-bundle' if group == 'bundle' else ''}" id="{slug}" data-group="{group}">
         <button class="thumb" type="button" data-gallery="{gallery}" aria-label="See photos of {e(name)}">
@@ -71,7 +93,7 @@ def card(slug, name, price, was, group, badge):
           <h3>{e(name)}</h3>
           <p>{e(short(slug))}</p>
           <div class="buy-row"><span class="price">{price_html}</span>
-            <a class="btn btn-primary" href="{URLS[slug]['checkout_url']}">Buy now</a></div>
+            <a class="btn btn-primary" href="{URLS[slug]['checkout_url']}">{'Get it free' if price == 0 else 'Buy now'}</a></div>
         </div>
       </article>'''
 
@@ -97,6 +119,10 @@ def page():
             "offers": {"@type": "Offer", "price": f"{p[2]}.00", "priceCurrency": "USD", "url": URLS[p[0]]["checkout_url"], "availability": "https://schema.org/InStock"}}}
             for i, p in enumerate(PRODUCTS)]}
     tpl = (ROOT / "scripts/templates_page.html").read_text()
+    if not COMING_SOON:  # drop the whole "Coming soon" section
+        a = tpl.index('    <h2 id="coming-soon">'); b = tpl.index("{{SOON}}")
+        b = tpl.index("</div>", b) + len("</div>\n")
+        tpl = tpl[:a].rstrip("\n") + "\n" + tpl[b:]
     out = (tpl.replace("{{BUNDLES}}", bundles).replace("{{SINGLES}}", singles)
               .replace("{{SOON}}", soons).replace("{{JSONLD}}", json.dumps(ld, indent=1)))
     (ROOT / "templates").mkdir(exist_ok=True)
