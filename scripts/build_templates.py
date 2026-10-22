@@ -11,6 +11,7 @@ KITS = Path("/workspace/dls-products/listing-kits")
 URLS = json.load(open("/workspace/polar-push/checkout-urls.json"))
 PINS_STAGE = Path("/workspace/polar-push/pins-stage/pins")
 PINS_NEW = Path("/workspace/marketing/pins-new")
+MKT = Path("/workspace/marketing")
 
 # slug, name, price, was/compare, group, badge
 PRODUCTS = [
@@ -67,6 +68,12 @@ def build_assets():
         pin_dir = PINS_STAGE / slug if (PINS_STAGE / slug).exists() else KITS / slug / "pins"
         for p in sorted(pin_dir.glob("pin-*.jpg")):
             d = ROOT / "pins" / slug / p.name
+            d.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(p, d)
+    # Seasonal + video pins (only ever copied in; nothing under pins/ is deleted on rebuild).
+    for sub, pat in (("pins-seasonal", "*.png"), ("pins-video", "*.mp4")):
+        for p in sorted((MKT / sub).glob(pat)):
+            d = ROOT / "pins" / sub / p.name
             d.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(p, d)
     for p in sorted(PINS_NEW.glob("*.png")):
