@@ -87,7 +87,7 @@ def head(path, title, desc, og, ld, section):
 <body>
   <div class="gbar"><div class="wrap">
     <a class="brand" href="/">Dark Lighthouse <span>Solutions</span></a>
-    <nav aria-label="Sections"><a href="/templates/">Money</a><a href="/travel/" aria-current="true">Travel</a><a href="/#kits">Data</a></nav>
+    <nav aria-label="Sections"><a href="/money/">Money</a><a href="/travel/" aria-current="true">Travel</a><a href="/data/">Data</a></nav>
   </div></div>
   <nav class="tnav" aria-label="Travel"><div class="wrap"><span class="sec">Travel</span>{tnav}</div></nav>
 '''
