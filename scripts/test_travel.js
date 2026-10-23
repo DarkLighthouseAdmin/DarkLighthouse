@@ -182,14 +182,16 @@ const sm = fs.readFileSync(R("sitemap.xml"), "utf8"), hub = fs.readFileSync(R("t
 const wear = fs.readFileSync(R("travel/gear/what-to-wear-in-scotland/index.html"), "utf8");
 ok(wear.includes("metoffice.gov.uk") && /72 mm/.test(wear) && /Oct<\/td><td>13°C/.test(wear), "wear: Met Office monthly table");
 ok(/<td>Jan<\/td>/.test(wear) && /<td>Dec<\/td>/.test(wear), "wear: all 12 months");
-ok(wear.includes("backcountry-barbour-bedale") && wear.includes("orvis-barbour-beadnell"), "wear: Barbour via retailers");
+ok(wear.includes("backcountry-barbour-bedale") && wear.includes("orvis-barbour-beadnell") && wear.includes("bespokepost-barbour-transport"), "wear: Barbour via retailers");
 ok(/href="https:\/\/www\.sierra\.com[^"]*" rel="noopener"/.test(wear) && !/data-affiliate="sierra/.test(wear), "wear: Sierra is a plain, non-sponsored link");
 const str = fs.readFileSync(R("travel/gear/best-travel-stroller-europe/index.html"), "utf8");
-["Doona", "YOYO", "Minu", "Nuna"].forEach(n => ok(str.includes(n), "stroller page covers " + n));
+["Doona", "YOYO", "Minu", "Nuna", "Mockingbird"].forEach(n => ok(str.includes(n), "stroller page covers " + n));
 ok(/cobble/i.test(str) && /train/i.test(str) && /ferr/i.test(str), "stroller page: cobbles, trains, ferries");
 const lug = fs.readFileSync(R("travel/gear/best-carry-on-luggage-family-travel/index.html"), "utf8");
 ["United", "Delta", "American", "British Airways", "Aer Lingus", "Ryanair", "easyJet"].forEach(n => ok(lug.includes(n), "luggage page: " + n + " limit"));
 ok(lug.includes("ridge-carry-on") && lug.includes("target-trunki") && lug.includes("peakdesign-packing-cube"), "luggage page: suitcase, ride-on, packing cubes");
+ok(lug.includes("bespokepost-weekender") && lug.includes("bespokepost-sidecar-toiletry-kit"), "luggage page: Bespoke Post weekend bags");
+ok(str.includes("mockingbird-travel-stroller") && str.includes("mockingbird-single-to-double") && /34 × 26 × 18 in/.test(str), "stroller page: Mockingbird travel + Single-to-Double with real size");
 const priv = fs.readFileSync(R("privacy/index.html"), "utf8");
 ok(priv.includes('id="affiliate-links"') && /retailers/.test(priv) && /\/travel\/gear\//.test(priv) && !/Amazon/.test(priv), "privacy: covers retail/product links, no Amazon sentence");
 ok(fs.readFileSync(R("index.html"), "utf8").includes("impact-site-verification"), "homepage keeps Impact verification meta");

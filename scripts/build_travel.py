@@ -793,7 +793,7 @@ def build_england():
       <li><strong>A contactless card or phone</strong> with no foreign transaction fees, for the Tube and buses.</li>
       <li><strong>Plug adapters:</strong> the UK uses the three-pin plug (type G).</li>
     </ul>
-{packbox("London and England", [("babylist-stokke-yoyo3", "Stokke YOYO³ stroller", "a small fold for the Tube, buses and plane cabins"), ("target-trunki", "Trunki Ride-On Suitcase", "kids ride it through the airport"), ("peakdesign-packing-cube", "Peak Design Packing Cubes", "one per person keeps a shared case sane"), ("bellroy-travel-wallet", "Bellroy Travel Wallet", "all the family's passports in one place")], "London means lots of walking, stairs and public transport, so pack light.")}
+{packbox("London and England", [("babylist-stokke-yoyo3", "Stokke YOYO³ stroller", "a small fold for the Tube, buses and plane cabins"), ("target-trunki", "Trunki Ride-On Suitcase", "kids ride it through the airport"), ("peakdesign-packing-cube", "Peak Design Packing Cubes", "one per person keeps a shared case sane"), ("bellroy-travel-wallet", "Bellroy Travel Wallet", "all the family's passports in one place"), ("bespokepost-sidecar-toiletry-kit", "Halfday Sidecar Toiletry Kit (Bespoke Post)", "hangs up in small hotel bathrooms, with a liquids pouch for security")], "London means lots of walking, stairs and public transport, so pack light.")}
     <h2 id="kids">8. Tips for London and England with kids</h2>
     <ul>
       <li><strong>One big thing a day</strong> in London, plus a park or playground. The city wears little legs out fast.</li>
@@ -972,13 +972,15 @@ GEAR_KEYS = ["patagonia-torrentshell-kids", "patagonia-torrentshell-womens", "co
              "darntough-kids-light-hiker", "hunter-kids-first-classic", "zappos-merrell-moab-3-wp", "backcountry-barbour-bedale",
              "orvis-barbour-beadnell", "doona-x", "babylist-stokke-yoyo3", "babylist-uppababy-minu-v3", "babylist-nuna-trvl-lx",
              "osprey-poco", "ridge-carry-on", "target-trunki", "peakdesign-packing-cube", "cotopaxi-allpa-35",
-             "fjallraven-kanken-mini", "bellroy-travel-wallet"]
+             "fjallraven-kanken-mini", "bellroy-travel-wallet",
+             "mockingbird-travel-stroller", "mockingbird-single-to-double", "bespokepost-barbour-transport", "bespokepost-weekender",
+             "bespokepost-weekender-xl", "bespokepost-sidecar-toiletry-kit"]
 AFF_SLOT.update({k: "gear" for k in GEAR_KEYS})
 SIERRA_URL = "https://www.sierra.com/s~kids-rain-coats/"  # no active affiliate program (checked 22 Oct 2026): plain link, not sponsored
 GEAR_IMG = "/assets/travel/family-travel-kids-planner/1.jpg"
 GEAR_PAGES = [("/travel/gear/what-to-wear-in-scotland/", "What to wear in Scotland, month by month", "Edinburgh's real monthly rain and temperatures, and what adults and kids actually need: waterproofs, layers, boots and socks."),
-              ("/travel/gear/best-travel-stroller-europe/", "Best travel strollers for Europe", "Doona X, Stokke YOYO³, UPPAbaby Minu V3 and Nuna TRVL lx compared for cobbles, trains, ferries and plane cabins, plus a carrier for the hills."),
-              ("/travel/gear/best-carry-on-luggage-family-travel/", "Carry-on luggage for family travel", "Cabin bag limits for US airlines, Ryanair, easyJet, British Airways and Aer Lingus, then the suitcases, kids' ride-on cases and packing cubes that fit them.")]
+              ("/travel/gear/best-travel-stroller-europe/", "Best travel strollers for Europe", "Doona X, Stokke YOYO³, UPPAbaby Minu V3, Nuna TRVL lx and the new Mockingbird Travel Stroller compared for cobbles, trains, ferries and plane cabins, plus a carrier for the hills."),
+              ("/travel/gear/best-carry-on-luggage-family-travel/", "Carry-on luggage for family travel", "Cabin bag limits for US airlines, Ryanair, easyJet, British Airways and Aer Lingus, then the suitcases, weekend bags, kids' ride-on cases and packing cubes that fit them.")]
 
 def c2f(c): return round(c * 9 / 5 + 32)
 def mm2in(mm): return f"{mm / 25.4:.1f}"
@@ -1067,6 +1069,7 @@ def build_gear_wear():
     <ul>
       <li>{aff("backcountry-barbour-bedale", "Barbour Bedale Wax Jacket (men's), at Backcountry")}: the short, classic riding-style jacket.</li>
       <li>{aff("orvis-barbour-beadnell", "Barbour Beadnell Waxed Cotton Jacket (women's), at Orvis")}: the women's classic.</li>
+      <li>{aff("bespokepost-barbour-transport", "Barbour Transport Wax Jacket (men's), at Bespoke Post")}: 6 oz waxed cotton with a cord collar, tartan lining and an inner storm skirt, in a roomier, more modern cut; $425 when we checked. Bespoke Post calls it water-resistant, not waterproof.</li>
     </ul>
 
     <h2 id="checklist">A quick Scotland packing checklist</h2>
@@ -1091,6 +1094,7 @@ def build_gear_wear():
       <li><a href="https://darntough.com/products/kids-merino-wool-light-hiker-micro-crew-cushioned-lightweight-hiking-socks">Kids' Light Hiker Micro Crew (Darn Tough)</a></li>
       <li><a href="https://hunterboots.com/products/kids-first-classic-rain-boots-in-black-kft5094rma-hbl01">Kids First Classic Rain Boots (Hunter)</a></li>
       <li><a href="https://www.orvis.com/barbour/barbour-for-men">Barbour waxed jackets: weather-resistant, care and re-waxing (Orvis)</a></li>
+      <li><a href="https://www.bespokepost.com/store/barbour-transport-wax-jacket">Barbour Transport Wax Jacket: materials and price (Bespoke Post)</a></li>
     </ul>
     <p class="muted">Specs and prices change. Check the retailer before you buy. Last checked 22 October 2026.</p>
   </main>
@@ -1102,33 +1106,37 @@ STROLLERS = [  # name, key, weight, folded, child limit, note
  ("Stokke YOYO³ (6+)", "babylist-stokke-yoyo3", "13.7 lb (6.2 kg)", "20.5 × 17.3 × 7.1 in (52 × 44 × 18 cm)", "From 6 months to 48.5 lb (newborn pack sold separately)", "Smallest fold here"),
  ("UPPAbaby Minu V3", "babylist-uppababy-minu-v3", "16.7 lb (7.6 kg)", "21.5 × 18 × 10 in", "From birth to 50 lb", "Big basket, all-wheel suspension"),
  ("Nuna TRVL lx", "babylist-nuna-trvl-lx", "14.6 lb without canopy and armbar (about 17 lb with them)", "27 × 21 × 14.25 in", "From birth to 50 lb", "Near-flat recline"),
+ ("Mockingbird Travel Stroller", "mockingbird-travel-stroller", "17.7 lb", "21.5 × 18 × 10 in", "From birth (infant nest mode or car seat adapter, both included) to 50 lb", "Car seat adapter included"),
 ]
 STROLLER_FAQ = [
  ("Which travel stroller is best for cobblestones?", "None of the compact travel strollers love cobbles, because small wheels feel every bump. Look for suspension and the biggest wheels you can live with: the UPPAbaby Minu V3 has all-wheel suspension. On steep, cobbled old towns like Edinburgh's Royal Mile, a baby carrier is often easier than any stroller."),
  ("Will a travel stroller fit in the overhead bin?", "Some will. Stokke says the YOYO's folded size (52 × 44 × 18 cm) has been accepted as cabin luggage by most airlines since 2012, but each airline decides and it may count as your cabin bag. Bigger folds, like the Nuna TRVL lx at 27 × 21 × 14.25 in, are gate-check strollers. Check your airline before you fly."),
  ("Can I take a stroller free on Ryanair?", "Yes, with an infant. Ryanair's help centre says infants get a 5 kg baby bag (45 × 35 × 20 cm) and two items of baby equipment free, such as a stroller and a car seat. Rules differ by airline, so check yours."),
+ ("Can I take a Mockingbird Single-to-Double stroller to Europe?", "You can, but it isn't a travel stroller. Mockingbird lists it at 28 lb as a single and 34 × 26 × 18 in folded, so it's a gate-check or checked-bag stroller and a lot to carry up station stairs. It's great for a road trip where it lives in the car. For flights, trains and cobbled old towns, Mockingbird's own Travel Stroller (17.7 lb, 21.5 × 18 × 10 in folded) is the better fit, and Mockingbird suggests many families use the two together."),
  ("Is the Doona worth it for a Europe trip?", "If your baby is under about a year and you'll be using taxis or rental cars, it's very handy, because the car seat is the stroller. It's the heaviest option here at 19.6 lb and it's outgrown at 30 lb or 32 in, so it's a baby-only buy."),
  ("Do I need a stroller in Europe at all?", "For toddlers, usually yes for long city days and naps. Many families bring a light stroller plus a carrier: the stroller for flat pavements and the airport, the carrier for castles, hills, ferries and steep stairs."),
 ]
 def build_gear_stroller():
     path = GEAR_PAGES[1][0]
     page, cr = gear_head(path, "Best Travel Strollers for Europe: Cobbles, Trains, Ferries & Planes (2026) | Dark Lighthouse Solutions",
-        "Doona X, Stokke YOYO³, UPPAbaby Minu V3 and Nuna TRVL lx compared for a family trip to Europe: weights, folded sizes, what fits in a plane cabin, and when a carrier beats a stroller.",
+        "Doona X, Stokke YOYO³, UPPAbaby Minu V3, Nuna TRVL lx and the Mockingbird Travel Stroller compared for a family trip to Europe: weights, folded sizes, what fits in a plane cabin, and when a carrier beats a stroller.",
         "Best travel strollers for Europe: cobbles, trains, ferries and planes", STROLLER_FAQ, "Best travel strollers for Europe")
     rows = "".join(f"<tr><td><a href=\"#p-{k}\">{e(n)}</a></td><td>{w}</td><td>{f}</td><td>{c}</td><td>{note}</td></tr>" for n, k, w, f, c, note in STROLLERS)
     page += f'''
   <header class="wrap hero">
 {GEAR_DISCLOSE}    {cr}
     <h1>Best travel strollers for Europe: cobbles, trains, ferries and planes</h1>
-    <p class="lede">A European city trip is hard on a stroller: cobbled old towns, station stairs, narrow train aisles, ferry ramps and a plane at each end. Here's how four popular travel strollers compare, with the makers' own weights and folded sizes, plus when to leave the stroller behind. Facts checked October 2026, with sources at the end.</p>
+    <p class="lede">A European city trip is hard on a stroller: cobbled old towns, station stairs, narrow train aisles, ferry ramps and a plane at each end. Here's how five popular travel strollers compare, with the makers' own weights and folded sizes, plus when to leave the stroller behind. Facts checked October 2026, with sources at the end.</p>
   </header>
   <main class="wrap copy">
-    <h2 id="compare">The four at a glance</h2>
+    <h2 id="compare">The five at a glance</h2>
     <div class="tablewrap"><table><thead><tr><th>Stroller</th><th>Weight</th><th>Folded size</th><th>Child</th><th>Stand-out</th></tr></thead><tbody>{rows}</tbody></table></div>
     <p class="muted">Weights and sizes from each maker's website (Babylist for the YOYO's weight), checked 22 October 2026. For comparison, the usual US carry-on limit is 22 × 14 × 9 in.</p>
 
     <h2 id="picks">Which one for which family</h2>
-{prod("babylist-stokke-yoyo3", "Stokke YOYO³: best for flying and trains", "13.7 lb; folds to 52 × 44 × 18 cm (20.5 × 17.3 × 7.1 in); from 6 months to 48.5 lb with the 6+ seat.", "The smallest fold of the four, small enough that Stokke says most airlines accept it as cabin luggage. It tucks into a train luggage rack or under a café table. The trade-off is small wheels, so it's happiest on smooth pavements. (YOYO was made by Babyzen, now part of Stokke.)")}{prod("babylist-uppababy-minu-v3", "UPPAbaby Minu V3: best all-rounder for cobbles", "16.7 lb; folds to 21.5 × 18 × 10 in; from birth to 50 lb; basket holds up to 20 lb.", "All-wheel suspension makes it the smoothest of the four on rough streets, and the basket swallows a day's snacks and layers. It folds one-handed and stands on its own, but the fold is bigger than the YOYO's.")}{prod("babylist-nuna-trvl-lx", "Nuna TRVL lx: best for naps on the go", "14.6 lb without canopy and armbar; folds to 27 × 21 × 14.25 in; from birth to 50 lb.", "The near-flat recline is great for a baby who naps out and about. It clicks straight onto a Nuna PIPA infant car seat with no adapters. The fold is long, so plan to gate-check it.")}{prod("doona-x", "Doona X: best for babies and taxis", "19.6 lb; folds to 17.3 × 28.5 × 18 in; infant car seat for babies up to 30 lb and 17–32 in.", "The wheels fold away and it becomes the car seat, which is brilliant for airport transfers, taxis and rental cars. It's the heaviest here, the basket is tiny, and your baby will outgrow it, so it's a first-year buy.")}
+{prod("babylist-stokke-yoyo3", "Stokke YOYO³: best for flying and trains", "13.7 lb; folds to 52 × 44 × 18 cm (20.5 × 17.3 × 7.1 in); from 6 months to 48.5 lb with the 6+ seat.", "The smallest fold here, small enough that Stokke says most airlines accept it as cabin luggage. It tucks into a train luggage rack or under a café table. The trade-off is small wheels, so it's happiest on smooth pavements. (YOYO was made by Babyzen, now part of Stokke.)")}{prod("babylist-uppababy-minu-v3", "UPPAbaby Minu V3: best all-rounder for cobbles", "16.7 lb; folds to 21.5 × 18 × 10 in; from birth to 50 lb; basket holds up to 20 lb.", "All-wheel suspension makes it one of the smoothest here on rough streets, and the basket swallows a day's snacks and layers. It folds one-handed and stands on its own, but the fold is bigger than the YOYO's. (The Mockingbird Travel Stroller below also has all-wheel suspension and the same folded size.)")}{prod("babylist-nuna-trvl-lx", "Nuna TRVL lx: best for naps on the go", "14.6 lb without canopy and armbar; folds to 27 × 21 × 14.25 in; from birth to 50 lb.", "The near-flat recline is great for a baby who naps out and about. It clicks straight onto a Nuna PIPA infant car seat with no adapters. The fold is long, so plan to gate-check it.")}{prod("doona-x", "Doona X: best for babies and taxis", "19.6 lb; folds to 17.3 × 28.5 × 18 in; infant car seat for babies up to 30 lb and 17–32 in.", "The wheels fold away and it becomes the car seat, which is brilliant for airport transfers, taxis and rental cars. It's the heaviest here, the basket is tiny, and your baby will outgrow it, so it's a first-year buy.")}{prod("mockingbird-travel-stroller", "Mockingbird Travel Stroller: best value from birth", "17.7 lb; folds to 21.5 × 18 × 10 in; from birth to 50 lb; $399 when we checked, with the car seat adapter, cup holder and carry bag included.", "New for fall 2026 (it started shipping in mid-October), from the brand behind the popular Single-to-Double. It has a one-hand auto-fold, all-wheel suspension, a near lie-flat recline and a big basket, and it works from birth without buying extras: an infant nest mode plus an adapter for 50+ infant car seats come in the box. Mockingbird says the fold is IATA-compliant and fits the overhead bin on nearly all flights. The folded size matches the Minu V3, so it's not as tiny as the YOYO, and it's too new for long-term reviews yet.")}
+    <h3 id="mockingbird-s2d">Got a Mockingbird Single-to-Double at home?</h3>
+    <p>Lots of families already own (or love) the {aff("mockingbird-single-to-double", "Mockingbird Single-to-Double Stroller 3.0")}. It's a great everyday stroller, but it's a full-size one: Mockingbird lists it at 28 lb as a single (36 lb with the second seat) and 34 × 26 × 18 in folded, $549 when we checked. That's a gate-check stroller, heavy on station stairs and wide for narrow old-town pavements. It does make sense on a road trip, where it lives in the trunk, and its all-wheel suspension and never-flat tires handle rough paths well. For flights, trains and cobbled city centers, pair it with a travel stroller; Mockingbird itself suggests the Single-to-Double as the home-base stroller and the Travel Stroller for trips.</p>
     <h2 id="carrier">When a carrier beats a stroller</h2>
     <p>Castles, steep closes, ferry gangways and lots of stairs are easier with a carrier. For toddlers on walks and hills, a framed hiking carrier does the job:</p>
 {prod("osprey-poco", "Osprey Poco Child Carrier", "7.69 lb (3.48 kg); 24 L of storage; maximum total load 48.5 lb (22 kg) including child and gear.", "A proper framed hiking carrier with 24 L of storage for the day's layers and snacks. Too big to be your everyday city option, but perfect for Arthur's Seat, the Lake District or the Cliffs of Moher paths.")}
@@ -1151,6 +1159,8 @@ def build_gear_stroller():
       <li><a href="https://www.babylist.com/gp/stokke-yoyo-stroller-from-6-months/55557/2073006">YOYO³ from 6 months: weight and child limit (Babylist)</a></li>
       <li><a href="https://uppababy.com/strollers/lightweight/minu-v3/">Minu V3 specifications (UPPAbaby)</a></li>
       <li><a href="https://nunababy.com/usa/trvl-lx-stroller">TRVL lx specifications (Nuna)</a></li>
+      <li><a href="https://hellomockingbird.com/products/mockingbird-travel-stroller">Travel Stroller specifications, price and shipping date (Mockingbird)</a></li>
+      <li><a href="https://hellomockingbird.com/products/mockingbird-double-stroller">Single-to-Double Stroller 3.0 dimensions, weight and price (Mockingbird)</a></li>
       <li><a href="https://www.osprey.com/pocotm-child-carrier">Poco Child Carrier specifications (Osprey)</a></li>
       <li><a href="https://help.ryanair.com/hc/en-us/articles/12888036565521">Infant baggage allowance (Ryanair help centre)</a></li>
     </ul>
@@ -1194,6 +1204,9 @@ def build_gear_luggage():
 
     <h2 id="suitcases">Carry-on suitcases and packs for the grown-ups</h2>
 {prod("ridge-carry-on", "Ridge Carry-On", "German Makrolon polycarbonate shell; exterior 22.5 × 14.5 × 9 in, interior 20.5 × 14 in, per Ridge.", "A tough hard-shell case with a lifetime warranty. Note the listed size is half an inch over the 22 × 14 in US guideline on two sides, so measure it against your airline's sizer if you're worried.")}{prod("cotopaxi-allpa-35", "Cotopaxi Allpa 35L Travel Pack", "22 × 12 × 10 in; 2 lb 15 oz; water-resistant TPU-coated shell.", "A backpack that opens like a suitcase. Better than a roller when you've also got a stroller or a small hand to hold. It's 10 in deep, so don't overstuff it if the airline sizer is 9 in.")}{prod("peakdesign-packing-cube", "Peak Design Packing Cube", "Small: 4.5–9 L, 110 g; Medium: 8–18 L, 144 g; both compress to 8 cm deep.", "A zip squeezes each cube down to 8 cm deep, so soft clothes take up less room. One cube per family member makes it easy to find things in a shared case.")}{prod("bellroy-travel-wallet", "Bellroy Travel Wallet", "Leather, RFID-protected; holds a passport, 4 to 10+ cards, cash, tickets and a Micro Pen.", "Keeps everyone's passports and boarding passes in one place, with the pen for landing cards. Bellroy says it fits most passports, though not German or Irish ones.")}
+    <h2 id="weekend-bags">Weekend bags and a toiletry kit</h2>
+    <p>Not everyone wants a roller. These come from Bespoke Post, which sells its own Line of Trade bags alongside other brands:</p>
+{prod("bespokepost-weekender", "Line of Trade Weekender Bag (Bespoke Post)", "Cotton canvas on a metal frame, leather handles, removable shoulder strap; 21 × 13 × 7 in; laptop pocket fits up to 15 in; $75 when we checked.", "A tough canvas duffel that stays open while you pack. At 21 × 13 × 7 in it's inside the 22 × 14 × 9 in US carry-on limit and Ryanair's paid 55 × 40 × 20 cm cabin bag. Good for a weekend away or as the one bag for a parent on a short trip.")}{prod("bespokepost-weekender-xl", "Line of Trade Weekender XL (Bespoke Post)", "40 L; 22 × 13.5 × 10 in (excluding handle); padded 15 in laptop sleeve, zip shoe compartment, trolley loop; $125 when we checked.", "The bigger version, with a separate shoe compartment and a loop that slides over a suitcase handle. It's 10 in deep, an inch over the US 9 in guideline, though it's soft-sided, so don't fill it to bursting if your airline is strict about the sizer.")}{prod("bespokepost-sidecar-toiletry-kit", "Halfday Sidecar Toiletry Kit (Bespoke Post)", "8.75 × 3.5 × 6.75 in; 0.68 lb; water-resistant polyester; hanging loop; reusable liquids pouch included; $48 when we checked.", "Hangs on the back of a hotel door, and the included clear liquids pouch sits in a back pocket so you can pull it out at security without unpacking.")}
     <h2 id="kids-luggage">Kids' luggage</h2>
 {prod("target-trunki", "Trunki Ride-On Suitcase", "1.7 kg (3.8 lb); 18 L; 46 × 20.5 × 31 cm; ages 3–6; max ride-on weight 50 kg, per Trunki.", "Kids can sit on it and you tow them through the airport, which saves your back on long walks to the gate. It holds a few days of small-kid clothes plus toys. On Ryanair or easyJet it's bigger than the free under-seat bag.")}{prod("fjallraven-kanken-mini", "Fjällräven Kånken Mini", "7 L; about 29 × 20 × 13 cm; about 220 g.", "A small, tough backpack that's easy for a child to carry and small enough for any airline's free under-seat bag.")}
     <h2 id="tips">How to fly carry-on with kids</h2>
@@ -1221,6 +1234,9 @@ def build_gear_luggage():
       <li><a href="https://www.cotopaxi.com/products/allpa-35l-travel-pack">Allpa 35L dimensions and weight (Cotopaxi)</a></li>
       <li><a href="https://www.peakdesign.com/products/packing-cube">Packing Cube sizes and weights (Peak Design)</a></li>
       <li><a href="https://bellroy.com/products/travel-wallet-rfid">Travel Wallet (Bellroy)</a></li>
+      <li><a href="https://www.bespokepost.com/store/line-of-trade-weekender-bag">Line of Trade Weekender Bag (Bespoke Post)</a></li>
+      <li><a href="https://www.bespokepost.com/store/line-of-trade-weekender-bag-xl">Line of Trade Weekender XL (Bespoke Post)</a></li>
+      <li><a href="https://www.bespokepost.com/store/halfday-sidecar-toiletry-kit">Halfday Sidecar Toiletry Kit (Bespoke Post)</a></li>
     </ul>
     <p class="muted">Airline rules change, sometimes by route and fare. Check your booking before you pack. Last checked 22 October 2026.</p>
   </main>
