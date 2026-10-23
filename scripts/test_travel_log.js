@@ -866,5 +866,19 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/data-memf/.test(read("trips-ui.js")) && /Trip memories/.test(read("trips-ui.js")), "trip form and trip page show Trip memories");
 }
 
+{ // v1.6.1: airport city names people know; French cities aren't "Mayotte"
+  const T = require("../travel-log/app/trips-core.js"), fs = require("fs");
+  ok(T.airportCity("Ingliston, Edinburgh", "Edinburgh Airport", "EDI") === "Edinburgh", "EDI shows Edinburgh, not Ingliston");
+  ok(T.airportCity("Paris (Roissy-en-France, Val-d'Oise)", "Charles de Gaulle International Airport", "CDG") === "Paris", "CDG shows Paris");
+  ok(T.airportCity("Colombier-Saugnieu", "Lyon Saint-Exupéry Airport", "LYS") === "Lyon", "LYS shows Lyon");
+  ok(T.airportCity("Orlando", "Orlando International Airport", "MCO") === "Orlando", "plain city unchanged");
+  const pl = JSON.parse(fs.readFileSync(__dirname + "/../travel-log/app/data/places.json", "utf8"));
+  ok(pl.countries.FRA === "France" && pl.countries.NOR === "Norway", "places data names France and Norway (not Mayotte / Svalbard)");
+  const lyon = T.cleanPoint({ name: "Lyon", country: "FRA", sub: "Auvergne-Rhône-Alpes, Mayotte", lat: 45.76, lon: 4.84 });
+  ok(lyon && lyon.sub === "Auvergne-Rhône-Alpes, France", "a trip saved with the old 'Mayotte' label reads France");
+  const may = T.cleanPoint({ name: "Mamoudzou", country: "FRA", sub: "Mayotte", lat: -12.78, lon: 45.23 });
+  ok(may && may.sub === "Mayotte", "a real Mayotte place keeps its name");
+}
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

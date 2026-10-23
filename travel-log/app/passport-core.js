@@ -75,7 +75,7 @@
     pts.forEach(function (p, i) {
       var arrive = day, leave = typeof p.nights === "number" && day ? addDays(day, p.nights) : "";
       if (i === pts.length - 1 && !leave && t.endDate) leave = t.endDate;
-      var via = p.arr && p.arr.code ? p.arr.code + (p.arr.city ? " " + p.arr.city : "") : p.name;
+      var via = p.arr && p.arr.code ? p.arr.code + (p.arr.city ? " " + T.airportCity(p.arr.city, p.arr.name, p.arr.code) : "") : p.name;
       pointAreas(p, parkStates).forEach(function (a) {
         var k = a.kind + ":" + a.area;
         if (!out[k]) { out[k] = { kind: a.kind, area: a.area, date: arrive || (t.date ? cleanDate(t.date) : ""), end: leave, via: via }; order.push(k); }
