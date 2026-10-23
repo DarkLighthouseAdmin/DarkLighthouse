@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the /travel/ section: hub, Scotland guide, planners, tools index + 2 calculators. Run: python3 scripts/build_travel.py
+"""Build the /travel/ section: hub, Scotland and Ireland guides, planners, tools index + 2 calculators. Run: python3 scripts/build_travel.py
 Math lives in /travel/tools/travel-calc.js (tested by `node scripts/test_travel.js`). Partner links: /travel/affiliates.json.
 Reuses the base CSS and helpers from build_tools.py; travel pages get their own header, section nav and accent colours."""
 import sys, json, html, re
@@ -58,7 +58,7 @@ TP_DRIVE = """  <script nowprocket data-noptimize="1" data-cfasync="false" data-
     })();
   </script>
 """
-NAV = [("/travel/", "Travel home"), ("/travel/scotland/", "Scotland guide"), ("/travel/planners/", "Planners"), ("/travel/tools/", "Travel tools")]
+NAV = [("/travel/", "Travel home"), ("/travel/scotland/", "Scotland guide"), ("/travel/ireland/", "Ireland guide"), ("/travel/planners/", "Planners"), ("/travel/tools/", "Travel tools")]
 
 def crumbs(trail):
     """trail: [(name, path)], last item is the current page."""
@@ -108,7 +108,7 @@ def foot(aff=False):
          'We only link to things we\'d use ourselves. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>\n') if aff else ""
     return f'''
   <footer class="wrap">
-    <p><a href="/travel/">Travel</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/travel-budget-calculator/">Travel budget calculator</a> · <a href="/travel/tools/daily-travel-budget-calculator/">Daily travel budget calculator</a> · <a href="/templates/">Money templates</a> · <a href="/tools/">Money calculators</a></p>
+    <p><a href="/travel/">Travel</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/ireland/">Ireland with kids guide</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/travel-budget-calculator/">Travel budget calculator</a> · <a href="/travel/tools/daily-travel-budget-calculator/">Daily travel budget calculator</a> · <a href="/templates/">Money templates</a> · <a href="/tools/">Money calculators</a></p>
 {d}    <p style="margin-top:.4rem">Prices and rules change: check official sites before you book. Calculators are estimates for planning; nothing you type leaves your browser.</p>
     <p style="margin-top:.4rem"><strong>Dark Lighthouse Solutions</strong> · Planners sold via Polar (merchant of record). <a href="/privacy/">Privacy</a> · Questions? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
   </footer>
@@ -116,7 +116,9 @@ def foot(aff=False):
 
 AFF_SLOT = {"gyg-edinburgh": "tour", "gyg-edinburgh-day-trips": "tour", "viator-edinburgh": "tour",
             "discovercars-edinburgh": "car", "airalo-uk": "esim", "booking-edinburgh": "stay",
-            "tiqets-edinburgh-castle": "tickets", "klook-edinburgh": "tour"}
+            "tiqets-edinburgh-castle": "tickets", "klook-edinburgh": "tour",
+            "airalo-ireland": "esim", "tiqets-book-of-kells": "tickets", "klook-ireland": "tour", "gyg-dublin-day-trips": "tour",
+            "viator-dublin": "tour", "discovercars-dublin": "car", "booking-dublin": "stay"}
 
 def slot(kind, where=""):
     """Marks a natural spot for a partner link. Invisible on the page; grep 'AFFILIATE:' to find them all."""
@@ -366,7 +368,7 @@ def app_ld(name, path, desc):
             "publisher": {"@type": "Organization", "name": "Dark Lighthouse Solutions", "url": SITE + "/"}}
 
 def related(slug):
-    links = [(f"/travel/tools/{c[0]}/", c[1]) for c in CALCS if c[0] != slug] + [("/travel/scotland/", "Scotland trip planning guide"), ("/travel/tools/", "All travel tools"), ("/tools/", "Money calculators")]
+    links = [(f"/travel/tools/{c[0]}/", c[1]) for c in CALCS if c[0] != slug] + [("/travel/scotland/", "Scotland trip planning guide"), ("/travel/ireland/", "Ireland with kids guide"), ("/travel/tools/", "All travel tools"), ("/tools/", "Money calculators")]
     return '    <h2 id="related">Related</h2>\n    <div class="related">' + "".join(f'<a href="{p}">{e(n)}</a>' for p, n in links) + "</div>\n"
 
 def build_calcs():
@@ -458,7 +460,7 @@ def build_scotland():
     <p>This is where most Scotland itineraries go wrong. Highland roads are slower than they look: a lot of them are single-track with passing places, you'll stop for views (and toilets), and with kids you'll stop more. These are the mapped times with no stops, plus a "realistic" column with 40% added.</p>
     <div class="tablewrap"><table><thead><tr><th>Drive</th><th>Miles</th><th>Mapped time</th><th>Realistic (+40%)</th></tr></thead><tbody>{legs}</tbody></table></div>
     <p class="muted">Mapped times: OpenStreetMap road data via the OSRM router, by car, looked up October 2026.</p>
-    <p>A good rule with kids: keep most driving days under three hours of mapped time, and never stack two long days back to back. Remember you drive on the left, and children need a car seat until they're 12 or 135 cm tall. If you're renting, automatics are less common than manuals in the UK, so book early and request the seats when you reserve. Comparison sites like {aff("discovercars-edinburgh", "Discover Cars")} show what's available at Edinburgh and Glasgow airports.</p>
+    <p>A good rule with kids: keep most driving days under three hours of mapped time, and never stack two long days back to back. Remember you drive on the left, and children need a car seat until they're 12 or 135 cm tall. If you're renting, automatics are less common than manuals in the UK, so book early and request the seats when you reserve. Planning to use your credit card's rental car cover? It generally works in Scotland (Visa's standard benefit excludes only Northern Ireland within the UK, and Amex's standard cover excludes Australia, Italy and New Zealand), but it's often secondary and you must decline the rental desk's collision damage waiver, so check your card's guide and carry proof of cover. Comparison sites like {aff("discovercars-edinburgh", "Discover Cars")} show what's available at Edinburgh and Glasgow airports.</p>
 
     <h2 id="routes">4. Three sample routes</h2>
     <h3>7 nights: Edinburgh, the Highlands and Skye</h3>
@@ -506,9 +508,169 @@ def build_scotland():
       <li><a href="https://www.scotlandtourism.org/scotland-weather-by-month/">Daylight by month (Scotland Tourism)</a></li>
       <li><a href="https://www.gov.uk/government/publications/children-travelling-to-the-uk/children-travelling-to-the-uk-accessible">Children travelling to the UK (GOV.UK)</a></li>
       <li><a href="https://travel.state.gov/en/passports/apply/child/under-16.html">US passports for children under 16 (U.S. Department of State)</a></li>
+      <li><a href="https://usa.visa.com/dam/VCOM/regional/na/us/support-legal/documents/arcdw-secondary.pdf">Visa Auto Rental Collision Damage Waiver terms: country exclusions (Visa)</a></li>
+      <li><a href="https://www.americanexpress.com/content/dam/amex/us/credit-cards/features-benefits/CRLDI_Benefit_Guide_371-397_EDT_2.20_REV_4.24_a11y3_04022026.pdf">Car Rental Loss and Damage Insurance: country exclusions, secondary cover (American Express)</a></li>
       <li><a href="https://project-osrm.org/">Drive distances and times: OpenStreetMap data via OSRM</a></li>
     </ul>
     <p class="muted">Rules and fees change. Check the official pages before you book. Last checked 22 October 2026.</p>
+  </main>
+''' + foot(aff=True) + "</body>\n</html>\n"
+    write(path, page)
+
+# ---------------------------------------------------------------- Ireland guide
+IE_LEGS = [("Dublin", "Galway", 209, 150), ("Galway", "Cliffs of Moher", 77, 79), ("Cliffs of Moher", "Dingle (via Limerick)", 227, 198),
+           ("Dingle", "Killarney", 66, 68), ("Dublin", "Kilkenny", 124, 94), ("Kilkenny", "Killarney", 196, 163),
+           ("Galway", "Westport", 80, 79), ("Killarney", "Shannon Airport", 135, 117), ("Killarney", "Dublin", 303, 226),
+           ("Dublin", "Giant's Causeway (Northern Ireland)", 263, 188)]
+IE_SEASONS = [("Winter (Dec to Feb)", "5.4°C (about 42°F)", "Wettest time of year: December averages about 142 mm", "7h 32m"),
+              ("Spring (Mar to May)", "8.8°C (about 48°F)", "Driest season: April and May average 79 mm and 82 mm", "13h 58m"),
+              ("Summer (Jun to Aug)", "14.6°C (about 58°F); July is warmest at 15.2°C", "June is the driest summer month (85 mm), August the wettest (103 mm)", "16h 58m"),
+              ("Autumn (Sep to Nov)", "10.3°C (about 51°F)", "October and November average about 130 mm or more", "10h 38m")]
+IE_FAQ = [
+ ("Do US citizens need a visa for Ireland?", "No. US citizens can visit the Republic of Ireland as tourists for up to 90 days without a visa, and the passport needs to be valid for the whole stay. Northern Ireland is different: it's part of the UK, so you need a UK ETA (£20 per person) to visit, even if you just drive across the border."),
+ ("Does my credit card cover a rental car in Ireland?", "It depends on the card, so check its guide to benefits before you book. The standard Visa benefit used by many Visa Signature cards excludes the Republic of Ireland and Northern Ireland. Chase's Visa Infinite guide covers rentals worldwide. American Express's standard car rental cover leaves out Australia, Italy and New Zealand but not Ireland, though it's secondary, and Amex's paid Premium Car Rental Protection does exclude Ireland. Even with cover, Irish rental desks can ask for proof, a big card hold, or an extra daily charge."),
+ ("How many days do you need in Ireland with kids?", "Seven nights is enough for Dublin and one region of the west, like Galway and the Cliffs of Moher, or Kerry. With ten nights you can do Dublin, Kerry and the Galway area without long drives every day. Northern Ireland and the Giant's Causeway really need two extra nights."),
+ ("Is the OPW Heritage Card worth it for a family?", "If you'll visit several state-run sites, often yes. The family card is €90 for two adults and up to five children aged 12 to 18, and children under 12 already get in free at OPW sites. With younger kids only, compare a couple of adult cards (€40 each) with the individual tickets you'd buy."),
+ ("Do kids need car seats in Ireland?", "Yes. Irish law says children must use a suitable child seat or booster until they're 150 cm tall or weigh 36 kg. Request seats when you book the car, or bring your own."),
+ ("Do I pay the M50 toll around Dublin?", "If you drive the stretch of the M50 between junctions 6 and 7, yes. There's no booth: cameras read the plate, and you pay online at eflow.ie by 8pm the next day. Ask the rental company first, because some add tolls to your bill."),
+]
+def build_ireland():
+    path = "/travel/ireland/"
+    cr, crld = crumbs([("Travel", "/travel/"), ("Ireland with kids guide", path)])
+    legs = "".join(f"<tr><td>{a} → {b}</td><td>{km} km ({round(km * 0.621371)} mi)</td><td>{hm(mn)}</td><td>{hm(round(mn * 1.4))}</td></tr>" for a, b, km, mn in IE_LEGS)
+    seasons = "".join(f"<tr><td>{s}</td><td>{t}</td><td>{r}</td><td>{d}</td></tr>" for s, t, r, d in IE_SEASONS)
+    art = {"@context": "https://schema.org", "@type": "Article", "headline": "Ireland with kids: when to go, routes, costs and the car hire insurance catch",
+           "datePublished": "2026-10-22", "dateModified": "2026-10-22", "author": {"@type": "Organization", "name": "Dark Lighthouse Solutions"},
+           "publisher": {"@type": "Organization", "name": "Dark Lighthouse Solutions", "url": SITE + "/"}, "mainEntityOfPage": SITE + path,
+           "image": SITE + "/assets/travel/family-travel-kids-planner/1.jpg"}
+    page = head(path, "Ireland with Kids: Family Trip Planning Guide, Routes, Costs & Car Hire Tips (2026) | Dark Lighthouse Solutions",
+                "Planning Ireland with kids? When to go, 7 and 10-night routes (Dublin, Galway, Cliffs of Moher, Dingle, Killarney), real drive times, the Heritage Card, and why your credit card may not cover the rental car.",
+                "/assets/travel/family-travel-kids-planner/1.jpg", [art, faq_ld(IE_FAQ), crld], "/travel/ireland/")
+    page += f'''
+  <header class="wrap hero">
+    {cr}
+    <h1>Ireland with kids: when to go, routes, costs and the car hire insurance catch</h1>
+    <p class="lede">The practical stuff for a family trip to Ireland: what the weather is really like, how long the drives take, what's worth booking ahead, and the rental car insurance surprise that catches a lot of Americans at the desk. Facts checked October 2026, with sources at the end.</p>
+  </header>
+  <main class="wrap copy">
+    <p class="disclose">A few links below go to booking sites. Our travel pages use Travelpayouts, which may turn some of them into affiliate links: if you book, we may earn a small commission at no extra cost to you. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>
+
+    <h2 id="before">1. Before you book: passports, and the Northern Ireland catch</h2>
+    <ul>
+      <li><strong>The Republic of Ireland:</strong> US citizens don't need a visa for a tourist trip of up to 90 days. Your passport has to be valid for the whole stay.</li>
+      <li><strong>Northern Ireland</strong> (Belfast, the Giant's Causeway) is part of the UK, not the Republic of Ireland. There's no passport check on the land border, but you still need a <strong>UK ETA</strong>: £20 per person, babies included, applied for on <a href="https://www.gov.uk/eta">GOV.UK</a> or the official UK ETA app. Northern Ireland also uses pounds, not euros.</li>
+      <li><strong>Kids' passports:</strong> US passports for children under 16 are only valid for 5 years, so check expiry dates against your return date now.</li>
+    </ul>
+    <p>A nice bonus on the way home: Dublin and Shannon airports have US preclearance, so you clear US immigration and customs before you board and land in the US like a domestic flight.</p>
+
+    <h2 id="when">2. When to go</h2>
+    <p>Ireland is mild all year, rarely very hot or very cold, and it can rain in any month. The west gets a lot more rain than Dublin. What changes most is daylight, crowds and prices.</p>
+    <div class="tablewrap"><table><thead><tr><th>Season</th><th>Average temperature</th><th>Rain</th><th>Daylight in Dublin (mid-season)</th></tr></thead><tbody>{seasons}</tbody></table></div>
+    <p class="muted">Temperatures and rainfall: Met Éireann 1991–2020 national averages. Daylight: sunrise to sunset on 15 December, April, June and October, calculated for Dublin.</p>
+    <ul>
+      <li><strong>May, June and September</strong> are our pick with kids: long days, drier weather than autumn, and fewer crowds than high summer.</li>
+      <li><strong>July and August</strong> are the busiest and priciest months for rooms and cars, so book early.</li>
+      <li><strong>Winter</strong> is usually cheaper and quiet, but days are short and some smaller attractions on the west coast keep reduced hours. Plan one or two things a day.</li>
+    </ul>
+
+    <h2 id="driving">3. Getting around: driving on the left and real drive times</h2>
+    <p>A car is the easiest way to see the west with kids. In Ireland you drive on the left, distances are in kilometres and speed limits in km/h, and many rural roads are narrow and twisty with stone walls right at the edge. These are mapped times with no stops, plus a "realistic" column with 40% added for photo stops, toilets and slow tractors.</p>
+    <div class="tablewrap"><table><thead><tr><th>Drive</th><th>Distance</th><th>Mapped time</th><th>Realistic (+40%)</th></tr></thead><tbody>{legs}</tbody></table></div>
+    <p class="muted">Mapped times: OpenStreetMap road data via the OSRM router, by car, looked up October 2026.</p>
+    <ul>
+      <li><strong>Shortcut from Clare to Kerry:</strong> the Killimer–Tarbert car ferry across the Shannon estuary takes about 20 minutes and saves the long drive round through Limerick.</li>
+      <li><strong>Car seats:</strong> children must use a child seat or booster until they're 150 cm tall or 36 kg. Request them when you book, or bring your own.</li>
+      <li><strong>Automatics</strong> are less common than manuals, so book early if you need one.</li>
+      <li><strong>M50 toll:</strong> the Dublin ring road has a camera toll between junctions 6 and 7. Pay at eflow.ie by 8pm the next day, unless your rental company handles it.</li>
+      <li><strong>Going north?</strong> Tell the rental company you'll drive into Northern Ireland and ask if there's a cross-border fee.</li>
+    </ul>
+    <p>Comparison sites like {aff("discovercars-dublin", "Discover Cars")} show what's available at Dublin and Shannon airports, but read the next section before you pick the insurance.</p>
+
+    <h2 id="car-insurance">4. The rental car insurance catch (read this before you book)</h2>
+    <p>Lots of US credit cards include rental car damage cover, and plenty of people plan to rely on it. Ireland is one of the places where that often doesn't work, and where it does, the rental desk can still make it awkward:</p>
+    <ul>
+      <li><strong>Many Visa cards don't cover Ireland at all.</strong> Visa's standard Auto Rental Collision Damage Waiver, used by many Visa Signature cards, excludes the Republic of Ireland, Northern Ireland, Israel and Jamaica.</li>
+      <li><strong>Some premium cards do.</strong> Chase's Visa Infinite guide to benefits (the one for cards like Sapphire Reserve) says coverage is available worldwide, and it's primary.</li>
+      <li><strong>American Express:</strong> the standard Car Rental Loss and Damage Insurance on most Amex cards excludes Australia, Italy and New Zealand but not Ireland. It's secondary cover, and you have to pay for the whole rental with the card and decline the desk's collision damage waiver. Amex's paid add-on, Premium Car Rental Protection, <em>does</em> exclude Ireland.</li>
+      <li><strong>At the desk:</strong> Hertz's Dublin terms, for example, say that if you rely on a credit card you need documents showing the cover applies in the Republic of Ireland. They also add a €10.22-a-day Supplementary Liability Waiver and put a €5,000 hold on your card if you decline their CDW.</li>
+    </ul>
+    <p><strong>What that means for you:</strong> call the number on your card, ask "does my rental car cover apply in the Republic of Ireland (and Northern Ireland, if you're going)?", and get a letter of coverage in writing. Check you have room on the card for a large hold. If your card doesn't cover Ireland, budget for the rental company's CDW (collision damage waiver), or for "excess" cover that lowers the amount you'd owe after damage. It can add a lot to the daily rate, so get the full quote before comparing cars on price.</p>
+
+    <h2 id="routes">5. Two sample routes</h2>
+    <h3>7 nights: Dublin and the west</h3>
+    <p>Dublin (2 nights, no car needed) → pick up the car and drive to Galway (2 nights, with a day for the Burren and the Cliffs of Moher) → ferry across the Shannon to Killarney (2 nights, with a day on the Dingle Peninsula) → Shannon Airport (1 night nearby, or fly the same day). Flying home from Shannon saves the long drive back to Dublin.</p>
+    {slot("stay", "7-night route: Dublin, Galway, Killarney, Shannon")}
+    <h3>10 nights: Dublin, the south and the Wild Atlantic Way</h3>
+    <p>Dublin (3 nights) → Kilkenny (1 night: a castle and an easy medieval town for little legs) → Killarney (2 nights, Ring of Kerry or Killarney National Park) → Dingle (1 night) → ferry to Clare and the Cliffs of Moher → Galway (2 nights) → Dublin (1 night before the flight). The Wild Atlantic Way is the signed coastal route along the whole west coast, and this trip follows one piece of it, from Dingle up to Galway.</p>
+    {slot("stay", "10-night route: Dublin, Kilkenny, Killarney, Dingle, Galway")}
+    <h3>Adding the Giant's Causeway</h3>
+    <p>The Giant's Causeway is in Northern Ireland, about three hours' mapped drive from Dublin, so it's a long day trip with kids. It works better as two nights near Belfast or on the Causeway Coast. Remember it's the UK: everyone needs a UK ETA, prices are in pounds, and tell your rental company you're crossing the border.</p>
+    <p>Rather skip the driving for a day? Coach day trips from Dublin to the Cliffs of Moher, Galway or the Giant's Causeway are listed on {aff("gyg-dublin-day-trips", "GetYourGuide")} and {aff("klook-ireland", "Klook")}. With young kids, check how many hours you're actually on the coach.</p>
+
+    <h2 id="costs">6. What things cost (and the passes worth knowing)</h2>
+    <p>Flights, rooms and the car will be most of your budget, and they depend so much on dates that we won't guess at them. Get real quotes. Some fixed costs worth knowing:</p>
+    <ul>
+      <li><strong>OPW Heritage Card:</strong> one year of free entry to all state-run OPW heritage sites (places like Dublin Castle, Kilkenny Castle and the Rock of Cashel). Adult €40, family €90 (two adults and up to five children aged 12 to 18). Children under 12 get in free at these sites anyway. It's valid for a year from first use, and you can buy it at the first site you visit.</li>
+      <li><strong>Cliffs of Moher:</strong> 2026 gate prices are €15 per adult or €30 for a family, and online tickets are cheaper, especially before 11am or after 4pm. Children under 12 get in free with a parent (up to 4 per adult).</li>
+      <li><strong>Book of Kells, Dublin:</strong> timed tickets often sell out in summer, so book ahead. {aff("tiqets-book-of-kells", "Tiqets sells Book of Kells tickets")}, and so does Trinity College's own site, so compare.</li>
+      <li><strong>UK ETA</strong> if you're going to Northern Ireland: £20 per person.</li>
+      <li><strong>Car rental insurance:</strong> see section 4. It's the cost people most often leave out.</li>
+      <li><strong>Phone data:</strong> US plans can charge a lot to roam. A travel eSIM such as {aff("airalo-ireland", "Airalo's Ireland eSIM")} is an easy fix. If you're crossing into Northern Ireland, check that the plan covers the UK too, or pick a Europe-wide plan.</li>
+    </ul>
+    <p><span class="est">Estimate</span> To get your own number, plug real quotes into the free <a href="/travel/tools/travel-budget-calculator/">travel budget calculator</a> (it also tells you what to save per paycheck), and use the <a href="/travel/tools/daily-travel-budget-calculator/">daily budget calculator</a> for spending money per day in euros and dollars.</p>
+
+    <h2 id="packing">7. Packing for Irish weather</h2>
+    <ul>
+      <li><strong>Layers, not a big coat.</strong> Even in summer, averages sit in the high 50s °F, and the weather changes fast on the coast.</li>
+      <li><strong>A proper waterproof jacket for everyone</strong>, kids included, plus waterproof shoes or boots. The Cliffs of Moher and Dingle can be very windy.</li>
+      <li><strong>A change of clothes in the car</strong> for wet or muddy kids.</li>
+      <li><strong>Plug adapters:</strong> Ireland and Northern Ireland both use the UK-style three-pin plug (type G).</li>
+    </ul>
+
+    <h2 id="kids">8. Tips for traveling Ireland with kids</h2>
+    <ul>
+      <li><strong>Keep most driving days under two to three hours</strong> of mapped time, and don't stack long days back to back.</li>
+      <li><strong>Base yourself for two nights or more</strong> where you can, so there are days when you don't pack the car.</li>
+      <li><strong>Have a rain plan in each place:</strong> museums, castles, aquariums and caves are easy wins when the weather turns.</li>
+      <li><strong>Cliff edges:</strong> stay on the marked paths at the Cliffs of Moher and other coastal spots, and keep small kids' hands held. Wind gusts are strong.</li>
+      <li><strong>Jet lag:</strong> Ireland is usually 5 hours ahead of US Eastern time. Get outside in daylight on day one and keep the first day light.</li>
+      <li><strong>Pubs:</strong> lots of pubs serve food and welcome families during the day and early evening. Policies on children later at night vary, so ask.</li>
+    </ul>
+
+    <h2 id="timeline">9. What to book when</h2>
+    <ul>
+      <li><strong>6 to 9 months out:</strong> rooms in Dingle, Killarney and Galway for July and August. Check {aff("booking-dublin", "Booking.com")} or local B&amp;Bs.</li>
+      <li><strong>4 to 6 months out:</strong> flights and the rental car (especially an automatic), after you've confirmed your card's insurance situation.</li>
+      <li><strong>1 to 2 months out:</strong> timed tickets for the Book of Kells and the Cliffs of Moher, and any tours.{slot("tour", "timeline: tours and tickets")}</li>
+      <li><strong>Once flights are booked:</strong> passport check, a UK ETA if you're going north, and travel insurance.{slot("insurance", "timeline")}</li>
+      <li><strong>The week before:</strong> your card's letter of coverage, offline maps, and the eSIM installed.</li>
+    </ul>
+{cta(["trip-planner-travel-budget", "family-travel-kids-planner"], "Plan it in one sheet", "The Trip Planner & Travel Budget handles costs in euros, pounds and dollars and works out what to save each paycheck. The Family Travel with Kids Planner checks passports against your return date and has a jet-lag plan and packing lists by age.")}
+{FREE}
+{faq_html(IE_FAQ)}
+    <h2 id="sources">Sources</h2>
+    <ul class="src">
+      <li><a href="https://travel.state.gov/en/international-travel/travel-advisories/ireland.html">Ireland: entry requirements for US citizens (U.S. Department of State)</a></li>
+      <li><a href="https://www.dfa.ie/irish-embassy/usa/passports/top-passport-questions/travel-between-the-usa-and-ireland/">Travel between the USA and Ireland (Irish Department of Foreign Affairs)</a></li>
+      <li><a href="https://homeofficemedia.blog.gov.uk/electronic-travel-authorisation-eta-factsheet-april-2026/">UK ETA factsheet, April 2026: £20, and how ETAs apply in Northern Ireland (UK Home Office)</a></li>
+      <li><a href="https://www.gov.uk/eta">Apply for a UK ETA (GOV.UK)</a></li>
+      <li><a href="https://www.cbp.gov/travel/preclearance">US preclearance locations, including Dublin and Shannon (U.S. Customs and Border Protection)</a></li>
+      <li><a href="https://www.met.ie/cms/assets/uploads/2023/07/Irelands-Climate-Averages-1991_2020.pdf">Ireland's Climate Averages 1991–2020 (Met Éireann)</a></li>
+      <li><a href="https://usa.visa.com/dam/VCOM/regional/na/us/support-legal/documents/arcdw-secondary.pdf">Visa Auto Rental Collision Damage Waiver terms: excludes the Republic of Ireland and Northern Ireland (Visa)</a></li>
+      <li><a href="https://www.chasebenefits.com/K113-005/pdf/BGC11580.pdf">Chase Visa Infinite Guide to Benefits, effective 06/11/26: auto rental coverage worldwide (Chase)</a></li>
+      <li><a href="https://www.americanexpress.com/content/dam/amex/us/credit-cards/features-benefits/CRLDI_Benefit_Guide_371-397_EDT_2.20_REV_4.24_a11y3_04022026.pdf">Car Rental Loss and Damage Insurance: excludes Australia, Italy and New Zealand; secondary cover (American Express)</a></li>
+      <li><a href="https://www.americanexpress.com/en-us/insurance/premium-car-rental-protection/faq/">Premium Car Rental Protection FAQ: excludes Ireland (American Express)</a></li>
+      <li><a href="https://www.hertz.com/rentacar/reservation/reviewmodifycancel/templates/rentalTerms.jsp?EOAG=DUBC62&amp;KEYWORD=CDW">Hertz Dublin rental terms: credit card cover documents, €10.22/day SLW, €5,000 hold (Hertz)</a></li>
+      <li><a href="https://www.rsa.ie/road-safety/road-users/passengers/children/faqs">Child car seats: until 150 cm or 36 kg (Road Safety Authority)</a></li>
+      <li><a href="https://www.eflow.ie/tourist-and-rental-info">M50 toll for tourists and rental cars (eFlow)</a></li>
+      <li><a href="https://heritageireland.ie/visit/heritage-card/">OPW Heritage Card prices (Heritage Ireland)</a></li>
+      <li><a href="https://www.cliffsofmoher.ie/en/your-visit/visiting-the-cliffs/admission-rates/">Cliffs of Moher admission rates (Cliffs of Moher Experience)</a></li>
+      <li><a href="https://www.shannonferries.com/">Killimer–Tarbert car ferry (Shannon Ferry Group)</a></li>
+      <li><a href="https://www.wildatlanticway.com/">The Wild Atlantic Way (Fáilte Ireland)</a></li>
+      <li><a href="https://travel.state.gov/en/passports/apply/child/under-16.html">US passports for children under 16 (U.S. Department of State)</a></li>
+      <li><a href="https://project-osrm.org/">Drive distances and times: OpenStreetMap data via OSRM</a></li>
+    </ul>
+    <p class="muted">Rules, fees and card benefits change. Check the official pages and your own card's guide to benefits before you book. Last checked 22 October 2026.</p>
   </main>
 ''' + foot(aff=True) + "</body>\n</html>\n"
     write(path, page)
@@ -562,18 +724,19 @@ def build_planners():
 def build_hub():
     path = "/travel/"
     cr, crld = crumbs([("Travel", path)])
-    page = head(path, "Family Travel Planning: Budgets, Planners & a Scotland Guide | Dark Lighthouse Solutions",
-                "Family travel planning without the spreadsheet headache: free travel budget calculators, a Scotland trip planning guide, a free kids packing checklist and Google Sheets trip planners.",
+    page = head(path, "Family Travel Planning: Budgets, Planners, Scotland & Ireland Guides | Dark Lighthouse Solutions",
+                "Family travel planning without the spreadsheet headache: free travel budget calculators, Scotland and Ireland trip planning guides, a free kids packing checklist and Google Sheets trip planners.",
                 "/assets/travel/travel-planner-bundle/1.jpg", [crld], "/travel/")
     page += f'''
   <header class="wrap hero">
     {cr}
     <h1>Family trips, planned on a budget</h1>
-    <p class="lede">Practical tools for planning a trip with kids without blowing the budget: what it'll cost, how much to save each payday, and (if you're heading to Scotland) how long the drives really take.</p>
+    <p class="lede">Practical tools for planning a trip with kids without blowing the budget: what it'll cost, how much to save each payday, and (if you're heading to Scotland or Ireland) how long the drives really take.</p>
   </header>
   <main class="wrap">
     <div class="hub">
       <a href="/travel/scotland/"><h2>Scotland trip planning guide</h2><p>The UK ETA, realistic Highland drive times, three sample routes, the costs people forget and what to book when.</p></a>
+      <a href="/travel/ireland/"><h2>Ireland with kids guide</h2><p>When to go, 7 and 10-night routes, real drive times, the Heritage Card and the rental car insurance catch.</p></a>
       <a href="/travel/tools/travel-budget-calculator/"><h2>Travel budget calculator</h2><p>Trip total, cost per person and how much to save from each paycheck before you leave. Free.</p></a>
       <a href="/travel/tools/daily-travel-budget-calculator/"><h2>Daily travel budget</h2><p>Spending money per day for the group, per adult and per child, in your currency and the local one. Free.</p></a>
       <a href="/travel/planners/"><h2>Travel planners</h2><p>Google Sheets planners: Trip Planner &amp; Budget, Family Travel with Kids, and Scotland.</p></a>
@@ -613,5 +776,5 @@ def build_privacy():
     write(path, page)
 
 if __name__ == "__main__":
-    build_hub(); build_scotland(); build_planners(); build_calcs(); build_privacy()
-    print("built /travel/ (hub, scotland, planners, tools + %d calculators) and /privacy/" % len(CALCS))
+    build_hub(); build_scotland(); build_ireland(); build_planners(); build_calcs(); build_privacy()
+    print("built /travel/ (hub, scotland, ireland, planners, tools + %d calculators) and /privacy/" % len(CALCS))
