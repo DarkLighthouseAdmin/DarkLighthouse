@@ -335,7 +335,7 @@
       return keepUnknown(t, newTrip({ id: t.id, kidIds: ids, place: t.place, from: obj.version >= 3 ? t.from : "", stops: obj.version >= 3 ? t.stops : [], date: t.date, who: t.who, memory: t.memory, mark: t.mark,
                        photoId: photoIds.indexOf(t.photoId) >= 0 ? t.photoId : null, createdAt: t.createdAt, now: t.updatedAt,
                        route: v4 ? t.route : [], title: v4 ? t.title : "", endDate: v4 ? t.endDate : "", nights: v4 ? t.nights : null, roundTrip: v4 && t.roundTrip, done: v4 && t.done, fly: v4 ? t.fly : "", back: v4 ? t.back : null,
-                       stays: v4 ? t.stays : [], favs: v4 ? t.favs : [], moments: v4 ? t.moments : {}, story: v4 ? t.story : null }));
+                       stays: v4 ? t.stays : [], favs: v4 ? t.favs : [], moments: v4 ? t.moments : {}, story: v4 ? t.story : null, memories: v4 ? t.memories : {} }));
     }).filter(Boolean);
     var home = obj.version >= 3 && obj.settings && typeof obj.settings === "object" ? clean(obj.settings.home, 80) : "";
     var settings = { home: home };

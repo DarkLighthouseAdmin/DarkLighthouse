@@ -854,5 +854,17 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/quests\.js/.test(read("index.html")) && /"quests\.js"/.test(read("sw.js")) && /FS_QUESTS\.view/.test(read("app.js")), "quests loaded, cached offline and routed");
 }
 
+// ---- trip memories
+{
+  const M = require("../travel-log/app/log-core.js"), T = require("../travel-log/app/trips-core.js");
+  ok(T.MEM_PROMPTS.map(p => p[1]).join("|") === "Best part|Favorite food|Most memorable moment|Funniest moment|Would go back for", "memory prompts: best part, food, moment, funniest, would go back for");
+  const t = M.newTrip({ kidIds: ["kid_abcd1234"], place: "Sample Beach", date: "2026-05-01", memory: "Rainy but fun", memories: { best: "  The waves ", food: "", junk: "x", moment: "a".repeat(900) } });
+  ok(t.memories.best === "The waves" && !("food" in t.memories) && !("junk" in t.memories) && t.memories.moment.length === 400 && t.memory === "Rainy but fun", "memories cleaned: trimmed, empty and unknown dropped, capped");
+  const none = M.newTrip({ kidIds: ["kid_abcd1234"], place: "Sample Beach" }); ok(none.memories && !Object.keys(none.memories).length, "memories are optional");
+  const bk = M.readBackup(JSON.parse(JSON.stringify(M.makeBackup([M.newPerson({ id: "kid_abcd1234", name: "Test kid" })], [t], []))));
+  ok(bk.trips[0].memories && bk.trips[0].memories.best === "The waves", "memories survive a backup round trip");
+  ok(/data-memf/.test(read("trips-ui.js")) && /Trip memories/.test(read("trips-ui.js")), "trip form and trip page show Trip memories");
+}
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

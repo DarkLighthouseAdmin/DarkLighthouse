@@ -175,6 +175,7 @@
     if (!old && st.meta.homePoint) d.route = [copy(st.meta.homePoint)];
     else if (!old && st.meta.home) d.route = [{ name: st.meta.home, kind: "place" }];
     var newPhoto = null, removePhoto = false, saveHome = !st.meta.homePoint, places = null, airports = null;
+    function memVals() { var o = {}; document.querySelectorAll("[data-memf]").forEach(function (el) { o[el.dataset.memf] = el.value; }); return o; }
     loadPlaces().then(function (x) { places = x; renderRoute(); }).catch(function () {});
     loadAirports().then(function (x) { airports = x; renderFly(); }).catch(function () {});
     // "Did you fly?": "" = not answered, "yes", "no" or "skip". Older trips that already have a flight count as yes.
@@ -196,8 +197,11 @@
       '<label class="check small"><input type="checkbox" id="tdone"' + (d.done || d.endDate ? " checked" : "") + '> We\'re home: this trip is done (unlocks its story)</label></div>' +
       '<details class="bsec more" id="dstays"' + (d.stays.length ? " open" : "") + '><summary>🏨 Where you stayed <span class="cnt"></span></summary><div id="bstays"></div><button type="button" class="linkbtn" id="addstay">+ Add a place you stayed</button></details>' +
       '<details class="bsec more" id="dfavs"' + (d.favs.length ? " open" : "") + '><summary>⭐ Favorites <span class="cnt"></span></summary><div id="bfavs"></div><div class="favadd" id="favadd"></div></details>' +
-      '<details class="bsec more"' + (Object.keys(d.moments || {}).length || d.memory ? " open" : "") + '><summary>💬 Favorite moments</summary><div id="bmoments"></div>' +
-      '<div class="field"><label for="tmem">The trip in a sentence or two (optional)</label><textarea id="tmem" maxlength="1000" placeholder="The funny thing, the best food, the moment you want to remember">' + esc(d.memory || "") + '</textarea></div></details>' +
+      '<details class="bsec more tmems"' + (Object.keys(d.moments || {}).length || d.memory || Object.keys(d.memories || {}).length ? " open" : "") + '><summary>💬 Trip memories</summary>' +
+      '<p class="small muted">All optional. Fill in what you like, now or later.</p>' +
+      '<div class="field"><label for="tmem">Notes</label><textarea id="tmem" maxlength="1000" rows="4" placeholder="Anything you want to remember about this trip">' + esc(d.memory || "") + '</textarea></div>' +
+      T.MEM_PROMPTS.map(function (p) { return '<div class="field"><label for="tmm-' + p[0] + '">' + p[2] + ' ' + esc(p[1]) + '</label><textarea id="tmm-' + p[0] + '" data-memf="' + p[0] + '" maxlength="400" rows="2" placeholder="' + esc(p[3]) + '">' + esc((d.memories || {})[p[0]] || "") + '</textarea></div>'; }).join("") +
+      '<h4 class="tmh">Each person\'s favorite moment</h4><div id="bmoments"></div></details>' +
       '<details class="bsec more"' + (d.photoId ? " open" : "") + '><summary>📷 Photo</summary><div class="field"><input id="tphoto" type="file" accept="image/*" aria-label="Photo"><p class="small muted">' +
       esc((window.MLTL_SYNC && window.MLTL_SYNC.photoNote()) || "We shrink it and keep it only on this device. Location data in the photo is removed.") + '</p>' +
       '<img id="tprev" class="photo-prev" alt="" hidden>' + (d.photoId ? '<button type="button" class="btn btn-ghost" id="trmphoto" style="margin-top:.5rem">Remove photo</button>' : "") + '</div></details>' +
@@ -486,7 +490,7 @@
         var made = M.newTrip({ id: old ? old.id : undefined, createdAt: old ? old.createdAt : undefined, kidIds: ids,
           place: title || (d.route[d.route.length - 1] || {}).name, route: d.route, title: title, date: $("#tdate").value, endDate: end.value,
           nights: end.value ? null : (nightsV === "" ? null : +nightsV), roundTrip: d.route.length > 1 && $("#tround").checked, done: done.checked,
-          fly: fly, back: $("#tround").checked ? d.back : null, stays: d.stays, favs: d.favs.filter(function (f) { return grown || !T.FAV[f.cat].adult; }), moments: d.moments, story: d.story,
+          fly: fly, back: $("#tround").checked ? d.back : null, stays: d.stays, favs: d.favs.filter(function (f) { return grown || !T.FAV[f.cat].adult; }), moments: d.moments, story: d.story, memories: memVals(),
           who: $("#twho").value, memory: $("#tmem").value, mark: mv ? { kind: mv.split(":")[0], id: mv.split(":")[1] } : null, photoId: photoId });
         trip = Object.assign(old ? copy(old) : {}, made);
       } catch (x) { err.textContent = x.message; err.hidden = false; return; }
@@ -619,12 +623,18 @@
       return '<div class="card fav"><span class="cic" aria-hidden="true">' + c.ic + '</span><div><span class="meta up">' + esc(c.label) + '</span><b>' + esc(f.name) + '</b>' + (f.where ? '<span class="meta">' + esc(f.where) + '</span>' : "") + stars(f.rating) + (f.note ? '<p>' + esc(f.note) + '</p>' : "") + '</div></div>';
     }).join("") + '</div></div>';
   }
+  function memoriesHTML(t) {
+    var m = t.memories || {}, rows = T.MEM_PROMPTS.filter(function (p) { return m[p[0]]; });
+    if (!rows.length && !t.memory) return "";
+    return '<div class="tripmem">' + (t.memory ? '<div class="tmnote"><span class="tmq">📝 Notes</span><p>' + esc(t.memory) + '</p></div>' : "") +
+      rows.map(function (p) { return '<div class="tmrow"><span class="tmq">' + p[2] + ' ' + esc(p[1]) + '</span><p>' + esc(m[p[0]]) + '</p></div>'; }).join("") + '</div>';
+  }
   function momentsBlock(t) {
-    var A_ = A(), m = t.moments || {}, list = people(t.kidIds).filter(function (p) { return m[p.id]; });
-    if (!list.length && !t.memory) return "";
-    return '<h3 class="sec">Favorite moments</h3><div class="moments">' + list.map(function (p) {
+    var A_ = A(), m = t.moments || {}, list = people(t.kidIds).filter(function (p) { return m[p.id]; }), mem = memoriesHTML(t);
+    if (!list.length && !mem) return "";
+    return '<h3 class="sec">Trip memories</h3>' + mem + (!list.length ? "" : '<div class="moments">' + list.map(function (p) {
       return '<blockquote style="' + A_.kidStyle(p) + '"><p>“' + esc(m[p.id]) + '”</p><cite><span class="dotp" aria-hidden="true">' + A_.initial(p.name) + '</span> ' + esc(p.name) + '</cite></blockquote>'; }).join("") +
-      (t.memory ? '<blockquote class="mem"><p>' + esc(t.memory) + '</p></blockquote>' : "") + '</div>';
+      '</div>');
   }
 
   // ---------- the story ----------
