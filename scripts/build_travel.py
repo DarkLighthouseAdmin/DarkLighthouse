@@ -969,7 +969,7 @@ def build_wales():
 GEAR_DISCLOSE = '    <p class="disclose" id="affiliate-disclosure">Some links on this page are affiliate links. If you book or buy through them we may earn a commission at no extra cost to you. <a href="/privacy/#affiliate-links">How affiliate links work</a>.</p>\n'
 GEAR_KEYS = ["patagonia-torrentshell-kids", "patagonia-torrentshell-womens", "columbia-glennaker-kids", "columbia-watertight-mens",
              "llbean-discovery-rain-jacket", "smartwool-classic-thermal-crew", "saxx-quest-boxer-brief", "huckberry-proof-merino-tee",
-             "darntough-kids-light-hiker", "hunter-kids-first-classic", "zappos-merrell-moab-3-wp", "backcountry-barbour-bedale",
+             "darntough-kids-light-hiker", "hunter-kids-first-classic", "zappos-merrell-moab-3-wp", "orvis-barbour-bedale",
              "orvis-barbour-beadnell", "doona-x", "babylist-stokke-yoyo3", "babylist-uppababy-minu-v3", "babylist-nuna-trvl-lx",
              "osprey-poco", "ridge-carry-on", "target-trunki", "peakdesign-packing-cube", "cotopaxi-allpa-35",
              "fjallraven-kanken-mini", "bellroy-travel-wallet",
@@ -1067,7 +1067,7 @@ def build_gear_wear():
     <h3 id="barbour">The classic: a Barbour waxed jacket</h3>
     <p>If you want the jacket you'll see all over rural Scotland, it's a Barbour. Waxed cotton handles drizzle and wind well and looks better with age, though Orvis notes most Barbour waxed jackets are weather-resistant rather than fully waterproof, and they're heavier than a shell. It's more of a "buy once, wear for years" piece than packing gear. Barbour waxed jackets cost about $415 to $450 at US retailers when we checked on 22 October 2026.</p>
     <ul>
-      <li>{aff("backcountry-barbour-bedale", "Barbour Bedale Wax Jacket (men's), at Backcountry")}: the short, classic riding-style jacket.</li>
+      <li>{aff("orvis-barbour-bedale", "Barbour Bedale Jacket (men's), at Orvis")}: the short, classic riding-style jacket in 6 oz waxed cotton, sizes 32–52; $415 when we checked. Orvis suggests ordering one size down from your sport coat size.</li>
       <li>{aff("orvis-barbour-beadnell", "Barbour Beadnell Waxed Cotton Jacket (women's), at Orvis")}: the women's classic.</li>
       <li>{aff("bespokepost-barbour-transport", "Barbour Transport Wax Jacket (men's), at Bespoke Post")}: 6 oz waxed cotton with a cord collar, tartan lining and an inner storm skirt, in a roomier, more modern cut; $425 when we checked. Bespoke Post calls it water-resistant, not waterproof.</li>
     </ul>
@@ -1093,6 +1093,7 @@ def build_gear_wear():
       <li><a href="https://www.smartwool.com/en-us/products/mens-classic-thermal-merino-base-layer-crew-sw016349">Classic Thermal Merino Base Layer Crew (Smartwool)</a></li>
       <li><a href="https://darntough.com/products/kids-merino-wool-light-hiker-micro-crew-cushioned-lightweight-hiking-socks">Kids' Light Hiker Micro Crew (Darn Tough)</a></li>
       <li><a href="https://hunterboots.com/products/kids-first-classic-rain-boots-in-black-kft5094rma-hbl01">Kids First Classic Rain Boots (Hunter)</a></li>
+      <li><a href="https://www.orvis.com/product/barbour-bedale-jacket/8977.html">Barbour Bedale Jacket: materials, sizes and price (Orvis)</a></li>
       <li><a href="https://www.orvis.com/barbour/barbour-for-men">Barbour waxed jackets: weather-resistant, care and re-waxing (Orvis)</a></li>
       <li><a href="https://www.bespokepost.com/store/barbour-transport-wax-jacket">Barbour Transport Wax Jacket: materials and price (Bespoke Post)</a></li>
     </ul>
