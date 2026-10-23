@@ -10,6 +10,8 @@ window.MLTL_SYNC_CONFIG = {
   // Family testing: every Family Keeper feature is unlocked. Flip off when Family Keeper goes on sale.
   testing: true,
   // "Continue with Google": turn on once Google is set up in Supabase (Auth > Providers > Google, plus "Allow manual linking").
-  google: false,
+  google: true,
+  // Email sign-in codes: off until custom SMTP is set up (Supabase's built-in mail only reaches the project team).
+  email: false,
   price: "$24.99/yr for the whole family"
 };
