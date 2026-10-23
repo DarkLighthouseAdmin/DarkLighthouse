@@ -763,7 +763,8 @@
   function wxStore() { try { return window.localStorage; } catch (e) { return null; } }
   function wxDays(t) { return WX ? WX.build(t, WX.cached(t, M.today(), wxStore()), M.today()) : []; }
   function wxNotes(t) { return WX ? WX.storyNotes(wxDays(t), 2) : []; }
-  function wxDate(d) { var x = new Date(d + "T12:00:00"); return x.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); }
+  var WXFMT = null, WXD = {};   // one formatter, cached labels: toLocaleDateString builds a new Intl formatter per call (slow on phones)
+  function wxDate(d) { if (WXD[d]) return WXD[d]; var x = new Date(d + "T12:00:00"); WXFMT = WXFMT || (window.Intl ? new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }) : null); return (WXD[d] = WXFMT ? WXFMT.format(x) : x.toDateString()); }
   var WX_TAG = { manual: "Your pick", past: "Real weather", forecast: "Forecast", typical: "Typical" };
   function wxStop(s, unit) {
     if (!s.kind) return '<span class="wxstop none"><b>' + esc(s.name) + '</b> <span class="muted">' + (navigator.onLine === false ? "offline" : "no data yet") + '</span></span>';
@@ -827,8 +828,10 @@
     });
     sec.addEventListener("change", function (e) { if (e.target.id === "wxtemp" && open) { var m = (t.wx || {})[open]; if (m) setPick(open, m.k, tempF()); } });
     // fetch what's missing; a forecast refreshes after a few hours; offline / API down = quietly keep what's saved
-    WX.load(t, M.today(), { store: wxStore(), fetch: window.fetch ? function (u) { return fetchT(u, 9000); } : null, offline: navigator.onLine === false })
-      .then(function (r) { if (r.fetched && document.body.contains(sec)) paint(); }).catch(function () {});
+    // started after the page has painted, never awaited; results are cached per trip in localStorage
+    setTimeout(function () { if (!document.body.contains(sec)) return;
+      WX.load(t, M.today(), { store: wxStore(), fetch: window.fetch ? function (u) { return fetchT(u, 9000); } : null, offline: navigator.onLine === false })
+        .then(function (r) { if (r.fetched && document.body.contains(sec)) paint(); }).catch(function () {}); }, 0);
   }
   function fetchT(u, ms) {
     var ac = window.AbortController ? new AbortController() : null, tm = ac ? setTimeout(function () { ac.abort(); }, ms) : 0;
@@ -872,10 +875,12 @@
       if (story && next && story.text === next.text && story.style === next.style && story.edited === next.edited) return;
       t.story = story = next; saveTrip(t);
     }
-    function render() {
+    // Only a first story or a tap (style, shuffle, reset) is saved. Re-renders on open, a sync or fresh weather never write:
+    // two phones with different weather caches used to keep re-saving each other's story, re-rendering the trip on every sync.
+    function render(user) {
       stopSpeech(); showPlayer(false);
       var text = current();
-      if (!story || !story.edited) persist(text, false);
+      if (!story || (user === true && !story.edited)) persist(text, false);
       SP.list = T.splitSentences(text); SP.i = 0;
       $("#stext").innerHTML = SP.list.map(function (x, i) { return '<span class="sn" data-s="' + i + '">' + esc(x) + '</span>'; }).join(" ");
       $$("[data-style]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.style === style); });
@@ -898,14 +903,14 @@
     $$("[data-style]").forEach(function (b) { b.onclick = function () {
       if (b.dataset.style === style) return;
       if (story && story.edited && !confirm("Switch styles? Your edits to this story will be replaced.")) return;
-      style = b.dataset.style; if (story) story.edited = false; render(); }; });
+      style = b.dataset.style; if (story) story.edited = false; render(true); }; });
     $("#sshuffle").onclick = function () {
       if (story && story.edited && !confirm("Shuffle the story? Your edits will be replaced.")) return;
-      seed = (seed + 1 + Math.floor(Math.random() * 997)) % 1e9; if (story) story.edited = false; render(); };
+      seed = (seed + 1 + Math.floor(Math.random() * 997)) % 1e9; if (story) story.edited = false; render(true); };
     $("#sedit-b").onclick = function () { stopSpeech(); showPlayer(false); $("#stextarea").value = current(); $("#sedit").hidden = false; $("#stext").hidden = true; $("#stextarea").focus(); };
     $("#scancel").onclick = function () { $("#sedit").hidden = true; $("#stext").hidden = false; };
     $("#ssave").onclick = function () { var v = $("#stextarea").value.trim(); if (!v) return A_.toast("The story can't be empty"); story = story || {}; persist(v, true); $("#sedit").hidden = true; $("#stext").hidden = false; render(); A_.toast("Story saved"); };
-    $("#sreset").onclick = function () { if (story) story.edited = false; render(); };
+    $("#sreset").onclick = function () { if (story) story.edited = false; render(true); };
     $("#sshare").onclick = function () { shareStory(t, current()); };
     // read aloud
     var sy = synth();
