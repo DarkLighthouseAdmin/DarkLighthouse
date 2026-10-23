@@ -104,7 +104,7 @@ ok(ms.firstTripAge === null, "no 'age on first trip' for adults");
 ok(M.stats(a, [tFam], MAPS.world).firstTripAge === 10, "kids still get age on first trip");
 ok(ms.together === 2 && ms.trips === 2, "trips together counted per person");
 const mb = M.badges(ms), mg = id => mb.find(x => x.id === id);
-ok(mb.length === 23 && mg("junior-ranger"), "grown-ups can earn the Junior Ranger badge too");
+ok(mb.length === 22 && !mg("junior-ranger"), "adults skip the Junior Ranger badge");
 ok(mg("scotland").name === "Scotland calling" && mg("scotland").earned, "adults get 'Scotland calling', not 'Wee explorer'");
 ok(M.badges(M.stats(a, [], MAPS.world)).find(x => x.id === "scotland").name === "Wee explorer", "kids keep 'Wee explorer'");
 ok(mg("park-1").earned && mg("abroad").earned && !mg("together").earned, "adults earn the same badges");
@@ -490,7 +490,7 @@ ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view
   ok(fd[0].trip.id === "b" && fd[0].by === "Nana" && fd[1].by === "", "feed is newest first with who added it");
   ok(S.thumbDims(4032, 3024).w === 1024 && S.thumbDims(3024, 4032).h === 1024 && S.thumbDims(800, 600).w === 800, "shared photo copies are 1024px on the long edge, never upscaled");
   // wiring + privacy
-  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="stamp-who-core\.js"><\/script>\s*<script src="trips-ui\.js"><\/script>\s*<script src="stamp-who\.js"><\/script>\s*<script src="logo\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
+  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="stamp-who-core\.js"><\/script>\s*<script src="trips-ui\.js"><\/script>\s*<script src="stamp-who\.js"><\/script>\s*<script src="ranger-badge\.js"><\/script>\s*<script src="logo\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
   ok(/"stamp-who-core\.js", "stamp-who\.js"/.test(fs.readFileSync(path.join(APP, "sw.js"), "utf8")), "the who-picker files are cached for offline");
   { // "Who's been there?": who's ticked to start, shared visits, no duplicates, undo
     const W = require(path.join(APP, "stamp-who-core.js"));

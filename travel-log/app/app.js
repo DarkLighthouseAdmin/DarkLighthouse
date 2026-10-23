@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v42" -> "v42").
-  var VERSION = "v43";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v44" -> "v44").
+  var VERSION = "v44";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -440,7 +440,7 @@
   }
   function viewParks(k, set) {
     if (!PARK_SETS_TXT[set]) set = "np";
-    var s = M.stats(k, state.trips, MAPS.world), FF = window.FS_FIND, byReg = {}, list = M.parksIn(set), tx = PARK_SETS_TXT[set], jrOk = set !== "sp";
+    var s = M.stats(k, state.trips, MAPS.world), kidMode = M.isKid(k), FF = window.FS_FIND, byReg = {}, list = M.parksIn(set), tx = PARK_SETS_TXT[set], jrOk = set !== "sp";
     var been = list.filter(function (p) { return k.parks[p.id]; }).length;
     list.forEach(function (p) { var r = FF.REGION[p.states.split(/,\s*/)[0]] || "West"; (byReg[r] = byReg[r] || []).push(p); });
     var groups = FF.REGIONS.filter(function (r) { return byReg[r]; }).map(function (r) {
@@ -449,15 +449,15 @@
         var v = k.parks[p.id];
         return '<div class="row" data-name="' + esc(p.full + " " + p.states + " " + p.states.split(/,\s*/).map(function (x) { return STATE_NAME[x] || ""; }).join(" ")) + '"><span class="pkstamp' + (v ? " on" : "") + '" aria-hidden="true" data-pk="' + p.id + '"></span><div class="nm"><b data-hl>' + esc(p.name) + '</b><span>' + esc(p.states + (set === "np" ? "" : " · " + p.label.charAt(0) + p.label.slice(1).toLowerCase())) + (v && v.at ? " · " + esc(niceDate(v.at)) : "") + '</span></div>' +
           '<button type="button" class="pill" data-park="' + p.id + '" aria-pressed="' + !!v + '">' + (v ? "✓ Been here" : "Been here?") + '</button>' +
-          (jrOk && v ? '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button>' : "") + '</div>';
+          (kidMode && jrOk ? '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button>' : "") + '</div>';
       }).join(""));
     }).join("");
     var seg = '<div class="seg parkset" role="group" aria-label="Which parks">' + M.PARK_SETS.map(function (x) {
       return '<a href="#/p/' + esc(k.id) + '/parks' + (x.id === "np" ? "" : "/" + x.id) + '"' + (x.id === set ? ' class="on" aria-current="page"' : "") + '><span class="lg">' + esc(x.name) + '</span><span class="sh">' + esc(x.short) + '</span></a>'; }).join("") + '</div>';
-    main.innerHTML = shell(k, "parks", seg + counter(been, list.length, tx.what, jrOk ? '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>' : "") +
+    main.innerHTML = shell(k, "parks", seg + counter(been, list.length, tx.what, kidMode && set === "np" ? '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>' : "") +
       '<div class="mapbox us parksmap">' + parksMapSVG(k, list, tx.what) + '</div><p class="hint">Green dots are places ' + esc(M.who(k)) + ' has been to. ' + esc(tx.hint) + '</p>' +
       '<div class="panel parks plist" data-plist="parks-' + set + ':' + esc(k.id) + '">' + FF.tools('<div class="field" style="margin-top:0"><label for="pfind">' + esc(tx.find) + '</label><input id="pfind" type="search" placeholder="' + esc(tx.ph) + '" autocomplete="off"></div>') + groups + '</div>' +
-      (jrOk ? '<p class="hint">Earned a Junior Ranger badge? Grown-ups can too. Mark the park, then tap "Ranger?". Ask at the visitor center; most National Park Service sites have a free booklet.</p>' : ""));
+      (kidMode && jrOk ? '<p class="hint">Earned a Junior Ranger badge? Tap "Ranger?" too. Ask at the visitor center; most National Park Service sites have a free booklet.</p>' : ""));
     lazyStamps(k);
     var f = main.querySelector("#pfind");
     FF.bind(main.querySelector("[data-plist]"), f, true);
@@ -537,12 +537,11 @@
     return '<a class="familycard qentry" href="#/p/' + esc(k.id) + '/quests"><span class="qemo" aria-hidden="true"><i>🧭</i></span><span><b>Travel quests</b><span class="small muted">' +
       (got.length ? got.length + " quest badge" + (got.length === 1 ? "" : "s") + " earned" + (going ? " · " + going + " on the go" : "") : going ? going + " on the go" : "Scavenger hunts for your trips") + '</span></span><span class="qgo" aria-hidden="true">›</span></a>';
   }
-  /** Earned badges at the top of a passport: achievements, Junior Ranger parks, finished quests, recent firsts. Tap one for what it's for. */
+  /** Earned badges at the top of a passport: achievements, finished quests, recent firsts (a kid's Junior Ranger badges get their own section). Tap one for what it's for. */
   function badgeStrip(k) {
     var s = M.stats(k, state.trips, MAPS.world), out = [];
     M.badges(s).forEach(function (x) { if (x.earned) out.push({ ic: MEDALS[x.id] || "★", name: x.name, desc: x.desc }); });
-    Object.keys(k.parks || {}).forEach(function (id) { var v = k.parks[id], p = M.parkById && M.parkById(id); if (v && v.jr && p) out.push({ ic: "🎖️", name: "Junior Ranger", desc: p.name + (v.at ? " · " + v.at : ""), cls: " jr" }); });
-    if (window.FS_QUESTS) window.FS_QUESTS.earned(k).forEach(function (e) { out.push({ ic: e.q.emoji || "🧭", name: e.q.badge || e.q.name, desc: e.q.name + " done" + (e.at ? " · " + e.at : "") }); });
+        if (window.FS_QUESTS) window.FS_QUESTS.earned(k).forEach(function (e) { out.push({ ic: e.q.emoji || "🧭", name: e.q.badge || e.q.name, desc: e.q.name + " done" + (e.at ? " · " + e.at : "") }); });
     if (window.FS_FIRSTS) { try { window.FS_FIRSTS.list(k).slice(-3).reverse().forEach(function (r) { out.push({ ic: r.emoji || "⭐", name: r.title, desc: "A first" + (r.at ? " · " + r.at : "") }); }); } catch (e) {} }
     var all = '<a class="pbadges-all" href="#/p/' + esc(k.id) + '/stats">See all badges ›</a>';
     if (!out.length) return '<section class="pbadges empty"><p class="small muted">No badges yet. They show up here as ' + esc(M.who(k)) + ' travels.</p>' + all + '</section>';
@@ -561,7 +560,7 @@
     var s = M.stats(k, state.trips, MAPS.world), b = M.badges(s), earned = b.filter(function (x) { return x.earned; }).length;
     main.innerHTML = shell(k, "stats", '<h2>' + esc(M.who(k)) + '\'s travel stats</h2><div class="stats">' +
       statBox(s.states, 50, "States") + statBox(s.countries, 195, "Countries") + statBox(s.ukNations, 4, "UK nations") + statBox(s.parks, 64, "National parks") +
-      statBox(s.juniorRanger, 0, "Junior Ranger") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
+      (s.kid ? statBox(s.juniorRanger, 0, "Junior Ranger") : "") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
       (s.years ? statBox(s.years, 0, s.years === 1 ? "Year of trips" : "Years of trips") : "") + (s.firstTripAge != null ? statBox(s.firstTripAge, 0, "Age on first trip") : "") + '</div>' +
       UI().lifetimeHTML(k.id) + questsCard(k) + (window.FS_FIRSTS ? window.FS_FIRSTS.card(k) : "") + (window.FS_BOOK ? window.FS_BOOK.card(k) : "") +
       '<h2>Badges <span class="muted small">' + earned + ' of ' + b.length + '</span></h2><div class="badges">' + b.map(function (x) {

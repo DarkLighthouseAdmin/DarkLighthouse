@@ -1114,12 +1114,14 @@
     var stamps = stampsOf(k);
     A_.main.innerHTML = A_.shell(k, "passport", '<div class="seg pswitch" role="group" aria-label="Passport or State Signs"><a class="btn" aria-current="page">🛂 Passport</a><a class="btn" href="#/p/' + esc(k.id) + '/signs">🪧 State Signs</a></div>' +
       (A_.badgeStrip ? A_.badgeStrip(k) : "") +
+      (window.FS_RANGER ? window.FS_RANGER.sectionHTML(k) : "") +
       '<p class="lede small">Every place ' + esc(k.name) + ' has been gets a stamp, with the date. Trips add them on their own; tap a stamp to see it.</p>' +
       bookHTML(k.name + "'s Famstamp Passport", k.color, stamps, false, k.id) +
       '<div class="actions"><button type="button" class="btn btn-beacon" id="addstamp">+ Add a stamp</button>' + (S().kids.length > 1 ? '<a class="btn btn-ghost" href="#/family/passport">👨‍👩‍👧 Family passport</a>' : "") + '</div>');
     var bk = bindBook(function (pg) { passport(k, pg); }, stamps, k);
     if (openAt) bk.open(openAt);
     if (A_.bindBadgeStrip) A_.bindBadgeStrip(k);
+    if (window.FS_RANGER) window.FS_RANGER.bind(k, A_.main);
     $("#addstamp").onclick = function () { addStampSheet(k); };
   }
   function passportFamily(openAt) {

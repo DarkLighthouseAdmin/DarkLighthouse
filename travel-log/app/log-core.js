@@ -379,7 +379,7 @@
     { id: "park-1", name: "Park ranger", desc: "Visit a national park", need: 1, key: "parks" },
     { id: "parks-10", name: "Trail blazer", desc: "Visit 10 national parks", need: 10, key: "parks" },
     { id: "together", name: "Better together", desc: "Take 3 trips (or shared visits) with family", need: 3, key: "together" },
-    { id: "junior-ranger", name: "Junior Ranger", desc: "Earn a Junior Ranger badge", need: 1, key: "juniorRanger" },
+    { id: "junior-ranger", name: "Junior Ranger", desc: "Earn a Junior Ranger badge", need: 1, key: "juniorRanger", kidsOnly: true },
     // v1.4: these come from trip routes
     { id: "first-flight", name: "First flight", desc: "Take a trip with a flight", need: 1, key: "flights" },
     { id: "frequent-flyer", name: "Frequent flyer", desc: "Take 5 flights", need: 5, key: "flights" },
