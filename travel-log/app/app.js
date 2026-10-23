@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v41" -> "v41").
-  var VERSION = "v41";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v42" -> "v42").
+  var VERSION = "v42";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -412,6 +412,16 @@
     var key = p.id + "|" + (v && v.at ? v.at : ""); if (PKSTAMP[key]) return PKSTAMP[key];
     return PKSTAMP[key] = PP.stampSVG({ id: "pk-" + p.id, kind: "park", area: p.id, date: v && v.at ? v.at : "" }, p.name, { sub: M.parkSub(p) });
   }
+  /** Park stamps are drawn when their row comes near the screen (a list can be 100+ detailed stamps; drawing them all froze phones). */
+  var pkIO = null;
+  function lazyStamps(k) {
+    var els = main.querySelectorAll(".pkstamp[data-pk]");
+    function fill(el) { if (!el.dataset.pk) return; var p = M.parkById(el.dataset.pk); el.innerHTML = p ? parkStamp(p, k.parks[p.id]) : ""; el.removeAttribute("data-pk"); }
+    if (pkIO) pkIO.disconnect();
+    if (!window.IntersectionObserver) return Array.prototype.forEach.call(els, fill);
+    pkIO = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { fill(e.target); pkIO.unobserve(e.target); } }); }, { rootMargin: "600px 0px" });
+    Array.prototype.forEach.call(els, function (el) { pkIO.observe(el); });
+  }
   var PARK_SETS_TXT = {
     np: { what: "national parks", find: "Find a park or state", ph: "e.g. Zion, Utah or UT", hint: "Every park has its own stamp below. American Samoa and the Virgin Islands are off the map." },
     sp: { what: "state parks", find: "Find a state park or state", ph: "e.g. Custer, Florida or NY", hint: "Some of the most loved state parks around the country, each with its own stamp. State parks are run by each state." },
@@ -437,7 +447,7 @@
       var ps = byReg[r];
       return FF.group(r, r, ps.filter(function (p) { return k.parks[p.id]; }).length, ps.length, ps.map(function (p) {
         var v = k.parks[p.id];
-        return '<div class="row" data-name="' + esc(p.full + " " + p.states + " " + p.states.split(/,\s*/).map(function (x) { return STATE_NAME[x] || ""; }).join(" ")) + '"><span class="pkstamp' + (v ? " on" : "") + '" aria-hidden="true">' + parkStamp(p, v) + '</span><div class="nm"><b data-hl>' + esc(p.name) + '</b><span>' + esc(p.states + (set === "np" ? "" : " · " + p.label.charAt(0) + p.label.slice(1).toLowerCase())) + (v && v.at ? " · " + esc(niceDate(v.at)) : "") + '</span></div>' +
+        return '<div class="row" data-name="' + esc(p.full + " " + p.states + " " + p.states.split(/,\s*/).map(function (x) { return STATE_NAME[x] || ""; }).join(" ")) + '"><span class="pkstamp' + (v ? " on" : "") + '" aria-hidden="true" data-pk="' + p.id + '"></span><div class="nm"><b data-hl>' + esc(p.name) + '</b><span>' + esc(p.states + (set === "np" ? "" : " · " + p.label.charAt(0) + p.label.slice(1).toLowerCase())) + (v && v.at ? " · " + esc(niceDate(v.at)) : "") + '</span></div>' +
           '<button type="button" class="pill" data-park="' + p.id + '" aria-pressed="' + !!v + '">' + (v ? "✓ Been here" : "Been here?") + '</button>' +
           (jrOk && v ? '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button>' : "") + '</div>';
       }).join(""));
@@ -448,6 +458,7 @@
       '<div class="mapbox us parksmap">' + parksMapSVG(k, list, tx.what) + '</div><p class="hint">Green dots are places ' + esc(M.who(k)) + ' has been to. ' + esc(tx.hint) + '</p>' +
       '<div class="panel parks plist" data-plist="parks-' + set + ':' + esc(k.id) + '">' + FF.tools('<div class="field" style="margin-top:0"><label for="pfind">' + esc(tx.find) + '</label><input id="pfind" type="search" placeholder="' + esc(tx.ph) + '" autocomplete="off"></div>') + groups + '</div>' +
       (jrOk ? '<p class="hint">Earned a Junior Ranger badge? Grown-ups can too. Mark the park, then tap "Ranger?". Ask at the visitor center; most National Park Service sites have a free booklet.</p>' : ""));
+    lazyStamps(k);
     var f = main.querySelector("#pfind");
     FF.bind(main.querySelector("[data-plist]"), f, true);
     function again() { var q = f.value, y = window.scrollY, foc = document.activeElement === f; viewParks(k, set); var f2 = main.querySelector("#pfind"); f2.value = q; f2.dispatchEvent(new Event("input")); if (foc) f2.focus({ preventScroll: true }); window.scrollTo(0, y); f = f2; }
