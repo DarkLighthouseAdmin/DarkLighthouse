@@ -402,6 +402,8 @@ if (require.main === module) (async function main() {
     ok(R2.photos === 100000 && R2.placedByTime === 25000, "100k sidecars: 75k with GPS + 25k placed by time (" + R2.photos + ", " + R2.placedByTime + ")"); ok(T2.filter((x) => !x.unsure).every((x) => x.states.indexOf("CA") >= 0), "100k sidecars: CA trips");
     ok(ms2 < 120000, "100k sidecars under 2 minutes");
   }
+  { const ui = fs.readFileSync(path.join(APP, "import.js"), "utf8");
+    ok(!/No date|"\?"|Date not set/.test(ui) && /if \(!a\) return "";/.test(ui), "review screen shows nothing for an undated item (no 'No date' or '?')"); }
   console.log("test_import: " + pass + " passed, " + fail + " failed");
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

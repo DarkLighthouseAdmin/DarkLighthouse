@@ -65,7 +65,7 @@
   function back(href, label) { return '<a class="back" href="' + href + '">← ' + esc(label) + '</a>'; }
   function plural(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
   function fmtRange(a, b) {
-    if (!a) return "No date";
+    if (!a) return "";   // no date: show nothing
     if (!b || a === b) return M.prettyDate(a);
     var A1 = M.prettyDate(a), B1 = M.prettyDate(b);
     if (a.slice(0, 4) === b.slice(0, 4)) A1 = A1.replace(/,?\s*\d{4}$/, "");
@@ -218,7 +218,7 @@
     return '<article class="imp-trip' + (t.checked ? " on" : "") + '" data-trip="' + t.i + '">' +
       '<label class="imp-pick"><input type="checkbox" data-check="' + t.i + '"' + (t.checked ? " checked" : "") + ' aria-label="Add this trip"></label><div class="body">' +
       '<input class="imp-title" data-title="' + t.i + '" maxlength="80" value="' + esc(t.title) + '" aria-label="Trip name">' +
-      '<div class="when small">' + esc(fmtRange(t.start, t.end) + (t.nights ? " · " + plural(t.nights, "night") : "")) + '</div>' +
+      '<div class="when small">' + esc([fmtRange(t.start, t.end), t.nights ? plural(t.nights, "night") : ""].filter(Boolean).join(" · ")) + '</div>' +
       '<div class="route small muted">' + esc(routeTxt) + '</div>' +
       (areas.length ? '<div class="small">🖍 ' + esc(areas.slice(0, 8).join(", ") + (areas.length > 8 ? " +" + (areas.length - 8) : "")) + '</div>' : "") +
       (t.highlights && t.highlights.length ? '<div class="small muted">Most photos: ' + esc(t.highlights.map(function (h) { return h.name + " (" + h.photos + ")"; }).join(", ")) + '</div>' : "") +
