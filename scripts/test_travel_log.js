@@ -490,7 +490,7 @@ ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view
   ok(fd[0].trip.id === "b" && fd[0].by === "Nana" && fd[1].by === "", "feed is newest first with who added it");
   ok(S.thumbDims(4032, 3024).w === 1024 && S.thumbDims(3024, 4032).h === 1024 && S.thumbDims(800, 600).w === 800, "shared photo copies are 1024px on the long edge, never upscaled");
   // wiring + privacy
-  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="stamp-who-core\.js"><\/script>\s*<script src="trips-ui\.js"><\/script>\s*<script src="stamp-who\.js"><\/script>\s*<script src="ranger-badge\.js"><\/script>\s*<script src="logo\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
+  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="stamp-who-core\.js"><\/script>\s*<script src="trips-ui\.js"><\/script>\s*<script src="stamp-who\.js"><\/script>\s*<script src="ranger-badge\.js"><\/script>\s*<script src="spots-data\.js"><\/script>\s*<script src="spots\.js"><\/script>\s*<script src="logo\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
   ok(/"stamp-who-core\.js", "stamp-who\.js"/.test(fs.readFileSync(path.join(APP, "sw.js"), "utf8")), "the who-picker files are cached for offline");
   { // "Who's been there?": who's ticked to start, shared visits, no duplicates, undo
     const W = require(path.join(APP, "stamp-who-core.js"));
@@ -1189,3 +1189,26 @@ setTimeout(() => {
   console.log(`${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 }, 300);
+
+// ---------- cities / food & drink / pubs (spots.js) ----------
+(function () {
+  var SP = require("../travel-log/app/spots.js");
+  ok(SP.LIST.cities.length >= 100 && SP.LIST.pubs.length >= 50 && SP.LIST.food.length >= 15, "spots: curated cities, pubs and food spots");
+  var ids = {}; ["cities", "pubs", "food"].forEach(function (c) { SP.LIST[c].forEach(function (it) { ids[it.id] = (ids[it.id] || 0) + 1; }); });
+  ok(Object.keys(ids).every(function (k) { return ids[k] === 1; }), "spots: ids are unique");
+  var mom = { id: "kid_mom1", role: "adult", kid: false }, kid = { id: "kid_kid1", role: "kid", kid: true }, ppl = [mom, kid];
+  var r = SP.applySpot(ppl, "c-edinburgh", ["kid_mom1", "kid_kid1"], { date: "2025-06-14" });
+  ok(r.added.length === 2 && mom.spots["c-edinburgh"].with.length === 2 && kid.spots["c-edinburgh"].at === "2025-06-14", "spots: shared city stamp for both with the date");
+  ok(SP.earned(kid, "cities").length === 1 && SP.counts(mom).cities === 1, "spots: counts and earned");
+  SP.restore(ppl, r.undo); ok(!mom.spots["c-edinburgh"] && !kid.spots["c-edinburgh"], "spots: undo puts it back");
+  SP.applySpot(ppl, "p-bow-bar", ["kid_mom1", "kid_kid1"], {}); kid.spots["p-bow-bar"] = { at: "" };
+  ok(SP.earned(kid, "pubs").length === 0 && SP.earned(mom, "pubs").length === 1, "spots: pubs never show for kids");
+  var e = SP.applyEntry(ppl, { name: "Stout", type: "beer", at: "2025-06-14", rating: 4, stamp: true }, ["kid_mom1", "kid_kid1"]);
+  ok(SP.counts(kid).list === 0 && SP.counts(mom).list === 1 && SP.earned(mom, "pubs").length === 2, "spots: beer list entries hidden from kids, stamp made for grown-ups");
+  SP.applyEntry(ppl, { name: "Beignets", type: "food", stamp: true }, ["kid_kid1"]);
+  ok(SP.earned(kid, "food").length === 1 && SP.earned(kid, "food")[0].item.cat === "food", "spots: a food entry becomes a food stamp");
+  SP.applyEntry(ppl, e.entry, []); ok(!mom.eats.some(function (x) { return x.name === "Stout"; }), "spots: removing an entry takes it off everyone");
+  var trips = [{ id: "t1", kidIds: ["kid_mom1"], date: "2024-05-01", route: [{ lat: 55.95, lon: -3.2, date: "2024-05-02" }, { lat: 40, lon: -100 }] }];
+  var sug = SP.fromTrips(mom, trips); ok(sug.length === 1 && sug[0].item.id === "c-edinburgh" && sug[0].date === "2024-05-02", "spots: trips offer the city stamp");
+  var svg = SP.stampSVG(SP.BY["c-edinburgh"], "2025-06-14"); ok(/EDINBURGH/.test(svg) && /JUN 14, 2025/.test(svg) && !/undefined|NaN/.test(svg), "spots: stamp svg has name and date");
+})();

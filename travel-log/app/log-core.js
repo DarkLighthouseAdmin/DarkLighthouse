@@ -461,6 +461,9 @@
       if (obj.version >= 4 && Array.isArray(k.stamps) && k.stamps.length) kid.stamps = P.cleanStamps(k.stamps);
       // kid quests and firsts: plain JSON, checked again by quests.js / firsts.js when shown
       ["quests", "firsts"].forEach(function (f) { var v = k[f]; if (v && typeof v === "object" && !Array.isArray(v)) { var j = JSON.stringify(v); if (j.length < 60000) kid[f] = JSON.parse(j); } });
+      // cities / food / pub stamps and the food & drink list (spots.js)
+      if (k.spots && typeof k.spots === "object" && !Array.isArray(k.spots)) { var js = JSON.stringify(k.spots); if (js.length < 60000) kid.spots = JSON.parse(js); }
+      if (Array.isArray(k.eats)) { var je = JSON.stringify(k.eats.slice(0, 500)); if (je.length < 200000) kid.eats = JSON.parse(je); }
       kid.createdAt = typeof k.createdAt === "string" ? k.createdAt.slice(0, 30) : kid.createdAt;
       kid.updatedAt = typeof k.updatedAt === "string" ? k.updatedAt.slice(0, 30) : kid.updatedAt;
       return kid;
