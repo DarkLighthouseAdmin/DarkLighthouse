@@ -47,7 +47,7 @@
     if (DATA.airports) return Promise.resolve(DATA.airports);
     return getJSON("airports").then(function (j) {
       DATA.airports = j.rows.split("\n").map(function (l) {
-        var c = l.split("\t"); return { code: c[0], name: c[1], city: c[2], country: c[3], region: c[4], lat: +c[5], lon: +c[6], size: c[7], low: (c[0] + " " + c[2] + " " + c[1]).toLowerCase() };
+        var c = l.split("\t"); return { code: c[0], name: c[1], city: T.airportCity(c[2], c[1], c[0]), town: c[2], country: c[3], region: c[4], lat: +c[5], lon: +c[6], size: c[7], low: (c[0] + " " + c[2] + " " + c[1]).toLowerCase() };
       });
       return DATA.airports;
     });
@@ -85,7 +85,7 @@
   function searchAirports(q, list) {
     q = q.trim().toLowerCase(); if (q.length < 2) return [];
     var exact = list.filter(function (a) { return a.code.toLowerCase() === q; });
-    var rest = list.filter(function (a) { return a.code.toLowerCase() !== q && (a.city.toLowerCase().indexOf(q) === 0 || a.name.toLowerCase().indexOf(q) >= 0); })
+    var rest = list.filter(function (a) { return a.code.toLowerCase() !== q && (a.city.toLowerCase().indexOf(q) === 0 || a.name.toLowerCase().indexOf(q) >= 0 || a.low.indexOf(q) >= 0); })
       .sort(function (a, b) { return (a.size === "L" ? 0 : 1) - (b.size === "L" ? 0 : 1); });
     return exact.concat(rest).slice(0, 7);
   }
@@ -233,7 +233,7 @@
             '<div class="realmi" data-mi="' + i + '"' + (typeof p.miles === "number" ? "" : " hidden") + '><input type="number" inputmode="decimal" min="0" max="30000" step="any" data-miles="' + i + '" value="' + (typeof p.miles === "number" ? (units() === "km" ? Math.round(p.miles * T.KM_PER_MI) : p.miles) : "") + '" aria-label="Real distance in ' + (units() === "km" ? "kilometers" : "miles") + '" placeholder="' + (units() === "km" ? "km" : "miles") + '"> ' + units() + (typeof p.miles === "number" ? ' <button type="button" class="linkbtn sm" data-clearmi="' + i + '">Use the estimate</button>' : "") + '</div>' +
             (mode === "plane" ? '<div class="airports">' + ["dep", "arr"].map(function (w) {
               var ap = p[w];
-              return '<div class="ap"><label>' + (w === "dep" ? "Left from airport" : "Landed at airport") + '</label><input type="search" autocomplete="off" data-ap="' + w + '" data-i="' + i + '" value="' + (ap ? esc(ap.code + " · " + (ap.city || ap.name)) : "") + '" placeholder="Code or city, e.g. MCO"><div class="results" data-apres="' + w + i + '"></div></div>';
+              return '<div class="ap"><label>' + (w === "dep" ? "Left from airport" : "Landed at airport") + '</label><input type="search" autocomplete="off" data-ap="' + w + '" data-i="' + i + '" value="' + (ap ? esc(ap.code + " · " + (T.airportCity(ap.city, ap.name, ap.code) || ap.name)) : "") + '" placeholder="Code or city, e.g. MCO"><div class="results" data-apres="' + w + i + '"></div></div>';
             }).join("") + '</div>' : "") + '</div>';
         }
         var nights = typeof p.nights === "number" ? p.nights : 0;
@@ -264,7 +264,7 @@
     }
     function planes() { return d.route.filter(function (p, i) { return i > 0 && p.mode === "plane"; }).length; }
     function apChip(w, a, on) {
-      return '<button type="button" class="chip apchip" data-flyap="' + w + '" data-code="' + esc(a.code) + '" aria-pressed="' + !!on + '"><b>' + esc(a.code) + '</b> <span>' + esc(a.city || a.name) + '</span>' +
+      return '<button type="button" class="chip apchip" data-flyap="' + w + '" data-code="' + esc(a.code) + '" aria-pressed="' + !!on + '"><b>' + esc(a.code) + '</b> <span>' + esc(T.airportCity(a.city, a.name, a.code) || a.name) + '</span>' +
         (a.away != null ? ' <small>' + esc(dist(a.away)) + '</small>' : "") + '</button>';
     }
     function flySummary(s) {
@@ -306,6 +306,16 @@
         (airports ? group("dep", "Flew from", "near " + a.name, depS) + group("arr", "Landed at", "near " + b.name, arrS) : '<p class="small muted">Loading airports…</p>') + prev +
         '<div class="actions flyacts"><button type="button" class="btn btn-primary" id="flyyes">✈️ Yes, add the flights</button><button type="button" class="btn btn-ghost" id="flyno">We didn\'t fly</button>' +
         '<button type="button" class="btn btn-ghost" id="flyskip">Skip</button></div></section>';
+      if (airports && flyShown !== ti) { flyShown = ti; showFlyButtons(); }
+    }
+    // the sticky Save bar (and the phone tab bar) sit over the bottom of the screen: bring the yes / didn't fly / Skip row
+    // up above them once, when the question first shows
+    var flyShown = null;
+    function showFlyButtons() {
+      var acts = $("#flyask .flyacts"), card = $("#flyask"), bar = $(".actions.sticky"); if (!acts || !card || !window.scrollBy) return;
+      var limit = bar ? bar.getBoundingClientRect().top : window.innerHeight;
+      var over = acts.getBoundingClientRect().bottom + 12 - limit;
+      if (over > 0) window.scrollBy(0, over);   // on a short phone the heading may scroll up; the airports, preview and buttons stay in view
     }
     function setFly(v) {
       if (v === "yes") {

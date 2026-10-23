@@ -24,7 +24,9 @@ def slug(s):
 iso3 = {}; cname = {}
 for line in open(GEO / "countryInfo.txt", encoding="utf8"):
     if line.startswith("#") or not line.strip(): continue
-    p = line.rstrip("\n").split("\t"); iso3[p[0]] = ISO_FIX.get(p[1], p[1]); cname[iso3[p[0]]] = p[4]
+    p = line.rstrip("\n").split("\t"); iso3[p[0]] = ISO_FIX.get(p[1], p[1])
+    # an overseas department folded into its country (YT -> FRA) must not rename the country ("Lyon, Mayotte")
+    if iso3[p[0]] not in cname or not (p[1] in ISO_FIX and ISO_FIX[p[1]] in ("FRA", "NLD", "NOR")): cname[iso3[p[0]]] = p[4]
 cname["GBR"] = "UK"; cname["USA"] = "USA"
 admin = {}
 for line in open(GEO / "admin1CodesASCII.txt", encoding="utf8"):

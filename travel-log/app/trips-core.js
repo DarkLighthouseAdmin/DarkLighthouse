@@ -88,9 +88,29 @@
   }
 
   // ---------- cleaning ----------
+  function fold(x) { return String(x || "").normalize ? String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : String(x || "").toLowerCase(); }
+  /** The city people know an airport by. OurAirports' "municipality" is often the suburb it sits in ("Ingliston, Edinburgh",
+      "Paris (Roissy-en-France, Val-d'Oise)", "Geelong/Melbourne"): use the part that's also in the airport's name, else the
+      part before any comma or bracket. */
+  var AP_CITY = { LYS: "Lyon", MRS: "Marseille", MXP: "Milan", LIN: "Milan", BGY: "Bergamo", FLR: "Florence", GOA: "Genoa", BSL: "Basel", LPB: "La Paz",
+    NRT: "Tokyo", HND: "Tokyo", KIX: "Osaka", NOU: "Nouméa", IAD: "Washington", DCA: "Washington", BWI: "Baltimore", ICN: "Seoul", GMP: "Seoul", CGK: "Jakarta" };
+  function airportCity(city, name, code) {
+    if (code && AP_CITY[code]) return AP_CITY[code];
+    city = String(city || "").trim(); if (!city) return "";
+    var parts = city.split(/\s*[,/()]\s*/).map(function (x) { return x.trim(); }).filter(function (x) { return x.length > 1 && !/^[A-Z]{2}$/.test(x); });
+    if (!parts.length) return city;
+    var n = fold(name), hit = parts.filter(function (x) { return n.indexOf(fold(x)) >= 0; })[0];
+    return hit || parts[0];
+  }
+  // the 2026 place list had France named "Mayotte" and Norway "Svalbard and Jan Mayen"; fix trips saved with that
+  function fixSub(sub, p) {
+    if (p.country === "FRA" && !(p.lat < -12.4 && p.lat > -13.1 && p.lon > 44.9 && p.lon < 45.4)) return sub.replace(/, Mayotte$/, ", France");
+    if (p.country === "NOR" && !(p.lat > 70.5)) return sub.replace(/, Svalbard and Jan Mayen$/, ", Norway");
+    return sub;
+  }
   function cleanAirport(a) {
     if (!a || typeof a !== "object" || !/^[A-Z]{3}$/.test(a.code || "")) return null;
-    var o = { code: a.code, name: clean(a.name, 80), city: clean(a.city, 60), country: /^[A-Z]{3}$/.test(a.country || "") ? a.country : "" };
+    var o = { code: a.code, name: clean(a.name, 80), city: airportCity(clean(a.city, 60), a.name, a.code), country: /^[A-Z]{3}$/.test(a.country || "") ? a.country : "" };
     var lat = num(a.lat, -90, 90, 3), lon = num(a.lon, -180, 180, 3);
     if (lat != null && lon != null) { o.lat = lat; o.lon = lon; }
     return o;
@@ -111,7 +131,7 @@
     if (lat != null && lon != null) { o.lat = lat; o.lon = lon; }
     if (/^[A-Z]{3}$/.test(p.country || "")) o.country = p.country;
     if (/^[A-Z0-9]{1,3}$/.test(p.region || "")) o.region = p.region;
-    if (p.sub) o.sub = clean(p.sub, 80);
+    if (p.sub) o.sub = fixSub(clean(p.sub, 80), o);
     if (p.near) o.near = clean(p.near, 60);
     var n = num(p.nights, 0, 366); if (n != null) o.nights = n;
     if (!first) {
@@ -492,7 +512,7 @@
 
   return { EARTH_MI: EARTH_MI, KM_PER_MI: KM_PER_MI, AROUND_WORLD: AROUND_WORLD, MAX_POINTS: MAX_POINTS, MAX_STAYS: MAX_STAYS, MAX_FAVS: MAX_FAVS,
            MODES: MODES, MODE: MODE, STAY_TYPES: STAY_TYPES, FAV_CATS: FAV_CATS, FAV: FAV, US_STATES: US_STATES,
-           gcMiles: gcMiles, legMiles: legMiles, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
+           gcMiles: gcMiles, legMiles: legMiles, airportCity: airportCity, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
            airMinutes: airMinutes, fmtAir: fmtAir, crossesBorder: crossesBorder, CRUISE_MPH: CRUISE_MPH, GROUND_MIN_MI: GROUND_MIN_MI,
            cleanStays: cleanStays, cleanFavs: cleanFavs, cleanMoments: cleanMoments, cleanStory: cleanStory, cleanMemories: cleanMemories, MEM_PROMPTS: MEM_PROMPTS, cleanExtras: cleanExtras,
            routeFromLegacy: routeFromLegacy, syncLegacy: syncLegacy, nightsBetween: nightsBetween, summary: summary, areas: areas, isAdult: isAdult,

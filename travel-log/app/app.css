@@ -439,6 +439,7 @@ h2 .units { margin-left:.4rem; }
 .flyprev b { color:var(--beacon); } .flyprev .muted { color:#c9d5e2; }
 .flyacts { flex-wrap:wrap; margin-top:.7rem; }
 .flyacts .btn { min-height:44px; }
+.flyask, .flydone { scroll-margin-top:72px; scroll-margin-bottom:150px; }
 .flydone { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-top:.6rem; padding:.55rem .8rem; border-radius:12px; background:#eef5fb; border:1px solid #c9d5e2; }
 .flydone .flybtns { display:flex; gap:.3rem; flex-wrap:wrap; margin-left:auto; }
 .flylink { margin:.5rem 0 0; }
