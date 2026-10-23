@@ -319,7 +319,7 @@
         S("M3 27 V20 H8 V17 H13 V21.4 H17.4 V15 Q19.6 13.6 21.8 15 V18.6 H27 V21 H31 V19 H36 V27", 0.8) +
         P("M5 22 h1.4 v1.8 h-1.4Z M10 19.4 h1.4 v2 h-1.4Z M10 23.4 h1.6 v3.6 h-1.6Z M14.6 23 h1.2 v1.8 h-1.2Z M19 17 h1.2 v2 h-1.2Z M19 22 h1.2 v2 h-1.2Z M24 21 h1.4 v2 h-1.4Z M28.4 23 h1.2 v1.8 h-1.2Z M33 21.4 h1.4 v2 h-1.4Z M33 24.4 h1.4 v2.6 h-1.4Z") +
         P("M-1 27 H41 V41 H-1Z") + S("M-1 30 H41 M-1 33 H41", 0.8, PAPER); },
-    rainier: function () { var lup = function (x, y) { return S("M" + x + " " + (y + 5) + " V" + (y + 1), 0.8, PAPER) + E(x, y, 0.8, 1.2, PAPER) + E(x, y + 1.8, 1, 1.1, PAPER) + E(x, y + 3.4, 1.2, 1.1, PAPER); };
+    rainier: function () { var lup = function (x, y) { return S("M" + x + " " + (y + 5) + " V" + (y + 1), 0.8, PAPER) + E(x, y, 0.8, 1.2, 0, PAPER) + E(x, y + 1.8, 1, 1.1, 0, PAPER) + E(x, y + 3.4, 1.2, 1.1, 0, PAPER); };
       return P("M-1 23 L7 18 Q13 11 16.4 7.4 Q20 5 23.6 7.4 Q27 11 33 18 L41 23 V31 H-1Z") +
         P("M11.6 14 Q14.4 10 16.4 7.4 Q20 5 23.6 7.4 Q25.6 10 28.4 14 L26.4 13 L25 16.4 L23 13.4 L21 17.6 L19 13.6 L16.6 16.6 L15 13.2Z", PAPER) + S("M18 9 L16 13 M22 9 L24.4 13.4 M20 8 V11.6", 0.8) +
         pines([2, 5, 35, 38.4], 26, 7) + P("M-1 25 Q20 21.4 41 25 V41 H-1Z") + lup(8, 24.6) + lup(12, 26) + lup(16.6, 24) + lup(21, 25.6) + lup(25.6, 24.2) + lup(30, 25.8) + lup(34, 24.8); },
@@ -331,7 +331,7 @@
       P("M24 30 V16 Q24 12 27 11.4 Q29 10 30 13 L31 30Z") + P("M33 30 V22 Q34 19.6 36 20.4 L37.6 30Z") + P("M15 30 V24.6 Q16 22 17.6 23 L19 30Z") + pines([27, 35.4], 11.8, 5) +
       wv(31.2, 1.1) + wv(34.2, 1) + S("M2 37 L13 35.4 M9 35.6 L11 33.6", 1.4); },
     petrified: function () { var seg = function (x, y, L, r) { return P("M" + x + " " + (y - r) + " H" + (x + L) + " V" + (y + r) + " H" + x + "Z") + S("M" + (x + 1) + " " + (y - r * 0.4) + " H" + (x + L - 1) + " M" + (x + 2) + " " + (y + r * 0.4) + " H" + (x + L - 2), 0.6, PAPER) +
-        E(x + L, y, r * 0.55, r, PAPER) + E(x + L, y, r * 0.55, r).replace("<ellipse", '<ellipse fill="none" stroke-width="1.1"') + E(x + L, y, r * 0.3, r * 0.6).replace("<ellipse", '<ellipse fill="none" stroke-width=".7"') + E(x + L, y, 0.5, 0.8); };
+        E(x + L, y, r * 0.55, r, 0, PAPER) + E(x + L, y, r * 0.55, r).replace("<ellipse", '<ellipse fill="none" stroke-width="1.1"') + E(x + L, y, r * 0.3, r * 0.6).replace("<ellipse", '<ellipse fill="none" stroke-width=".7"') + E(x + L, y, 0.5, 0.8); };
       return PO("M-1 19 L4 14 H11 L14 17 L19 16 L23 12 H30 L33 16 L41 15 V24 H-1Z", 0.4) + S("M0 17.6 H40 M0 20.6 H40", 0.8, PAPER) + P("M-1 31 Q20 27 41 31 V41 H-1Z").replace("<path", '<path fill-opacity=".55"') +
         seg(3, 26, 9, 4) + seg(15.4, 27.6, 7, 3.6) + seg(26, 28.4, 8, 3.2) + P("M-1 32 H41 V41 H-1Z"); },
     pinnacles: function () { return P("M1 34 L3.6 24 L6 20 L8 23 L10 17 L12 21 L14.4 26 L16 34Z M23 34 L25.6 25 L28 19 L30 22 L32 16 L34.4 21 L38 34Z") + S("M5 26 L8 25 M27 26 L31 25 M10 30 L13 29", 0.9, PAPER) + GROUND(34) +
@@ -387,28 +387,278 @@
   };
   function palmlet(x, y) { return S("M" + x + " " + y + " Q" + (x + 0.6) + " " + (y - 4) + " " + x + " " + (y - 7), 1) + P("M" + x + " " + (y - 7) + " q-3 -1.6 -5 0.6 q3 -0.8 5 0.2Z M" + x + " " + (y - 7) + " q3 -1.6 5 0.6 q-3 -0.8 -5 0.2Z M" + x + " " + (y - 7) + " q-1 -2.6 -3.4 -3 q2 1.4 3.2 3.2Z M" + x + " " + (y - 7) + " q1 -2.6 3.4 -3 q-2 1.4 -3.2 3.2Z"); }
   Object.keys(NPG).forEach(function (k) { G["np_" + k] = NPG[k]; });
+  // ---------- state parks, monuments and memorials: one scene per place, drawn for the round window ----------
+  function T(tx, ty, s, inner) { return '<g transform="translate(' + tx + " " + ty + ") scale(" + s + ')">' + inner + "</g>"; }
+  function R(x, y, w, h, f) { return P("M" + x + " " + y + " h" + w + " v" + h + " h" + (-w) + "Z", f); }
+  function fall(x0, x1, y0, y1, n) { var w = x1 - x0, m = (y0 + y1) / 2, s = P("M" + x0 + " " + y0 + " H" + x1 + " Q" + (x1 + w * 0.06) + " " + m + " " + (x1 + w * 0.14) + " " + y1 + " H" + (x0 - w * 0.14) + " Q" + (x0 - w * 0.06) + " " + m + " " + x0 + " " + y0 + "Z", PAPER), st = "";
+    n = n || 3; for (var i = 1; i <= n; i++) { var x = x0 + w * i / (n + 1), dx = (x - (x0 + x1) / 2) * 0.22; st += "M" + x.toFixed(1) + " " + (y0 + 1) + " Q" + (x + dx * 0.4).toFixed(1) + " " + m + " " + (x + dx).toFixed(1) + " " + (y1 - 1 - (i % 2) * 2); }
+    return s + S(st, 0.7) + S("M" + x0 + " " + y0 + " H" + x1, 1.2); }
+  function mist(x0, x1, y) { var s = "", o = ""; for (var x = x0; x <= x1; x += 3.4) { s += C(x, y, 2, PAPER); o += (o ? " " : "M") + (x - 2) + " " + y + " Q" + x + " " + (y - 3) + " " + (x + 2) + " " + y; } return s + S(o, 0.7); }
+  function sky(d) { return PO(d, 0.3); }
+  function bison(x, y, s, f) { return T(x, y, s, (f ? '<g transform="matrix(-1 0 0 1 31 0)">' : "<g>") + P("M2 12 Q1 7 5 6 Q7 2 12 1.5 Q17 1 19 4 Q24 4 27 6 Q30 8 29.6 12 L29 18 H27.4 L26.6 13.6 Q22 14.6 18 13.6 L17.4 18 H15.8 L15.4 13.4 Q11 13 9.4 12 L9 18 H7.4 L7 12.6 Q5 14 3 13.6 Q2 13 2 12Z M2.6 12 Q2.4 16 5 15 L5.4 12.6Z") +
+    S("M4.4 6.4 Q3 4.6 4.4 3.2 M29.4 8 Q31 9.6 30.6 12", 0.9) + C(4.4, 8.6, 0.5, PAPER) + S("M8 4.6 Q12 3 16 4.6", 0.7, PAPER) + "</g>"); }
+  function conifers(xs, y, h) { return pines(xs, y, h) + S(xs.map(function (x) { return "M" + x + " " + y + " v1.6"; }).join(" "), 0.8); }
+  function lighthouse(x, y, h, w, band) { var t = y - h, s = P("M" + (x - w) + " " + y + " L" + (x - w * 0.62) + " " + t + " H" + (x + w * 0.62) + " L" + (x + w) + " " + y + "Z");
+    if (band) s += P("M" + (x - w * 0.86) + " " + (y - h * 0.3) + " L" + (x - w * 0.78) + " " + (y - h * 0.5) + " H" + (x + w * 0.78) + " L" + (x + w * 0.86) + " " + (y - h * 0.3) + "Z M" + (x - w * 0.72) + " " + (y - h * 0.7) + " L" + (x - w * 0.66) + " " + (y - h * 0.88) + " H" + (x + w * 0.66) + " L" + (x + w * 0.72) + " " + (y - h * 0.7) + "Z", PAPER);
+    return s + R(x - w * 0.9, t - 0.8, w * 1.8, 0.8) + R(x - w * 0.45, t - 3.2, w * 0.9, 2.4, PAPER) + S("M" + (x - w * 0.45) + " " + (t - 0.8) + " V" + (t - 3.2) + " H" + (x + w * 0.45) + " V" + (t - 0.8), 0.8) + P("M" + (x - w * 0.6) + " " + (t - 3.2) + " Q" + x + " " + (t - 5.6) + " " + (x + w * 0.6) + " " + (t - 3.2) + "Z"); }
+  function water(y) { return P("M-1 " + y + " H41 V41 H-1Z") + S("M3 " + (y + 2) + " q3 -1.4 6 0 t6 0 M22 " + (y + 2.6) + " q3 -1.4 6 0 t6 0", 0.8, PAPER); }
+  function cols(x, y, w, h, n) { var s = R(x - 1, y - h - 2.4, w + 2, 2.4) + R(x - 1.4, y, w + 2.8, 1.6); for (var i = 0; i < n; i++) s += R(x + i * w / n + w / n * 0.2, y - h, w / n * 0.6, h); return s; }
+  function ped(x, y, w, h) { return P("M" + (x - w / 2) + " " + y + " L" + x + " " + (y - h) + " L" + (x + w / 2) + " " + y + "Z"); }
+  function heads(x, y, s) { return T(x, y, s, P("M0 10 Q0 3 4 2 Q8 3 8 10Z M3 1.4 Q4 -0.6 5.4 1.4") ); }
+  function stair(x, y, n, dx, dy, w) { var d = "M" + x + " " + y; for (var i = 0; i < n; i++) d += " h" + dx + " v" + dy; return S(d, w || 0.9); }
+
+  var XPG = {
+    "sp-custer": function () { return sky("M-1 20 L5 14 L8 16 L12 11 L16 15 L21 9 L25 14 L29 12 L34 16 L41 13 V24 H-1Z") + conifers([3, 6, 33, 36.4], 24, 7) + P("M13 14 L14 9 L15 14Z M17 13 L18.2 6.6 L19.4 13Z", 0) +
+        P("M-1 24 Q20 21 41 24 V41 H-1Z") + bison(6, 12.6, 0.86) + S("M2 30 H38", 0.8, PAPER); },
+    "sp-niagara-falls": function () { return sky("M-1 14 H41 V17 H-1Z") + P("M-1 16 Q20 12 41 16 V19 Q20 15 -1 19Z") +
+        P("M1 19 Q20 15 39 19 L37 29 Q20 26 3 29Z", PAPER) + S("M5 19 L4.4 27.6 M11 17.6 L10.6 26.4 M17 17 V26 M23 17 V26 M29 17.6 L29.4 26.4 M35 19 L35.6 27.6", 0.7) + S("M1 19 Q20 15 39 19", 1.2) + mist(4, 36, 29.4) +
+        water(31) + P("M24 30.6 H33 L32 32.2 H25Z M27 30.6 V28.6 H30 V30.6Z", PAPER); },
+    "sp-letchworth": function () { var tr = "M2 4 H38"; for (var x = 4; x <= 36; x += 4) tr += " M" + x + " 4 L" + (x + 2) + " 9 L" + (x + 4) + " 4"; return P("M-1 9 H11 L13 31 H-1Z M41 9 H29 L27 31 H41Z") + S(tr, 0.8) + S("M2 4 H38 M2 9 H38", 1.2) + S("M8 9 V31 M32 9 V31 M14 9 L13 31 M26 9 L27 31", 0.8) +
+        fall(15, 25, 13, 30, 3) + mist(14, 26, 30) + water(31); },
+    "sp-watkins-glen": function () { return P("M-1 3 H13 Q16 14 15 31 H-1Z M41 3 H27 Q24 14 25 31 H41Z") + S("M1 8 H11 M1 14 H12 M1 20 H13 M29 8 H39 M28 14 H39 M27 20 H39", 0.7, PAPER) +
+        '<path fill="none" stroke="currentColor" stroke-width="2.4" d="M13.6 12 Q20 6 26.4 12"/>' + S("M13 12.6 Q20 8.6 27 12.6", 0.6, PAPER) + fall(17.6, 22.4, 12.4, 22, 2) + fall(18, 22, 24, 30, 1) + S("M14 23 H26", 1.2) + stair(4, 30, 4, 1.4, -1.4, 0.8) + water(31); },
+    "sp-valley-of-fire": function () { return C(32, 8, 3) + P("M2 31 Q2 21 8 18 Q14 15 20 17 Q26 17 28 21 Q30 25 29 31 H24 Q24 25 21 24 Q18 23.6 17 27 L16 31Z") + P("M4 31 Q4 26 7 24 Q9 26 9 31Z", PAPER) +
+        S("M6 21 Q14 18 24 20 M8 25 Q12 23 15 25", 0.8, PAPER) + P("M28 31 Q31 25 35 26 Q39 27 41 31Z") + GROUND(31); },
+    "sp-anza-borrego-desert": function () { var oc = ""; [[-9, 2], [-5, 5], [-1, 6], [3, 5], [7, 2]].forEach(function (a) { oc += "M20 31 Q" + (20 + a[0] * 0.5) + " 20 " + (20 + a[0]) + " " + (10 - a[1] * 0.6); });
+      var tk = ""; for (var y = 13; y < 29; y += 2.6) tk += "M" + (20 - (31 - y) * 0.32) + " " + y + " l-1 -0.8 M" + (20 + (31 - y) * 0.3) + " " + y + " l1 -0.8 ";
+      return C(31, 7, 3.2) + sky("M-1 24 L6 18 L12 21 L18 16 L26 21 L33 17 L41 22 V31 H-1Z") + S(oc, 1.3) + S(tk, 0.6) + P("M10 8.4 l0.6 -2.4 l0.6 2.4Z M13 6.6 l0.6 -2.4 l0.6 2.4Z M24 5.4 l0.6 -2.4 l0.6 2.4Z M27 8.6 l0.6 -2.4 l0.6 2.4Z") + GROUND(31) + S("M4 33 H36", 0.7, PAPER); },
+    "sp-julia-pfeiffer-burns": function () { return P("M-1 6 Q8 4 18 8 L20 20 Q22 26 26 28 L-1 31Z") + conifers([3, 7, 11], 7, 5) + fall(17.6, 19.6, 9, 26, 1) + P("M14 31 Q20 24.6 41 26 V31Z", PAPER) + S("M14 31 Q20 24.6 41 26", 1) +
+        P("M26 26 V31 H41 V26Z").replace("<path", '<path fill-opacity=".45"') + water(31) + S("M28 27.4 q2 -1 4 0 t4 0", 0.8); },
+    "sp-humboldt-redwoods": function () { return P("M1 31 L3 -1 H9 L10 31Z M30 31 L31 -1 H38 L40 31Z") + P("M12 31 L13.4 -1 H16 L16.6 31Z M23.4 31 L24 -1 H26.6 L28 31Z").replace("<path", '<path fill-opacity=".5"') +
+        S("M4 6 V26 M7 4 V24 M33 8 V27 M36 5 V22", 0.7, PAPER) + P("M16.6 31 L19.4 12 H20.6 L23.4 31Z", PAPER) + S("M20 30 V27 M20 24 V22 M20 19 V17.6", 0.8) + GROUND(31) + P("M17.6 28.4 h4.8 v-1.4 l-1 -1.4 h-2.8 l-1 1.4Z") + C(18.6, 29, 0.7, PAPER) + C(21.4, 29, 0.7, PAPER); },
+    "sp-emerald-bay": function () { return P("M-1 20 L5 10 L9 14 L14 6 L20 13 L26 7 L31 12 L36 8 L41 13 V22 H-1Z") + P("M12.6 8.6 L14 6 L15.6 8.6 L14.2 8Z M24.6 9.2 L26 7 L27.4 9.4Z", PAPER) +
+        P("M-1 22 Q20 18 41 22 V31 H-1Z").replace("<path", '<path fill-opacity=".45"') + P("M15 24 Q20 19.4 25 24Z") + conifers([18.4, 20, 21.6], 22.4, 3.4) + P("M19.4 19 h1.4 v-1.6 l-0.7 -0.8 l-0.7 0.8Z", PAPER) +
+        conifers([2, 5, 35, 38], 31, 8) + S("M8 27 q3 -1.4 6 0 M26 28 q3 -1.4 6 0", 0.7) + GROUND(31); },
+    "sp-starved-rock": function () { return sky("M-1 20 Q20 17 41 20 V24 H-1Z") + P("M8 31 V12 Q8 8 12 8 H26 Q30 8 31 12 L33 31Z") + conifers([12, 15, 18, 22, 25, 28], 8.6, 4) + S("M10 14 H31 M10 19 H32 M10 24 H32", 0.8, PAPER) +
+        P("M30 4 q2 -1.6 4 0 q2 -1.6 4 0 q-2 -0.6 -4 1 q-2 -1.6 -4 -1Z") + water(29) + P("M-1 29 H8 V31 H-1Z"); },
+    "sp-dead-horse-point": function () { return C(33, 6, 2.6) + sky("M-1 12 L6 10 H14 L16 12 H26 L28 10 H41 V16 H-1Z") + P("M-1 15 H41 V31 H-1Z") +
+        P("M8 31 Q6 22 13 20 Q22 18 24 23 Q26 28 20 28 Q15 28 16 24", "none").replace('fill="none"', 'fill="none" stroke="#fff" stroke-width="3"') + S("M-1 19 H8 M30 19 H41 M-1 24 H5 M32 24 H41", 0.8, PAPER) + P("M18 15 L24 9.4 L30 15Z"); },
+    "sp-goblin-valley": function () { var g = function (x, h, w) { return P("M" + (x - w * 0.5) + " 31 L" + (x - w * 0.4) + " " + (31 - h + w * 0.6) + " L" + (x + w * 0.4) + " " + (31 - h + w * 0.6) + " L" + (x + w * 0.5) + " 31Z") + E(x, 31 - h + w * 0.4, w * 0.75, w * 0.55); };
+      return sky("M-1 16 L4 12 H16 L18 14 H30 L33 11 H41 V20 H-1Z") + g(5, 9, 4) + g(11, 14, 5) + g(18, 10, 4.4) + g(24.6, 16, 5.4) + g(31, 11, 4) + g(36.6, 8, 3.6) + GROUND(31) + S("M4 33 H36", 0.7, PAPER); },
+    "sp-palo-duro-canyon": function () { return sky("M-1 14 H9 L10 17 H30 L31 14 H41 V31 H-1Z") + P("M15 31 Q14 22 17 20 L17 16 Q16.4 13 18.6 12 L18 9.6 Q18.6 7 20.6 7 Q22.6 7 23 9.6 L22.4 12 Q24.4 13 24 16 L24 20 Q27 22 26 31Z") + S("M16 24 H25 M17.6 16 H23", 0.8, PAPER) +
+        P("M-1 22 H6 L8 26 L10 31 H-1Z M41 22 H34 L32 26 L30 31 H41Z") + GROUND(31); },
+    "sp-hocking-hills": function () { return P("M-1 2 H41 V11 Q30 15 20 13 Q10 15 -1 11Z") + S("M-1 5 H41 M-1 8 Q20 10 41 8", 0.7, PAPER) + conifers([4, 9, 31, 36], 3, 5) + PO("M-1 11 Q10 15 20 13 Q30 15 41 11 V31 H-1Z", 0.55) +
+        fall(24, 26, 13.4, 29, 1) + P("M2 31 V24 Q6 21 10 24 V31Z M30 31 V26 Q35 23 41 27 V31Z") + mist(22, 28, 29.6) + water(31); },
+    "sp-ichetucknee-springs": function () { var cy = function (x, k) { return P("M" + (x - 0.6 * k) + " 4 L" + (x - 1 * k) + " 24 Q" + (x - 3 * k) + " 27 " + (x - 4 * k) + " 28 H" + (x + 4 * k) + " Q" + (x + 3 * k) + " 27 " + (x + 1 * k) + " 24 L" + (x + 0.6 * k) + " 4Z") + E(x, 5, 4 * k, 2) + E(x - 3, 9, 3, 1.4) + E(x + 3, 12, 3, 1.4); };
+      return cy(6, 1) + cy(34, 0.9) + P("M-1 26 Q20 22 41 26 V31 H-1Z").replace("<path", '<path fill-opacity=".4"') + E(20, 25.6, 5, 1.8, 0, PAPER) + E(20, 25.6, 5, 1.8).replace("<ellipse", '<ellipse fill="none" stroke-width="1.4"') + C(20, 22.4, 1.2) + P("M18.6 25 L19.2 23.6 H20.8 L21.4 25Z") + water(31); },
+    "sp-bahia-honda": function () { var t = "M-1 14 H22 M-1 19 H22"; for (var x = 0; x <= 20; x += 4) t += " M" + x + " 14 L" + (x + 2) + " 19 L" + (x + 4) + " 14"; return S(t, 0.8) + S("M-1 14 H22 M-1 19 H22", 1.4) + P("M2 19 h2 v12 h-2Z M12 19 h2 v12 h-2Z M27 19 h2 v12 h-2Z M37 19 h2 v12 h-2Z") + S("M26 14 H41 M26 19 H41", 1.4) + palmlet(35, 12) + water(26) + S("M-1 26 H41", 1); },
+    "sp-john-pennekamp-coral-reef": function () { var f = function (x, y, s) { return P("M" + x + " " + y + " q" + 3 * s + " -" + 2 * s + " " + 6 * s + " 0 l" + 2 * s + " -" + 1.4 * s + " v" + 2.8 * s + " l-" + 2 * s + " -" + 1.4 * s + " q-" + 3 * s + " " + 2 * s + " -" + 6 * s + " 0Z"); };
+      return wv(4, 1) + f(4, 11, 1) + f(24, 8, 0.8) + f(14, 15, 0.7) + C(31, 4, 0.8) + C(33, 1.6, 0.6) +
+        T(22, 11, 1, P("M0 6 Q3 0 6 0 Q9 0 10 4 L14 6 L10 7 Q7 9 3 8Z") + S("M10 4 L13 1 M10 7 L13 10", 1)) +
+        E(12, 27, 8, 5) + S("M5 27 Q8 23 12 25 Q16 22 19 26 M6 29 Q10 27 14 29 Q17 27 19 29", 0.7, PAPER) + P("M24 31 L25 22 L26.4 25 L28 18 L29 25 L31 21 L32 31Z") + GROUND(31); },
+    "sp-blue-spring": function () { return P("M-1 6 Q20 3 41 6 V31 H-1Z").replace("<path", '<path fill-opacity=".28"') + wv(6, 1) +
+        P("M5 17 Q8 11 18 11.6 Q26 12 31 15 Q34 13 37 12 Q37 16 36 19 Q34 18 31 18 Q25 22 15 21 Q7 21 5 17Z") + P("M12 20 Q11 24 14 25 L15 21Z M22 20 Q22 23.4 24 24 L25 20Z") + C(8.4, 15, 0.5, PAPER) + S("M5.6 17.4 Q7 18.4 8.4 17.6", 0.7, PAPER) +
+        S("M14 6 V2 M24 7 V3", 0.6) + C(14, 1.6, 0.6) + P("M-1 28 Q6 25 12 28 Q18 25 24 28 Q32 25 41 28 V41 H-1Z") + S("M2 26 V20 M30 27 V19 M33 27 V21", 1) ; },
+    "sp-hunting-island": function () { return sky("M-1 28 Q20 26 41 28 V31 H-1Z") + lighthouse(20, 29, 22, 3.4, false) + P("M17.4 7.4 H22.6 L23.4 17 H16.6Z") + palmlet(8, 29) + palmlet(33, 29) + S("M3 31 Q4 27 5 25 M37 31 Q36 27 35.4 25 M30 31 Q30 28 29 26", 0.8) + GROUND(31); },
+    "sp-kartchner-caverns": function () { var s = P("M-1 -1 H41 V6 Q30 3 20 5 Q10 3 -1 6Z") + P("M-1 31 Q10 28 20 29 Q30 28 41 31 V41 H-1Z"); [4, 7, 10, 30, 33, 36].forEach(function (x, i) { s += P("M" + (x - 1) + " 5 L" + x + " " + (10 + (i % 3) * 3) + " L" + (x + 1) + " 5Z"); });
+      s += P("M17 5 Q16 14 18 18 Q16 24 17 29 H24 Q25 24 23 18 Q25 14 24 5Z") + S("M19 8 Q18.4 12 19.6 16 M21.6 20 Q22.6 24 21.6 28", 0.8, PAPER); [6, 9, 32, 35].forEach(function (x) { s += P("M" + (x - 1.4) + " 29 L" + x + " 23 L" + (x + 1.4) + " 29Z"); }); return s + S("M12 8 V11 M13.4 7.6 V12 M27 8 V10.6", 0.5); },
+    "sp-slide-rock": function () { return P("M-1 4 L4 2 L8 6 V20 L-1 22Z M41 4 L35 2 L32 7 V19 L41 21Z") + S("M1 8 H7 M1 13 H8 M33 9 H40 M33 14 H40", 0.7, PAPER) + PO("M-1 22 L8 20 V24 L-1 26Z M41 21 L32 19 V24 L41 26Z", 0.5) +
+        P("M-1 24 Q12 22 18 25 Q24 28 41 25 V31 H-1Z") + P("M9 24.6 Q18 23 24 27.4 Q28 29 33 27.6 L33 29.4 Q26 31 22 28.6 Q16 25.6 9 26.4Z", PAPER) + person(17, 20.4, 0.8) + S("M14 25.4 l-2 1 M20 26.6 l2 1", 0.6) + GROUND(31); },
+    "sp-silver-falls": function () { return P("M-1 4 H41 V12 Q30 10 20 11 Q10 10 -1 12Z") + conifers([3, 7, 33, 37], 5, 6) + PO("M-1 12 Q10 10 20 11 Q30 10 41 12 V31 H-1Z", 0.62) + fall(17, 21, 11, 29, 2) +
+        S("M4 22 Q12 17 17 18 M23 18 Q30 17 36 22", 0.9, PAPER) + person(9, 18.4, 0.6).replace(/<path/g, '<path stroke="#fff"').replace(/<circle/g, '<circle fill="#fff"') + mist(15, 23, 29.4) + water(31) + S("M2 30 q1 -3 3 -4 M36 30 q1 -3 3 -4", 0.8); },
+    "sp-smith-rock": function () { return sky("M-1 20 L8 18 L16 20 L26 17 L41 19 V24 H-1Z") + P("M4 31 L6 16 L9 12 L12 14 L16 6 L20 8 L22 12 L26 10 L30 18 L34 31Z") + P("M26 10 Q29 4 31.4 4 Q33.4 5 32.6 7.6 L31 8 L32 10 L30.4 12 L28 12Z") + C(31, 6, 0.5, PAPER) +
+        S("M10 22 V30 M16 12 V28 M22 16 V30", 0.7, PAPER) + P("M-1 27 Q10 26 20 29 Q30 31 41 28 V31 H-1Z", PAPER) + S("M-1 27 Q10 26 20 29 Q30 31 41 28", 1) + GROUND(31); },
+    "sp-ecola": function () { return C(9, 7, 2.6) + P("M-1 10 Q6 9 10 14 Q12 18 14 22 L-1 26Z") + conifers([1, 4, 7], 12, 6) + P("M27 23 Q28 17 31 16 Q34 17 34 23Z") + lighthouse(31, 16.4, 4.6, 1.2, false) + P("M18 25 Q19 21 21 21 Q22.6 22 23 25Z") + water(23) + S("M-1 26 Q10 24 14 22", 1); },
+    "sp-deception-pass": function () { return P("M-1 18 Q4 12 10 14 L12 31 H-1Z M41 18 Q36 12 30 14 L28 31 H41Z") + conifers([2, 5, 8, 32, 35, 38], 14, 5) +
+        S("M10 15 Q20 4 30 15", 2) + S("M7 9.6 H33", 1.4) + S("M12 9.6 V12.4 M15 9.6 V8 M18 9.6 V6.6 M22 9.6 V6.6 M25 9.6 V8 M28 9.6 V12.4", 0.8) + water(24) + P("M18 26 h4 l-1 1.2 h-2Z", PAPER); },
+    "sp-palouse-falls": function () { var c = ""; for (var x = 0; x < 40; x += 2.6) if (x < 14 || x > 26) c += "M" + x + " 10 V" + (24 - Math.abs(20 - x) * 0.2); return sky("M-1 6 Q20 4 41 6 V10 H-1Z") + P("M-1 10 H16 L17 31 H-1Z M41 10 H24 L23 31 H41Z") + S(c, 0.6, PAPER) +
+        P("M16 10 Q20 8.6 24 10 L23.6 12 H16.4Z") + fall(18, 22, 11, 27, 2) + E(20, 29, 8, 2.4, 0, PAPER) + E(20, 29, 8, 2.4).replace("<ellipse", '<ellipse fill="none" stroke-width="0.9"') + GROUND(31); },
+    "sp-eldorado-canyon": function () { return P("M-1 31 L2 6 L7 2 L12 8 L14 31Z M41 31 L38 10 L33 4 L28 9 L26 31Z") + S("M4 10 L5 28 M9 8 L10 28 M31 10 L30 28 M36 12 L37 28", 0.7, PAPER) + S("M12 18 L13.4 16", 0.6) + person(12.6, 12, 0.6).replace(/<path/g, '<path stroke="#fff"').replace(/<circle/g, '<circle fill="#fff"') + S("M12.6 12 V2", 0.4, PAPER) +
+        P("M14 31 Q20 27 26 31Z", PAPER) + S("M15 30 q2 -1 4 0 t4 0", 0.7) + GROUND(31); },
+    "sp-petit-jean": function () { return P("M-1 4 H14 L15 31 H-1Z M41 4 H26 L25 31 H41Z") + S("M1 9 H12 M1 15 H13 M1 21 H13 M28 9 H40 M27 15 H40 M27 21 H40", 0.7, PAPER) + T(0, 0, 1, '<path d="M14 4 Q20 3 26 4" fill="none" stroke="currentColor" stroke-width="1.2"/>') + fall(19, 21, 4, 27, 1) + mist(16, 24, 27.6) +
+        C(4, 3, 2.4) + C(8, 2, 2.4) + C(34, 2.4, 2.6) + C(38, 3.6, 2.2) + water(29) + P("M-1 29 H10 L12 31 H-1Z"); },
+    "sp-tallulah-gorge": function () { return P("M-1 8 L6 7 L13 31 H-1Z M41 8 L34 7 L27 31 H41Z") + conifers([1, 4, 36, 39], 8, 5) + S("M5 7.6 Q20 14 35 7.6", 1) + S("M5 7.6 Q20 12.4 35 7.6", 0.6) + S("M8 9 V10.4 M12 10.4 V11.8 M16 11.4 V12.6 M20 11.8 V12.8 M24 11.4 V12.6 M28 10.4 V11.8 M32 9 V10.4", 0.6) +
+        fall(18, 22, 20, 29, 2) + PO("M13 20 H27 L27 31 H13Z", 0.35) + water(30); },
+    "sp-providence-canyon": function () { return sky("M-1 7 Q20 5 41 7 V10 H-1Z") + P("M-1 10 H41 V31 H-1Z") + P("M6 10 Q7 20 10 31 H14 Q15 20 15 10Z M19 10 Q19.6 22 18 31 H24 Q22 22 23 10Z M28 10 Q29 20 28 31 H33 Q33 20 34 10Z", PAPER) +
+        S("M-1 14 H41 M-1 18 H41 M-1 22 H41 M-1 26 H41", 0.5) + S("M8 12 L9 28 M12.4 12 L12.8 29 M21 12 V29 M30.6 12 L30.4 29", 0.6) + conifers([3, 17, 26, 37], 10, 4); },
+    "sp-fall-creek-falls": function () { return P("M-1 5 Q10 4 18 6 V31 H-1Z M41 5 Q30 4 22 6 V31 H41Z") + conifers([2, 6, 10, 30, 34, 38], 5.4, 4.4) + S("M2 10 H16 M2 16 H16 M2 22 H16 M24 10 H38 M24 16 H38 M24 22 H38", 0.6, PAPER) +
+        P("M18 6 Q20 5.4 22 6 L22 31 H18Z", PAPER) + S("M20 7 V27", 0.7) + mist(16, 24, 28.6) + water(31) + P("M26 8 h6 v1.2 h-6Z", PAPER); },
+    "sp-cumberland-falls": function () { return C(33, 5, 2.2) + S("M2 22 Q20 2 38 22", 1.2) + S("M4.6 22 Q20 5.6 35.4 22", 0.6) + P("M-1 16 H6 L7 31 H-1Z M41 16 H34 L33 31 H41Z") + conifers([1, 4, 36, 39], 16, 4) +
+        P("M6 18 H34 V19.6 H6Z") + fall(7, 33, 19.6, 27.6, 6) + mist(7, 33, 28) + water(30); },
+    "sp-blackwater-falls": function () { return P("M-1 6 H41 V15 H-1Z") + conifers([3, 7, 11, 29, 33, 37], 6.6, 5) + S("M-1 9 H41 M-1 12 H41", 0.6, PAPER) + P("M-1 15 H13 L11 31 H-1Z M41 15 H27 L30 31 H41Z") +
+        P("M13 15 H27 L28 22 L30 31 H11 L12 22Z", PAPER) + S("M15 16 Q14.4 24 13.4 30 M18.6 16 V30 M22 16 V30 M25 16 Q26 24 27.4 30", 0.7) + S("M12 22.4 H28", 1.2) + stair(31, 30, 4, 1.6, -1.6, 0.9) + water(31); },
+    "sp-ricketts-glen": function () { return P("M-1 -1 H41 V31 H-1Z").replace("<path", '<path fill-opacity=".55"') + conifers([3, 8, 32, 37], 12, 9) + fall(22, 26, 3, 9, 1) + S("M20 9 H28", 1.2) + fall(18, 23, 11, 18, 2) + S("M16 18 H25", 1.2) + fall(14, 20, 20, 28, 2) + S("M12 28 H22", 1.2) + mist(12, 22, 29) + water(31); },
+    "sp-ohiopyle": function () { return sky("M-1 14 L8 12 L16 14 L26 11 L41 14 V18 H-1Z") + conifers([2, 5, 8, 33, 36, 39], 18, 6) + P("M-1 18 H41 V20 H-1Z") + fall(10, 30, 20, 24, 5) + P("M-1 24 H41 V41 H-1Z") +
+        P("M10 26.4 Q20 24.6 30 26.4 L29 29 Q20 30 11 29Z", PAPER) + S("M10 26.4 Q20 24.6 30 26.4 L29 29 Q20 30 11 29Z", 0.9) + person(15, 24.4, 0.6) + person(20, 24, 0.6) + person(25, 24.4, 0.6) + S("M12 28 L9 31 M27 28 L31 31", 0.8); },
+    "sp-baxter": function () { return C(9, 6, 2.4) + P("M-1 24 L6 18 L12 14 L17 8 L21 6 L25 9 L31 13 L36 18 L41 21 V24Z") + S("M17 8 L15 14 M21 6 L22 12 M25 9 L27 14", 0.8, PAPER) +
+        PO("M-1 24 H41 V31 H-1Z", 0.4) + conifers([2, 5, 34, 37], 31, 9) + E(20, 28, 9, 1.4, 0, PAPER) + S("M13 28 q2 -0.8 4 0 t4 0 t4 0", 0.6) + GROUND(31); },
+    "sp-franconia-notch": function () { return P("M-1 31 V4 H16 L15 7 L17.6 8.4 L16 10.6 L19.4 12.4 L17 14 L18.4 16.6 L16 18 L17 21 L14 24 L16 31Z") + S("M2 8 H12 M2 14 H12 M2 20 H11", 0.7, PAPER) +
+        P("M41 31 L36 14 L30 20 L26 31Z").replace("<path", '<path fill-opacity=".45"') + conifers([22, 25, 28, 31, 34], 31, 6) + E(28, 30.4, 10, 1.4, 0, PAPER) + GROUND(31); },
+    "sp-cape-henlopen": function () { return sky("M-1 26 Q12 22 24 25 Q32 23 41 26 V31 H-1Z") + P("M6 31 L7 11 H13 L14 31Z") + R(6, 9, 8, 2) + P("M8.4 14 h3 v2 h-3Z M8.4 20 h3 v2 h-3Z", PAPER) + lighthouse(31, 22, 9, 2, false) + R(26, 22, 10, 2) + water(27.4) + S("M18 27 Q19 24 20 23 M22 27 Q22 25 23 23.6", 0.7); },
+    "sp-assateague": function () { var hs = function (x, y, s, f) { return T(x, y, s, (f ? '<g transform="matrix(-1 0 0 1 22 0)">' : "<g>") + P("M2 8 Q2 5 5 5 H14 L17 1 L20 1.6 L21 4 L19 4.4 L16.6 7 L16 9 L15.6 15 H14.4 L13.6 10 H6 L5 15 H3.8 L3.6 10 Q2 9.6 2 8Z") + S("M2.4 6 Q0 8 1 11", 0.9) + S("M16.6 1.6 L14 5", 0.8) + "</g>"); };
+      return sky("M-1 20 Q10 16 20 19 Q30 15 41 19 V24 H-1Z") + S("M3 19 Q3.4 16 4 15 M8 18 Q8 15.4 9 14.6 M34 18 Q34.6 15 35.4 14", 0.7) + hs(4, 14, 0.9) + hs(20, 16, 0.7, 1) + P("M-1 28 H41 V41 H-1Z") + P("M-1 27 Q20 24 41 27 V28.4 H-1Z", PAPER) + S("M-1 27 Q20 24 41 27", 0.9); },
+    "sp-jockey-s-ridge": function () { return C(30, 7, 2.6) + P("M-1 31 Q8 18 20 16 Q28 16 34 22 Q38 26 41 27 V31Z") + S("M6 26 Q14 20 22 19 M10 29 Q18 24 28 24", 0.8, PAPER) + P("M8 7 L20 4 L14 9Z") + S("M14 6.6 L14.6 11", 0.6) + person(14.6, 10.6, 0.5) + GROUND(31); },
+    "sp-hanging-rock": function () { return sky("M-1 19 Q8 14 16 17 Q24 12 32 16 Q37 14 41 16 V22 H-1Z") + PO("M-1 22 Q10 18 20 21 Q30 18 41 22 V31 H-1Z", 0.45) + P("M-1 12 L10 10 L22 13 L26 15 L19 17 L10 18 L-1 22Z") + S("M2 14 L18 15", 0.7, PAPER) + person(18, 7, 0.8) + P("M-1 22 L10 18 L16 31 H-1Z") + GROUND(31); },
+    "sp-chimney-rock": function () { return sky("M-1 14 Q10 10 20 13 Q30 9 41 13 V18 H-1Z") + P("M-1 31 V18 Q6 14 12 18 L14 31Z M41 31 V16 Q34 12 28 16 L26 31Z") + P("M16 31 L17 10 Q17.4 7 20 7 Q22.6 7 23 10 L24 31Z") + S("M20 7 V1", 0.7) + P("M20 1 h4 v2.4 h-4Z") +
+        S("M18 14 H22 M18 20 H23 M17.6 26 H23", 0.6, PAPER) + conifers([3, 8, 32, 37], 20, 4) + water(28); },
+    "sp-gulf": function () { var pl = "M4 18 H36"; for (var x = 6; x <= 34; x += 4) pl += " M" + x + " 18 V24"; return sky("M-1 26 Q20 24 41 26 V31 H-1Z") + C(30, 7, 2.6) + S(pl, 0.9) + S("M4 18 H36", 1.6) +
+        T(8, 8, 0.7, P("M2 10 Q0 6 3 4 Q5 2.4 7 4 L13 5 L7 6 Q8 9 6 11 L10 14 L4 14Z") + C(5.4, 4.6, 0.5, PAPER)) + water(24) + S("M24 26 Q25 22 26 21 M28 26 Q28 23 29 22", 0.7); },
+    "sp-itasca": function () { return conifers([2, 6, 10, 14, 26, 30, 34, 38], 14, 10) + PO("M-1 14 H41 V31 H-1Z", 0.4) + P("M-1 18 Q20 16 41 18 V29 Q20 27 -1 29Z", PAPER) + S("M-1 18 Q20 16 41 18 M-1 29 Q20 27 -1 29", 0.9) +
+        E(6, 23, 2.2, 1.2) + E(11, 22.4, 2, 1.1) + E(16, 23.6, 2.3, 1.2) + E(21, 22.6, 2, 1.1) + E(26, 23.4, 2.3, 1.2) + E(31, 22.8, 2, 1.1) + E(36, 23.4, 2.2, 1.2) + S("M2 26 q2 -1 4 0 M30 26 q2 -1 4 0", 0.6) + GROUND(31); },
+    "sp-gooseberry-falls": function () { return S("M-1 6 Q20 -1 41 6", 2) + S("M-1 4 H41", 1.2) + P("M-1 6 Q20 -1 41 6 V8 H-1Z").replace("<path", '<path fill-opacity="0"') + R(-1, 6, 6, 25) + R(35, 6, 6, 25) + conifers([7, 10, 30, 33], 14, 6) +
+        P("M5 14 H35 V31 H5Z").replace("<path", '<path fill-opacity=".5"') + fall(14, 26, 14, 21, 3) + S("M12 21 H28", 1.2) + fall(10, 30, 22, 29, 5) + mist(10, 30, 29.4) + water(31); },
+    "sp-devil-s-lake": function () { return P("M-1 31 V12 L4 8 L10 10 L14 14 L15 31Z") + S("M2 14 H12 M2 19 H13 M2 24 H14", 0.6, PAPER) + P("M28 31 L29 16 L33 12 L38 13 L41 16 V31Z") + P("M31 12 L30.4 9 Q32 6.6 34.6 7.4 L35.6 9.6 L34 12Z") +
+        conifers([5, 9, 36], 9, 4) + P("M15 22 H28 V31 H15Z").replace("<path", '<path fill-opacity=".4"') + S("M16 25 q2 -1 4 0 t4 0", 0.7) + GROUND(31); },
+    "sp-mackinac-island": function () { return P("M-1 31 V14 Q8 10 14 12 Q20 8 28 11 Q34 10 41 13 V31Z") + conifers([3, 7, 30, 35, 39], 12, 5) + '<path fill="#fff" d="M11 31 Q11 18 20 17 Q29 18 29 31Z"/>' + S("M11 31 Q11 18 20 17 Q29 18 29 31", 1) +
+        P("M11 31 V24 Q14 22 16 25 V31Z M24 31 V25 Q27 22 29 25 V31Z").replace("<path", '<path fill-opacity=".5"') + water(27) + S("M13 27 H27", 0.7); },
+    "sp-tahquamenon-falls": function () { return conifers([2, 5, 8, 11, 14, 26, 29, 32, 35, 38], 12, 7) + P("M-1 12 H41 V15 H-1Z") + PO("M-1 12 H41 V31 H-1Z", 0.3) + fall(2, 38, 15, 23, 8) + PO("M-1 23 H41 V31 H-1Z", 0.6) + mist(2, 38, 23.4) + water(28); },
+    "sp-indiana-dunes": function () { return sky("M-1 22 Q20 19 41 22 V24 H-1Z") + P("M-1 31 Q6 14 20 10 Q30 12 36 22 L41 26 V31Z") + S("M24 31 L21 27 L23 24 L20 20 L22 17 L19.6 13", 1.6, PAPER) + S("M24 31 L21 27 L23 24 L20 20 L22 17 L19.6 13", 0.6) + person(19.6, 9.2, 0.5) +
+        S("M5 26 q1 -3 2 -4 M8 25 q0 -3 1 -4 M31 22 q1 -3 2 -4 M34 24 q0 -3 1 -4", 0.7, PAPER) + GROUND(31); },
+    "sp-turkey-run": function () { return P("M-1 -1 H13 Q15 14 13 31 H-1Z M41 -1 H27 Q25 14 27 31 H41Z") + S("M1 4 H11 M1 10 H12 M1 16 H12 M1 22 H12 M29 4 H39 M28 10 H39 M28 16 H39 M28 22 H39", 0.6, PAPER) + conifers([3, 8, 32, 37], 2, 4) +
+        S("M17 8 L15 30 M23 8 L25 30", 0.9) + S("M16.6 11 H23.4 M16.2 15 H23.8 M15.8 19 H24.2 M15.4 23 H24.6 M15.1 27 H24.9", 0.8) + water(30); },
+    "sp-ha-ha-tonka": function () { return sky("M-1 22 Q20 19 41 22 V26 H-1Z") + P("M-1 24 Q6 18 14 19 L30 19 Q36 18 41 22 V31 H-1Z") + P("M10 19 V10 H15 V7 H18 V10 H24 V8 H27 V19Z") + P("M12 13 h1.6 v2.4 h-1.6Z M16.4 12 h1.6 v3 h-1.6Z M20 12 h1.6 v3 h-1.6Z M24 13 h1.6 v2.4 h-1.6Z M18 16 h2 v3 h-2Z", PAPER) + P("M10 10 l1 -1 l1 1Z M22 10 l1 -1.4 l1 1.4Z") + conifers([4, 33, 37], 21, 5) + water(27); },
+    "sp-waimea-canyon": function () { return sky("M-1 9 Q8 6 14 8 Q22 5 30 8 Q36 6 41 8 V12 H-1Z") + P("M-1 12 H41 V31 H-1Z") + P("M10 12 L14 18 L16 24 L18 31 H22 L24 24 L27 18 L31 12Z", PAPER) + S("M-1 16 H11 M-1 20 H14 M-1 24 H16 M29 16 H41 M27 20 H41 M25 24 H41", 0.6, PAPER) +
+        S("M14 18 H27 M16 24 H24", 0.6) + fall(29, 30, 13, 19, 0) + P("M5 4 q2 -1.4 4 0 l3 -1 l-3 2 q-2 1 -4 -1Z") + S("M12 3 L16 1.6", 0.6); },
+    "sp-chugach": function () { return P("M-1 22 L5 14 L9 17 L15 7 L19 11 L24 5 L30 12 L35 9 L41 15 V22Z") + P("M13.4 9.4 L15 7 L16.6 9.6 L15 9Z M22.4 7.6 L24 5 L25.8 8 L24 7.4Z M33.4 10.6 L35 9 L36.6 11Z", PAPER) + water(22) + S("M-1 22 H41", 0.9) +
+        T(4, 22, 0.55, P("M2 8 Q2 5 5 5 H12 Q14 2 16 2 Q18 2 18 4 L17 6 L15 6 L14 9 L13.6 15 H12.4 L12 10 H6 L5.4 15 H4.2 L4 10 Q2 9.6 2 8Z") + S("M15.6 2.6 Q14 0 11 1 Q13.6 1.6 14.6 3", 0.9)) + P("M-1 28 Q10 26 18 28.6 L18 31 H-1Z"); },
+    "sp-natural-bridge": function () { return P("M-1 -1 H41 V31 H-1Z") + P("M12 31 Q11 14 13 10 Q20 6 27 10 Q29 14 28 31Z", PAPER) + S("M-1 3 H41", 0.8, PAPER) + conifers([3, 7, 33, 37], 3, 4) +
+        S("M1 9 H10 M1 15 H10 M1 21 H10 M30 9 H39 M30 15 H39 M30 21 H39", 0.6, PAPER) + conifers([16, 20, 24], 31, 8) + water(30); },
+    "sp-gillette-castle": function () { return sky("M-1 20 Q20 16 41 20 V24 H-1Z") + P("M-1 31 V22 Q8 14 20 16 Q32 14 41 22 V31Z") + P("M10 17 V9 H12 V7 H14 V9 H17 V6 H19 V4 H21 V6 H24 V9 H27 V7 H29 V9 H31 V17Z") +
+        P("M12.6 11 h1.4 v2 h-1.4Z M19.2 8.6 h1.6 v2.4 h-1.6Z M26 11 h1.4 v2 h-1.4Z M16 12 h1.4 v2 h-1.4Z M22.6 12 h1.4 v2 h-1.4Z", PAPER) + conifers([5, 35], 22, 5) + water(27) + P("M24 28 h7 l-1 1.4 h-5Z", PAPER); },
+    "sp-liberty": function () { return sky("M-1 18 H3 V12 H6 V16 H8 V9 H10 V18 H41 V22 H-1Z") + T(29, 1, 0.42, G.x_lib()) + P("M2 26 V16 H22 V26Z") + P("M10 16 V9 H14 V16Z M11 9 L12 6 L13 9Z") + C(12, 11.6, 1, PAPER) + P("M4 19 h2 v4 h-2Z M8 19 h2 v4 h-2Z M14 19 h2 v4 h-2Z M18 19 h2 v4 h-2Z", PAPER) + water(26); },
+    "sp-robbers-cave": function () { return conifers([3, 7, 31, 35, 39], 12, 7) + P("M4 31 Q3 18 10 14 Q18 10 26 13 Q34 16 36 31Z") + P("M14 31 Q14 23 19 21 Q25 22 25 31Z", PAPER) + S("M14 31 Q14 23 19 21 Q25 22 25 31", 0.9) + S("M7 20 Q10 17 14 17 M27 18 Q31 19 33 23", 0.7, PAPER) +
+        T(17, 25, 0.5, P("M2 8 Q2 5 5 5 H12 L14 1.4 L16 2 L15.6 5 L14 8 L13.6 12 H12.4 L12 9 H6 L5.4 12 H4.2 L4 9 Q2 8.6 2 8Z")) + GROUND(31); },
+    "sp-bruneau-dunes": function () { return C(8, 4, 0.5) + C(14, 2.6, 0.4) + C(24, 5, 0.5) + C(33, 3, 0.4) + P("M28 12 Q28 8.6 31.4 8.6 Q34.8 8.6 34.8 12Z M28 12 h6.8 v3 h-6.8Z") + S("M31.4 8.6 L29 7", 0.8) +
+        P("M-1 28 Q8 22 14 14 Q18 10 22 14 Q30 24 41 26 V31 H-1Z") + S("M14 14 Q16 22 22 28", 0.9, PAPER) + P("M2 29 Q12 27 22 29 Q30 30 38 28 V31 H2Z", PAPER) + GROUND(31); },
+
+    "nm-statue-of-liberty": function () { return sky("M-1 27 H41 V31 H-1Z") + T(10, 0, 0.74, G.x_lib()) + water(29); },
+    "nm-devils-tower": function () { var c = ""; for (var x = 13; x <= 27; x += 1.8) c += "M" + x.toFixed(1) + " " + (6 + Math.abs(20 - x) * 0.12).toFixed(1) + " L" + (x + (x - 20) * 0.14).toFixed(1) + " 22"; return sky("M-1 26 Q20 22 41 26 V31 H-1Z") + P("M12 23 L13 7 Q20 4.6 27 7 L28 23Z") + S(c, 0.6, PAPER) +
+        P("M5 31 Q9 23 12 22 H28 Q31 23 35 31Z").replace("<path", '<path fill-opacity=".6"') + conifers([4, 7, 10, 30, 33, 36], 28, 5) + GROUND(30.4); },
+    "nm-muir-woods": function () { return P("M2 31 L3.4 -1 H8.6 L9.4 31Z M31 31 L32 -1 H37 L38.4 31Z M16 31 L17 -1 H20 L20.6 31Z") + PO("M24 31 L24.6 -1 H27 L27.6 31Z M11.4 31 L12 -1 H13.6 L14 31Z", 0.5) +
+        S("M22 0 L13 31 M23 0 L26 31", 1.4, PAPER).replace("<path", '<path stroke-opacity=".5"') + P("M-1 26 H41 V27.4 H-1Z") + S("M-1 26 H41", 0.7, PAPER) + S("M4 26 V31 M14 26 V31 M26 26 V31 M36 26 V31", 0.8) + person(22, 21, 0.6) + P("M-1 29 Q4 25 8 29 M30 29 Q35 25 40 29").replace("<path", '<path fill="none" stroke="currentColor"') + GROUND(30); },
+    "nm-canyon-de-chelly": function () { return P("M-1 6 H8 L10 31 H-1Z M41 6 H32 L30 31 H41Z") + S("M1 10 H8 M1 16 H9 M1 22 H9 M33 10 H40 M32 16 H40 M32 22 H40", 0.6, PAPER) +
+        P("M15 31 L16 12 L17 4 L18 3 L19 12 L19.4 31Z M20 31 L20.6 18 L21.4 10 L22.4 9.6 L23 18 L24 31Z") + P("M26 31 Q26 27 29 27 Q32 27 32 31Z") + PO("M-1 28 Q20 26 41 28 V31 H-1Z", 0.5) + GROUND(31); },
+    "nm-natural-bridges": function () { return C(6, 4, 0.5) + C(12, 7, 0.4) + C(20, 3, 0.5) + C(28, 6, 0.4) + C(35, 3.6, 0.5) + C(16, 10, 0.3) + C(32, 10.6, 0.3) +
+        P("M2 31 L3 20 Q8 14 20 14 Q32 14 37 20 L38 31 H33 Q33 22 28 19.6 Q20 17 12 19.6 Q7 22 7 31Z") + S("M6 21 Q20 13.6 34 21", 0.6, PAPER) + P("M-1 29 Q20 26 41 29 V41 H-1Z"); },
+    "nm-dinosaur": function () { var b = "M5 18 Q8 14 13 15 Q18 16 22 15 Q26 14 28 10 Q30 6 34 6", r = ""; for (var x = 14; x < 23; x += 2) r += "M" + x + " 15.4 Q" + (x + 0.4) + " 19 " + (x - 0.4) + " 21 ";
+      return P("M-1 4 L41 1 V31 H-1Z").replace("<path", '<path fill-opacity=".42"') + S("M-1 9 L41 6 M-1 25 L41 22", 0.6, PAPER) + S(b, 1.4) + S("M5 18 Q2 20 -1 19", 1) + S(r, 0.9) + C(34.6, 6, 1.4) + S("M12 16 L11 22 L12.6 25 M14 16 L15 22 L14 25 M24 14.6 L23 21 L24.4 25 M26 14 L27 21 L26 25", 1.1) +
+        S("M17 15.4 Q20 13 23 15", 0.8) + E(18, 16, 4.6, 2.6).replace("<ellipse", '<ellipse fill="none" stroke-width=".9"') + GROUND(31); },
+    "nm-craters-of-the-moon": function () { return C(31, 7, 4) + C(29.6, 6, 3.4, PAPER) + P("M-1 24 Q5 14 11 14 Q15 14 20 22 Q24 16 28 16 Q33 16 41 24 V31 H-1Z") + S("M8 16 Q11 13.6 14 16 M25 17 Q28 15.4 31 17", 0.8, PAPER) +
+        P("M-1 27 Q10 25 20 27 Q30 25 41 27 V31 H-1Z").replace("<path", '<path fill-opacity=".6"') + S("M3 29 l2 -1 l2 1 M14 30 l2 -1 l2 1 M27 29 l2 -1 l2 1", 0.7, PAPER) + C(18, 26, 1.4, PAPER) + C(20, 25, 1.2, PAPER) + C(19, 24, 1, PAPER) + GROUND(31); },
+    "nm-sunset-crater-volcano": function () { return sky("M-1 20 L5 14 L9 18 Z") + P("M1 27 Q10 22 15 12 Q20 9.6 25 12 Q30 22 39 27Z") + P("M15 12 Q20 9.6 25 12 Q23 15 20 14.6 Q17 15 15 12Z").replace("<path", '<path fill-opacity=".45"') + S("M15.6 12.4 Q20 10.6 24.4 12.4", 1.2, PAPER) +
+        S("M10 22 L13 16 M27 16 L30 22", 0.6, PAPER) + conifers([3, 6, 33, 36, 39], 30, 8) + GROUND(30); },
+    "nm-montezuma-castle": function () { return PO("M-1 -1 H41 V31 H-1Z", 0.3) + S("M-1 3 H41 M-1 26 H41 M-1 22 H8 M32 22 H41", 0.6) + P("M8 18 Q8 6 20 5 Q32 6 32 18Z") +
+        R(11, 10, 8, 8, PAPER) + R(19, 8, 9, 10, PAPER) + R(14, 6, 9, 4, PAPER) + S("M11 18 V10 H14 V6 H23 V8 H28 V18 M11 14 H28 M14 10 H23", 0.7) + S("M13 10.6 h1 M17 10.6 h1 M21 8.6 h1 M25 8.6 h1 M16 6.6 h1 M20 6.6 h1", 0.6) +
+        P("M15 15 h1.2 v3 h-1.2Z M23 15 h1.2 v3 h-1.2Z M18 11 h-1 v-0.8 h2.8 v0.8 h-1 v2 h-0.8Z M25.4 11.6 h1.4 v2 h-1.4Z") + P("M-1 18 H8 V20 H32 V18 H41 V20 H-1Z") +
+        T(2, 22, 1, E(3, 3, 3.4, 2.6) + E(7, 2, 2.6, 2) + S("M4 4 L4.6 9", 1)) + T(29, 22, 1, E(4, 3, 3.4, 2.6) + E(8, 4, 2.4, 2) + S("M5 4 L5 9", 1)) + water(30); },
+    "nm-walnut-canyon": function () { return P("M-1 -1 H41 V31 H-1Z").replace("<path", '<path fill-opacity=".5"') + P("M-1 8 Q20 4 41 8 V10 Q20 6 -1 10Z M-1 17 Q20 13 41 17 V19 Q20 15 -1 19Z") +
+        P("M4 16 h4 v-4 h-4Z M10 15 h5 v-4.4 h-5Z M24 14.6 h5 v-4.4 h-5Z M31 15.2 h4 v-4 h-4Z M14 25 h5 v-4 h-5Z M22 24.4 h4 v-3.6 h-4Z", PAPER) + P("M5.4 14 h1 v2 h-1Z M12 13 h1 v2 h-1Z M26 12.6 h1 v2 h-1Z M32.6 13.2 h1 v2 h-1Z M16 23 h1 v2 h-1Z M23.4 22.6 h1 v1.8 h-1Z") +
+        conifers([5, 11, 30, 36], 4, 4) + P("M-1 27 Q20 23 41 27 V31 H-1Z"); },
+    "nm-organ-pipe-cactus": function () { var s = C(20, 9, 4) + sky("M-1 26 L6 21 L12 24 L19 19 L27 24 L34 20 L41 24 V31 H-1Z"); [[-8, 16], [-5, 9], [-2, 5], [1, 4], [4, 7], [7, 12], [10, 18]].forEach(function (a) { s += S("M" + (20 + a[0] * 0.3) + " 31 Q" + (20 + a[0]) + " 26 " + (20 + a[0]) + " " + (a[1] + 2), 2.2); }); return s + GROUND(31); },
+    "nm-bandelier": function () { var s = P("M-1 -1 H41 V20 H-1Z").replace("<path", '<path fill-opacity=".5"'); [[4, 6], [9, 10], [15, 5], [22, 9], [28, 6], [34, 11]].forEach(function (h) { s += E(h[0], h[1], 1.8, 1.4); });
+      return s + S("M9 11 V18 M11 11 V18 M9 13 H11 M9 15.4 H11", 0.6) + P("M-1 20 H41 V31 H-1Z").replace("<path", '<path fill-opacity=".25"') + E(20, 26, 12, 4).replace("<ellipse", '<ellipse fill="none" stroke-width="1.6"') + E(20, 26, 8, 2.4).replace("<ellipse", '<ellipse fill="none" stroke-width=".8"') + S("M10 24 L12 26 M30 24 L28 26 M20 22 V24", 0.6) + GROUND(31); },
+    "nm-el-morro": function () { return sky("M-1 26 H41 V31 H-1Z") + P("M2 26 L4 10 L10 8 H30 L34 9 L37 26Z") + S("M8 14 h3 M13 14 h5 M20 14 h2 M8 17 h6 M16 17 h4 M8 20 h3 M13 20 h6 M22 17 h5", 0.6, PAPER) + E(20, 28.4, 6, 1.2, 0, PAPER) + conifers([2, 36, 39], 30, 5) + GROUND(30); },
+    "nm-capulin-volcano": function () { return sky("M-1 26 L6 22 L12 25Z") + P("M2 30 Q12 24 15 12 Q20 10 25 12 Q28 24 38 30Z") + S("M6 28 Q20 24 32 27 Q28 22 16 22 Q12 19 22 17 Q26 15 18 13.6", 0.8, PAPER) + S("M15.4 12.4 Q20 11 24.6 12.4", 1.1, PAPER) + GROUND(30); },
+    "nm-colorado": function () { return sky("M-1 10 H8 L10 14 H30 L32 10 H41 V16 H-1Z") + P("M15 31 L16 12 L17.4 6 H22.6 L24 12 L25 31Z") + S("M16 14 H24 M15.6 20 H24.4", 0.7, PAPER) + P("M-1 16 H7 L10 31 H-1Z M41 16 H33 L30 31 H41Z") + S("M20 6 V2", 0.6) + P("M20 2 h3 v1.8 h-3Z") + GROUND(31); },
+    "nm-florissant-fossil-beds": function () { return sky("M-1 18 L8 13 L14 15 L22 7 L30 14 L41 12 V22 H-1Z") + P("M19.6 8.6 L22 7 L24 9 L22 8.4Z", PAPER) + P("M8 31 Q9 26 10 22 Q10 18 13 17 H27 Q30 18 30 22 Q31 26 32 31Z") + E(20, 17.4, 7, 1.6).replace("<ellipse", '<ellipse fill="#fff"') + E(20, 17.4, 7, 1.6).replace("<ellipse", '<ellipse fill="none" stroke-width="1"') +
+        E(20, 17.4, 3.6, 0.8).replace("<ellipse", '<ellipse fill="none" stroke-width=".6"') + S("M13 20 L12 28 M17 20 V29 M23 20 V29 M27 20 L28 28", 0.6, PAPER) + GROUND(31); },
+    "nm-cedar-breaks": function () { var s = P("M-1 8 Q10 6 20 7 Q30 6 41 8 V31 H-1Z"); [6, 11, 16, 21, 26, 31].forEach(function (x, i) { s += P("M" + (x - 1.8) + " 31 L" + (x - 1) + " " + (14 + (i % 3) * 3) + " Q" + x + " " + (12 + (i % 3) * 3) + " " + (x + 1) + " " + (14 + (i % 3) * 3) + " L" + (x + 1.8) + " 31Z", PAPER); });
+      return s + S("M-1 12 H41 M-1 18 H41 M-1 24 H41", 0.5, PAPER) + conifers([3, 9, 28, 36], 8, 5) + S("M15 7.4 L14 3 M14.4 4.6 L12.6 3.6 M14.6 5 L16.6 3.4", 0.9); },
+    "nm-timpanogos-cave": function () { var s = P("M-1 -1 H41 V31 H-1Z").replace("<path", '<path fill-opacity=".62"'), sp = "";
+      for (var i = 0; i < 9; i++) { var x = 4 + i * 4, a = i % 2 ? 1 : -1; sp += "M" + x + " 0 Q" + (x + a * 2) + " 3 " + (x - a) + " 5 Q" + (x + a * 2) + " 7 " + x + " " + (8 + (i % 3)); }
+      return s + S(sp, 0.8, PAPER) + P("M20 12 Q16 9 14 12 Q12 16 20 24 Q28 16 26 12 Q24 9 20 12Z", PAPER) + S("M20 14 V21 M17 15 Q18 18 20 21 M23 15 Q22 18 20 21", 0.6) + P("M-1 31 Q6 27 12 31 Q20 26 28 31 Q34 27 41 31Z", PAPER); },
+    "nm-rainbow-bridge": function () { return P("M-1 31 V4 L4 2 L10 6 L12 31Z M41 31 V6 L36 3 L32 6 L30 31Z").replace("<path", '<path fill-opacity=".45"') + P("M5 31 L6 18 Q8 4 20 4 Q32 4 34 18 L35 31 H31 Q31 10 20 9 Q10 10 10 31Z") + S("M7 18 Q9 6 20 6", 0.6, PAPER) + water(27) + P("M21 28 h6 l-1 1.2 h-4Z", PAPER); },
+    "nm-jewel-cave": function () { var s = P("M-1 -1 H41 V31 H-1Z").replace("<path", '<path fill-opacity=".62"'), c = ""; [[4, 10, 6], [10, 6, 8], [17, 12, 5], [24, 4, 9], [31, 10, 6], [36, 6, 8], [8, 24, 5], [28, 26, 4]].forEach(function (k) { var x = k[0], y = k[1], h = k[2]; c += "M" + (x - 2) + " " + y + " L" + x + " " + (y + h) + " L" + (x + 2) + " " + y + "Z M" + (x + 1) + " " + y + " L" + (x + 3) + " " + (y + h * 0.6) + " L" + (x + 4) + " " + y + "Z "; });
+      return s + P(c, PAPER) + S("M18 31 V21 M18 21 l-3 -2 M18 23 l3 -2", 0.9) + C(18, 19, 1.2, PAPER) + P("M-1 31 Q20 27 41 31Z", PAPER); },
+    "nm-lava-beds": function () { return sky("M24 16 L30 6 L36 16Z") + P("M28.4 8.6 L30 6 L31.8 9Z", PAPER) + P("M-1 31 V18 Q10 14 20 17 Q30 15 41 18 V31Z") + P("M8 31 Q8 22 18 21 Q28 22 28 31Z", PAPER) + S("M8 31 Q8 22 18 21 Q28 22 28 31", 1) + PO("M11 31 Q12 25 18 24.4 Q24 25 25 31Z", 0.8) +
+        S("M16 31 V23 M20 31 V23 M16 25 H20 M16 27.6 H20 M16 30 H20", 0.8, PAPER); },
+    "nm-cabrillo": function () { return sky("M-1 24 Q20 22 41 24 V28 H-1Z") + P("M2 24 V18 L9 13 L16 18 V24Z") + lighthouse(9, 13, 5, 1.6, false) + P("M4 20 h2 v2 h-2Z M12 20 h2 v2 h-2Z", PAPER) +
+        P("M24 22 H38 L36 25 H26Z") + S("M30 22 V9 M27 22 V12", 0.8) + P("M30.4 10 Q34 12 30.4 19Z M27.4 13 Q30 15 27.4 20Z M30 9 l3 1 l-3 1Z") + water(26); },
+    "nm-devils-postpile": function () { var s = ""; for (var i = 0; i < 9; i++) { var x = 4 + i * 3.6, top = 8 + (i % 3) * 1.4 - (i > 3 && i < 7 ? 2 : 0); s += P("M" + x + " " + top + " h3 v18 h-3Z") + P("M" + x + " " + top + " l0.8 -1.2 h1.4 l0.8 1.2Z", PAPER); }
+      return conifers([2, 38], 10, 6) + s + S("M5.6 10 V25 M9.2 10 V25 M12.8 9 V25 M16.4 8 V25 M20 7 V25 M23.6 8 V25 M27.2 9 V25 M30.8 10 V25 M34.4 10 V25", 0.4, PAPER) + P("M-1 31 Q4 26 8 27 L12 25 L16 27 L22 25 L28 27 L34 25 L41 28 V31Z") + GROUND(31); },
+    "nm-oregon-caves": function () { return conifers([2, 6, 10, 30, 34, 38], 14, 10) + P("M11 22 V13 L20 6 L29 13 V22Z") + P("M13 12 L20 7.4 L27 12Z", PAPER) + P("M13 15 h2 v2 h-2Z M17 15 h2 v2 h-2Z M21 15 h2 v2 h-2Z M25 15 h2 v2 h-2Z M18 19 h4 v3 h-4Z", PAPER) +
+        P("M-1 31 V22 H41 V31Z") + P("M15 31 Q15 26 20 25 Q25 26 25 31Z", PAPER) + S("M15 31 Q15 26 20 25 Q25 26 25 31", 0.8); },
+    "nm-little-bighorn-battlefield": function () { var m = ""; [[6, 24], [10, 23], [13, 26], [26, 25], [29, 22], [33, 26], [17, 27]].forEach(function (p) { m += "M" + p[0] + " " + p[1] + " h1.2 v2 h-1.2Z "; });
+      return sky("M-1 14 Q10 10 20 13 Q30 9 41 14 V18 H-1Z") + P("M-1 31 V22 Q10 16 22 17 Q32 17 41 22 V31Z") + P(m, PAPER) + P("M20 17 L21 6 L22 17Z") + R(18.6, 17, 4.8, 1.4) + S("M2 28 q2 -2 4 0 M32 29 q2 -2 4 0", 0.6, PAPER); },
+    "nm-effigy-mounds": function () { return sky("M-1 8 H41 V11 H-1Z") + P("M-1 11 H41 V31 H-1Z").replace("<path", '<path fill-opacity=".42"') + P("M8 20 Q8 14 14 14 Q18 12 24 13 Q30 13 32 17 Q34 18 34 20 L32 21 Q31 24 28 24 L27 27 H25 L24 24 H16 L15 27 H13 L12 23 Q8 22 8 20Z") + S("M10 17 Q16 15.6 22 16", 0.6, PAPER) +
+        conifers([3, 37], 12, 5) + S("M2 29 q3 -2 6 0 M30 29 q3 -2 6 0", 0.6); },
+    "nm-castillo-de-san-marcos": function () { return sky("M-1 26 H41 V31 H-1Z") + P("M2 26 L6 14 H14 L16 18 H24 L26 14 H34 L38 26Z") + S("M6 14 H34 M4 20 H36", 0.7, PAPER) + P("M5 14 V10 Q6 8 7 10 V14Z M33 14 V10 Q34 8 35 10 V14Z") + P("M5.4 9 L6 7 L6.6 9Z M33.4 9 L34 7 L34.6 9Z") + P("M17 26 V21 Q20 18.6 23 21 V26Z", PAPER) + palmlet(39, 26) + water(28); },
+    "nm-fort-pulaski": function () { var s = ""; for (var x = 4; x < 36; x += 4.6) s += "M" + x + " 24 V19 Q" + (x + 1.6) + " 16.6 " + (x + 3.2) + " 19 V24Z "; return sky("M-1 9 H41 V12 H-1Z") + P("M1 26 V12 H39 V26Z") + S("M1 14 H39", 0.7, PAPER) + P(s, PAPER) + palmlet(4, 12) + palmlet(36, 12) + water(26) + S("M-1 26 H41", 1); },
+    "nm-fort-mchenry": function () { var f = "", y; for (var i = 0; i < 7; i++) { y = 3 + i * 1.6; f += i % 2 ? "" : "M20 " + y + " h16 v1.6 h-16Z "; } return P("M2 31 L5 22 H13 L15 25 H25 L27 22 H35 L38 31Z") + S("M5 22 H35", 0.6, PAPER) + S("M20 2 V25", 1) + P(f) + R(20, 3, 7, 5.6) + P("M21 4 h1 v1 h-1Z M23.4 4 h1 v1 h-1Z M25.6 4 h1 v1 h-1Z M22.2 6 h1 v1 h-1Z M24.6 6 h1 v1 h-1Z", PAPER) + S("M36 3 V14", 0.5) + GROUND(31); },
+    "nm-scotts-bluff": function () { return sky("M-1 22 H41 V26 H-1Z") + P("M4 26 L6 14 L9 10 L14 8 H22 L24 11 L28 12 L31 18 L34 26Z") + S("M8 16 H30 M7 20 H32", 0.6, PAPER) +
+        T(9, 20, 0.7, P("M2 6 Q4 -1 11 -1 Q18 -1 20 6Z", PAPER) + S("M2 6 Q4 -1 11 -1 Q18 -1 20 6Z M7 0 V6 M11 -1 V6 M15 0 V6", 0.8) + R(1, 6, 20, 1.4) + C(5, 9, 2.4).replace("<circle", '<circle fill="none" stroke="currentColor" stroke-width="1"') + C(17, 9, 2.4).replace("<circle", '<circle fill="none" stroke="currentColor" stroke-width="1"')) + GROUND(29.4); },
+    "nm-stonewall": function () { var fl = ""; for (var i = 0; i < 6; i++) fl += (i % 2 ? "" : "M30 " + (3 + i * 1.2) + " h8 v1.2 h-8Z "); return R(4, 6, 24, 25) + S("M4 10 H28 M4 14 H28 M4 18 H28 M4 22 H28 M4 26 H28", 0.4, PAPER) + P("M7 31 V22 Q10 18 13 22 V31Z M19 31 V22 Q22 18 25 22 V31Z", PAPER) + R(6, 8, 20, 4, PAPER) + S("M8 10 H24", 1) +
+        P("M8 15 h3 v4 h-3Z M14.4 15 h3 v4 h-3Z M21 15 h3 v4 h-3Z", PAPER) + S("M30 2 V31", 0.8) + P(fl) + S("M30 3 H38 V10.2 H30", 0.6); },
+    "nm-katahdin-woods-and-waters": function () { return P("M-1 20 L8 12 L14 9 L20 4 L25 8 L31 11 L41 18 V20Z") + P("M18 6 L20 4 L22.4 6.6 L20 6Z", PAPER) + conifers([2, 5, 8, 32, 35, 38], 22, 6) + water(22) +
+        P("M10 26 Q20 28.4 30 26 Q28 28.6 20 28.6 Q12 28.6 10 26Z", PAPER) + S("M10 26 Q20 28.4 30 26 Q28 28.6 20 28.6 Q12 28.6 10 26Z", 0.9) + person(15, 22, 0.6) + person(24, 22, 0.6) + S("M13 24 L11 30 M26 24 L28.6 29", 0.7); },
+    "mem-mount-rushmore": function () { return sky("M-1 26 H41 V31 H-1Z") + PO("M-1 26 L2 12 L8 6 L16 4 L26 4 L34 7 L39 12 L41 26Z", 0.34) + heads(5, 9, 1.05) + heads(13, 7, 1.1) + heads(21, 8, 1.05) + heads(29, 10, 1) + T(0, 0, 1, "").replace("<g", "<g") +
+        S("M6 18 H38", 0) + P("M-1 26 Q10 22 20 24 Q30 22 41 26 V31 H-1Z").replace("<path", '<path fill-opacity=".6"') + conifers([2, 6, 34, 38], 31, 6) + S("M3 14 L5 20 M12 13 L13 20 M20.6 13 L21 20 M28.4 14 L29 21 M36.6 15 L37 21", 0.5, PAPER) + GROUND(31); },
+    "mem-lincoln-memorial": function () { return sky("M-1 10 H41 V12 H-1Z") + R(4, 7, 32, 3) + cols(5, 22, 30, 10, 9) + stair(2, 25, 0, 0, 0) + R(2, 23.6, 36, 1.4) + R(0, 25, 40, 1.4) + P("M-1 27 H41 V41 H-1Z") + P("M6 28 H34 V30 H6Z", PAPER) + S("M20 28.4 V29.6", 0.8); },
+    "mem-jefferson-memorial": function () { var s = P("M8 15 Q8 6 20 5 Q32 6 32 15Z") + S("M10 11 Q20 8 30 11", 0.6, PAPER) + R(7, 15, 26, 1.6) + P("M13 17 L20 13 L27 17Z") + cols(13, 25, 14, 7, 4) + R(5, 19, 8, 6) + R(27, 19, 8, 6) + S("M7 21 V24 M10 21 V24 M30 21 V24 M33 21 V24", 0.7, PAPER) + R(3, 25, 34, 1.6);
+      return s + T(-1, 20, 0.8, C(2, 2, 2) + C(5, 1, 2) + C(4, 4, 1.8) + S("M3 4 V10", 1)) + T(35, 20, 0.8, C(2, 2, 2) + C(5, 1, 2) + C(4, 4, 1.8) + S("M3 4 V10", 1)) + water(27); },
+    "mem-washington-monument": function () { var r = ""; for (var a = 0; a < 7; a++) r += "M" + (6 + a * 4.6) + " 27 V22"; return P("M18 26 L18.6 6 L20 3 L21.4 6 L22 26Z") + S("M18.4 14 H21.6", 0.5, PAPER) + S(r, 0.6) + P("M6 22 h2 v1.2 h-2Z M15.2 22 h2 v1.2 h-2Z M24.4 22 h2 v1.2 h-2Z M33.6 22 h2 v1.2 h-2Z") + P("M-1 27 Q20 24 41 27 V28 H-1Z") + water(28) + P("M19 29 L20 35 L21 29Z", PAPER); },
+    "mem-vietnam-veterans-memorial": function () { var n = ""; for (var i = 0; i < 6; i++) n += "M" + (3 + i * 2.6) + " " + (16 + i * 1.4) + " L" + (3 + i * 2.6) + " " + (23 + i * 0.4) + " M" + (37 - i * 2.6) + " " + (16 + i * 1.4) + " L" + (37 - i * 2.6) + " " + (23 + i * 0.4);
+      return sky("M-1 11 Q20 8 41 11 V14 H-1Z") + P("M-1 15 L20 25 L41 15 V24 L20 27 L-1 24Z") + S(n, 0.4, PAPER) + person(26, 19.4, 0.7) + P("M-1 24 L20 27 L41 24 V31 H-1Z").replace("<path", '<path fill-opacity=".35"') + GROUND(31); },
+    "mem-korean-war-veterans-memorial": function () { var sd = function (x, y, s) { return T(x, y, s, P("M2 0 Q4 -1 5 1 L6 3 Q7 6 7 10 L6 12 L5.4 18 H4.4 L4 13 H3 L2.6 18 H1.6 L1.4 12 L0 10 Q0 6 1 3Z") + S("M6 4 L9 -2", 0.7)); };
+      return P("M-1 4 H41 V16 H-1Z").replace("<path", '<path fill-opacity=".4"') + S("M2 8 h3 M8 7 h2 M14 9 h3 M22 7 h3 M30 9 h2 M35 7 h3", 0.6, PAPER) + sd(4, 12, 0.9) + sd(13, 10, 1) + sd(22, 12, 0.9) + sd(30, 11, 0.95) +
+        S("M-1 30 q2 -3 4 0 t4 0 t4 0 t4 0 t4 0 t4 0 t4 0 t4 0 t4 0 t4 0", 1.2) + GROUND(30.4); },
+    "mem-world-war-ii-memorial": function () { var p = ""; for (var i = 0; i < 9; i++) p += R(2 + i * 4.2, 14 + (i === 4 ? 0 : 2), 1.6, 8); return sky("M-1 10 H41 V12 H-1Z") + p + P("M15 22 V10 Q20 5 25 10 V22H22.6 V12 Q20 9.6 17.4 12 V22Z") + R(-1, 22, 42, 1.4) + P("M-1 24 H41 V31 H-1Z").replace("<path", '<path fill-opacity=".45"') + S("M10 28 Q20 22 30 28 M14 27 Q20 24 26 27 M20 26 V23", 1, PAPER) + GROUND(31); },
+    "mem-mlk-jr-memorial": function () { return C(32, 6, 2.6) + P("M2 31 V8 L8 6 L10 31Z M38 31 V8 L32 6 L30 31Z").replace("<path", '<path fill-opacity=".5"') + P("M13 31 V10 L20 8 L27 10 V31Z") + P("M17 17 Q17 12 20 12 Q23 12 23 17 L25 19 V24 H15 V19Z", PAPER) + S("M17 20 L23 20 M18 22 L22 22", 0.6) + C(20, 14, 2, PAPER) + S("M13 26 L27 25 M13 29 L27 28", 0.5, PAPER) + T(-1, 22, 1, C(3, 2, 2.2) + C(6, 1, 2) + S("M4 3 V9", 1)) + GROUND(31); },
+    "mem-fdr-memorial": function () { return R(-1, 6, 13, 25) + R(28, 10, 13, 21) + S("M-1 10 H12 M-1 16 H12 M-1 22 H12 M28 14 H41 M28 20 H41", 0.6, PAPER) + R(12, 14, 16, 3) + fall(13, 27, 17, 25, 4) + mist(13, 27, 25.4) + water(27) +
+        T(30, 20, 0.5, P("M2 6 Q2 3 4 3 Q5 1 7 1.6 L8 0 L8.6 2 Q9.6 3 9 5 L8 5.6 L8 10 H7 L6.6 7 H4 L3.6 10 H2.6 L2.6 7Z")); },
+    "mem-flight-93": function () { var w = ""; for (var y = 4; y < 26; y += 2.6) w += "M14 " + y + " h12 "; return sky("M-1 24 Q20 20 41 24 V31 H-1Z") + P("M15 27 L16 2 H24 L25 27Z") + S(w, 0.5, PAPER) + S("M20 4 V25", 0.6, PAPER) +
+        S("M3 26 q0 -4 1 -6 M6 26 q-1 -3 0 -5 M34 26 q0 -4 1 -6 M37 26 q-1 -3 0 -5", 0.7) + C(4, 19.6, 0.8) + C(35, 19.6, 0.8) + C(6, 20.6, 0.7) + GROUND(29); },
+    "mem-pearl-harbor": function () { return sky("M-1 16 L8 12 L14 14 L22 10 L30 14 L41 12 V18 H-1Z") + P("M3 18 Q20 22.6 37 18 L36 24 Q20 26 4 24Z", PAPER) + S("M3 18 Q20 22.6 37 18 L36 24 Q20 26 4 24Z", 1.2) + S("M9 21 V24 M14 22 V24.6 M20 22.4 V25 M26 22 V24.6 M31 21 V24", 0.7) + S("M20 20.6 V6", 0.8) + P("M20 6 h6 v3 h-6Z") + water(25) + S("M3 28 H37", 0.7, PAPER); },
+    "mem-wright-brothers": function () { return sky("M-1 26 Q20 22 41 26 V31 H-1Z") + P("M24 26 Q30 18 38 18 L41 26Z") + P("M30.6 18 L31.4 8 H33.6 L34.4 18Z") + S("M31 11 H34", 0.6, PAPER) +
+        S("M3 10 H21 M3 14 H21", 1.2) + S("M5 10 V14 M9 10 V14 M13 10 V14 M17 10 V14 M21 10 V14", 0.6) + S("M-1 12 H3 M0 10.6 V13.4 M21 12 H24 M24 10 V14", 0.8) + P("M11 12.4 h2 v1 h-2Z") + GROUND(31); },
+    "mem-de-soto": function () { return sky("M-1 20 H41 V22 H-1Z") + P("M6 21 H34 L31 26 H9Z") + P("M31 21 L36 18 V21Z M6 21 L4 18 L9 19Z") + S("M14 21 V5 M24 21 V7 M33 19 L37 13", 0.9) + P("M10 7 Q14 9 18 7 L18 17 Q14 19 10 17Z M20 9 Q24 11 28 9 L28 18 Q24 20 20 18Z") + S("M14 8 V18 M24 10 V18", 0.6, PAPER) + water(26); },
+    "mem-fort-caroline": function () { var pal = ""; for (var x = 6; x <= 34; x += 2) pal += "M" + x + " " + (x < 20 ? 24 - (x - 6) * 0.6 : 15.6 + (x - 20) * 0.6) + " V27 "; return sky("M-1 26 H41 V28 H-1Z") + S(pal, 1.4) + P("M6 24 L20 15.6 L34 24 L34 27 H6Z").replace("<path", '<path fill-opacity="0"') + S("M20 15 V4", 0.7) + P("M20 4 h5 v3 h-5Z") + palmlet(37, 26) + water(28); },
+    "mem-chamizal": function () { return sky("M-1 18 L6 10 L10 14 L16 6 L22 13 L28 9 L35 14 L41 11 V20 H-1Z") + R(6, 18, 28, 7) + P("M6 18 L20 15 L34 18Z") + R(9, 20, 22, 3.4, PAPER) + S("M10 22 q2 -2 4 0 t4 0 t4 0 t4 0 t4 0", 0.7) + S("M4 13 V25 M36 13 V25", 0.6) + P("M4 13 h3 v2 h-3Z M36 13 h3 v2 h-3Z") + water(26); },
+    "mem-coronado": function () { return sky("M-1 26 L8 20 L14 23 L22 16 L30 22 L41 18 V31 H-1Z") + T(9, 2, 1, P("M2 12 Q1 4 11 4 Q21 4 20 12 Z") + P("M-2 12 Q11 9 24 12 Q24 15 21 14 Q11 12 1 14 Q-2 15 -2 12Z") + P("M10 4 Q11 -1 12 4Z") + S("M5 9 Q11 6 17 9", 0.7, PAPER)) + GROUND(31); },
+    "mem-perry-s-victory": function () { return sky("M-1 24 H41 V27 H-1Z") + R(17.6, 6, 4.8, 18) + S("M19 7 V23 M21 7 V23", 0.5, PAPER) + R(16, 4.6, 8, 1.6) + P("M18 4.6 Q18 1.6 20 1.6 Q22 1.6 22 4.6Z") + R(15, 23, 10, 2.4) + P("M2 26 Q12 22 30 23 Q38 23 41 26Z") + water(26) + P("M30 28 h6 l-1 1.4 h-4Z M33 28 V24 L35 27Z", 0); },
+    "mem-federal-hall": function () { return R(4, 9, 32, 2.6) + P("M4 9 L20 3 L36 9Z") + P("M10 8 L20 4.6 L30 8Z", PAPER) + cols(5, 24, 30, 12, 6) + R(2, 25.4, 36, 1.6) + R(0, 27, 40, 1.6) + T(17, 15, 0.7, C(4, 1.6, 1.6) + P("M1.6 3.6 H6.4 L7 10 H5.6 V14 H2.4 V10 H1Z")) + R(16, 24.2, 8, 1.4) + GROUND(29); },
+    "mem-general-grant": function () { return R(6, 18, 28, 8) + cols(8, 18, 24, 0, 0) + S("M9 19 V25 M12 19 V25 M15 19 V25 M25 19 V25 M28 19 V25 M31 19 V25", 1.2, PAPER) + R(5, 16.6, 30, 1.6) + R(12, 10, 16, 6.6) + S("M14 11 V16 M17 11 V16 M20 11 V16 M23 11 V16 M26 11 V16", 1, PAPER) + P("M12 10 L14 6 H26 L28 10Z") + R(15, 4.6, 10, 1.6) + R(3, 26, 34, 1.8) + R(1, 27.8, 38, 1.6) + P("M17 26 V21 H23 V26Z", PAPER) + GROUND(31); },
+    "mem-johnstown-flood": function () { return sky("M-1 16 Q10 12 20 15 Q30 11 41 15 V20 H-1Z") + P("M-1 31 V18 Q6 16 12 20 L16 31Z M41 31 V18 Q34 16 28 20 L24 31Z") + conifers([2, 6, 34, 38], 18, 5) + PO("M12 20 H28 L26 31 H14Z", 0.35) + fall(16, 24, 20, 30, 3) + S("M10 20 H16 M24 20 H30", 1.4) + water(30); },
+    "mem-lincoln-boyhood": function () { var lg = ""; for (var y = 16; y < 27; y += 2.2) lg += "M7 " + y + " H25 "; return conifers([30, 34, 38], 26, 10) + P("M6 15 L16 8 L26 15Z") + R(7, 15, 18, 12) + S(lg, 0.6, PAPER) + R(19, 6, 2.6, 5) + P("M14 27 V20 H18 V27Z M9 19 h3 v3 h-3Z", PAPER) +
+        S("M-1 28 L6 24 M-1 30 L6 26 M1 30 V25 M4 29 V24", 0.9) + GROUND(29); },
+    "mem-arkansas-post": function () { return conifers([4, 8, 12, 33, 37], 16, 8) + P("M-1 16 H41 V20 H-1Z") + water(20) + P("M-1 23 Q20 21 41 24 V31 H-1Z") + C(16, 26, 2.6, PAPER) + C(16, 26, 2.6).replace("<circle", '<circle fill="none" stroke="currentColor" stroke-width="0.9"') + P("M17 24 L30 21 L31 23 L18 27Z") + S("M16 23.4 V28.6 M13.4 26 H18.6", 0.6) + S("M3 27 H10", 0.8, PAPER); }
+  };
+  // shared parts used by more than one scene
+  G.x_lib = function () { return P("M14 31 V27 H26 V31Z M15.4 27 V20 H24.6 V27Z") + S("M15.4 23 H24.6", 0.6, PAPER) + P("M17 20 L17.6 12 Q17 9 19 8.4 L20.6 8.4 Q23 9 22.4 12 L23 20Z") +
+      C(20, 7, 1.6) + P("M17.4 6 L16 3.6 L18.2 5.4 L18.4 2.6 L19.6 5 L20.4 2 L21 5 L22.4 2.8 L22.2 5.4 L24.4 3.6 L22.8 6Z") + S("M22 10 L25 4 L25.2 1.4", 1.4) + P("M24.2 1.6 Q25 -1.6 26 1.6Z") + R(16.4, 11, 1.6, 3.4) + S("M18.4 13 L22 15", 0.6, PAPER); };
+  Object.keys(XPG).forEach(function (k) { G["x_" + k] = XPG[k]; });
+  // ---------- landmark drawings for countries that had a generic or wrong picture ----------
+  var CTYG = {
+    c_eiffel: function () { return P("M19 2 h2 l0.6 6 h-3.2Z M18.4 8 h3.2 l1.6 10 h-6.4Z M16.8 18 h6.4 l5.8 18 h-4.4 Q20 27 15.4 36 H11Z") + R(16, 7.4, 8, 1.4) + R(14.6, 17.4, 10.8, 1.6) + P("M16.6 36 Q20 29 23.4 36Z", PAPER) + S("M18.6 11 L21.4 15 M21.4 11 L18.6 15 M17.6 21 L22.4 26 M22.4 21 L17.6 26", 0.5, PAPER) + S("M4 37 H36", 1.2); },
+    c_sagrada: function () { var s = ""; [[8, 14], [14, 6], [20, 3], [26, 6], [32, 14]].forEach(function (t) { s += P("M" + (t[0] - 2.4) + " 34 V" + (t[1] + 6) + " Q" + t[0] + " " + (t[1] - 3) + " " + (t[0] + 2.4) + " " + (t[1] + 6) + " V34Z") + C(t[0], t[1] - 1.4, 1.1); });
+      return s + R(4, 26, 32, 8) + P("M16 34 V28 Q20 24 24 28 V34Z", PAPER) + S("M5.6 22 h4.8 M11.6 16 h4.8 M17.6 12 h4.8 M23.6 16 h4.8 M29.6 22 h4.8", 0.6, PAPER) + S("M2 36 H38", 1.2); },
+    c_brandenburg: function () { return R(5, 13, 30, 4) + R(3, 11.6, 34, 1.6) + cols(5, 33, 30, 16, 6) + R(3, 33, 34, 2) + P("M15 11.6 V8 H25 V11.6Z") + T(15, 2, 0.5, P("M2 12 Q1 7 4 6 L6 2 L7 6 L12 5 L13 1.4 L14 5 L18 5 L19 1 L20 5 Q22 6 21 12Z")) + S("M20 2 V0", 0.8); },
+    c_atomium: function () { var p = [[20, 4], [10, 12], [30, 12], [20, 18], [10, 26], [30, 26], [20, 20.4], [20, 32], [14, 19]], l = "M20 4 L10 12 L20 18 L30 12Z M10 12 L10 26 M30 12 L30 26 M10 26 L20 32 L30 26 M20 18 L20 32 M20 4 L20 18", s = S(l, 1.4); [[20, 4], [10, 12], [30, 12], [20, 18], [10, 26], [30, 26], [20, 32]].forEach(function (q) { s += C(q[0], q[1], 3.4) + C(q[0] - 1, q[1] - 1, 0.9, PAPER); }); return s + S("M17 36 h6 M20 32 V36", 1.2); },
+    c_marinabay: function () { return R(8, 10, 6, 24) + R(17, 10, 6, 24) + R(26, 10, 6, 24) + P("M4 7 H38 Q38 9.6 35 10 H6 Q4 9.6 4 7Z") + S("M9.6 14 V30 M18.6 14 V30 M27.6 14 V30", 0.6, PAPER) + water(34) + S("M2 34 H38", 1); },
+    c_tajmahal: function () { return P("M13 20 Q11 12 20 8 Q29 12 27 20Z") + P("M19.4 8 L20 3 L20.6 8Z") + E(13.4, 18, 2.4, 2.6) + E(26.6, 18, 2.4, 2.6) + R(10, 20, 20, 12) + P("M17 32 V25 Q20 21 23 25 V32Z M11.6 23 h3 v3 h-3Z M25.4 23 h3 v3 h-3Z M11.6 28 h3 v3 h-3Z M25.4 28 h3 v3 h-3Z", PAPER) +
+        R(3.4, 14, 2, 18) + R(34.6, 14, 2, 18) + P("M3 14 Q4.4 11 5.8 14Z M34.2 14 Q35.6 11 37 14Z") + R(1, 32, 38, 1.8) + P("M17 34 H23 L22 39 H18Z", PAPER); },
+    c_greatwall: function () { var w = "M-1 30 Q6 26 10 22 Q14 16 20 18 Q26 20 30 12 Q33 7 41 8"; return PO("M-1 34 L6 22 L12 26 L20 14 L28 20 L34 8 L41 14 V41 H-1Z", 0.35) + S(w, 3.6) + S(w, 1, PAPER) + R(8, 18, 4.4, 5) + R(27.6, 8, 4.4, 5) + P("M8 18 h1 v-1 h1 v1 h1 v-1 h1.4 v1Z M27.6 8 h1 v-1 h1 v1 h1 v-1 h1.4 v1Z") + S("M-1 36 H41", 1); },
+    c_nyhavn: function () { var s = ""; [[2, 16, 0], [9, 13, 1], [16, 15, 0], [23, 12, 1], [30, 14, 0]].forEach(function (h) { s += P("M" + h[0] + " 28 V" + h[1] + " L" + (h[0] + 3.5) + " " + (h[1] - 4) + " L" + (h[0] + 7) + " " + h[1] + " V28Z", h[2] ? 0 : 0) + P("M" + (h[0] + 1.4) + " " + (h[1] + 2) + " h1.4 v2 h-1.4Z M" + (h[0] + 4.2) + " " + (h[1] + 2) + " h1.4 v2 h-1.4Z M" + (h[0] + 1.4) + " " + (h[1] + 6) + " h1.4 v2 h-1.4Z M" + (h[0] + 4.2) + " " + (h[1] + 6) + " h1.4 v2 h-1.4Z", PAPER); });
+      return s + water(28) + S("M10 30 V18 M26 30 V20", 0.8) + P("M6 31 H16 L15 33 H7Z M22 31 H32 L31 33 H23Z"); },
+    c_dubrovnik: function () { return P("M2 28 V18 H8 V14 H12 V18 H22 V16 H26 V18 H31 V8 H37 V28Z") + P("M2 18 h1.4 v-1.4 h1.4 v1.4 h1.4 v-1.4 h1.4 v1.4 M31 8 h1.2 v-1.4 h1.2 v1.4 h1.2 v-1.4 h1.2 v1.4 h1.2", 0) + P("M12 20 L16 16 L20 20Z M22 22 L25 19 L28 22Z") + P("M5 22 h2 v2 h-2Z M14 22 h2 v2 h-2Z M33 12 h2 v3 h-2Z M24 24 h2 v2 h-2Z", PAPER) + water(28); },
+    c_obelisco: function () { return P("M18 32 L18.6 8 L20 4.6 L21.4 8 L22 32Z") + C(20, 12, 0.7, PAPER) + S("M18.4 20 H21.6", 0.5, PAPER) + R(16, 32, 8, 1.6) + S("M2 37 L14 33 M38 37 L26 33 M8 37 L16 33.6 M32 37 L24 33.6", 0.9) + S("M4 30 H12 M28 30 H36", 0.6) + P("M5 30 V24 h1.6 V30Z M9 30 V22 h1.6 V30Z M30 30 V23 h1.6 V30Z M34 30 V25 h1.6 V30Z"); },
+    c_koutoubia: function () { return R(14, 10, 12, 24) + R(13, 8.4, 14, 1.6) + R(17, 3.6, 6, 4.8) + P("M17 3.6 L20 1 L23 3.6Z") + S("M20 1 V-1", 0.6) + P("M17 14 h2 v4 h-2Z M21 14 h2 v4 h-2Z M18 22 Q19 19.6 20 22 V26 H18Z M20 22 Q21 19.6 22 22 V26 H20Z", PAPER) + S("M14 30 H26", 0.6, PAPER) + palmlet(6, 34) + palmlet(34, 34) + S("M1 34 H39", 1.2); },
+    c_parliament: function () { var sp = ""; for (var x = 3; x <= 37; x += 4.2) sp += "M" + (x - 0.8) + " 18 L" + x + " 13 L" + (x + 0.8) + " 18Z "; return R(2, 18, 36, 9) + P(sp) + P("M14 18 Q14 10 20 9 Q26 10 26 18Z") + P("M19 9 L20 2 L21 9Z") + P("M5 21 h1.4 v3 h-1.4Z M9 21 h1.4 v3 h-1.4Z M13 21 h1.4 v3 h-1.4Z M25.6 21 h1.4 v3 h-1.4Z M29.6 21 h1.4 v3 h-1.4Z M33.6 21 h1.4 v3 h-1.4Z M18.6 20 h2.8 v4 h-2.8Z", PAPER) + water(27); }
+  };
+  Object.keys(CTYG).forEach(function (k) { G[k] = CTYG[k]; });
+
 
   // ---------- countries: hand tuned for the most visited, the rest made from the code ----------
   // code: shape, border, ink (palette key or index), motif, font, label
   var COUNTRY = {
     ENG: "shield|double|red|rose|serif|ARRIVAL", SCT: "octagon|toothed|violet|thistle|slab|WELCOME", WLS: "arch|dashed|green|dragon|sans|CROESO",
     NIR: "hexagon|dotted|blue|columns|cond|ENTRY", IRL: "circle|toothed|green|shamrock|serif|FÁILTE", GBR: "rect|double|blue|clock|mono|ARRIVED",
-    FRA: "oval|dashed|blue|lattice|serif|ENTRÉE", CAN: "rect|toothed|red|maple|sans|WELCOME", JPN: "circle|solid|red|fuji|cond|ARRIVAL",
-    MEX: "double|dotted|green|cactus|slab|BIENVENIDO", ITA: "shield|solid|green|arches|serif|ARRIVO", ESP: "cancel|dashed|red|sun|slab|LLEGADA",
-    DEU: "hexagon|double|black|tower|cond|EINREISE", NLD: "octagon|solid|brown|windmill|sans|AANKOMST", GRC: "rect|dotted|blue|temple|serif|ARRIVAL",
+    FRA: "oval|dashed|blue|c_eiffel|serif|ENTRÉE", CAN: "rect|toothed|red|maple|sans|WELCOME", JPN: "circle|solid|red|fuji|cond|ARRIVAL",
+    MEX: "double|dotted|green|cactus|slab|BIENVENIDO", ITA: "shield|solid|green|arches|serif|ARRIVO", ESP: "cancel|dashed|red|c_sagrada|slab|LLEGADA",
+    DEU: "hexagon|double|black|c_brandenburg|cond|EINREISE", NLD: "octagon|solid|brown|windmill|sans|AANKOMST", GRC: "rect|dotted|blue|temple|serif|ARRIVAL",
     PRT: "arch|double|brown|ship|slab|CHEGADA", CHE: "triangle|solid|red|peaks|sans|ENTRY", AUT: "shield|dotted|red|edelweiss|serif|ANKUNFT",
-    BEL: "cancel|solid|black|tower|mono|ARRIVÉE", DNK: "oval|solid|red|ship|cond|ANKOMST", NOR: "triangle|toothed|blue|mountainlake|slab|ANKOMST",
-    SWE: "circle|dashed|blue|horse|cond|ANKOMST", ISL: "hexagon|toothed|blue|geyser|sans|ARRIVAL", USA: "shield|double|blue|star|slab|ADMITTED",
-    AUS: "oval|toothed|brown|kangaroo|sans|ARRIVED", NZL: "circle|double|black|kiwi|cond|ARRIVAL", CHN: "rect|double|red|pagoda|serif|ENTRY",
-    IND: "octagon|dotted|brown|elephant|slab|ARRIVAL", THA: "arch|toothed|violet|lotus|serif|ARRIVAL", EGY: "triangle|double|brown|pyramid|slab|ARRIVAL",
-    MAR: "arch|dotted|red|dome|serif|ARRIVÉE", ZAF: "hexagon|solid|green|acacia|sans|ADMITTED", KEN: "oval|dotted|brown|giraffe|cond|ENTRY",
-    BRA: "double|toothed|green|parrot|sans|CHEGADA", ARG: "circle|dotted|blue|sun|serif|ENTRADA", PER: "shield|toothed|brown|llama|slab|ENTRADA",
+    BEL: "cancel|solid|black|c_atomium|mono|ARRIVÉE", DNK: "oval|solid|red|c_nyhavn|cond|ANKOMST", NOR: "triangle|toothed|blue|mountainlake|slab|ANKOMST",
+    SWE: "circle|dashed|blue|horse|cond|ANKOMST", ISL: "hexagon|toothed|blue|geyser|sans|ARRIVAL", USA: "shield|double|blue|x_lib|slab|ADMITTED",
+    AUS: "oval|toothed|brown|kangaroo|sans|ARRIVED", NZL: "circle|double|black|kiwi|cond|ARRIVAL", CHN: "rect|double|red|c_greatwall|serif|ENTRY",
+    IND: "octagon|dotted|brown|c_tajmahal|slab|ARRIVAL", THA: "arch|toothed|violet|lotus|serif|ARRIVAL", EGY: "triangle|double|brown|pyramid|slab|ARRIVAL",
+    MAR: "arch|dotted|red|c_koutoubia|serif|ARRIVÉE", ZAF: "hexagon|solid|green|acacia|sans|ADMITTED", KEN: "oval|dotted|brown|giraffe|cond|ENTRY",
+    BRA: "double|toothed|green|parrot|sans|CHEGADA", ARG: "circle|dotted|blue|c_obelisco|serif|ENTRADA", PER: "shield|toothed|brown|llama|slab|ENTRADA",
     CHL: "rect|dashed|blue|volcano|cond|ENTRADA", TUR: "oval|double|red|balloon|serif|GİRİŞ", CRI: "cancel|dotted|green|parrot|cond|ENTRADA",
     BHS: "circle|dashed|blue|wave|sans|WELCOME", JAM: "octagon|dashed|green|palm|slab|WELCOME", ISR: "hexagon|dashed|blue|olive|serif|ENTRY",
-    KOR: "rect|solid|blue|gate|cond|ARRIVAL", VNM: "cancel|double|red|lotus|serif|ARRIVAL", SGP: "oval|solid|violet|edelweiss|cond|ARRIVED",
+    KOR: "rect|solid|blue|gate|cond|ARRIVAL", VNM: "cancel|double|red|lotus|serif|ARRIVAL", SGP: "oval|solid|violet|c_marinabay|cond|ARRIVED",
     CUB: "arch|solid|blue|palm|slab|ENTRADA", DOM: "triangle|dotted|blue|palm|sans|ENTRADA", PHL: "shield|dashed|blue|volcano|cond|ARRIVAL",
     IDN: "octagon|double|red|volcano|serif|ARRIVAL", POL: "rect|toothed|red|tower|serif|PRZYJAZD", CZE: "arch|dashed|blue|clock|cond|PŘÍJEZD",
-    HRV: "cancel|toothed|blue|wave|sans|DOLAZAK", HUN: "circle|double|green|dome|serif|ÉRKEZÉS", FIN: "oval|dotted|blue|pine|cond|SAAPUMINEN"
+    HRV: "cancel|toothed|blue|c_dubrovnik|sans|DOLAZAK", HUN: "circle|double|green|c_parliament|serif|ÉRKEZÉS", FIN: "oval|dotted|blue|pine|cond|SAAPUMINEN"
   };
   var GENERIC = ["sun", "star", "peaks", "wave", "palm", "leaf", "hills", "compass", "plane", "pine", "mountainlake", "olive", "volcano", "dunes", "sequoia"];
   var PARK_WORDS = [[/arch|bridge/i, "rockarch"], [/canyon|bend|badland|capitol|bryce/i, "canyon"], [/volcan|lassen|haleakal/i, "volcano"], [/yellowstone|geyser/i, "geyser"],
@@ -461,7 +711,7 @@
     } else if (kind === "park") {
       var pl = parkLook(area);
       if (pl) d = { shape: pl.shape, border: pl.border, ink: pl.ink, motif: pl.motif, pose: h % 3, flip: false, font: pick(["slab", "serif", "cond"], h >>> 9), label: "NATIONAL PARK" };
-      else { var mt = G[MORE_ART[area]] ? MORE_ART[area] : ""; if (!mt) PARK_WORDS.some(function (w) { if (w[0].test(name || area)) { mt = w[1]; return true; } return false; });
+      else { var mt = G["x_" + area] ? "x_" + area : G[MORE_ART[area]] ? MORE_ART[area] : ""; if (!mt) PARK_WORDS.some(function (w) { if (w[0].test(name || area)) { mt = w[1]; return true; } return false; });
       d = { shape: pick((name || "").length > 14 ? ["arch", "shield", "octagon"] : (name || "").length > 11 ? ["arch", "shield", "octagon", "oval"] : ["circle", "double", "arch", "shield", "octagon", "cancel", "oval"], h),   // long names only on frames with room to print them big
             border: pick(BORDERS, h2), ink: pick(["#5b4a2f", "#2f5d3a", "#6b3a2a", "#2b4f5e", "#4b5320", "#7a3b1d"], h >>> 4),
             motif: mt || pick(PARK_GEN, h >>> 7), pose: h % 3, flip: false, font: pick(["slab", "serif", "cond"], h >>> 9), label: /^sp-/.test(area) ? "STATE PARK" : /^nm-/.test(area) ? "NATIONAL MONUMENT" : /^mem-/.test(area) ? "NATIONAL MEMORIAL" : "NATIONAL PARK" }; }
@@ -535,28 +785,31 @@
     for (var i = 0; i < 10; i++) { var b = (i * 36 - 90) * Math.PI / 180, q = i % 2 ? 1.7 : 4.2; s += (i ? " L" : "M") + (x + q * Math.cos(b)).toFixed(2) + " " + (y + q * Math.sin(b)).toFixed(2); } return '<path d="' + s + 'Z"/>'; }
   function parkSVG(s, text, d, opts) {
     var ink = d.ink, uid = "pk" + (hash((s.id || "") + s.area) % 1e8), SER = FONTS.serif;
-    var NAME = String(text.name || s.area).toUpperCase(), date = String(text.date || ""), BOT = String(text.sub || d.label || "").toUpperCase();
+    var NAME = String(text.name || s.area).toUpperCase(), date = String(text.date || "") + (s.kind !== "park" && text.end && text.end !== text.date ? " – " + text.end : ""), BOT = String(s.kind === "state" ? d.symbol || "" : s.kind === "park" ? text.sub || d.label || "" : d.label || "").toUpperCase();
     var RT = 56.5, RB = 66.6, RW = 51;
     // top name: as big as fits in ~236 degrees, never bigger than 17
-    var n = NAME.length, nf = Math.min(17, RT * 4.1 / (n * 0.74 + 0.6)), nw = Math.min(RT * 4.1, n * nf * 0.74 + (n < 9 ? (n - 1) * 1.8 : 0)), na = nw / RT * 180 / Math.PI;
-    var m = BOT.length, bf = Math.min(10.4, RB * 2.2 / (m * 0.7)), bw = m * bf * 0.7, ba = bw / (RB - bf * 0.36) * 180 / Math.PI;
-    var out = d.border === "toothed" ? '<circle cx="80" cy="80" r="76.5" stroke-width="5.4" stroke-dasharray="2.4 2.6"/><circle cx="80" cy="80" r="72" stroke-width="1.6"/>'
+    var m = BOT.length, bf = Math.min(10.4, RB * 1.75 / (m * 0.7 || 1)), bw = m * bf * 0.7, ba = bw / (RB - bf * 0.36) * 180 / Math.PI, tmax = Math.min(RT * 4.1, (322 - ba) * Math.PI / 180 * RT);
+    var n = NAME.length, nf = Math.min(17, tmax / (n * 0.74 + 0.6)), nw = Math.min(tmax, n * nf * 0.74 + (n < 9 ? (n - 1) * 1.8 : 0)), na = nw / RT * 180 / Math.PI;
+    var bd = d.border, out = bd === "toothed" ? '<circle cx="80" cy="80" r="76.5" stroke-width="5.4" stroke-dasharray="2.4 2.6"/><circle cx="80" cy="80" r="72" stroke-width="1.6"/>'
+      : bd === "dashed" ? '<circle cx="80" cy="80" r="76" stroke-width="3" stroke-dasharray="7 3.4"/><circle cx="80" cy="80" r="71.6" stroke-width="1.2"/>'
+      : bd === "dotted" ? '<circle cx="80" cy="80" r="76" stroke-width="3.6" stroke-dasharray="0.1 5" stroke-linecap="round"/><circle cx="80" cy="80" r="72" stroke-width="1.4"/>'
+      : bd === "double" ? '<circle cx="80" cy="80" r="76.4" stroke-width="2"/><circle cx="80" cy="80" r="73.4" stroke-width="2"/><circle cx="80" cy="80" r="70.6" stroke-width=".9"/>'
       : '<circle cx="80" cy="80" r="76" stroke-width="3.4"/><circle cx="80" cy="80" r="71.6" stroke-width="1.2"/>';
     var g = '<g fill="none" stroke="' + ink + '">' + out + '<circle cx="80" cy="80" r="' + RW + '" stroke-width="1.8"/></g>';
     // the gaps between the name and the bottom line get a small star each
     var lg = ((270 - na / 2) + (90 + ba / 2)) / 2, rg = ((270 + na / 2) + (450 - ba / 2)) / 2, gap = (270 - na / 2) - (90 + ba / 2);
     var st = gap > 16 ? pstar(lg, 62) + pstar(rg, 62) : "";
-    var art = G[d.motif] ? G[d.motif](d.pose) : "", np = /^np_/.test(d.motif), sc = np ? 2.6 : 1.9, gx = np ? 28 : 42, gy = np ? (date ? 22 : 26) : (date ? 24 : 30);
+    var art = G[d.motif] ? (d.flip && !/^(np|x|c)_/.test(d.motif) ? '<g transform="matrix(-1 0 0 1 40 0)">' + G[d.motif](d.pose) + "</g>" : G[d.motif](d.pose)) : "", np = /^(np|x)_/.test(d.motif), sc = np ? 2.6 : 2.1, gx = np ? 28 : 38, gy = np ? (date ? 22 : 26) : (date ? 20 : 28);
     var body = '<defs><clipPath id="' + uid + 'c"><circle cx="80" cy="80" r="' + (RW - 0.9) + '"/></clipPath></defs><g clip-path="url(#' + uid + 'c)"><g class="motif" transform="translate(' + gx + " " + gy + ") scale(" + sc + ')">' + art + "</g></g>";
     var plate = "";
-    if (date) { var df = Math.min(12.4, 64 / (date.length * 0.62)), pw = Math.min(80, Math.max(62, date.length * df * 0.62 + 14));
+    if (date) { var df = Math.min(12.4, 76 / (date.length * 0.62)), pw = Math.min(90, Math.max(62, date.length * df * 0.62 + 14));
       plate = '<rect x="' + (80 - pw / 2).toFixed(1) + '" y="103" width="' + pw.toFixed(1) + '" height="18" rx="1.5" fill="#fff" stroke="' + ink + '" stroke-width="2"/>' +
         '<rect x="' + (80 - pw / 2 + 2.6).toFixed(1) + '" y="105.4" width="' + (pw - 5.2).toFixed(1) + '" height="13.2" fill="none" stroke="' + ink + '" stroke-width=".8"/>'; }
     var txt = "<defs>" + arcPath(uid + "t", RT, 270 - 150, 270 + 150, 1) + arcPath(uid + "b", RB, 90 + 140, 90 - 140, 0) + "</defs>" +
       '<text font-size="' + nf.toFixed(1) + '" font-family="' + SER + '"><textPath href="#' + uid + 't" startOffset="50%" textLength="' + nw.toFixed(1) + '" lengthAdjust="spacingAndGlyphs">' + esc(NAME) + "</textPath></text>" +
       (BOT ? '<text font-size="' + bf.toFixed(1) + '" font-family="' + SER + '"><textPath href="#' + uid + 'b" startOffset="50%" textLength="' + bw.toFixed(1) + '" lengthAdjust="spacingAndGlyphs">' + esc(BOT) + "</textPath></text>" : "") +
       (date ? '<text x="80" y="' + (112 + df * 0.36).toFixed(1) + '" font-size="' + df.toFixed(1) + '" font-family="' + FONTS.mono + '" font-weight="800" stroke="none">' + esc(date) + "</text>" : "");
-    var aria = (text.name || s.area) + (date ? ", " + date : "");
+    var aria = (text.name || s.area) + (s.kind === "state" && d.symbol ? ", state " + d.mode + ": " + d.symbol.toLowerCase() : "") + (date ? ", " + date : "");
     return '<svg class="stampsvg" viewBox="0 0 160 160" role="img" aria-label="' + esc(aria) + '" data-look="' + esc(["circle", d.border, d.ink, d.motif, "serif", "", d.pose].join(" ")) + '">' +
       '<g filter="url(#inkrough)" opacity=".92" color="' + ink + '"><g fill="' + ink + '" stroke="' + ink + '" stroke-width="0">' + body + st + "</g>" + g + "</g>" +
       '<g filter="url(#inkrough)" opacity=".95">' + plate.replace(/fill="#fff"/, 'fill="#fbf6ea"') + "</g>" +
@@ -567,66 +820,7 @@
   function stampSVG(s, text, opts) {
     opts = opts || {}; text = text || {};
     var d = design(s.kind, s.area, text.name, opts.art);
-    if (s.kind === "park") return parkSVG(s, text, d, opts);
-    var o = OUT[d.shape] || OUT.circle, ink = d.ink, F = FONTS[d.font] || FONTS.mono;
-    var uid = "st" + (hash((s.id || "") + s.kind + s.area + (opts.art || "")) % 1e8), cx = o.cx || 80;
-    var NAME = String(text.name || s.area).toUpperCase(), date = String(text.date || ""), end = text.end ? "TO " + text.end : "", via = String(s.via || "").toUpperCase().slice(0, 18);
-    var ring = !!o.ring, rows = [], body = "", txt = "", mono = FONTS.mono;
-    var lab = s.kind === "state" ? d.symbol : s.kind === "park" ? (text.sub || d.label) : d.label;
-    var top, bot, wAt;
-    if (ring) {
-      // name around the top edge, label (or the state's bird/flower/animal) around the bottom, the picture and date inside
-      var R = o.ring, inner = o.inner ? 56 : R - 14;
-      var curveName = NAME.length <= 9 && !o.inner;   // and never in the thin band of a double ring   // long names curve into tiny letters, so they sit on a straight line inside
-      var nfs = Math.min(d.shape === "cancel" ? 14 : 16, Math.PI * (R - 12) * 0.8 / Math.max(4, NAME.length) / 0.64);
-      if (o.inner) nfs = Math.min(nfs, R - inner - 7.5);
-      var r = o.inner ? inner + 2.5 : R - 5 - nfs, rb = o.inner ? R - 4 : R - 6;
-      var bottom = s.kind === "park" ? d.label : lab, inside = "";
-      if (bottom && bottom.length > 13) { inside = bottom.length <= 20 ? bottom : ""; bottom = ""; }   // too long to curve legibly
-      var bfs = bottom ? Math.min(o.inner ? 10.5 : 10, Math.PI * (rb - 8) * 0.78 / Math.max(6, bottom.length) / 0.62) : 0;
-      txt += '<defs><path id="' + uid + 't" d="M' + (cx - r) + ',80 A' + r + ',' + r + ' 0 0 1 ' + (cx + r) + ',80"/><path id="' + uid + 'b" d="M' + (cx - rb) + ',80 A' + rb + ',' + rb + ' 0 0 0 ' + (cx + rb) + ',80"/></defs>';
-      if (curveName) txt += '<text font-size="' + nfs.toFixed(1) + '" letter-spacing="' + (NAME.length < 7 ? 1.6 : 0.6) + '"><textPath href="#' + uid + 't" startOffset="50%">' + esc(NAME) + '</textPath></text>';
-      if (bottom) txt += '<text font-size="' + bfs.toFixed(1) + '" letter-spacing="0.8"><textPath href="#' + uid + 'b" startOffset="50%">' + esc(bottom) + '</textPath></text>';
-      var lim = o.inner ? inner - 4 : Math.min(curveName ? r : R - 8, bottom ? rb - bfs : R - 8) - 3; top = 80 - lim; bot = 80 + lim;
-      wAt = function (y) { var dy = y - 80; return Math.max(0, 2 * Math.sqrt(Math.max(0, lim * lim - dy * dy)) - 6); };
-      if (!curveName) rows.push({ k: "name", h: 15 });
-      rows.push({ k: "motif", h: date ? 44 : 56 });
-      if (inside) rows.push({ k: "label", t: inside, h: 9 });
-      if (date) rows.push({ k: "date", h: 14 });
-      if (end || via) rows.push({ k: "small", t: end || via, h: 7 });
-    } else {
-      top = o.box[0]; bot = o.box[1]; wAt = function (y) { return widthAt(d.shape, y); };
-      rows.push({ k: "name", h: 17 });
-      rows.push({ k: "motif", h: date ? 42 : 54 });
-      if (lab) rows.push({ k: "label", t: lab + (via && !end && s.kind === "place" ? " · " + via : ""), h: 9.5 });
-      if (date) rows.push({ k: "date", h: 14 });
-      if (end) rows.push({ k: "small", t: end, h: 7 });
-      if (d.shape === "triangle") { var m = rows[1]; rows[1] = rows[0]; rows[0] = m; m.h = date ? 40 : 50; }
-    }
-    // stack the rows in the middle of the shape; with no date the picture just grows and everything stays centered
-    var gap = 3.5, total = rows.reduce(function (a, b) { return a + b.h; }, 0) + gap * (rows.length - 1), avail = bot - top;
-    if (total > avail) { var k = avail / total; rows.forEach(function (rw) { rw.h *= k; }); gap *= k; total = avail; }
-    var y = d.shape === "triangle" && !ring ? bot - total : top + (avail - total) / 2;   // a triangle is roomiest at the bottom
-    rows.forEach(function (rw) {
-      var base = y + rw.h * 0.8, w = rw.k === "motif" ? 0 : minWidth(d.shape === "cancel" || ring ? "" : d.shape, y, y + rw.h);
-      if (ring && rw.k !== "motif") w = Math.min(wAt(y), wAt(y + rw.h));
-      if (rw.k === "motif") {
-        var sz = rw.h; for (var t = 0; t < 6; t++) { var mw = Math.min(wAt(y + (d.shape === "triangle" ? sz * 0.22 : 0)), wAt(y + sz)); if (mw >= sz * 0.95) break; sz *= 0.9; }
-        var gx = cx - sz / 2, gy = y + (rw.h - sz) / 2, sc = sz / 40, art = G[d.motif] ? G[d.motif](d.pose) : "";
-        body += '<g class="motif" transform="translate(' + gx.toFixed(1) + " " + gy.toFixed(1) + ") scale(" + sc.toFixed(3) + ")" + (d.flip ? " translate(40 0) scale(-1 1)" : "") + '">' + art + '</g>';
-      } else if (rw.k === "name") txt += line(NAME, cx, base, rw.h, d.font, opts.flag && (d.shape === "rect" || d.shape === "oval" || d.shape === "shield") ? w - 28 : w, ' letter-spacing="' + (NAME.length < 8 ? 1.2 : 0.2) + '"');
-      else if (rw.k === "label") txt += line(rw.t, cx, base, rw.h, d.font, w, ' letter-spacing="0.8"');
-      else txt += line(rw.k === "date" ? date : rw.t, cx, base, rw.h, "mono", w, ' font-family="' + mono + '" font-weight="800"');
-      y += rw.h + gap;
-    });
-    var fl = opts.flag || "", fx = 0, fy = 0;
-    if (fl) { if (ring) { fx = cx + o.ring * 0.74; fy = 80 + o.ring * 0.8; } else if (d.shape === "rect") { fx = 138; fy = 48; } else if (d.shape === "oval") { fx = 140; fy = 46; } else if (d.shape === "shield" || d.shape === "arch") { fx = 128; fy = d.shape === "arch" ? 142 : 34; } else if (d.shape === "hexagon" || d.shape === "octagon") { fx = 130; fy = 134; } else fl = ""; }
-    var flagTxt = fl ? '<text x="' + fx.toFixed(0) + '" y="' + fy.toFixed(0) + '" font-size="13" text-anchor="middle">' + fl + '</text>' : "";
-    var aria = (text.name || s.area) + (s.kind === "state" && d.symbol ? ", state " + d.mode + ": " + d.symbol.toLowerCase() : "") + (date ? ", " + date : "");
-    return '<svg class="stampsvg" viewBox="0 0 160 160" role="img" aria-label="' + esc(aria) + '" data-look="' + esc([d.shape, d.border, d.ink, d.motif, d.font, d.flip ? "flip" : "", d.pose].join(" ")) + '">' +
-      '<g filter="url(#inkrough)" opacity=".9" color="' + ink + '"><g fill="none" stroke="' + ink + '" stroke-width="3">' + outline(o, d.border) + '</g>' +
-      '<g fill="' + ink + '" stroke="' + ink + '" stroke-width="0">' + body + '</g></g>' +
-      '<g class="stxt" fill="' + deep(ink, 0.22) + '" font-family="' + F + '" font-weight="800" text-anchor="middle" stroke="#fbf6ea" stroke-width="1.4" stroke-linejoin="round" paint-order="stroke">' + txt + '</g>' + flagTxt + '</svg>';
+    return parkSVG(s, text, d, opts);
   }
 
   return { stampSVG: stampSVG, design: design, SYM: SYM, GLYPHS: G, COUNTRY: COUNTRY, SHAPES: SHAPES, BORDERS: BORDERS, INKS: INKS, INK_LIST: INK_LIST, FONTS: FONTS, MODES: MODES, stateMode: stateMode, hash: hash, PARK_ART: PARK_ART, parkLook: parkLook };
