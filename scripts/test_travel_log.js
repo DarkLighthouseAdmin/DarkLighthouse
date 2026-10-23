@@ -319,7 +319,10 @@ ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.tes
 ok(/Parent\/Adult/.test(read("log-core.js")) && /data-role/.test(js), "add-someone form has roles");
 ok(!/Add a kid|All kids|Which kids went/.test(js), "no kids-only wording in the people flow");
 ok(/Content-Security-Policy[^>]*default-src 'self'[^>]*script-src 'self'/.test(html), "CSP locks scripts to this site");
-ok(!/https?:\/\//.test(html.replace(/<!--[\s\S]*?-->/g, "").replace(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co wss:\/\/ercowufdbmvqagshduxh\.supabase\.co;/, "")), "index.html loads nothing from other sites (only Family Sync may connect to the family database)");
+ok(!/https?:\/\//.test(html.replace(/<!--[\s\S]*?-->/g, "").replace(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co wss:\/\/ercowufdbmvqagshduxh\.supabase\.co;/, "").replace(/img-src 'self' data: blob: https:\/\/lh3\.googleusercontent\.com;/, "")), "index.html loads nothing from other sites (only Family Sync may connect to the family database; Google profile photos only)");
+ok(/function okAvatar\(u\) \{ return \/\^https:\\\/\\\/lh3\\\.googleusercontent\\\.com/.test(read("sync.js")), "only Google profile photo URLs are shown");
+ok(/that\\'s me \(on another device\)/.test(read("sync.js")) && /This will link this device to/.test(read("sync.js")), "already-joined people are selectable, with a confirm");
+ok(/function identityJoin/.test(read("sync.js")) && /mltl-join-for/.test(read("sync.js")), "login = identity: members skip the picker; invites can name who they're for");
 ok(!/googletagmanager|gtag\(|google-analytics|emrldtp|fonts\.googleapis|<script[^>]+src="(?!\.?\/?[\w-]+\.js")/.test(html), "no analytics, fonts or outside scripts in index.html");
 (html.match(/<script[^>]*src="([^"]+)"/g) || []).forEach(t => { const f = t.match(/src="([^"]+)"/)[1]; ok(fs.existsSync(path.join(APP, f)), "script exists: " + f); });
 ok(!/fetch\(|XMLHttpRequest|sendBeacon|WebSocket|localStorage\.setItem\(["']_ga/.test(js), "app.js makes no network calls");
@@ -554,7 +557,7 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/famstamp-backup-" \+ \(\(window\.MLTL_SYNC/.test(app), "each log's backup file is named for its family");
   ok(/signInWithOAuth\(opts\)/.test(sj) && /linkIdentity\(opts\)/.test(sj) && /flowType: "pkce"/.test(sj) && /redirectTo: location\.origin \+ location\.pathname/.test(sj), "Google: link for anonymous members, sign in otherwise, back to the app's own URL");
   const cfgSrc = fs.readFileSync(path.join(APP, "sync-config.js"), "utf8");
-  ok(/google: false/.test(cfgSrc), "Google button is off until the provider is set up");
+  ok(/google: true/.test(cfgSrc) && /email: false/.test(cfgSrc), "Google sign-in on, email codes off until SMTP");
 }
 
 // ---------- v1.4: trips, miles, stories, passport, State Signs ----------

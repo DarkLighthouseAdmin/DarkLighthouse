@@ -18,7 +18,7 @@
       return sessionStorage.getItem("mltl-google") === "1";
     } catch (e) { return false; }
   })();
-  var FLAGS = { testing: !!CFG.testing, google: !!CFG.google || GOOGLE_TRY };
+  var FLAGS = { testing: !!CFG.testing, google: !!CFG.google || GOOGLE_TRY, email: !!CFG.email };   // email codes need custom SMTP: off until then
   var ROLE_NAME = { owner: "Organizer", adult: "Grown-up", kid: "Kid" };
 
   // ---------- sync settings on this phone (meta "sync") ----------
@@ -74,7 +74,11 @@
   function chk(r) { if (r && r.error) throw friendly(r.error); return r ? r.data : null; }
   function sbAdapter(sb) {
     var B = CFG.bucket || "trip-photos";
-    function user(u) { return u ? { userId: u.id, email: u.email || u.new_email || "", anon: !!u.is_anonymous } : null; }
+    function user(u) {
+      if (!u) return null;
+      var m = u.user_metadata || {};
+      return { userId: u.id, email: u.email || u.new_email || "", anon: !!u.is_anonymous, name: u.is_anonymous ? "" : String(m.full_name || m.name || ""), avatar: u.is_anonymous ? "" : String(m.avatar_url || m.picture || "") };
+    }
     return {
       session: function () { return sb.auth.getSession().then(function (r) { return r.data && r.data.session ? user(r.data.session.user) : null; }); },
       signInAnon: function () { return sb.auth.signInAnonymously().then(chk).then(function (d) { return user(d.user); }); },
@@ -83,11 +87,11 @@
       addEmail: function (email) { return sb.auth.updateUser({ email: email }, { emailRedirectTo: location.origin + location.pathname }).then(chk); },
       signOut: function () { return sb.auth.signOut().catch(function () {}); },
       // Google: an anonymous member links Google to the same account (their families come along); anyone else signs in with it.
-      google: function () {
+      google: function (kind) {
         var opts = { provider: "google", options: { redirectTo: location.origin + location.pathname } };
         return sb.auth.getSession().then(function (r) {
           var u = r.data && r.data.session && r.data.session.user;
-          return u && u.is_anonymous ? sb.auth.linkIdentity(opts) : sb.auth.signInWithOAuth(opts);
+          return kind === "link" && u && u.is_anonymous ? sb.auth.linkIdentity(opts) : sb.auth.signInWithOAuth(opts);
         }).then(chk);
       },
       rpc: function (fn, args) { return sb.rpc(fn, args || {}).then(chk); },
@@ -330,6 +334,7 @@
   // ---------- little view helpers ----------
   function dot(p, big) {
     var name = p ? p.name : "?";
+    if (p && okAvatar(p.avatar)) return '<span class="' + (big ? "avatar" : "dotp") + ' hasimg" style="--kid:' + esc(p.color || "#6f8f7a") + '" title="' + esc(name) + '"><img src="' + esc(p.avatar) + '" alt="" referrerpolicy="no-referrer" loading="lazy"></span>';
     return '<span class="' + (big ? "avatar" : "dotp") + '" style="--kid:' + esc(p && p.color || "#6f8f7a") + '" title="' + esc(name) + '">' + esc(String(name || "?").charAt(0).toUpperCase()) + '</span>';
   }
   function memberPerson(m) {
@@ -341,7 +346,7 @@
   function back(href, label) { return '<a class="back" href="' + href + '">← ' + esc(label || "Back") + '</a>'; }
   function peoplePicker(name, list, selected, extra) {
     return '<div class="kidpick" role="radiogroup">' + list.map(function (p) {
-      return '<label style="--kid:' + esc(p.color) + '"><input type="radio" name="' + name + '" value="' + esc(p.id) + '"' + (p.id === selected ? " checked" : "") + (p.taken ? " disabled" : "") + '> ' + dot(p) + ' ' + esc(p.name) + (p.taken ? ' <span class="muted small">(already joined)</span>' : "") + '</label>';
+      return '<label style="--kid:' + esc(p.color) + '"><input type="radio" name="' + name + '" value="' + esc(p.id) + '"' + (p.id === selected ? " checked" : "") + (p.taken ? ' data-taken="1"' : "") + '> ' + dot(p) + ' ' + esc(p.name) + (p.taken ? ", that\'s me (on another device)" : "") + '</label>';
     }).join("") + (extra || "") + '</div>';
   }
 
@@ -349,7 +354,8 @@
   function viewSync(sub) {
     document.title = "Family Sync · Famstamp";
     if (sub === "invite") return viewInvite();
-    if (sub === "email") return viewEmail();
+    if (sub === "email") return FLAGS.email ? viewEmail() : viewOther();
+    if (sub === "other") return viewOther();
     if (sub === "create") return viewCreate();
     if (sub === "leave") return viewLeave();
     if (sub === "new") { if (!newLogThen("#/sync/create")) location.hash = "#/sync"; return; }
@@ -369,7 +375,7 @@
       '<div><b>🤫 Private by design</b><span>Only people you invite can see your family\'s log. No ads, no tracking.</span></div></div>' +
       '<div class="actions stack"><a class="btn btn-beacon big" href="#/sync/create">Start our family log</a>' +
       '<a class="btn btn-primary" href="#/join">I have an invite code</a>' +
-      '<a class="btn btn-ghost" href="#/sync/email">I already set this up on another phone</a>' + googleBtn("signin", "Continue with Google") + '</div>' +
+      googleBtn("signin", "Continue with Google") + '<a class="btn btn-ghost" href="#/sync/other">I already set this up on another phone</a></div>' + signedInNote() +
       '<p class="hint">Family Sync is optional. Without it, everything stays on this device only, just like now. ' + (FLAGS.testing ? "While we test with families, every Family Keeper feature is free." : "") + '</p>';
   }
 
@@ -408,10 +414,16 @@
 
   function viewHub() {
     var c = cfg(), acc = S.access(c.plan, FLAGS), owner = c.role === "owner", grown = c.role !== "kid";
-    var members = (c.members || []).map(function (m) {
-      var p = memberPerson(m);
-      return '<div class="row member">' + dot(p) + '<span class="nm"><b>' + esc(m.display_name || p.name) + (m.user_id === c.userId ? ' <span class="muted small">(you)</span>' : "") + '</b><span>' + esc(ROLE_NAME[m.role] || "") + ' · joined ' + esc(S.ago(m.joined_at)) + '</span></span>' +
-        (owner && m.user_id !== c.userId ? '<button type="button" class="pill" data-rm="' + esc(m.user_id) + '" aria-label="Remove ' + esc(m.display_name) + '">Remove</button>' : "") + '</div>';
+    var groups = [], byPerson = {};   // one person can be signed in on several devices: show them once, "a user (2 devices)"
+    (c.members || []).forEach(function (m) {
+      if (m.person_id && byPerson[m.person_id]) return byPerson[m.person_id].push(m);
+      var g = [m]; groups.push(g); if (m.person_id) byPerson[m.person_id] = g;
+    });
+    var members = groups.map(function (g) {
+      var m = g[0], p = memberPerson(m), me = g.some(function (x) { return x.user_id === c.userId; }), n = g.length;
+      var oldest = g.map(function (x) { return x.joined_at; }).sort()[0];
+      return '<div class="row member">' + dot(p) + '<span class="nm"><b>' + esc(p.name || m.display_name) + (n > 1 ? ' <span class="muted small">(' + n + ' devices)</span>' : "") + (me ? ' <span class="muted small">(you)</span>' : "") + '</b><span>' + esc(ROLE_NAME[m.role] || "") + ' · joined ' + esc(S.ago(oldest)) + '</span></span>' +
+        (owner && !me && n === 1 ? '<button type="button" class="pill" data-rm="' + esc(m.user_id) + '" aria-label="Remove ' + esc(m.display_name) + '">Remove</button>' : "") + '</div>';
     }).join("");
     main.innerHTML = back("#/", "Home") + '<h1>' + esc(c.familyName || "Family log") + '</h1>' +
       '<div class="syncstate"><span class="syncpill s-' + esc(status) + '">' + (status === "synced" ? "✓ Synced" : status === "syncing" ? "↻ Syncing" : status === "offline" ? "☁ Offline" : status === "error" ? "! Sync paused" : "") + '</span>' +
@@ -420,7 +432,7 @@
       '<h2>Who\'s in <span class="muted small">' + (c.members || []).length + '</span></h2><div class="panel members">' + (members || '<p class="muted">Just you so far.</p>') + '</div>' +
       mePanel(c) + logsPanel() +
       '<div class="panel"><h3>Plan</h3><p class="small">' + esc(acc.label) + '</p><p class="small muted">Family Keeper (' + esc(CFG.price || "") + ') will cover everyone you invite with one subscription. Nothing is charged today.</p></div>' +
-      (c.anonymous !== false ? '<div class="panel"><h3>Keep your spot</h3><p class="small muted">You joined without an email. Add one so you can get back into the family log on a new phone. Optional.</p><div class="actions"><a class="btn btn-ghost" href="#/sync/email">Add my email</a>' + googleBtn("link", "Use my Google account") + '</div></div>' : "") +
+      (c.anonymous !== false && (FLAGS.email || FLAGS.google) ? '<div class="panel keepspot"><h3>' + (FLAGS.google ? "Link Google so you can sign in on the web" : "Keep your spot") + '</h3><p class="small muted">You joined without signing in. ' + (FLAGS.google ? "Link Google so you can sign in on the web and on a new phone, as the same you" : "Add your email so you can get back into the family log on a new phone") + '. Optional.</p><div class="actions">' + googleBtn("link", "Link my Google account") + (FLAGS.email ? '<a class="btn btn-ghost" href="#/sync/email">Add my email</a>' : "") + '</div></div>' : "") +
       '<div class="panel"><h3>Privacy</h3><p class="small muted">The family\'s shared copy (names, map colors, trips and small photo copies) is stored with our database provider, Supabase, in the US. Only members of this family can read it. Full-size photos never leave the phone that took them. No ads, no analytics.</p>' +
       '<div class="actions"><a class="btn btn-danger" href="#/sync/leave">Leave family or delete my cloud data</a></div></div>';
     document.getElementById("snow").onclick = function () { syncNow().then(function () { viewHub(); }); };
@@ -442,6 +454,8 @@
     document.title = "Invite · Famstamp";
     main.innerHTML = back("#/sync", "Family") + '<h1>Invite the crew</h1><p class="lede small">Send the link, or let them scan the code. It works for 7 days, up to 10 people.</p>' +
       '<div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" data-irole="adult" aria-pressed="true">A grown-up</button><button type="button" data-irole="kid" aria-pressed="false">A kid with their own phone</button></div>' +
+      (A.state.kids.length ? '<div class="field"><label for="ifor">Who is it for?</label><select id="ifor"><option value="">Anyone (they pick themselves)</option>' +
+        A.state.kids.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join("") + '</select></div>' : "") +
       '<div class="panel invite" id="invbox"><p class="muted">Making a code…</p></div><p class="err" id="ierr" hidden></p>' +
       '<h2>Open invites</h2><div class="panel" id="invlist"><p class="muted small">Loading…</p></div>';
     var role = "adult";
@@ -452,7 +466,8 @@
       }).catch(function (e) { box.innerHTML = ""; err("ierr", friendly(e)); });
     }
     function showInvite(inv) {
-      var link = S.inviteLink(location.origin + location.pathname, inv.code), title = S.familyTitle(c.familyName);
+      var forSel = document.getElementById("ifor"), forPid = forSel ? forSel.value : "";
+      var link = S.inviteLink(location.origin + location.pathname, inv.code) + (forPid ? "&for=" + encodeURIComponent(forPid) : ""), title = S.familyTitle(c.familyName);
       document.getElementById("invbox").innerHTML = '<div class="code" aria-label="Invite code">' + esc(inv.code) + '</div>' + qrSVG(link) +
         '<p class="small muted">Scan with a phone camera, or open the link. ' + (inv.role === "kid" ? "They'll join as a kid." : "They'll join as a grown-up.") + '</p>' +
         '<div class="actions center"><button class="btn btn-beacon" id="ishare">Share invite</button><button class="btn btn-ghost" id="icopy">Copy link</button></div>' +
@@ -475,6 +490,7 @@
         });
       }).catch(function () {});
     }
+    var fs = document.getElementById("ifor"); if (fs) fs.onchange = function () { if (lastInvite) showInvite(lastInvite); };
     main.querySelectorAll("[data-irole]").forEach(function (b) { b.onclick = function () { role = b.dataset.irole; main.querySelectorAll("[data-irole]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); make(); }; });
     if (lastInvite && lastInvite.family_id === c.familyId && Date.parse(lastInvite.expires_at) > Date.now() && lastInvite.role === role) needQR().then(function () { showInvite(lastInvite); list(); }); else make();
   }
@@ -497,6 +513,16 @@
       document.getElementById("jgo").onclick = go; document.getElementById("jcode").onkeydown = function (e) { if (e.key === "Enter") go(); };
       setTimeout(function () { document.getElementById("jcode").focus(); }, 50); return;
     }
+    if (on() && !viewJoin.asked) return remote().then(function (r) {
+      return r.session().then(function (sess) {
+        if (!sess || sess.anon) { viewJoin.asked = true; try { viewJoin(code); } finally { viewJoin.asked = false; } return; }
+        return Promise.all([r.rpc("invite_preview", { p_code: code }), r.myFamilies(sess.userId)]).then(function (x) {
+          var inv = Array.isArray(x[0]) ? x[0][0] : x[0];
+          if (!inv) { main.innerHTML = back("#/join", "Try another code") + '<div class="synchero"><div class="beam" aria-hidden="true">🤔</div><h1>That invite didn\'t work</h1><p class="lede small">It may have expired, been used up, or been turned off. Ask for a fresh one.</p></div>'; return; }
+          return identityJoin(code, inv, sess, r, x[1] || []);
+        });
+      });
+    }).catch(function () { viewJoin.asked = true; try { viewJoin(code); } finally { viewJoin.asked = false; } });
     if (on()) {
       var rg = reg(), full = S.linkedCount(rg) >= S.MAX_FAMILIES;
       main.innerHTML = back("#/sync") + '<div class="synchero"><div class="beam" aria-hidden="true">🏡</div><h1>Join another family?</h1><p class="lede small">This log syncs with <b>' + esc(cfg().familyName) + '</b>. ' +
@@ -519,14 +545,64 @@
       document.getElementById("jretry").onclick = function () { viewJoin(code); };
     });
   }
+  function okAvatar(u) { return /^https:\/\/lh3\.googleusercontent\.com\/[^"'\s<>]+$/.test(String(u || "")); }
+  function firstName(n) { return S.cleanName(String(n || "").split(/\s+/)[0], 40); }
+  /** Who an invite link was made for (?join=CODE&for=PERSON), remembered for this tab. */
+  function joinFor(code) { try { var j = JSON.parse(sessionStorage.getItem("mltl-join-for") || "null"); return j && j.code === code ? j.pid : ""; } catch (x) { return ""; } }
+
+  /** Login = identity. A signed-in account that's already in any family never sees "Which one is you?":
+      in this family already → open its log; in other families → join as the invited person / the person with their name / a new person. */
   function joinScreen(code, inv, sess, r) {
+    if (!sess || sess.anon) return joinPicker(code, inv, sess, r);
+    r.myFamilies(sess.userId).then(function (rows) {
+      rows = rows || [];
+      if (!rows.length) return joinPicker(code, inv, sess, r);   // brand-new account: pick yourself once
+      return identityJoin(code, inv, sess, r, rows);
+    }).catch(function (e) {
+      main.innerHTML = back("#/", "Home") + '<div class="panel"><h3>Couldn\'t open the invite</h3><p class="muted">' + esc(friendly(e).message) + '</p></div>';
+    });
+  }
+  function identityJoin(code, inv, sess, r, rows) {
+    var fam = inv.people || [], forPid = joinFor(code), gFirst = firstName(sess.name), title = S.familyTitle(inv.family_name);
+    var known = fam.filter(function (p) { return p.id === forPid; })[0] ||
+      fam.filter(function (p) { var n = String(p.name).toLowerCase(); return !p.taken && gFirst && (n === gFirst.toLowerCase() || n === String(sess.name).toLowerCase()); })[0];
+    var newP = null, myName = known ? known.name : (gFirst || "Me");
+    if (!known) { newP = M.newPerson({ name: myName, role: inv.role === "kid" ? "kid" : "adult", color: M.COLORS[fam.length % M.COLORS.length] }); if (okAvatar(sess.avatar)) newP.avatar = sess.avatar; }
+    var pid = known ? known.id : newP.id;
+    main.innerHTML = '<div class="synchero"><div class="beam" aria-hidden="true">🏡</div><h1>Opening ' + esc(title) + '…</h1></div>';
+    return r.rpc("redeem_invite", { p_code: code, p_display_name: myName, p_person_id: pid }).then(function (fid) {
+      fid = Array.isArray(fid) ? fid[0] : fid;
+      if (!fid) throw new Error("That invite just stopped working. Ask for a fresh one.");
+      var already = rows.some(function (f) { return f.family_id === fid; }), local = S.logForFamily(reg(), fid);
+      if (local) { if (local.db === HERE) { location.hash = "#/"; A.route && A.route(); return; } return switchTo(local.db, "#/"); }
+      if (already && !on()) return welcomeBack(r, sess, sess.email || "");
+      if (already) return addFamilyLogs(rows.filter(function (f) { return !S.logForFamily(reg(), f.family_id); }), sess.userId, { anonymous: false, email: sess.email || "" })
+        .then(function () { var l = S.logForFamily(reg(), fid); if (l) switchTo(l.db, "#/"); else location.hash = "#/"; });
+      var extra = { familyName: inv.family_name, role: inv.role, myPerson: pid, myName: myName, anonymous: false, email: sess.email || "", seenAll: true };
+      if (!on()) {   // this log isn't in a family yet: it becomes this family's log (anything on it joins in)
+        return (newP ? A.put("kids", newP) : Promise.resolve()).then(function () { return save(freshCfg(fid, sess.userId, extra)); })
+          .then(A.load).then(function () { return syncNow({ throwErrors: true, quiet: true }); })
+          .then(function () { cheer("Welcome to " + title.replace(/ log$/, "") + ", " + myName + "! 🎉", A.kidById(pid)); location.hash = "#/"; });
+      }
+      return addFamilyLogs([{ family_id: fid, role: inv.role, families: { name: inv.family_name } }], sess.userId, extra).then(function () {
+        var l = S.logForFamily(reg(), fid); if (!l) throw new Error("You're already in " + S.MAX_FAMILIES + " family logs on this phone.");
+        return (newP ? A.txIn(l.db, "kids", "readwrite", function (st) { st.put(newP); }) : Promise.resolve()).then(function () { switchTo(l.db, "#/"); });
+      });
+    }).catch(function (e) {
+      main.innerHTML = back("#/", "Home") + '<div class="panel"><h3>Couldn\'t join</h3><p class="muted">' + esc(friendly(e).message) + '</p></div>';
+    });
+  }
+  function joinPicker(code, inv, sess, r) {
     var fam = inv.people || [], mine = A.state.kids, hasLocal = mine.length > 0, title = S.familyTitle(inv.family_name);
-    var free = fam.filter(function (p) { return !p.taken; }), match = free.filter(function (p) { return mine.some(function (m) { return m.name.toLowerCase() === String(p.name).toLowerCase(); }); })[0];
+    var free = fam.filter(function (p) { return !p.taken; }), forPid = joinFor(code), gFirst = sess && !sess.anon ? firstName(sess.name) : "";
+    var match = fam.filter(function (p) { return p.id === forPid; })[0] ||
+      free.filter(function (p) { var n = String(p.name).toLowerCase(); return (gFirst && n === gFirst.toLowerCase()) || mine.some(function (m) { return m.name.toLowerCase() === n; }); })[0];
     main.innerHTML = '<div class="synchero join"><div class="faces">' + fam.slice(0, 6).map(function (p) { return dot(p, true); }).join("") + '</div>' +
       '<h1>You\'re joining ' + esc(title) + '!</h1><p class="lede small">' + (inv.invited_by ? esc(inv.invited_by) + " invited you. " : "") + inv.members + (inv.members === 1 ? " person is" : " people are") + ' already in.' + '</p></div>' +
+      (FLAGS.google && (!sess || sess.anon) ? '<div class="panel gjoin"><p class="small"><b>Already in this family on another phone?</b> Sign in with the same Google account.</p><div class="actions">' + googleBtn("join", "Continue with Google", code) + '</div></div>' : "") +
       '<div class="panel"><div class="field" style="margin-top:0"><label>Which one is you?</label>' +
       (fam.length ? peoplePicker("jme", fam, match ? match.id : "", '<label><input type="radio" name="jme" value=""' + (match ? "" : " checked") + '> I\'m new to the log</label>') : "") + '</div>' +
-      '<div class="field" id="jnamebox"' + (match ? " hidden" : "") + '><label for="jname">Your name or nickname</label><input id="jname" type="text" maxlength="40" placeholder="e.g. Grandma, Pop, Lily"></div>' +
+      '<div class="field" id="jnamebox"' + (match ? " hidden" : "") + '><label for="jname">Your name or nickname</label><input id="jname" type="text" maxlength="40" placeholder="e.g. Grandma, Pop, Lily" value="' + esc(gFirst) + '"></div>' +
       (hasLocal ? '<div class="field"><label>This phone already has a log (' + mine.length + (mine.length === 1 ? " person" : " people") + ', ' + A.state.trips.length + ' trips)</label>' +
         '<div class="seg col" role="radiogroup"><label class="opt"><input type="radio" name="jmerge" value="combine" checked> <span><b>Put them together</b><br><span class="small muted">Your maps and trips join the family log. Same names become one person.</span></span></label>' +
         '<label class="opt"><input type="radio" name="jmerge" value="separate"> <span><b>Keep them separate</b><br><span class="small muted">This phone\'s log stays as it is, and ' + esc(title) + ' gets its own log. Switch between them any time.</span></span></label>' +
@@ -539,6 +615,7 @@
       var myName = famP ? famP.name : S.cleanName(document.getElementById("jname").value, 40), mode = (main.querySelector("input[name=jmerge]:checked") || {}).value || "combine";
       if (mode === "separate") { newLogThen("#/join/" + code, inv.family_name); return; }
       if (!myName) return err("jerr", new Error("Add your name so everyone knows who joined."));
+      if (famP && famP.taken && !confirm("This will link this device to " + famP.name + ". Only continue if you're " + famP.name + ", joining from another phone or computer.")) return;
       err("jerr"); busy(b, true, "Joining…");
       var newPerson = null;
       (mode === "replace" ? A.doBackup().then(function () { return A.tx(["kids", "trips", "photos"], "readwrite", function (s) { s.forEach(function (st) { st.clear(); }); }); }).then(A.load) : Promise.resolve()).then(function () {
@@ -546,6 +623,7 @@
           var loc = A.state.kids.filter(function (k) { return k.name.toLowerCase() === myName.toLowerCase(); })[0];
           if (loc) { pid = loc.id; return; }
           newPerson = M.newPerson({ name: myName, role: inv.role === "kid" ? "kid" : "adult", color: M.COLORS[(fam.length + A.state.kids.length) % M.COLORS.length] });
+          if (sess && !sess.anon && okAvatar(sess.avatar)) newPerson.avatar = sess.avatar;   // Google photo, for new people only
           pid = newPerson.id; return A.put("kids", newPerson);
         }
       }).then(function () {
@@ -564,13 +642,33 @@
             local.people.forEach(function (p) { s[0].put(p); }); local.trips.forEach(function (t) { s[1].put(t); });
           }).then(function () { if (mapping[pid]) pid = mapping[pid]; });
         }).then(function () {
-          return save(freshCfg(fid, sess.userId, { familyName: inv.family_name, role: inv.role, myPerson: pid, myName: myName, seenAll: true }));
+          return save(freshCfg(fid, sess.userId, { familyName: inv.family_name, role: inv.role, myPerson: pid, myName: myName, seenAll: true, anonymous: !(sess && !sess.anon), email: sess && !sess.anon ? sess.email || "" : "" }));
         });
       }).then(A.load).then(function () { return syncNow({ throwErrors: true, quiet: true }); }).then(function () {
         cheer("Welcome to " + title.replace(/ log$/, "") + ", " + myName + "! 🎉", A.kidById(pid));
         location.hash = "#/";
       }).catch(function (e) { busy(b, false); err("jerr", friendly(e)); });
     };
+  }
+
+  // ---------- already set up on another phone (no email codes while there's no mail server) ----------
+  function viewOther() {
+    main.innerHTML = back("#/sync") + '<h1>Already using Family Sync on another phone?</h1>' +
+      (FLAGS.google ? '<div class="panel"><h3>If you linked Google there</h3><p class="small muted">Sign in with the same Google account and your family logs come back here.</p><div class="actions">' + googleBtn("signin", "Continue with Google") + '</div></div>' : "") +
+      '<div class="panel"><h3>' + (FLAGS.google ? "Otherwise, invite this phone" : "Invite this phone") + '</h3><ol class="small steps"><li>On the other phone, open <b>Family Sync</b> and tap <b>Invite someone</b>.</li><li>Open that invite link on this phone, or type the code here.</li><li>Pick yourself from the list, and you\'re in.</li></ol>' +
+      '<div class="actions"><a class="btn btn-primary" href="#/join">Type an invite code</a></div></div>' +
+      (FLAGS.email ? '<p class="small"><a href="#/sync/email">Sign in with an email code instead</a></p>' : "");
+  }
+  function signedInNote() {
+    var g = null; try { g = JSON.parse(localStorage.getItem("mltl-signedin") || "null"); } catch (e) {}
+    return g && g.email ? '<p class="small muted">Signed in with Google as ' + esc(g.email) + '. Start your family log or join with an invite.</p>' : "";
+  }
+  /** Settings (Backup page): sign in / Family Sync next to Backup. */
+  function settingsPanel() {
+    if (!CFG.showEntry && !on()) return "";
+    var c = cfg();
+    return '<div class="panel syncsettings"><h3>' + esc(entryLabel()) + '</h3><p class="muted small">' + (on() ? "This log syncs with " + esc(c.familyName || "your family") + "." : "Share one log across everyone's phones, or sign in to get your family logs back on this device.") + '</p>' +
+      '<div class="actions"><a class="btn btn-ghost" href="#/sync">' + (on() ? "Family Sync settings" : "Turn on Family Sync") + '</a>' + (!on() || c.anonymous !== false ? googleBtn(on() ? "link" : "signin", on() ? "Link my Google account" : "Sign in with Google") : "") + '</div></div>';
   }
 
   // ---------- email: sign in on a new phone, or keep your spot ----------
@@ -604,7 +702,7 @@
   /** Signed in on this phone (email code or Google): bring the family logs here. */
   function welcomeBack(r, u, email) {
         return r.myFamilies(u.userId).then(function (rows) {
-          if (!rows || !rows.length) { A.toast("You're signed in, but not in a family log yet."); location.hash = "#/sync"; return; }
+          if (!rows || !rows.length) { A.toast("You're signed in. Start your family log or join with an invite."); location.hash = "#/sync"; if (location.hash === "#/sync") A.route(); return; }
           var f = rows.filter(function (x) { return !S.logForFamily(reg(), x.family_id); })[0];
           if (!f) { A.toast("Welcome back! Your family logs are already on this phone."); location.hash = "#/sync"; return; }
           if (on()) return addFamilyLogs(rows.filter(function (x) { return !S.logForFamily(reg(), x.family_id); }), u.userId, { anonymous: false, email: email })
@@ -626,7 +724,7 @@
       return p.then(function () {
         var r = reg(); if (S.linkedCount(r) >= S.MAX_FAMILIES) return;
         var db = S.addLog(r, f.families ? f.families.name : ""), c2 = freshCfg(f.family_id, uid, Object.assign({ familyName: f.families ? f.families.name : "", role: f.role, seenAll: true }, extra || {}));
-        S.updateLog(r, db, { familyId: f.family_id, name: c2.familyName }); regSave(r);
+        S.updateLog(r, db, Object.assign({ familyId: f.family_id, name: c2.familyName }, c2.myPerson ? { myPerson: c2.myPerson, myName: c2.myName || "" } : {})); regSave(r);
         return A.txIn(db, "meta", "readwrite", function (s) { s.put({ key: "sync", value: c2 }); });
       });
     }, Promise.resolve());
@@ -704,7 +802,9 @@
       '<div class="panel">' + (list.length ? peoplePicker("mepick", list, c.myPerson || "") : '<p class="muted">Add yourself to the log first.</p>') + '<p class="err" id="meerr" hidden></p><div class="actions"><button class="btn btn-beacon" id="mego">That\'s me</button></div></div>';
     document.getElementById("mego").onclick = function () {
       var b = this, sel = main.querySelector("input[name=mepick]:checked"); if (!sel) return err("meerr", new Error("Pick a person."));
-      var pid = sel.value, p = A.kidById(pid); busy(b, true, "Saving…");
+      var pid = sel.value, p = A.kidById(pid);
+      if (sel.dataset.taken && !confirm("This will link this device to " + (p ? p.name : "that person") + ". Only continue if that's you.")) return;
+      busy(b, true, "Saving…");
       remote().then(function (r) { return r.updateMe(c.familyId, c.userId, { person_id: pid }).then(function () { return r.linkPerson(c.familyId, pid, c.userId).catch(function () {}); }); })
         .then(function () {
           c.myPerson = pid; c.myName = p ? p.name : c.myName;
@@ -763,7 +863,8 @@
       '<div class="fmsep" role="separator"></div>' +
       (grown ? '<a role="menuitem" class="fmitem add" href="' + (on() ? "#/sync/invite" : "#/sync") + '">✉︎ Invite someone</a>' : "") +
       '<a role="menuitem" class="fmitem add" href="#/sync/addjoin">＋ Join another family</a><a role="menuitem" class="fmitem add" href="#/sync/new">＋ Start another family log</a>' +
-      '<a role="menuitem" class="fmitem add" href="#/sync">⚙︎ ' + esc(entryLabel()) + ' settings</a>';
+      '<a role="menuitem" class="fmitem add" href="#/sync">⚙︎ ' + esc(entryLabel()) + ' settings</a>' +
+      (FLAGS.google && (!c || c.anonymous !== false) && !signedInNote() ? '<button type="button" role="menuitem" class="fmitem add" data-google="' + (on() ? "link" : "signin") + '"><span class="g" aria-hidden="true">G</span> Sign in with Google</button>' : "");
     var scrim = document.createElement("div"); scrim.id = "fmscrim"; scrim.className = "fmscrim";
     document.body.appendChild(scrim); document.body.appendChild(m);
     placeMenu();
@@ -859,25 +960,30 @@
     return "";   // while sync is off, homeTop() shows the invitation near the top instead
   }
   function homeTop() {
-    if (on() || !CFG.showEntry) return "";
+    if (on()) {
+      var c = cfg();
+      return FLAGS.google && c.anonymous !== false && !c.googleNudgeOff ? '<div class="panel gnudge"><p class="small"><b>Link Google so you can sign in on the web.</b> Your phone and computer become the same you, in every family.</p><div class="actions">' + googleBtn("link", "Link Google") + '<a class="btn btn-ghost small" href="#/sync">Later</a></div></div>' : "";
+    }
+    if (!CFG.showEntry) return "";
     return '<a class="panel familycard synccard synctop" href="#/sync"><span class="fam-ic" aria-hidden="true">👨‍👩‍👧‍👦</span><span><h3>Family Sync</h3><span class="muted small">Share one log across everyone\'s phones. Grandma can join with a code.</span><br><span class="btn btn-beacon small synccta">Turn on ' + esc(entryLabel()) + ' →</span></span></a>';
   }
 
 
   // ---------- Google (behind FLAGS.google until the provider is set up in Supabase) ----------
-  function googleBtn(kind, label) {
+  function googleBtn(kind, label, code) {
     if (!FLAGS.google) return "";
-    return '<button type="button" class="btn btn-ghost gbtn" data-google="' + kind + '"><span class="g" aria-hidden="true">G</span> ' + esc(label) + '</button>';
+    return '<button type="button" class="btn btn-ghost gbtn" data-google="' + kind + '"' + (code ? ' data-code="' + esc(code) + '"' : "") + '><span class="g" aria-hidden="true">G</span> ' + esc(label) + '</button>';
   }
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("[data-google]"); if (!b) return;
     var kind = b.getAttribute("data-google"); busy(b, true, "Opening Google…");
-    try { localStorage.setItem("mltl-oauth", JSON.stringify({ kind: kind, db: HERE, at: Date.now() })); } catch (x) {}
-    remote().then(function (r) { return r.google(); }).catch(function (x) { busy(b, false); try { localStorage.removeItem("mltl-oauth"); } catch (y) {} A.toast(friendly(x).message); });
+    try { localStorage.setItem("mltl-oauth", JSON.stringify({ kind: kind, db: HERE, at: Date.now(), code: b.getAttribute("data-code") || "" })); } catch (x) {}
+    remote().then(function (r) { return r.google(kind === "link" && on() ? "link" : "signin"); }).catch(function (x) { busy(b, false); try { localStorage.removeItem("mltl-oauth"); } catch (y) {} A.toast(friendly(x).message); });
   });
   /** Back from Google: the URL has ?code=… (or ?error=…). Finish signing in, then tidy the URL. */
   function oauthReturn() {
     var q = location.search, intent = null;
+    if (/^#.*\berror(_description)?=/.test(location.hash) && !/[?&]error/.test(q)) q = "?" + location.hash.slice(1).replace(/^\/?\??/, "");   // errors can come back in the #fragment
     if (!/[?&](code|error|error_description)=/.test(q)) return;
     try { intent = JSON.parse(localStorage.getItem("mltl-oauth") || "null"); localStorage.removeItem("mltl-oauth"); } catch (x) {}
     if (!intent || Date.now() - intent.at > 30 * 60 * 1000) return;
@@ -887,11 +993,13 @@
     var r;
     remote().then(function (x) { r = x; return r.session(); }).then(function (u) {
       if (!u) throw new Error("Google sign-in didn't finish. Try again.");
+      try { localStorage.setItem("mltl-signedin", JSON.stringify({ email: u.email || "", at: Date.now() })); } catch (x) {}
       if (intent.kind === "link" && on()) {
         var c = cfg(); c.anonymous = false; c.email = u.email || c.email || "";
         return save(c).then(function () { tidy("#/sync"); A.toast("Saved. Sign in with Google on any phone to get your family logs back."); });
       }
       history.replaceState(null, "", location.pathname + "#/sync");
+      if (intent.kind === "join" && intent.code) { location.hash = "#/join/" + intent.code; return; }   // the invite again, now as the Google account (login = identity)
       return welcomeBack(r, u, u.email || "");
     }).catch(function (x) { tidy("#/sync"); A.toast(friendly(x).message); });
   }
@@ -911,7 +1019,7 @@
       if (h[0] === "feed") { viewFeed(); return true; }
       return false;
     },
-    homeCard: homeCard, homeTop: homeTop, isOn: on, syncNow: syncNow, status: function () { return status; }, tripExtra: tripExtra, backupTag: backupTag,
+    homeCard: homeCard, homeTop: homeTop, settingsPanel: settingsPanel, isOn: on, syncNow: syncNow, status: function () { return status; }, tripExtra: tripExtra, backupTag: backupTag,
     logs: reg, switchTo: switchTo,
     photoNote: function () { return on() ? "We shrink it and keep the full photo on this device. A small copy is shared with your family log. Location data is removed." : null; },
     storageNote: function () { return on() ? "Your maps are on this device and synced with " + (cfg().familyName || "your family log") + ". A backup file is still a good idea." : null; },
@@ -919,7 +1027,8 @@
   };
   // ?join=CODE links: turn them into the in-app join screen
   (function () {
-    var m = /[?&]join=([^&#]+)/.exec(location.search);
+    var m = /[?&]join=([^&#]+)/.exec(location.search), f = /[?&]for=([\w-]{1,64})/.exec(location.search);
+    if (m && f) try { sessionStorage.setItem("mltl-join-for", JSON.stringify({ code: S.normCode(decodeURIComponent(m[1])), pid: f[1] })); } catch (x) {}
     if (m) history.replaceState(null, "", location.pathname + "#/join/" + encodeURIComponent(S.normCode(decodeURIComponent(m[1]))));
   })();
   window.addEventListener("online", function () { schedule(500); });
