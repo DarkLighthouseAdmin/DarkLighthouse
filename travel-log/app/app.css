@@ -696,3 +696,10 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .pbig { font-size:2.4rem; text-align:center; }
 /* speed: skip laying out passport pages that are off screen */
 .ppage { content-visibility:auto; contain-intrinsic-size:auto 360px auto 480px; }
+/* a kid's Junior Ranger badges on the passport */
+.rbadges { margin:.2rem 0 .8rem; }
+.rbgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:.5rem; margin-top:.3rem; }
+.rbadge { padding:.25rem; border:0; background:transparent; cursor:pointer; border-radius:12px; min-height:44px; }
+.rbadge:focus-visible { outline:3px solid var(--beacon); }
+.rbadge svg, .rbig svg { width:100%; height:auto; display:block; filter:drop-shadow(0 2px 3px rgba(0,0,0,.18)); }
+.rbig { max-width:220px; margin:.2rem auto .4rem; }
