@@ -153,6 +153,15 @@
     if (m && typeof m === "object") Object.keys(m).forEach(function (id) { var v = clean(m[id], 280); if (v && (!ids || ids.indexOf(id) >= 0)) out[id] = v; });
     return out;
   }
+  // Trip memories: optional answers to a few prompts (the free-text notes stay in trip.memory). Synced with the trip.
+  var MEM_PROMPTS = [["best", "Best part", "🌟", "The thing everyone will talk about"], ["food", "Favorite food", "🍦", "The best thing anyone ate"],
+    ["moment", "Most memorable moment", "📸", "The moment to never forget"], ["funny", "Funniest moment", "😂", "What made everyone laugh"],
+    ["again", "Would go back for", "🔁", "The reason to come back"]];
+  function cleanMemories(o) {
+    var out = {}; if (!o || typeof o !== "object") return out;
+    MEM_PROMPTS.forEach(function (p) { var v = String(o[p[0]] == null ? "" : o[p[0]]).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, 400); if (v) out[p[0]] = v; });
+    return out;
+  }
   function cleanStory(s) {
     if (!s || typeof s !== "object") return null;
     var text = String(s.text == null ? "" : s.text).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, 3000);
@@ -169,7 +178,7 @@
     var steps = [
       function () { (t.route || []).forEach(function (p) { delete p.sub; delete p.near; delete p.ref; [p.dep, p.arr].forEach(function (a) { if (a) a.name = cut(a.name, 30); }); }); },
       function () { (t.stays || []).forEach(function (x) { x.note = cut(x.note, 80); }); (t.favs || []).forEach(function (x) { x.note = cut(x.note, 80); }); },
-      function () { Object.keys(t.moments || {}).forEach(function (k) { t.moments[k] = cut(t.moments[k], 140); }); t.memory = cut(t.memory, 300); t.who = cut(t.who, 80); },
+      function () { Object.keys(t.moments || {}).forEach(function (k) { t.moments[k] = cut(t.moments[k], 140); }); t.memory = cut(t.memory, 300); t.who = cut(t.who, 80); Object.keys(t.memories || {}).forEach(function (k) { t.memories[k] = cut(t.memories[k], 160); }); },
       function () { if (t.story) t.story.text = cut(t.story.text, 1500); },
       function () { (t.stays || []).forEach(function (x) { delete x.note; x.where = cut(x.where, 30); }); (t.favs || []).forEach(function (x) { delete x.note; x.where = cut(x.where, 30); }); },
       function () { if (t.story) t.story.text = cut(t.story.text, 600); (t.route || []).forEach(function (p) { p.name = cut(p.name, 40); }); }
@@ -188,6 +197,7 @@
     // v1.6: the "Did you fly?" answer ("yes", "no", "skip" or "" = not asked yet) and an optional way home
     x.fly = /^(yes|no|skip)$/.test(o.fly || "") ? o.fly : "";
     x.back = cleanBack(o.back);
+    x.memories = cleanMemories(o.memories);
     return x;
   }
 
@@ -484,7 +494,7 @@
            MODES: MODES, MODE: MODE, STAY_TYPES: STAY_TYPES, FAV_CATS: FAV_CATS, FAV: FAV, US_STATES: US_STATES,
            gcMiles: gcMiles, legMiles: legMiles, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
            airMinutes: airMinutes, fmtAir: fmtAir, crossesBorder: crossesBorder, CRUISE_MPH: CRUISE_MPH, GROUND_MIN_MI: GROUND_MIN_MI,
-           cleanStays: cleanStays, cleanFavs: cleanFavs, cleanMoments: cleanMoments, cleanStory: cleanStory, cleanExtras: cleanExtras,
+           cleanStays: cleanStays, cleanFavs: cleanFavs, cleanMoments: cleanMoments, cleanStory: cleanStory, cleanMemories: cleanMemories, MEM_PROMPTS: MEM_PROMPTS, cleanExtras: cleanExtras,
            routeFromLegacy: routeFromLegacy, syncLegacy: syncLegacy, nightsBetween: nightsBetween, summary: summary, areas: areas, isAdult: isAdult,
            showAdult: showAdult, visibleFavs: visibleFavs, tripMiles: tripMiles, lifetime: lifetime, project: project, routeMap: routeMap, PROJ: PROJ,
            hash: hash, rng: rng, makeStory: makeStory, splitSentences: splitSentences, wordCount: wordCount, longDate: longDate };
