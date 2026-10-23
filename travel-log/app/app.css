@@ -704,8 +704,12 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .rbadge svg, .rbig svg { width:100%; height:auto; display:block; filter:drop-shadow(0 2px 3px rgba(0,0,0,.18)); }
 .rbig { max-width:220px; margin:.2rem auto .4rem; }
 /* cities / food & drink / pubs (spots.js) */
-.seg.kindseg { margin-bottom:.6rem; }
-.seg.kindseg a { min-height:44px; }
+.seg.kindseg { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:.3rem; margin:.4rem 0 .7rem; padding:.25rem; background:rgba(31,42,51,.07); border-radius:999px; }
+.kindseg a { display:flex; align-items:center; justify-content:center; text-align:center; min-height:44px; padding:.3rem .4rem; border-radius:999px; font-weight:700; font-size:.92rem; color:var(--ink); text-decoration:none; }
+.kindseg a.on { background:#fff; box-shadow:0 1px 3px rgba(31,42,51,.25); }
+.kindseg a:focus-visible { outline:3px solid #e8a54b; outline-offset:-3px; }
+.kindseg .sh { display:none; }
+@media (max-width:520px) { .kindseg .lg { display:none; } .kindseg .sh { display:inline; } }
 .panel .plh { margin:0 0 .5rem; }
 .ehead { display:flex; align-items:center; justify-content:space-between; gap:.6rem; flex-wrap:wrap; }
 .ehead h3 { margin:0; }
