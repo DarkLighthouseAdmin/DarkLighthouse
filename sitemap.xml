@@ -156,4 +156,8 @@
     <priority>0.8</priority>
   </url>
   <url><loc>https://darklighthousesolutions.com/templates/</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://darklighthousesolutions.com/tools/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://darklighthousesolutions.com/tools/debt-payoff-calculator/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://darklighthousesolutions.com/tools/wedding-budget-calculator/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://darklighthousesolutions.com/tools/sinking-funds-calculator/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
 </urlset>

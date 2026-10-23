@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TVG78TY2JC"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-TVG78TY2JC');</script>
+  <title>Debt Payoff Calculator: Snowball vs Avalanche (Free) | Dark Lighthouse Solutions</title>
+  <meta name="description" content="Free debt payoff calculator. Enter your debts and an extra payment to compare the snowball and avalanche methods: debt-free date, total interest, payoff order and a month-by-month plan." />
+  <meta name="author" content="Dark Lighthouse Solutions" />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://darklighthousesolutions.com/tools/debt-payoff-calculator/" />
+  <meta property="og:site_name" content="Dark Lighthouse Solutions" />
+  <meta property="og:title" content="Debt Payoff Calculator: Snowball vs Avalanche (Free)" />
+  <meta property="og:description" content="Free debt payoff calculator. Enter your debts and an extra payment to compare the snowball and avalanche methods: debt-free date, total interest, payoff order and a month-by-month plan." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://darklighthousesolutions.com/tools/debt-payoff-calculator/" />
+  <meta property="og:image" content="https://darklighthousesolutions.com/assets/money/debt-payoff-dashboard/1.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "WebApplication",
+ "name": "Debt Payoff Calculator",
+ "url": "https://darklighthousesolutions.com/tools/debt-payoff-calculator/",
+ "description": "Free debt payoff calculator. Enter your debts and an extra payment to compare the snowball and avalanche methods: debt-free date, total interest, payoff order and a month-by-month plan.",
+ "applicationCategory": "FinanceApplication",
+ "operatingSystem": "Any (web browser)",
+ "offers": {
+  "@type": "Offer",
+  "price": "0",
+  "priceCurrency": "USD"
+ },
+ "publisher": {
+  "@type": "Organization",
+  "name": "Dark Lighthouse Solutions",
+  "url": "https://darklighthousesolutions.com/"
+ }
+}
+  </script>
+  <script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "FAQPage",
+ "mainEntity": [
+  {
+   "@type": "Question",
+   "name": "Is the avalanche or snowball method better?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Avalanche (highest interest rate first) always costs the same or less in interest, so it's the better deal on paper. Snowball (smallest balance first) clears a whole debt sooner, and that early win keeps a lot of people going. If the interest difference this calculator shows is small, pick the one you'll stick with."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "What does the extra monthly payment mean?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "It's anything you can pay on top of all your minimum payments combined. The calculator sends it to one focus debt at a time. When a debt is paid off, its minimum rolls into the next one too, so your total monthly payment stays the same until everything is gone."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Why does it say a debt will never be paid off?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "If a minimum payment is smaller than the interest that debt charges each month, the balance grows instead of shrinking. Raise the minimum or the extra payment until the calculator shows a payoff date."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "How accurate is this?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "It compounds interest monthly at APR ÷ 12 and assumes your rates, minimums and extra payment stay the same and you add no new charges. Real statements calculate daily interest and minimums that shrink, so treat the dates as a close estimate, not a quote."
+   }
+  }
+ ]
+}
+  </script>
+  <script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "BreadcrumbList",
+ "itemListElement": [
+  {
+   "@type": "ListItem",
+   "position": 1,
+   "name": "Home",
+   "item": "https://darklighthousesolutions.com/"
+  },
+  {
+   "@type": "ListItem",
+   "position": 2,
+   "name": "Free tools",
+   "item": "https://darklighthousesolutions.com/tools/"
+  },
+  {
+   "@type": "ListItem",
+   "position": 3,
+   "name": "Debt Payoff Calculator",
+   "item": "https://darklighthousesolutions.com/tools/debt-payoff-calculator/"
+  }
+ ]
+}
+  </script>
+  <style>
+    :root { --ink:#1f2a33; --muted:#5b6b73; --cream:#f7f3ea; --card:#fffdf8; --sage:#6f8f7a; --sage-deep:#3f5f4c;
+            --navy:#16283a; --beacon:#e8a54b; --beacon-hot:#d98b25; --line:rgba(31,42,51,.12); --ok:#2f8f5f; --bad:#b4442f; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:"IBM Plex Sans",system-ui,sans-serif; color:var(--ink); background:var(--cream); line-height:1.55; }
+    a { color:var(--sage-deep); }
+    .wrap { max-width:1000px; margin:0 auto; padding:0 1.25rem; }
+    .topbar { background:var(--navy); color:#e8eef6; }
+    .topbar .wrap { display:flex; justify-content:space-between; align-items:center; padding:.8rem 1.25rem; gap:1rem; flex-wrap:wrap; }
+    .topbar a { color:#e8eef6; text-decoration:none; font-weight:500; }
+    .topbar .brand { font-family:Fraunces,serif; font-size:1.15rem; }
+    .topbar .brand span { color:var(--beacon); }
+    .hero { padding:2.5rem 0 1rem; }
+    .crumb { font-size:.9rem; color:var(--muted); margin-bottom:.6rem; }
+    h1 { font-family:Fraunces,serif; font-size:clamp(1.9rem,4.5vw,2.7rem); line-height:1.12; color:var(--navy); }
+    .lede { font-size:1.1rem; color:var(--muted); max-width:46rem; margin-top:.7rem; }
+    h2 { font-family:Fraunces,serif; font-size:1.55rem; color:var(--navy); margin:2.2rem 0 .5rem; }
+    h3 { font-size:1.08rem; color:var(--navy); margin:1.2rem 0 .3rem; }
+    .panel { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:1.2rem; box-shadow:0 2px 10px rgba(22,40,58,.05); margin-top:1.2rem; }
+    label { font-size:.85rem; font-weight:600; color:var(--muted); display:block; margin-bottom:.2rem; }
+    input, select { font:inherit; width:100%; padding:.55rem .65rem; border:1px solid rgba(31,42,51,.25); border-radius:9px; background:#fff; color:var(--ink); min-width:0; }
+    input:focus, select:focus { outline:2px solid var(--beacon); outline-offset:1px; }
+    input[aria-invalid="true"] { border-color:var(--bad); background:#fff5f2; }
+    .rows { display:flex; flex-direction:column; gap:.7rem; }
+    .row { display:grid; gap:.6rem; align-items:end; padding:.7rem; border:1px solid var(--line); border-radius:12px; background:#fff; }
+    .row.debt { grid-template-columns:1.6fr 1fr .8fr 1fr auto; }
+    .row.goal { grid-template-columns:1.6fr 1fr 1fr 1.2fr auto; }
+    .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.8rem; margin-top:1rem; }
+    .rm { border:0; background:transparent; color:var(--muted); font-size:1.4rem; line-height:1; padding:.45rem .5rem; cursor:pointer; border-radius:8px; }
+    .rm:hover { background:#f1ece2; color:var(--bad); }
+    .actions { display:flex; gap:.7rem; flex-wrap:wrap; margin-top:1rem; }
+    .btn { display:inline-block; padding:.65rem 1.15rem; border-radius:10px; font-weight:600; text-decoration:none; border:0; cursor:pointer; font:inherit; font-weight:600; }
+    .btn-primary { background:var(--sage-deep); color:#fff; } .btn-primary:hover { background:var(--sage); }
+    .btn-ghost { background:transparent; border:1px solid var(--line); color:var(--sage-deep); }
+    .btn-beacon { background:var(--beacon); color:var(--navy); } .btn-beacon:hover { background:var(--beacon-hot); }
+    .seg { display:flex; flex-wrap:wrap; gap:.4rem; } .seg label { margin:0; }
+    .seg input { position:absolute; opacity:0; width:1px; }
+    .seg span { display:inline-block; padding:.45rem .85rem; border:1px solid rgba(31,42,51,.25); border-radius:999px; background:#fff; font-weight:600; color:var(--ink); cursor:pointer; font-size:.9rem; }
+    .seg input:checked + span { background:var(--navy); color:#fff; border-color:var(--navy); }
+    .seg input:focus-visible + span { outline:2px solid var(--beacon); }
+    .errors { display:none; background:#fff3ef; border:1px solid #e9b8a9; color:#7a2a17; border-radius:12px; padding:.8rem 1rem; margin-top:1rem; }
+    .errors.show { display:block; } .errors ul { margin-left:1.1rem; }
+    .results { margin-top:1.2rem; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.8rem; }
+    .stat { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:1rem; }
+    .stat.win { border:2px solid var(--ok); }
+    .stat .k { font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; }
+    .stat .v { font-family:Fraunces,serif; font-size:1.7rem; color:var(--navy); line-height:1.2; }
+    .stat .s { font-size:.9rem; color:var(--muted); }
+    .stat ol { margin:.4rem 0 0 1.2rem; font-size:.92rem; }
+    .callout { background:#e6f4ec; border:1px solid var(--ok); color:#174d33; border-radius:12px; padding:.8rem 1rem; margin-top:1rem; }
+    .warn { background:#fff7e8; border:1px solid var(--beacon); color:#6b4a12; border-radius:12px; padding:.8rem 1rem; margin-top:1rem; }
+    .tablewrap { overflow:auto; max-height:420px; border:1px solid var(--line); border-radius:12px; margin-top:.7rem; background:#fff; }
+    table { border-collapse:collapse; width:100%; font-size:.92rem; }
+    th, td { padding:.45rem .65rem; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; }
+    th:first-child, td:first-child { text-align:left; }
+    th { background:#f1ece2; color:var(--navy); position:sticky; top:0; font-weight:600; }
+    tfoot td { font-weight:700; background:#faf7f0; }
+    td.note { text-align:left; white-space:normal; color:var(--muted); }
+    .bar { display:inline-block; height:.55rem; background:var(--sage); border-radius:4px; vertical-align:middle; margin-right:.4rem; }
+    .muted { color:var(--muted); font-size:.92rem; }
+    .copy p, .copy li { max-width:46rem; margin-top:.7rem; } .copy ul, .copy ol { margin-left:1.2rem; }
+    .faq details { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.8rem 1rem; margin-top:.6rem; max-width:46rem; }
+    .faq summary { font-weight:600; cursor:pointer; color:var(--navy); } .faq details p { margin-top:.5rem; }
+    .cta { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; margin-top:1rem; }
+    .pcard { background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; }
+    .pcard img { width:100%; height:auto; aspect-ratio:4/3; object-fit:cover; display:block; background:#eee; }
+    .pcard .b { padding:1rem 1.1rem 1.2rem; display:flex; flex-direction:column; gap:.45rem; flex:1; }
+    .pcard h3 { margin:0; } .pcard p { color:var(--muted); font-size:.95rem; flex:1; }
+    .buy-row { display:flex; align-items:center; justify-content:space-between; gap:.8rem; }
+    .price { font-size:1.3rem; font-weight:600; color:var(--navy); }
+    .tools { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; margin-top:1rem; }
+    .tool { display:block; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:1.2rem; text-decoration:none; color:var(--ink); }
+    .tool:hover { border-color:var(--sage); } .tool h2 { font-size:1.3rem; margin:0 0 .4rem; } .tool p { color:var(--muted); }
+    .tool .go { display:inline-block; margin-top:.7rem; font-weight:600; color:var(--sage-deep); }
+    footer { margin:3.5rem 0 2rem; color:var(--muted); font-size:.92rem; border-top:1px solid var(--line); padding-top:1.2rem; }
+    @media (max-width:720px) {
+      .row.debt, .row.goal { grid-template-columns:1fr 1fr; }
+      .row .name { grid-column:1 / -1; }
+      .row .rm { grid-column:2; justify-self:end; }
+      th, td { padding:.4rem .5rem; font-size:.86rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar"><div class="wrap">
+    <a class="brand" href="/">Dark Lighthouse <span>Solutions</span></a>
+    <nav><a href="/templates/">Money templates</a> &nbsp;·&nbsp; <a href="/tools/">Free tools</a> &nbsp;·&nbsp; <a href="/#kits">Developer kits</a></nav>
+  </div></div>
+
+  <header class="wrap hero">
+    <p class="crumb"><a href="/tools/">Free tools</a> › Debt payoff calculator</p>
+    <h1>Debt Payoff Calculator: Snowball vs Avalanche</h1>
+    <p class="lede">Enter your debts and an extra monthly payment. See your debt-free date, total interest and payoff order for both methods, side by side. Free, no sign-up, and nothing leaves your browser.</p>
+  </header>
+  <main class="wrap">
+    <form class="panel" id="f" novalidate>
+      <h2 style="margin-top:0">Your debts</h2>
+      <p class="muted">Example numbers are filled in. Replace them with yours.</p>
+      <div class="rows" id="rows"></div>
+      <div class="actions"><button class="btn btn-ghost" type="button" id="add">+ Add a debt</button></div>
+      <div class="fields">
+        <div><label for="extra">Extra payment each month ($)</label><input id="extra" inputmode="decimal" value="200" /></div>
+      </div>
+      <div class="errors" id="err" role="alert"></div>
+      <div class="actions"><button class="btn btn-primary" type="submit">Calculate</button></div>
+    </form>
+    <section class="results" id="out" aria-live="polite"></section>
+    <h2 id="template">Keep the plan updated as you pay</h2>
+    <p class="muted">The Debt Payoff Dashboard does this math in Google Sheets and updates as your balances drop. The bundle adds Budget by Paycheck, Sinking Funds and two more.</p>
+    <div class="cta">
+      <article class="pcard" id="get-debt-payoff-dashboard">
+        <a href="/templates/#debt-payoff-dashboard"><img src="/assets/money/debt-payoff-dashboard/1.jpg" alt="Debt Payoff Dashboard preview" loading="lazy" width="1000" height="750" /></a>
+        <div class="b">
+          <h3>Debt Payoff Dashboard</h3>
+          <p>Type in your cards. Get your payoff order, monthly plan, debt-free date and interest saved, automatically.</p>
+          <div class="buy-row"><span class="price">$14</span><a class="btn btn-primary" href="https://buy.polar.sh/polar_cl_7PNejXhyzmEixz0ElEhn2dshgONjJb9pDonN64ZmDWG">Buy now</a></div>
+        </div>
+      </article>
+      <article class="pcard" id="get-sheets-bundle-5">
+        <a href="/templates/#sheets-bundle-5"><img src="/assets/money/sheets-bundle-5/1.jpg" alt="Money Spreadsheet Bundle (all 5) preview" loading="lazy" width="1000" height="750" /></a>
+        <div class="b">
+          <h3>Money Spreadsheet Bundle (all 5)</h3>
+          <p>Debt Payoff Dashboard, Budget by Paycheck, Sinking Funds, Seller Profit Tracker and Expense &amp; Invoice Log. $54 bought separately.</p>
+          <div class="buy-row"><span class="price">$29</span><a class="btn btn-primary" href="https://buy.polar.sh/polar_cl_fib1VqQvy26a5j5JYqiosUOw4FpclVMNkkPQD0YPntJ">Buy now</a></div>
+        </div>
+      </article>
+    </div>
+
+
+    <section class="copy">
+    <h2>How the debt snowball and debt avalanche work</h2>
+    <p>Both methods start the same way: list every debt, keep paying every minimum, and find one fixed extra amount you can add each month. The only difference is <strong>which debt gets the extra money first</strong>.</p>
+    <ul>
+      <li><strong>Debt avalanche:</strong> the extra goes to the debt with the highest APR. You pay less interest overall, because the most expensive balance disappears first.</li>
+      <li><strong>Debt snowball:</strong> the extra goes to the smallest balance. You close accounts faster, which is motivating when you have several cards.</li>
+    </ul>
+    <p>In both, when a debt is paid off you don't get to keep its minimum payment. It rolls into the next debt on the list. That roll-over is why the payoff speeds up near the end: by the last debt, you're throwing every freed-up minimum at it.</p>
+    <h3>How to use this calculator</h3>
+    <ol>
+      <li>Enter each debt with its current balance, APR and minimum payment. Your statement or banking app has all three.</li>
+      <li>Add the extra amount you can pay every month. Even $50 makes a visible difference.</li>
+      <li>Press <em>Calculate</em> to compare your debt-free date, months to payoff, total interest and payoff order side by side.</li>
+    </ol>
+    <p>The month-by-month table shows what you'd pay, how much of it is interest and how much you'd still owe after each month, plus the month each debt is gone.</p>
+    <h3>Getting more out of the plan</h3>
+    <p>The biggest lever is the extra payment, not the method. Try raising it by $25 or $50 and watch how many months drop off. If one card has a much higher APR than the rest, asking for a lower rate or using a 0% balance transfer (watch the transfer fee) can beat either method. Once you have a plan, write the debt-free month somewhere you'll see it, and check your balances once a month so the plan matches reality.</p>
+    <p>A calculator gives you the plan once. If you want it to stay up to date as you pay (balances, interest saved, progress bars and next month's payments), the template below does that in Google Sheets.</p>
+    </section>
+
+    <h2 id="faq">Questions</h2>
+    <div class="faq">
+      <details><summary>Is the avalanche or snowball method better?</summary><p>Avalanche (highest interest rate first) always costs the same or less in interest, so it's the better deal on paper. Snowball (smallest balance first) clears a whole debt sooner, and that early win keeps a lot of people going. If the interest difference this calculator shows is small, pick the one you'll stick with.</p></details>
+      <details><summary>What does the extra monthly payment mean?</summary><p>It's anything you can pay on top of all your minimum payments combined. The calculator sends it to one focus debt at a time. When a debt is paid off, its minimum rolls into the next one too, so your total monthly payment stays the same until everything is gone.</p></details>
+      <details><summary>Why does it say a debt will never be paid off?</summary><p>If a minimum payment is smaller than the interest that debt charges each month, the balance grows instead of shrinking. Raise the minimum or the extra payment until the calculator shows a payoff date.</p></details>
+      <details><summary>How accurate is this?</summary><p>It compounds interest monthly at APR ÷ 12 and assumes your rates, minimums and extra payment stay the same and you add no new charges. Real statements calculate daily interest and minimums that shrink, so treat the dates as a close estimate, not a quote.</p></details>
+    </div>
+
+  </main>
+
+  <footer class="wrap">
+    <p><a href="/tools/">Free tools</a> · <a href="/tools/debt-payoff-calculator/">Debt payoff calculator</a> · <a href="/tools/wedding-budget-calculator/">Wedding budget calculator</a> · <a href="/tools/sinking-funds-calculator/">Sinking funds calculator</a> · <a href="/templates/">Money templates</a></p>
+    <p style="margin-top:.4rem">These calculators are estimates for planning, not financial advice. Nothing you type leaves your browser.</p>
+    <p style="margin-top:.4rem"><strong>Dark Lighthouse Solutions</strong> · Templates sold via Polar (merchant of record). Questions? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
+  </footer>
+  <script src="/tools/calc.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var DL = window.DLCalc, used = false;
+    function num(v) { v = String(v == null ? "" : v).replace(/[$,\s%]/g, ""); return v === "" ? NaN : Number(v); }
+    function money(x, cents) { return (x < 0 ? "-$" : "$") + Math.abs(x).toLocaleString("en-US", { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 }); }
+    function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+    function monthLabel(d) { return d.toLocaleDateString("en-US", { month: "short", year: "numeric" }); }
+    function dateLabel(d) { return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+    function showErrors(box, errs) { box.innerHTML = errs.length ? "<strong>Please check:</strong><ul>" + errs.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : ""; box.classList.toggle("show", errs.length > 0); }
+    function track(tool, user) { if (user && !used && typeof gtag === "function") { used = true; gtag("event", "calculator_used", { tool: tool }); } }
+    function parseDate(v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(NaN); }
+    function isoDate(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+
+    var rows = document.getElementById("rows"), err = document.getElementById("err"), out = document.getElementById("out");
+    var EX = [["Credit card", 4200, 24.99, 120], ["Store card", 900, 19.99, 35], ["Car loan", 8500, 6.9, 260]];
+    function addRow(d) {
+      d = d || ["", "", "", ""];
+      var n = rows.children.length + 1, r = document.createElement("div"); r.className = "row debt";
+      r.innerHTML = '<div class="name"><label>Debt name</label><input data-k="name" maxlength="40" placeholder="e.g. Visa" /></div>' +
+        '<div><label>Balance ($)</label><input data-k="balance" inputmode="decimal" placeholder="0" /></div>' +
+        '<div><label>APR (%)</label><input data-k="apr" inputmode="decimal" placeholder="0" /></div>' +
+        '<div><label>Min. payment ($)</label><input data-k="min" inputmode="decimal" placeholder="0" /></div>' +
+        '<button class="rm" type="button" aria-label="Remove this debt">×</button>';
+      var ins = r.querySelectorAll("input"); ins[0].value = d[0]; ins[1].value = d[1]; ins[2].value = d[2]; ins[3].value = d[3];
+      r.querySelector(".rm").onclick = function () { if (rows.children.length > 1) r.remove(); else ins.forEach(function (i) { i.value = ""; }); };
+      rows.appendChild(r);
+    }
+    EX.forEach(addRow);
+    document.getElementById("add").onclick = function () { if (rows.children.length < 20) { addRow(); rows.lastChild.querySelector("input").focus(); } };
+    function read() {
+      return Array.prototype.map.call(rows.children, function (r, i) {
+        var g = function (k) { return r.querySelector('[data-k="' + k + '"]'); };
+        return { name: g("name").value.trim() || "Debt " + (i + 1), balance: num(g("balance").value), apr: num(g("apr").value), min: num(g("min").value), _r: r };
+      }).filter(function (d) { var r = d._r.querySelectorAll("input"); return r[1].value.trim() || r[2].value.trim() || r[3].value.trim() || r[0].value.trim(); });
+    }
+    function mark(debts) {
+      rows.querySelectorAll("input").forEach(function (i) { i.removeAttribute("aria-invalid"); });
+      debts.forEach(function (d) { var g = function (k) { return d._r.querySelector('[data-k="' + k + '"]'); };
+        if (!(d.balance > 0)) g("balance").setAttribute("aria-invalid", "true");
+        if (!(d.apr >= 0 && d.apr <= 100)) g("apr").setAttribute("aria-invalid", "true");
+        if (!(d.min > 0)) g("min").setAttribute("aria-invalid", "true"); });
+    }
+    function card(r, label, win, start) {
+      if (!r.ok) return '<div class="stat"><div class="k">' + label + '</div><div class="v">Not paid off</div><div class="s">At these payments the balance never reaches $0. Raise a minimum or the extra payment.</div></div>';
+      var end = DL.addMonths(start, r.months - 1);
+      return '<div class="stat' + (win ? " win" : "") + '"><div class="k">' + label + (win ? " · less interest" : "") + '</div>' +
+        '<div class="v">' + monthLabel(end) + '</div><div class="s">' + r.months + ' months · ' + money(r.totalInterest, true) + ' interest · ' + money(r.totalPaid, true) + ' total paid</div>' +
+        '<ol>' + r.order.map(function (o) { return "<li>" + esc(o.name) + " <span class='muted'>(month " + o.month + ")</span></li>"; }).join("") + '</ol></div>';
+    }
+    function table(r, start) {
+      if (!r.ok) return "";
+      return '<div class="tablewrap"><table><thead><tr><th>Month</th><th>Paid</th><th>Interest</th><th>Still owed</th><th style="text-align:left">Paid off</th></tr></thead><tbody>' +
+        r.rows.map(function (x) { return "<tr><td>" + x.month + " · " + monthLabel(DL.addMonths(start, x.month - 1)) + "</td><td>" + money(x.paid, true) + "</td><td>" + money(x.interest, true) + "</td><td>" + money(x.balance, true) + "</td><td class='note'>" + esc(x.closed.join(", ")) + "</td></tr>"; }).join("") +
+        '</tbody></table></div>';
+    }
+    function calc(user) {
+      var debts = read(), extra = num(document.getElementById("extra").value); if (isNaN(extra)) extra = 0;
+      var errs = DL.validateDebts(debts, extra); mark(debts); showErrors(err, errs);
+      if (errs.length) { out.innerHTML = ""; return; }
+      track("debt_payoff", user);
+      var now = new Date(), start = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      var av = DL.payoff(debts, extra, "avalanche"), sn = DL.payoff(debts, extra, "snowball");
+      var low = debts.filter(function (d) { return d.min <= d.balance * d.apr / 1200; }).map(function (d) { return esc(d.name); });
+      var saved = av.ok && sn.ok ? sn.totalInterest - av.totalInterest : 0;
+      var html = '<h2>Your results</h2><p class="muted">Assumes your first payment is next month and you pay ' + money(av.budget || sn.budget || 0, true) + ' every month in total (all minimums plus the extra).</p>';
+      if (low.length) html += '<div class="warn">The minimum on <strong>' + low.join(", ") + '</strong> doesn\'t cover its monthly interest, so that balance grows until the extra money reaches it.</div>';
+      html += '<div class="stats" style="margin-top:.8rem">' + card(av, "Avalanche (highest APR first)", av.ok && saved > 0.5, start) + card(sn, "Snowball (smallest balance first)", false, start) + '</div>';
+      if (av.ok && sn.ok) html += '<div class="callout">' + (saved > 0.5 ? "Avalanche saves you <strong>" + money(saved, true) + "</strong> in interest" + (sn.months > av.months ? " and finishes " + (sn.months - av.months) + " month(s) sooner." : ".") + (sn.order[0].name !== av.order[0].name ? " Snowball clears <strong>" + esc(sn.order[0].name) + "</strong> first, in month " + sn.order[0].month + "." : "") : "Both methods cost about the same here, so choose the order that keeps you motivated.") + '</div>';
+      if (av.ok || sn.ok) {
+        html += '<h3>Month by month</h3><div class="seg" role="radiogroup" aria-label="Show table for"><label><input type="radio" name="tm" value="avalanche" checked /><span>Avalanche</span></label><label><input type="radio" name="tm" value="snowball" /><span>Snowball</span></label></div><div id="tbl"></div>';
+      }
+      out.innerHTML = html;
+      var tbl = document.getElementById("tbl");
+      if (tbl) {
+        var show = function (m) { tbl.innerHTML = table(m === "snowball" ? sn : av, start) || '<p class="muted">This method doesn\'t pay the debts off at these payments.</p>'; };
+        out.querySelectorAll('input[name="tm"]').forEach(function (i) { i.onchange = function () { show(i.value); }; });
+        show("avalanche");
+      }
+      if (user) out.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    document.getElementById("f").onsubmit = function (ev) { ev.preventDefault(); calc(true); };
+    calc(false);
+  })();
+  </script>
+  <!-- ga4-checkout-click -->
+  <script>
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href*="buy.polar.sh"]') : null;
+      if (!a || typeof gtag !== "function") return;
+      var box = a.closest("article, .card, section, li"), h = box && box.querySelector("h1, h2, h3");
+      var name = (h ? h.textContent : a.textContent || "").replace(/\s+/g, " ").trim();
+      gtag("event", "begin_checkout", { item_name: name, link_url: a.href, transport_type: "beacon" });
+    }, true);
+  </script>
+</body>
+</html>
