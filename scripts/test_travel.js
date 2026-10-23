@@ -56,5 +56,30 @@ for (let k = 0; k < 1000; k++) {
   if (Math.abs(back - r.perDay.home) > 0.02 * (i.adults + i.kids) + 0.01) { ok(false, "shares sum " + JSON.stringify(i)); break; }
 }
 ok(true, "random share check");
+
+// Ireland guide page (built by scripts/build_travel.py)
+const fs = require("fs"), path = require("path"), R = p => path.join(__dirname, "..", p);
+const ie = fs.readFileSync(R("travel/ireland/index.html"), "utf8");
+const affj = JSON.parse(fs.readFileSync(R("travel/affiliates.json"), "utf8")).links;
+ok(/<title>Ireland with Kids[^<]*\| Dark Lighthouse Solutions<\/title>/.test(ie), "ireland: title");
+ok(ie.includes('<link rel="canonical" href="https://darklighthousesolutions.com/travel/ireland/" />'), "ireland: canonical");
+const lds = [...ie.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => JSON.parse(m[1]));
+ok(["Article", "FAQPage", "BreadcrumbList"].every(t => lds.some(x => x["@type"] === t)), "ireland: Article + FAQ + Breadcrumb JSON-LD parse");
+["when", "driving", "car-insurance", "routes", "costs", "packing", "kids", "timeline", "faq", "sources"].forEach(id => ok(ie.includes(`id="${id}"`), "ireland: section #" + id));
+ok(ie.includes('class="disclose"') && ie.includes("/privacy/#affiliate-links"), "ireland: affiliate disclosure");
+ok(ie.includes("emrldtp.cc/NTg5NTIy.js") && ie.includes('/travel/affiliates.js'), "ireland: Travelpayouts Drive + affiliates.js");
+const keys = [...ie.matchAll(/data-affiliate="([^"]+)"/g)].map(m => m[1]);
+ok(keys.length >= 2 && keys.length <= 6, "ireland: 2-6 partner links, got " + keys.length);
+keys.forEach(k => ok(affj[k] && ie.includes(`href="${affj[k].plain_url.replace(/&/g, "&amp;")}"`), "ireland: partner link matches affiliates.json: " + k));
+ok([...ie.matchAll(/<a [^>]*data-affiliate[^>]*>/g)].every(m => m[0].includes('rel="sponsored nofollow noopener"')), "ireland: partner links are rel=sponsored");
+ok(/Republic of Ireland/.test(ie) && ie.includes("usa.visa.com") && ie.includes("americanexpress.com"), "ireland: card rental coverage note with sources");
+ok(ie.includes("Heritage Card") && ie.includes("heritageireland.ie"), "ireland: Heritage Card sourced");
+ok(/Giant's Causeway/.test(ie) && /UK ETA/.test(ie), "ireland: Northern Ireland / UK ETA note");
+ok(ie.includes("#trip-planner-travel-budget") || ie.includes('id="trip-planner-travel-budget"'), "ireland: Trip Planner card");
+ok(ie.includes('id="family-travel-kids-planner"'), "ireland: Family Travel planner card");
+ok(!/work-account|work-account/i.test(ie), "ireland: no personal identities");
+ok(fs.readFileSync(R("travel/index.html"), "utf8").includes('href="/travel/ireland/"'), "hub links to Ireland guide");
+ok(fs.readFileSync(R("sitemap.xml"), "utf8").includes("<loc>https://darklighthousesolutions.com/travel/ireland/</loc>"), "sitemap has Ireland guide");
+ok(/credit card's rental car cover/.test(fs.readFileSync(R("travel/scotland/index.html"), "utf8")), "scotland: card cover note");
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
