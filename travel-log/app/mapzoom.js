@@ -102,11 +102,12 @@
     var focusId = null;
     function layout() {
       var W = rect.width, H = rect.height, ks = v.k * s, placed = [], cw = FPX * 0.58, lh = FPX * 1.25;
-      // dots: a steady 4.5px on screen, hidden once the country itself is big enough to tap
+      // dots mark places too small to tap. At the whole-world view they're just clutter (and too close together to tap), so they
+      // appear from 2x zoom; a steady 4.5px on screen, hidden again once the place itself is big enough to tap.
       dotEls.forEach(function (c) {
-        c.setAttribute("r", ((v.k < 2.5 ? 2.6 : 4.5) / ks).toFixed(3));
+        c.setAttribute("r", (4.5 / ks).toFixed(3));
         var a = (LBL[type] || {})[c.getAttribute("data-id")];
-        c.style.display = a && Math.max(a[5], a[6]) * ks > 22 ? "none" : "";
+        c.style.display = (type === "world" && v.k < 2 && !c.classList.contains("on")) || (a && Math.max(a[5], a[6]) * ks > 22) ? "none" : "";
       });
       if (!labels.length) return;
       var cr = ctl.getBoundingClientRect();   // keep names out from under the + / − / fit buttons
@@ -220,24 +221,33 @@
       if (n) begin(); else { start = null; box.classList.remove("dragging"); }
     }
     svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up); svg.addEventListener("lostpointercapture", up);
-    // clicks: swallow the click that ends a drag; wait a moment on a tap so a double-tap can zoom instead of coloring twice
-    var replay = false;
+    // clicks: swallow the click that ends a drag. A tap colors the place at once (optimistic), and the app gets the click
+    // a beat later (200ms) unless a second tap comes: then it's a double-tap, which zooms in and leaves the color as it was.
+    var replay = false, TAP = 200;
+    function optimistic(p, on) {
+      var el = p.target && p.target.closest && p.target.closest("[data-kind]"); if (!el || !svg.contains(el)) return;
+      if (on) { p.el = el; el.classList.add(el.classList.contains("on") ? "pz-opt-off" : "pz-opt-on"); }
+      else if (p.el) p.el.classList.remove("pz-opt-on", "pz-opt-off");
+    }
     svg.addEventListener("click", function (e) {
       if (replay) return;
       if (Date.now() - lastDrag < 350) { e.stopPropagation(); e.preventDefault(); return; }
       if (Date.now() - lastDown > 1000) return;   // a click with no pointer (keyboard, scripts): let it through untouched
       e.stopPropagation(); e.preventDefault();
-      if (pend && Date.now() - pend.t < 320 && Math.hypot(e.clientX - pend.x, e.clientY - pend.y) < 30) {
-        clearTimeout(pend.timer); pend = null;
+      if (pend && Date.now() - pend.t < TAP + 60 && Math.hypot(e.clientX - pend.x, e.clientY - pend.y) < 30) {
+        clearTimeout(pend.timer); optimistic(pend, false); pend = null;
         var p = toUnit(e.clientX, e.clientY), k2 = clamp(v.k * 2, 1, maxK), q = [(p[0] - v.tx) / v.k, (p[1] - v.ty) / v.k];
         animateTo({ k: k2, tx: p[0] - k2 * q[0], ty: p[1] - k2 * q[1] }, true);
         return;
       }
       if (pend) { clearTimeout(pend.timer); fire(pend); }
       var tgt = e.target, cx = e.clientX, cy = e.clientY;
-      pend = { t: Date.now(), x: cx, y: cy, target: tgt, timer: setTimeout(function () { var p0 = pend; pend = null; if (p0) fire(p0); }, 270) };
+      pend = { t: Date.now(), x: cx, y: cy, target: tgt };
+      optimistic(pend, true);
+      pend.timer = setTimeout(function () { var p0 = pend; pend = null; if (p0) fire(p0); }, TAP);
     }, true);
     function fire(p) {
+      optimistic(p, false);
       replay = true;
       try { p.target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: p.x, clientY: p.y, view: window })); } finally { replay = false; }
     }

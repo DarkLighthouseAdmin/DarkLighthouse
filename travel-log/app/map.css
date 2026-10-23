@@ -50,3 +50,48 @@ mark { background:#f6d98e; color:inherit; border-radius:3px; padding:0 1px; }
 /* phones: a taller world map, so there's room to zoom into Europe or the Caribbean (the extra space is sea) */
 @media (max-width:640px) { .mapbox.pz:not(.us):not(.routebox) > svg { aspect-ratio:8/5; height:auto; } }
 .pgrp[hidden], .pgb[hidden], .pgb [data-name][hidden], .plist-none[hidden] { display:none !important; }
+/* "Where?" place picker (placepick.js): a button that shows the choice, opening a searchable, grouped list */
+select.ppk-native { position:absolute !important; width:1px !important; height:1px !important; min-width:0 !important; padding:0 !important; border:0 !important; margin:0 !important; opacity:0 !important; pointer-events:none !important; overflow:hidden; }
+.ppk-btn { display:flex; align-items:center; gap:.6rem; width:100%; min-height:48px; padding:.6rem .85rem; border:1px solid var(--line); border-radius:12px; background:#fff; color:var(--ink);
+  font:inherit; font-size:1rem; text-align:left; cursor:pointer; }
+.ppk-btn:focus-visible { outline:3px solid var(--sage); outline-offset:1px; }
+.ppk-v { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+.ppk-ch { flex:none; color:var(--sage-deep); font-weight:600; font-size:.9rem; text-decoration:underline; text-underline-offset:3px; }
+.ppk-lock, .ppk-lock body { overflow:hidden; }
+.ppk-bg { position:fixed; inset:0; z-index:44; background:rgba(22,40,58,.5); display:flex; align-items:flex-end; justify-content:center; }
+.ppk { background:var(--card,#fffdf8); width:100%; max-width:560px; max-height:calc(100vh - 80px); max-height:min(88dvh, calc(100dvh - 80px)); border-radius:20px 20px 0 0; display:flex; flex-direction:column;
+  box-shadow:0 -6px 30px rgba(0,0,0,.25); outline:none; padding-bottom:env(safe-area-inset-bottom); box-sizing:border-box; }
+.ppk-head { display:flex; align-items:center; gap:.5rem; padding:.9rem 1rem .3rem; }
+.ppk-head h3 { flex:1; margin:0; font-family:var(--serif); font-size:1.25rem; overflow-wrap:anywhere; }
+.ppk-x { flex:none; width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:#fff; font-size:1.1rem; cursor:pointer; color:var(--ink); }
+.ppk-x:focus-visible { outline:3px solid var(--sage); }
+.ppk-search { padding:.3rem 1rem .2rem; }
+.ppk-search input { width:100%; box-sizing:border-box; }
+.ppk-list { overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:0 1rem 1rem; flex:1; min-height:0; }
+.ppk-list .plist-tools { position:sticky; top:0; background:var(--card,#fffdf8); z-index:1; }
+.ppk-row { display:flex; align-items:center; gap:.5rem; width:100%; min-height:46px; padding:.45rem .4rem; border:0; border-bottom:1px dashed var(--line); background:none;
+  font:inherit; font-size:1rem; text-align:left; color:var(--ink); cursor:pointer; border-radius:6px; }
+@media (hover:hover) { .ppk-row:hover { background:#f3ead8; } }
+.ppk-row:focus-visible, .ppk-row:active { background:#f3ead8; outline:none; }
+.ppk-row[aria-current] { font-weight:700; }
+.ppk-row > span[data-hl] { flex:1; min-width:0; overflow-wrap:anywhere; }
+.ppk-sub { color:var(--muted); font-size:.82rem; flex:none; }
+.ppk-tick { color:var(--sage-deep); font-weight:700; }
+.ppk-lead { border-bottom:1px solid var(--line); margin-bottom:.2rem; }
+.ppk-list.searching .ppk-lead { display:none; }
+@media (min-width:760px) { .ppk-bg { align-items:center; } .ppk { border-radius:20px; max-height:80vh; } }
+/* phones: a slim, see-through zoom pill so it doesn't hide the map's right edge */
+@media (max-width:640px) {
+  .pzctl { right:6px; bottom:6px; gap:0; background:rgba(255,255,255,.7); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); border:1px solid rgba(31,42,51,.18);
+    border-radius:17px; overflow:hidden; box-shadow:0 1px 3px rgba(22,40,58,.12); }
+  .pzctl button { width:34px; height:36px; border:0; border-radius:0; background:transparent; box-shadow:none; font-size:1.15rem; }
+  .pzctl button + button { border-top:1px solid rgba(31,42,51,.12); }
+  .pzctl button svg { width:14px; height:14px; }
+  .pzctl button:active { background:rgba(255,255,255,.95); }
+}
+/* tap feedback: the place colors in the moment you tap (the app confirms a beat later, unless it was a double-tap to zoom) */
+.mapbox.pz path.a.pz-opt-on { fill:var(--kid); }
+.mapbox.pz path.a.on.pz-opt-off { fill:var(--land); }
+.mapbox.pz .pz-opt-on, .mapbox.pz .pz-opt-off { transition:none; }
+.mapbox.pz circle.dot.pz-opt-on { fill:var(--kid); }
+@media print { .ppk-bg { display:none !important; } }
