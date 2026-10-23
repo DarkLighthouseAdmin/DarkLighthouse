@@ -919,7 +919,7 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   const ROM = { name: "Rome", kind: "city", lat: 41.9, lon: 12.5, country: "ITA", mode: "car" };
   const s = T.summary({ route: [ORL, LON, PAR, ROM], roundTrip: true, back: null });
   const home = s.legs[s.legs.length - 1];
-  ok(home.home && home.mode === "plane" && s.roadMiles < 2000, "Skip on a trip abroad: Rome -> Orlando flies, not ~6,141 road miles (" + home.mode + ", road " + s.roadMiles + ")");
+  ok(home.home && home.mode === "plane" && s.roadMiles < 1000 && !home.toAp, "Skip on a trip abroad: Rome -> Orlando flies, not ~6,141 road miles (" + home.mode + ", road " + s.roadMiles + ")");
   ok(T.summary({ route: [ORL, Object.assign({}, LON, { mode: "car" })] }).legs[0].mode === "plane", "Orlando -> London by car becomes a flight");
   ok(T.summary({ route: [ORL, { name: "Atlanta", lat: 33.75, lon: -84.39, country: "USA", region: "GA", mode: "car" }] }).legs[0].mode === "car", "Orlando -> Atlanta stays a drive");
   ok(T.summary({ route: [ORL, Object.assign({}, LON, { mode: "car", miles: 4300 })] }).legs[0].mode === "car", "typed real miles keep their mode");

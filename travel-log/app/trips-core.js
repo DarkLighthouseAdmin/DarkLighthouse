@@ -279,7 +279,7 @@
     if (t.roundTrip && r.length > 1) {
       var first = r[1], bk = cleanBack(t.back), back = { name: r[0].name, lat: r[0].lat, lon: r[0].lon, mode: bk ? bk.mode : first.mode || "car" };
       if (bk) { if (bk.dep) back.dep = bk.dep; if (bk.arr) back.arr = bk.arr; }
-      else if (first.mode === "plane") { if (first.arr) back.dep = first.arr; if (first.dep) back.arr = first.dep; }
+      else if (first.mode === "plane" && !(hasLoc(first.arr) && gcMiles(r[r.length - 1], first.arr) > 300)) { if (first.arr) back.dep = first.arr; if (first.dep) back.arr = first.dep; }   // Rome isn't 1,000 road miles from London City
       var R = legMiles(r[r.length - 1], back); R.from = r[r.length - 1].name; R.to = r[0].name; R.i = r0.length; R.home = true; R.dep = back.dep || null; R.arr = back.arr || null;
       legs.push(R);
     }
