@@ -734,7 +734,7 @@
   }
   function stampSVG(s, personId) {
     return P.stampSVG(s, stampName(s), { art: s.kind === "state" ? artFor(personId, s.area) : "",
-      sub: s.kind === "park" ? (PARK_BY[s.area] ? PARK_BY[s.area].states.replace(/,\s*/g, " · ") + " · NATIONAL PARK" : "NATIONAL PARK SERVICE") : "" });
+      sub: s.kind === "park" ? (PARK_BY[s.area] ? PARK_BY[s.area].states.replace(/,\s*/g, " · ") + " · NATIONAL PARK" : "NATIONAL PARK") : "" });
   }
   function bookHTML(title, color, stamps, who, pid) {
     var counts = { world: 0, states: 0, parks: 0 }; stamps.forEach(function (s) { counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : "world"]++; });

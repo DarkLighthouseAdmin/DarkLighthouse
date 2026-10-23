@@ -29,7 +29,12 @@
   function slug(s) {
     return String(s).normalize("NFD").replace(/[\u0300-\u036f\u02bb]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   }
-  var PARKS = PARK_LIST.map(function (p) { return { id: slug(p[0]), name: p[0], states: p[1] }; });
+  // Where each park is (Wikidata, CC0; same as data/places.json), for the dots on the Parks map.
+  var PARK_LL = {"acadia":[44.35,-68.217],"american-samoa":[-14.258,-170.686],"arches":[38.728,-109.54],"badlands":[43.75,-102.5],"big-bend":[29.25,-103.25],"biscayne":[25.502,-80.181],"black-canyon-of-the-gunnison":[38.58,-107.728],"bryce-canyon":[37.64,-112.17],"canyonlands":[38.167,-109.76],"capitol-reef":[38.2,-111.167],"carlsbad-caverns":[32.175,-104.444],"channel-islands":[33.66,-119.64],"chiricahua":[32.006,-109.357],"congaree":[33.783,-80.783],"crater-lake":[42.912,-122.148],"cuyahoga-valley":[41.242,-81.55],"death-valley":[36.45,-116.85],"denali":[63.2,-150.3],"dry-tortugas":[24.629,-82.873],"everglades":[25.312,-80.688],"gates-of-the-arctic":[67.783,-153.3],"gateway-arch":[38.625,-90.185],"glacier":[48.755,-113.8],"glacier-bay":[58.7,-137.0],"grand-canyon":[36.055,-112.122],"grand-teton":[43.833,-110.701],"great-basin":[39.006,-114.22],"great-sand-dunes":[37.733,-105.512],"great-smoky-mountains":[35.611,-83.425],"guadalupe-mountains":[31.917,-104.867],"haleakala":[20.72,-156.155],"hawaii-volcanoes":[19.401,-155.124],"hot-springs":[34.514,-93.054],"indiana-dunes":[41.648,-87.108],"isle-royale":[47.996,-88.909],"joshua-tree":[33.748,-115.819],"katmai":[58.5,-155.0],"kenai-fjords":[59.918,-149.988],"kings-canyon":[36.789,-118.673],"kobuk-valley":[67.353,-159.199],"lake-clark":[60.97,-153.42],"lassen-volcanic":[40.498,-121.427],"mammoth-cave":[37.187,-86.101],"mesa-verde":[37.26,-108.494],"mount-rainier":[46.85,-121.75],"new-river-gorge":[37.931,-81.075],"north-cascades":[48.483,-120.911],"olympic":[47.7,-123.75],"petrified-forest":[35.088,-109.806],"pinnacles":[36.487,-121.167],"redwood":[41.529,-124.058],"rocky-mountain":[40.35,-105.683],"saguaro":[32.202,-110.611],"sequoia":[36.565,-118.773],"shenandoah":[38.533,-78.35],"theodore-roosevelt":[46.967,-103.45],"virgin-islands":[18.328,-64.933],"voyageurs":[48.5,-92.883],"white-sands":[32.78,-106.172],"wind-cave":[43.556,-103.479],"wrangell-st-elias":[61.435,-142.954],"yellowstone":[44.6,-110.5],"yosemite":[37.742,-119.537],"zion":[37.203,-112.988]};
+  // set: which collection a park belongs to. Only "np" (national parks) today; state parks can be added as more rows with
+  // their own set id (and their own stamps) without touching the screens, which group and count by set.
+  var PARK_SETS = [{ id: "np", name: "National parks" }];
+  var PARKS = PARK_LIST.map(function (p) { var id = slug(p[0]), l = PARK_LL[id] || []; return { id: id, name: p[0], states: p[1], set: "np", lat: l[0], lon: l[1] }; });
 
   var US_STATE_TOTAL = 50;      // DC can be colored too, but it's a bonus, not one of the 50
   var COUNTRY_TOTAL = 195;      // 193 UN members + Vatican City + Palestine, as in the book
@@ -361,7 +366,7 @@
     return since >= 3 ? since : 0;
   }
 
-  return { APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid,
+  return { APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,
            slug: slug, uid: uid, newKid: newKid, toggleArea: toggleArea, togglePark: togglePark, newTrip: newTrip, applyTripMark: applyTripMark,

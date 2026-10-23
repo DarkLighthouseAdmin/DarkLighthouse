@@ -47,6 +47,13 @@
     return s;
   }
   var G = {
+    // ---- park pictures added for the national parks passport
+    lighthouse: function () { return P("M16 37 L18 12 H22 L24 37 Z") + P("M17.4 19 H22.6 V22 H17.4 Z M16.9 28 H23.1 V31 H16.9 Z", PAPER) + P("M15 12 H25 V9 H15 Z") + P("M17 9 Q20 3 23 9 Z") + S("M25 8 L37 4 M25 10 L38 11", 1.2) + P("M0 37 Q10 33 20 37 Q30 33 40 37 V40 H0 Z"); },
+    hoodoo: function () { return P("M5 38 V22 Q4 18 7 16 Q5 13 8 11 H12 Q14 14 12 17 Q15 20 13 24 V38 Z M16 38 V14 Q14 10 18 8 Q16 5 20 3 H23 Q25 6 23 9 Q26 12 24 16 V38 Z M28 38 V26 Q26 23 29 21 Q27 18 31 17 H34 Q36 20 34 22 Q37 25 35 28 V38 Z"); },
+    spires: function () { return P("M4 38 V20 Q4 16 7 16 Q10 16 10 20 V38 Z M14 38 V12 Q14 8 17 8 Q20 8 20 12 V38 Z M26 38 V22 Q26 19 29 19 Q32 19 32 22 V38 Z") + E(29, 14.5, 5.4, 4) + P("M0 37 H40 V40 H0 Z"); },
+    turtle: function () { return E(10, 30, 4.4, 2.2, 30) + E(29, 30, 4.4, 2.2, -30) + E(11, 12, 4.4, 2.2, -30) + E(28, 12, 4.4, 2.2, 30) + E(19, 21, 11, 8.6) + C(33, 21, 3.6) + S("M13 15 L19 21 L25 15 M13 27 L19 21 L25 27 M9 21 H29", 1, PAPER); },
+    gator: function () { return P("M1 24 Q3 19 10 19 L28 19 Q34 18 39 21 L39 23 L31 24 L39 25 L38 27 Q31 28 26 27 L10 27 Q3 27 1 24 Z") + P("M10 26 L8 32 H11 L14 26 Z M21 26 L20 32 H23 L25 26 Z") + S("M5 19 L7 16.6 L9 19 L11 16.6 L13 19 L15 16.6 L17 19 L19 16.6 L21 19", 1) + C(27, 20.8, 1, PAPER) + S("M0 36 Q6 34 12 36 Q18 38 24 36 Q30 34 40 36", 1.2); },
+    steelarch: function () { return S("M6 39 Q20 -24 34 39", 3.6) + S("M11 39 Q20 4 29 39", 1) + P("M0 37 H40 V40 H0 Z"); },
     // ---- birds
     song: function (v) { return bird({}, v); },
     robin: function (v) { return bird({ breast: "spots" }, v); },
@@ -199,6 +206,29 @@
     [/yosemite|falls|cuyahoga/i, "waterfall"], [/everglades|biscayne|dry tortugas|virgin islands|channel|acadia|isle|bay|key/i, "wave"],
     [/bison|theodore|roosevelt|wind/i, "bison"], [/denali|katmai|kenai|kobuk|wrangell|lake clark|gates/i, "bear"], [/crater|lake|glacier|teton|rainier|olympic|north cascades/i, "mountainlake"],
     [/smoky|shenandoah|blue ridge|hot springs|gateway|new river/i, "hills"], [/rocky|great basin|mountain/i, "peaks"]];
+
+  // Every national park gets its own picture (something you'd actually see there) and its own frame: shape, border and ink
+  // come from the park's place in this list, so no two of the 64 stamps look alike. Our own drawings, never park or agency emblems.
+  var PARK_ART = [["acadia", "lighthouse"], ["american-samoa", "palm"], ["arches", "rockarch"], ["badlands", "badger"], ["big-bend", "roadrunner"],
+    ["biscayne", "pelican"], ["black-canyon-of-the-gunnison", "canyon"], ["bryce-canyon", "hoodoo"], ["canyonlands", "columns"], ["capitol-reef", "dome"],
+    ["carlsbad-caverns", "bat"], ["channel-islands", "seal"], ["chiricahua", "spires"], ["congaree", "woodpecker"], ["crater-lake", "mountainlake"],
+    ["cuyahoga-valley", "maple"], ["death-valley", "sun"], ["denali", "peaks"], ["dry-tortugas", "turtle"], ["everglades", "gator"],
+    ["gates-of-the-arctic", "fox"], ["gateway-arch", "steelarch"], ["glacier", "grizzly"], ["glacier-bay", "whale"], ["grand-canyon", "canyon"],
+    ["grand-teton", "moose"], ["great-basin", "pinecone"], ["great-sand-dunes", "dunes"], ["great-smoky-mountains", "hills"], ["guadalupe-mountains", "ringtail"],
+    ["haleakala", "spike"], ["hawaii-volcanoes", "volcano"], ["hot-springs", "arches"], ["indiana-dunes", "gull"], ["isle-royale", "loon"],
+    ["joshua-tree", "yucca"], ["katmai", "bear"], ["kenai-fjords", "orca"], ["kings-canyon", "pine"], ["kobuk-valley", "elk"],
+    ["lake-clark", "goose"], ["lassen-volcanic", "volcano"], ["mammoth-cave", "cave"], ["mesa-verde", "tower"], ["mount-rainier", "daisy"],
+    ["new-river-gorge", "steelarch"], ["north-cascades", "peaks"], ["olympic", "leaf"], ["petrified-forest", "columns"], ["pinnacles", "spires"],
+    ["redwood", "sequoia"], ["rocky-mountain", "columbine"], ["saguaro", "saguaro"], ["sequoia", "sequoia"], ["shenandoah", "deer"],
+    ["theodore-roosevelt", "bison"], ["virgin-islands", "wave"], ["voyageurs", "beaver"], ["white-sands", "dunes"], ["wind-cave", "cave"],
+    ["wrangell-st-elias", "moose"], ["yellowstone", "geyser"], ["yosemite", "waterfall"], ["zion", "bighorn"]];
+  var PARK_IX = {}; PARK_ART.forEach(function (a, i) { PARK_IX[a[0]] = i; });
+  var PARK_SHAPES = ["circle", "double", "arch", "shield", "octagon", "cancel", "oval"], PARK_INKS = ["#5b4a2f", "#2f5d3a", "#6b3a2a", "#2b4f5e", "#4b5320", "#7a3b1d"];
+  /** A known park's look by its list position: 7 shapes x 5 borders cover the first 35, and the ink tells #i from #i+35. */
+  function parkLook(id) {
+    var i = PARK_IX[id]; if (i == null) return null;
+    return { shape: PARK_SHAPES[i % 7], border: BORDERS[Math.floor(i / 7) % 5], ink: PARK_INKS[i % 6], motif: PARK_ART[i][1] };
+  }
   var PARK_GEN = ["pine", "peaks", "mountainlake", "sequoia", "hills", "bear", "deer", "elk", "waterfall"];
 
   function pick(list, h) { return list[h % list.length]; }
@@ -217,9 +247,11 @@
             motif: sym && G[sym.glyph] ? sym.glyph : "star", pose: (i + m) % 3, flip: ((i >> 1) + m) % 2 === 1, font: FONT_KEYS[(i * 2 + m) % FONT_KEYS.length],
             label: "", symbol: sym ? sym.name.toUpperCase() : "", mode: mode };
     } else if (kind === "park") {
-      var mt = ""; PARK_WORDS.some(function (w) { if (w[0].test(name || area)) { mt = w[1]; return true; } return false; });
+      var pl = parkLook(area);
+      if (pl) d = { shape: pl.shape, border: pl.border, ink: pl.ink, motif: pl.motif, pose: h % 3, flip: false, font: pick(["slab", "serif", "cond"], h >>> 9), label: "NATIONAL PARK" };
+      else { var mt = ""; PARK_WORDS.some(function (w) { if (w[0].test(name || area)) { mt = w[1]; return true; } return false; });
       d = { shape: pick(["circle", "double", "arch", "shield", "octagon", "cancel", "oval"], h), border: pick(BORDERS, h2), ink: pick(["#5b4a2f", "#2f5d3a", "#6b3a2a", "#2b4f5e", "#4b5320", "#7a3b1d"], h >>> 4),
-            motif: mt || pick(PARK_GEN, h >>> 7), pose: h % 3, flip: false, font: pick(["slab", "serif", "cond"], h >>> 9), label: "NATIONAL PARK" };
+            motif: mt || pick(PARK_GEN, h >>> 7), pose: h % 3, flip: false, font: pick(["slab", "serif", "cond"], h >>> 9), label: "NATIONAL PARK" }; }
     } else {
       var c = COUNTRY[area];
       if (c) { c = c.split("|"); d = { shape: c[0], border: c[1], ink: inkOf(c[2], h), motif: c[3], font: c[4], label: c[5], pose: h % 3, flip: false, tuned: true }; }
@@ -244,7 +276,7 @@
   };
   function inset(d, k, cx) { cx = cx || 80; return '<path d="' + d + '" transform="translate(' + cx + ' 80) scale(' + k + ') translate(-' + cx + ' -80)" vector-effect="non-scaling-stroke"/>'; }
   function outline(o, border) {
-    var main = border === "dashed" ? ' stroke-dasharray="9 5"' : border === "dotted" ? ' stroke-dasharray="0.1 6.4" stroke-linecap="round" stroke-width="4.4"' : border === "toothed" ? ' stroke-dasharray="2.6 2.6" stroke-width="8"' : "";
+    var main = border === "dashed" ? ' stroke-dasharray="9 5"' : border === "dotted" ? ' stroke-dasharray="0.1 6.4" stroke-linecap="round" stroke-width="4.4"' : border === "toothed" ? ' stroke-dasharray="2.6 2.6" stroke-width="6.5"' : "";
     var s = '<path d="' + o.d + '"' + main + '/>';
     if (border === "double") s += inset(o.d, 0.9, o.cx).replace("<path", '<path stroke-width="1.6"');
     if (border === "toothed" || border === "dotted") s += inset(o.d, 0.92, o.cx).replace("<path", '<path stroke-width="1.6"');
@@ -252,11 +284,17 @@
     if (o.waves) for (var i = 0; i < 5; i++) { var y = 56 + i * 12; s += '<path d="M120,' + y + ' q6,-5 12,0 t12,0 t12,0 t2,0" stroke-width="2.4"/>'; }
     return s;
   }
+  // text ink: the stamp's own color, a shade darker, so names and dates clear WCAG AA on the cream page
+  function deep(hex, k) {
+    var m = /^#([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return hex;
+    var n = parseInt(m[1], 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(function (v) { return Math.round(v * (1 - k)); });
+    return "#" + c.map(function (v) { return (v < 16 ? "0" : "") + v.toString(16); }).join("");
+  }
   function width(t, fs, font) { return t.length * fs * (font === "mono" ? 0.62 : font === "sans" ? 0.68 : font === "cond" ? 0.48 : 0.6); }
   function line(t, x, y, fs, font, max, extra) {
     if (!t) return "";
     var w = width(t, fs, font), fit = "";
-    if (w > max) { var nf = Math.max(7, fs * max / w); if (width(t, nf, font) > max) fit = ' textLength="' + Math.round(max) + '" lengthAdjust="spacingAndGlyphs"'; fs = nf; }
+    if (w > max) { var nf = Math.max(8, fs * max / w); if (width(t, nf, font) > max) fit = ' textLength="' + Math.round(max) + '" lengthAdjust="spacingAndGlyphs"'; fs = nf; }
     return '<text x="' + x + '" y="' + y.toFixed(1) + '" font-size="' + fs.toFixed(1) + '"' + fit + (extra || "") + '>' + esc(t) + '</text>';
   }
 
@@ -288,25 +326,29 @@
     if (ring) {
       // name around the top edge, label (or the state's bird/flower/animal) around the bottom, the picture and date inside
       var R = o.ring, inner = o.inner ? 56 : R - 14;
-      var nfs = Math.min(d.shape === "cancel" ? 11 : 13, Math.PI * (R - 12) * 0.8 / Math.max(4, NAME.length) / 0.64);
+      var curveName = NAME.length <= 9 && !o.inner;   // and never in the thin band of a double ring   // long names curve into tiny letters, so they sit on a straight line inside
+      var nfs = Math.min(d.shape === "cancel" ? 14 : 16, Math.PI * (R - 12) * 0.8 / Math.max(4, NAME.length) / 0.64);
       if (o.inner) nfs = Math.min(nfs, R - inner - 7.5);
       var r = o.inner ? inner + 2.5 : R - 5 - nfs, rb = o.inner ? R - 4 : R - 6;
-      var bottom = s.kind === "park" ? (text.sub || "NATIONAL PARK SERVICE") : lab;
-      var bfs = Math.min(o.inner ? 9 : 8.5, Math.PI * (rb - 8) * 0.78 / Math.max(6, bottom.length) / 0.62);
+      var bottom = s.kind === "park" ? "NATIONAL PARK" : lab, inside = "";
+      if (bottom && bottom.length > 13) { inside = bottom.length <= 20 ? bottom : ""; bottom = ""; }   // too long to curve legibly
+      var bfs = bottom ? Math.min(o.inner ? 10.5 : 10, Math.PI * (rb - 8) * 0.78 / Math.max(6, bottom.length) / 0.62) : 0;
       txt += '<defs><path id="' + uid + 't" d="M' + (cx - r) + ',80 A' + r + ',' + r + ' 0 0 1 ' + (cx + r) + ',80"/><path id="' + uid + 'b" d="M' + (cx - rb) + ',80 A' + rb + ',' + rb + ' 0 0 0 ' + (cx + rb) + ',80"/></defs>';
-      txt += '<text font-size="' + nfs.toFixed(1) + '" letter-spacing="' + (NAME.length < 9 ? 2 : 0.4) + '"><textPath href="#' + uid + 't" startOffset="50%">' + esc(NAME) + '</textPath></text>';
+      if (curveName) txt += '<text font-size="' + nfs.toFixed(1) + '" letter-spacing="' + (NAME.length < 7 ? 1.6 : 0.6) + '"><textPath href="#' + uid + 't" startOffset="50%">' + esc(NAME) + '</textPath></text>';
       if (bottom) txt += '<text font-size="' + bfs.toFixed(1) + '" letter-spacing="0.8"><textPath href="#' + uid + 'b" startOffset="50%">' + esc(bottom) + '</textPath></text>';
-      var lim = Math.min(r, rb - bfs) - 3; top = 80 - lim; bot = 80 + lim;
+      var lim = o.inner ? inner - 4 : Math.min(curveName ? r : R - 8, bottom ? rb - bfs : R - 8) - 3; top = 80 - lim; bot = 80 + lim;
       wAt = function (y) { var dy = y - 80; return Math.max(0, 2 * Math.sqrt(Math.max(0, lim * lim - dy * dy)) - 6); };
-      rows.push({ k: "motif", h: date ? 50 : 62 });
-      if (date) rows.push({ k: "date", h: 11 });
+      if (!curveName) rows.push({ k: "name", h: 15 });
+      rows.push({ k: "motif", h: date ? 44 : 56 });
+      if (inside) rows.push({ k: "label", t: inside, h: 9 });
+      if (date) rows.push({ k: "date", h: 14 });
       if (end || via) rows.push({ k: "small", t: end || via, h: 7 });
     } else {
       top = o.box[0]; bot = o.box[1]; wAt = function (y) { return widthAt(d.shape, y); };
-      rows.push({ k: "name", h: 14 });
-      rows.push({ k: "motif", h: date ? 46 : 58 });
-      if (lab) rows.push({ k: "label", t: lab + (via && !end && s.kind === "place" ? " · " + via : ""), h: d.font === "cond" ? 9 : 8 });
-      if (date) rows.push({ k: "date", h: 12 });
+      rows.push({ k: "name", h: 17 });
+      rows.push({ k: "motif", h: date ? 42 : 54 });
+      if (lab) rows.push({ k: "label", t: lab + (via && !end && s.kind === "place" ? " · " + via : ""), h: 9.5 });
+      if (date) rows.push({ k: "date", h: 14 });
       if (end) rows.push({ k: "small", t: end, h: 7 });
       if (d.shape === "triangle") { var m = rows[1]; rows[1] = rows[0]; rows[0] = m; m.h = date ? 40 : 50; }
     }
@@ -321,19 +363,20 @@
         var sz = rw.h; for (var t = 0; t < 6; t++) { var mw = Math.min(wAt(y + (d.shape === "triangle" ? sz * 0.22 : 0)), wAt(y + sz)); if (mw >= sz * 0.95) break; sz *= 0.9; }
         var gx = cx - sz / 2, gy = y + (rw.h - sz) / 2, sc = sz / 40, art = G[d.motif] ? G[d.motif](d.pose) : "";
         body += '<g class="motif" transform="translate(' + gx.toFixed(1) + " " + gy.toFixed(1) + ") scale(" + sc.toFixed(3) + ")" + (d.flip ? " translate(40 0) scale(-1 1)" : "") + '">' + art + '</g>';
-      } else if (rw.k === "name") txt += line(NAME, cx, base, rw.h, d.font, w, ' letter-spacing="' + (NAME.length < 8 ? 1.5 : 0.3) + '"');
+      } else if (rw.k === "name") txt += line(NAME, cx, base, rw.h, d.font, opts.flag && (d.shape === "rect" || d.shape === "oval" || d.shape === "shield") ? w - 28 : w, ' letter-spacing="' + (NAME.length < 8 ? 1.2 : 0.2) + '"');
       else if (rw.k === "label") txt += line(rw.t, cx, base, rw.h, d.font, w, ' letter-spacing="0.8"');
-      else txt += line(rw.k === "date" ? date : rw.t, cx, base, rw.h, "mono", w, ' font-family="' + mono + '"');
+      else txt += line(rw.k === "date" ? date : rw.t, cx, base, rw.h, "mono", w, ' font-family="' + mono + '" font-weight="800"');
       y += rw.h + gap;
     });
     var fl = opts.flag || "", fx = 0, fy = 0;
-    if (fl) { if (ring) { fx = cx + o.ring * 0.74; fy = 80 + o.ring * 0.8; } else if (d.shape === "rect") { fx = 138; fy = 48; } else if (d.shape === "oval") { fx = 140; fy = 46; } else if (d.shape === "shield" || d.shape === "arch") { fx = 128; fy = d.shape === "arch" ? 142 : 34; } else if (d.shape === "hexagon" || d.shape === "octagon") { fx = 128; fy = 36; } else fl = ""; }
+    if (fl) { if (ring) { fx = cx + o.ring * 0.74; fy = 80 + o.ring * 0.8; } else if (d.shape === "rect") { fx = 138; fy = 48; } else if (d.shape === "oval") { fx = 140; fy = 46; } else if (d.shape === "shield" || d.shape === "arch") { fx = 128; fy = d.shape === "arch" ? 142 : 34; } else if (d.shape === "hexagon" || d.shape === "octagon") { fx = 130; fy = 134; } else fl = ""; }
     var flagTxt = fl ? '<text x="' + fx.toFixed(0) + '" y="' + fy.toFixed(0) + '" font-size="13" text-anchor="middle">' + fl + '</text>' : "";
     var aria = (text.name || s.area) + (s.kind === "state" && d.symbol ? ", state " + d.mode + ": " + d.symbol.toLowerCase() : "") + (date ? ", " + date : "");
     return '<svg class="stampsvg" viewBox="0 0 160 160" role="img" aria-label="' + esc(aria) + '" data-look="' + esc([d.shape, d.border, d.ink, d.motif, d.font, d.flip ? "flip" : "", d.pose].join(" ")) + '">' +
       '<g filter="url(#inkrough)" opacity=".9" color="' + ink + '"><g fill="none" stroke="' + ink + '" stroke-width="3">' + outline(o, d.border) + '</g>' +
-      '<g fill="' + ink + '" stroke="' + ink + '" stroke-width="0">' + body + '</g><g fill="' + ink + '" font-family="' + F + '" font-weight="700" text-anchor="middle">' + txt + '</g></g>' + flagTxt + '</svg>';
+      '<g fill="' + ink + '" stroke="' + ink + '" stroke-width="0">' + body + '</g></g>' +
+      '<g class="stxt" fill="' + deep(ink, 0.22) + '" font-family="' + F + '" font-weight="800" text-anchor="middle" stroke="#fbf6ea" stroke-width="1.4" stroke-linejoin="round" paint-order="stroke">' + txt + '</g>' + flagTxt + '</svg>';
   }
 
-  return { stampSVG: stampSVG, design: design, SYM: SYM, GLYPHS: G, COUNTRY: COUNTRY, SHAPES: SHAPES, BORDERS: BORDERS, INKS: INKS, INK_LIST: INK_LIST, FONTS: FONTS, MODES: MODES, stateMode: stateMode, hash: hash };
+  return { stampSVG: stampSVG, design: design, SYM: SYM, GLYPHS: G, COUNTRY: COUNTRY, SHAPES: SHAPES, BORDERS: BORDERS, INKS: INKS, INK_LIST: INK_LIST, FONTS: FONTS, MODES: MODES, stateMode: stateMode, hash: hash, PARK_ART: PARK_ART, parkLook: parkLook };
 });
