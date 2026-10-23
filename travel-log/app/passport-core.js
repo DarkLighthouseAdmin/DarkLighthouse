@@ -69,7 +69,7 @@
   }
   /** Each place a trip went, with the day you got there and left (from the trip date plus nights at each stop), and how you came in. */
   function tripVisits(t, parkStates) {
-    var r = t.route || [], start = /^\d{4}-\d{2}-\d{2}$/.test(t.date || "") ? t.date : "";
+    var r = T.stops ? T.stops(t.route) : (t.route || []), start = /^\d{4}-\d{2}-\d{2}$/.test(t.date || "") ? t.date : "";
     var out = {}, order = [], day = start;
     var pts = r.length > 1 ? r.slice(1) : r;
     pts.forEach(function (p, i) {

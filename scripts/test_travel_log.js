@@ -801,7 +801,7 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   const s3 = T.summary(t3);
   ok(s3.flights === 2 && s3.legs[2].mode === "plane" && s3.legs[2].dep.code === "LHR", "trip.back flies home from LHR instead of driving like the first leg");
   ok(s3.legs[2].fromAp > 150, "and drives the last bit home from Miami's airport: " + Math.round(s3.legs[2].fromAp || 0));
-  ok(T.summary(Object.assign({}, t3, { back: null })).flights === 1, "without back, the way home copies the first leg (car)");
+  ok(T.summary(Object.assign({}, t3, { back: null })).flights === 2, "without back, the way home copies the first leg, but London -> Orlando can't be a drive (plane)");
   ok(T.cleanBack({ mode: "plane", dep: LHR, arr: { code: "bad" } }).dep.code === "LHR" && !T.cleanBack({ mode: "plane", dep: LHR, arr: { code: "bad" } }).arr, "cleanBack keeps good airports only");
   ok(T.cleanBack({ mode: "rocket" }) === null && T.cleanBack(null) === null, "cleanBack drops nonsense");
   // the answer is kept on the trip, through backup
@@ -908,6 +908,28 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(F.unmark(k, "flight") && F.timeline(k, trips, ctx).find(r => r.key === "flight").auto, "removing the hand-marked one falls back to the found one");
   const bk = M.readBackup(JSON.parse(JSON.stringify(M.makeBackup([k], [], []))));
   ok(bk.kids[0].firsts && bk.kids[0].firsts.beach.place === "Sample Beach", "firsts survive a backup round trip");
+}
+
+
+{ // v1.6.2 QA: ocean legs fly, repeated stops aren't legs, story arcs aren't filled
+  const T = require("../travel-log/app/trips-core.js"), fs = require("fs");
+  const ORL = { name: "Orlando", kind: "city", lat: 28.538, lon: -81.379, country: "USA", region: "FL" };
+  const LON = { name: "London", kind: "city", lat: 51.507, lon: -0.128, country: "GBR", region: "ENG", mode: "plane" };
+  const PAR = { name: "Paris", kind: "city", lat: 48.857, lon: 2.352, country: "FRA", mode: "train" };
+  const ROM = { name: "Rome", kind: "city", lat: 41.9, lon: 12.5, country: "ITA", mode: "car" };
+  const s = T.summary({ route: [ORL, LON, PAR, ROM], roundTrip: true, back: null });
+  const home = s.legs[s.legs.length - 1];
+  ok(home.home && home.mode === "plane" && s.roadMiles < 2000, "Skip on a trip abroad: Rome -> Orlando flies, not ~6,141 road miles (" + home.mode + ", road " + s.roadMiles + ")");
+  ok(T.summary({ route: [ORL, Object.assign({}, LON, { mode: "car" })] }).legs[0].mode === "plane", "Orlando -> London by car becomes a flight");
+  ok(T.summary({ route: [ORL, { name: "Atlanta", lat: 33.75, lon: -84.39, country: "USA", region: "GA", mode: "car" }] }).legs[0].mode === "car", "Orlando -> Atlanta stays a drive");
+  ok(T.summary({ route: [ORL, Object.assign({}, LON, { mode: "car", miles: 4300 })] }).legs[0].mode === "car", "typed real miles keep their mode");
+  const dup = T.summary({ route: [ORL, Object.assign({}, ORL, { mode: "car" }), LON] });
+  ok(dup.legs.length === 1 && dup.legs[0].to === "London" && dup.cities.join() === "London", "Orlando -> Orlando isn't a leg or a town: " + dup.legs.map(L => L.from + ">" + L.to).join());
+  ok(T.sameStop(ORL, { name: "Orlando", lat: 28.5, lon: -81.4 }) && !T.sameStop(ORL, { name: "Kissimmee", lat: 28.29, lon: -81.41 }) && T.sameStop({ name: "Home" }, { name: "home" }), "same stop: within 5 miles, or same name with no location");
+  const css = fs.readFileSync(__dirname + "/../travel-log/app/app.css", "utf8");
+  ok(/svg path\.leg \{ fill:none/.test(css), "every route/story arc path.leg has fill:none");
+  const ui = fs.readFileSync(__dirname + "/../travel-log/app/trips-ui.js", "utf8"), app = fs.readFileSync(__dirname + "/../travel-log/app/app.js", "utf8");
+  ok(/if \(saving\) return/.test(ui) && /if \(ksaving\) return/.test(app), "double taps on Save trip / Add someone are ignored");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

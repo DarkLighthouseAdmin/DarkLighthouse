@@ -358,10 +358,12 @@
     function addPoint(p) {
       var c = T.cleanPoint(p, d.route.length === 0); if (!c) return;
       if (d.route.length >= T.MAX_POINTS) { A_.toast("That's the most stops one trip can hold (" + T.MAX_POINTS + ")"); return; }
+      var last = d.route[d.route.length - 1];
+      if (last && T.sameStop(last, c)) { search.value = ""; results.innerHTML = ""; A_.toast(d.route.length === 1 ? "You're already starting from " + last.name + ". Where did you go next?" : "That's the stop you're already at"); return; }
       if (d.route.length) { c.mode = guessMode(d.route[d.route.length - 1], c); if (c.mode === "plane") fillAirports(d.route[d.route.length - 1], c); }
       d.route.push(c); search.value = ""; results.innerHTML = ""; renderRoute();
     }
-    function guessMode(a, b) { var g = T.gcMiles(a, b); return g == null ? "car" : g > 600 || (a.country && b.country && a.country !== b.country && g > 300) ? "plane" : "car"; }
+    function guessMode(a, b) { var g = T.gcMiles(a, b); return g == null ? "car" : g > 600 || T.mustFly(a, b) || (a.country && b.country && a.country !== b.country && g > 300) ? "plane" : "car"; }
     function fillAirports(a, b) { if (!airports) return; if (!b.dep) { var x = nearestAirport(a, airports); if (x) b.dep = x; } if (!b.arr) { var y = nearestAirport(b, airports); if (y) b.arr = y; } }
     function showResults(box, list, onPick, custom) {
       box.innerHTML = list.map(function (p, i) { return '<button type="button" role="option" data-pick="' + i + '"><b>' + esc(p.label || p.name) + '</b><span>' + esc(p.sub || "") + '</span></button>'; }).join("") +
@@ -487,7 +489,9 @@
     var rmp = $("#trmphoto"); if (rmp) rmp.onclick = function () { removePhoto = true; newPhoto = null; prev.hidden = true; rmp.hidden = true; };
 
     // save
+    var saving = false;
     $("#tsave").onclick = function () {
+      if (saving) return;   // a double tap mustn't add the trip twice
       var err = $("#terr"); err.hidden = true;
       var ids = kidIds(), mv = $("#tmark").value, jobs = [];
       if (!d.route.length) { err.textContent = "Add where you went (type a town or park above)."; err.hidden = false; search.focus(); return; }
@@ -498,13 +502,14 @@
       var before = stampKeys(ids), grown = adultOn(ids), trip;
       try {
         var made = M.newTrip({ id: old ? old.id : undefined, createdAt: old ? old.createdAt : undefined, kidIds: ids,
-          place: title || (d.route[d.route.length - 1] || {}).name, route: d.route, title: title, date: $("#tdate").value, endDate: end.value,
+          place: title || (d.route[d.route.length - 1] || {}).name, route: T.stops(d.route), title: title, date: $("#tdate").value, endDate: end.value,
           nights: end.value ? null : (nightsV === "" ? null : +nightsV), roundTrip: d.route.length > 1 && $("#tround").checked, done: done.checked,
           fly: fly, back: $("#tround").checked ? d.back : null, stays: d.stays, favs: d.favs.filter(function (f) { return grown || !T.FAV[f.cat].adult; }), moments: d.moments, story: d.story, memories: memVals(),
           who: $("#twho").value, memory: $("#tmem").value, mark: mv ? { kind: mv.split(":")[0], id: mv.split(":")[1] } : null, photoId: photoId });
         trip = Object.assign(old ? copy(old) : {}, made);
       } catch (x) { err.textContent = x.message; err.hidden = false; return; }
       if (trip.endDate && trip.endDate <= M.today()) trip.done = true;
+      saving = true; $("#tsave").disabled = true;
       if (newPhoto) jobs.push(A_.put("photos", { id: photoId, dataUrl: newPhoto }));
       A_.clearPhotos();
       var changedIds = M.applyTripMark(trip, st.kids) || [];
@@ -518,7 +523,7 @@
         location.hash = "#/p/" + (trip.kidIds.indexOf(k.id) >= 0 ? k.id : trip.kidIds[0]) + "/trip/" + trip.id;
         A_.toast(old ? "Trip saved" : "Trip added!");
         if (fresh.length) setTimeout(function () { celebrate(fresh); }, 350);
-      }).catch(function () { err.textContent = "Couldn't save. Is the device out of space?"; err.hidden = false; });
+      }).catch(function () { saving = false; $("#tsave").disabled = false; err.textContent = "Couldn't save. Is the device out of space?"; err.hidden = false; });
     };
     var del = $("#tdel");
     if (del) del.onclick = function () {
@@ -697,7 +702,7 @@
     // slideshow: the trip photo, the route map and a few stat cards, crossfading with the sentences
     var s = T.summary(t), slides = [];
     if (t.photoId) slides.push('<div class="slide photo"><img alt="" data-photo="' + esc(t.photoId) + '"></div>');
-    if (T.routeMap(t)) slides.push('<div class="slide map"><div class="mapbox">' + routeSVG(t) + '</div></div>');
+    if (T.routeMap(t)) slides.push('<div class="slide map"><div class="mapbox routebox">' + routeSVG(t) + '</div></div>');
     if (s.miles) slides.push(card("🧭", dist(s.miles, true), M.routeText(t)));
     if (s.nights) slides.push(card("🌙", s.nights + (s.nights === 1 ? " night" : " nights"), dateRange(t)));
     var seenN = s.cities.length + s.parks.length;
