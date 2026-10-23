@@ -6,13 +6,39 @@
   var A = window.MLTL_APP, M = window.MLTL, S = window.MLTL_SYNCCORE, CFG = window.MLTL_SYNC_CONFIG || {}, esc = M.esc;
   if (!A || !S) return;
   var main = document.getElementById("main");
-  var FLAGS = { testing: !!CFG.testing };
+  var FLAGS = { testing: !!CFG.testing, google: !!CFG.google };
   var ROLE_NAME = { owner: "Organizer", adult: "Grown-up", kid: "Kid" };
 
   // ---------- sync settings on this phone (meta "sync") ----------
   function cfg() { return A.state.meta.sync || null; }
   function on() { var c = cfg(); return !!(c && c.familyId); }
-  function save(c) { return A.setMeta("sync", c); }
+  function save(c) { noteLog(c); return A.setMeta("sync", c); }
+
+  // ---------- family logs on this phone (one database each; see sync-core.js) ----------
+  var HERE = A.dbName || S.DEFAULT_DB;
+  function reg() { try { return S.readLogs(localStorage); } catch (e) { return S.cleanLogs(null); } }
+  function regSave(r) { try { S.writeLogs(localStorage, r); } catch (e) {} renderChip(); return r; }
+  function noteLog(c) {
+    var r = reg(), l = S.findLog(r, HERE);
+    if (!l) { r.logs.push({ db: HERE }); l = S.findLog(r, HERE); }
+    S.updateLog(r, HERE, c && c.familyId ? { familyId: c.familyId, name: c.familyName || l.name || "", myPerson: c.myPerson || null, myName: c.myName || "" }
+                                         : { familyId: null, myPerson: null });
+    regSave(r);
+  }
+  /** Open another log: the page reloads so every screen starts fresh from that log's own data. */
+  function switchTo(db, hash) {
+    var r = reg(); if (!S.findLog(r, db)) return;
+    r.active = db; regSave(r);
+    location.hash = hash || "#/"; location.reload();
+  }
+  /** A new, empty log for another family, then straight to creating or joining it there. */
+  function newLogThen(hash, name) {
+    var r = reg();
+    if (S.linkedCount(r) >= S.MAX_FAMILIES) { A.toast("You can be in up to " + S.MAX_FAMILIES + " families. Leave one to add another."); return false; }
+    var empty = r.logs.filter(function (l) { return !l.familyId && l.db !== S.DEFAULT_DB && l.db !== HERE; })[0];   // reuse an unused empty one
+    var db = empty ? empty.db : S.addLog(r, name || "");
+    regSave(r); switchTo(db, hash); return true;
+  }
   function freshCfg(fid, uid, extra) {
     return Object.assign({ familyId: fid, userId: uid, familyName: "", role: "adult", plan: null, cursor: {}, shadow: S.emptyShadow(),
                            seen: {}, authors: {}, members: [], sharedTrip: false, lastSync: "" }, extra || {});
@@ -29,6 +55,8 @@
     if (/rate limit|over_email_send_rate_limit|too many/i.test(m)) return new Error("Too many emails were sent just now. Wait a few minutes and try again, or use an invite code.");
     if (/Failed to fetch|NetworkError|offline|Load failed/i.test(m)) return new Error("You're offline. Your log is safe on this phone; try again when you're connected.");
     if (/expired|invalid.*(otp|token)|Token has expired/i.test(m)) return new Error("That code didn't work or has expired. Ask for a new one.");
+    if (/identity.*already|already linked|identity_already_exists/i.test(m)) return new Error("That Google account is already used with Famstamp on another phone. Open Family Sync there, or sign in with it here from \"I already set this up on another phone\".");
+    if (/manual linking|provider is not enabled|Unsupported provider/i.test(m)) return new Error("Google sign-in isn't switched on yet. Use an invite code or email for now.");
     return new Error(m.replace(/^.*?:\s*/, "") || "Something went wrong. Try again.");
   }
   function chk(r) { if (r && r.error) throw friendly(r.error); return r ? r.data : null; }
@@ -42,6 +70,14 @@
       verifyCode: function (email, token, type) { return sb.auth.verifyOtp({ email: email, token: token, type: type || "email" }).then(chk).then(function (d) { return user(d.user); }); },
       addEmail: function (email) { return sb.auth.updateUser({ email: email }, { emailRedirectTo: location.origin + location.pathname }).then(chk); },
       signOut: function () { return sb.auth.signOut().catch(function () {}); },
+      // Google: an anonymous member links Google to the same account (their families come along); anyone else signs in with it.
+      google: function () {
+        var opts = { provider: "google", options: { redirectTo: location.origin + location.pathname } };
+        return sb.auth.getSession().then(function (r) {
+          var u = r.data && r.data.session && r.data.session.user;
+          return u && u.is_anonymous ? sb.auth.linkIdentity(opts) : sb.auth.signInWithOAuth(opts);
+        }).then(chk);
+      },
       rpc: function (fn, args) { return sb.rpc(fn, args || {}).then(chk); },
       pull: function (table, fid, since) {
         var out = [];
@@ -75,7 +111,7 @@
     if (window.MLTL_SYNC_REMOTE) return Promise.resolve(window.MLTL_SYNC_REMOTE);   // test stand-in
     if (!CFG.url || !CFG.key) return Promise.reject(new Error("Family Sync isn't set up in this version yet."));
     if (!remoteP) remoteP = (window.supabase ? Promise.resolve() : loadScript("vendor/supabase.js")).then(function () {
-      return sbAdapter(window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "mltl-auth" } }));
+      return sbAdapter(window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce", storageKey: "mltl-auth" } }));
     }).catch(function (e) { remoteP = null; throw friendly(e); });
     return remoteP;
   }
@@ -87,11 +123,12 @@
   var status = "off", statusMsg = "";
   function setStatus(s, msg) {
     status = s; statusMsg = msg || "";
+    renderChip();
     var el = document.getElementById("syncpill"); if (!el) return;
     el.hidden = !on();
     var L = { synced: ["✓", "Synced"], syncing: ["↻", "Syncing"], offline: ["☁", "Offline"], error: ["!", "Sync paused"], off: ["", ""] }[s] || ["", ""];
     el.className = "syncpill s-" + s;
-    el.innerHTML = '<span aria-hidden="true">' + L[0] + '</span> ' + esc(L[1]);
+    el.innerHTML = '<span aria-hidden="true">' + L[0] + '</span><span class="sl"> ' + esc(L[1]) + '</span>';
     el.title = statusMsg || (s === "synced" && cfg() && cfg().lastSync ? "Last synced " + S.ago(cfg().lastSync) : L[1]);
     el.setAttribute("aria-label", "Family Sync: " + L[1] + (statusMsg ? ". " + statusMsg : ""));
   }
@@ -301,6 +338,10 @@
     if (sub === "email") return viewEmail();
     if (sub === "create") return viewCreate();
     if (sub === "leave") return viewLeave();
+    if (sub === "new") { if (!newLogThen("#/sync/create")) location.hash = "#/sync"; return; }
+    if (sub === "addjoin") { if (!newLogThen("#/join")) location.hash = "#/sync"; return; }
+    if (sub === "me") return viewMe();
+    if (sub === "logs") return viewLogs();
     if (!on()) return viewTurnOn();
     return viewHub();
   }
@@ -314,7 +355,7 @@
       '<div><b>🤫 Private by design</b><span>Only people you invite can see your family\'s log. No ads, no tracking.</span></div></div>' +
       '<div class="actions stack"><a class="btn btn-beacon big" href="#/sync/create">Start our family log</a>' +
       '<a class="btn btn-primary" href="#/join">I have an invite code</a>' +
-      '<a class="btn btn-ghost" href="#/sync/email">I already set this up on another phone</a></div>' +
+      '<a class="btn btn-ghost" href="#/sync/email">I already set this up on another phone</a>' + googleBtn("signin", "Continue with Google") + '</div>' +
       '<p class="hint">Family Sync is optional. Without it, everything stays on this device only, just like now. ' + (FLAGS.testing ? "While we test with families, every Family Keeper feature is free." : "") + '</p>';
   }
 
@@ -363,8 +404,9 @@
       '<span class="small muted">' + esc(statusMsg || (c.lastSync ? "Last synced " + S.ago(c.lastSync) : "Not synced yet")) + '</span><button type="button" class="linkbtn" id="snow">Sync now</button></div>' +
       '<div class="actions">' + (grown ? '<a class="btn btn-beacon" href="#/sync/invite">＋ Invite someone</a>' : "") + '<a class="btn btn-primary" href="#/feed">📰 Family feed</a></div>' +
       '<h2>Who\'s in <span class="muted small">' + (c.members || []).length + '</span></h2><div class="panel members">' + (members || '<p class="muted">Just you so far.</p>') + '</div>' +
+      mePanel(c) + logsPanel() +
       '<div class="panel"><h3>Plan</h3><p class="small">' + esc(acc.label) + '</p><p class="small muted">Family Keeper (' + esc(CFG.price || "") + ') will cover everyone you invite with one subscription. Nothing is charged today.</p></div>' +
-      (c.anonymous !== false ? '<div class="panel"><h3>Keep your spot</h3><p class="small muted">You joined without an email. Add one so you can get back into the family log on a new phone. Optional.</p><div class="actions"><a class="btn btn-ghost" href="#/sync/email">Add my email</a></div></div>' : "") +
+      (c.anonymous !== false ? '<div class="panel"><h3>Keep your spot</h3><p class="small muted">You joined without an email. Add one so you can get back into the family log on a new phone. Optional.</p><div class="actions"><a class="btn btn-ghost" href="#/sync/email">Add my email</a>' + googleBtn("link", "Use my Google account") + '</div></div>' : "") +
       '<div class="panel"><h3>Privacy</h3><p class="small muted">The family\'s shared copy (names, map colors, trips and small photo copies) is stored with our database provider, Supabase, in the US. Only members of this family can read it. Full-size photos never leave the phone that took them. No ads, no analytics.</p>' +
       '<div class="actions"><a class="btn btn-danger" href="#/sync/leave">Leave family or delete my cloud data</a></div></div>';
     document.getElementById("snow").onclick = function () { syncNow().then(function () { viewHub(); }); };
@@ -442,7 +484,12 @@
       setTimeout(function () { document.getElementById("jcode").focus(); }, 50); return;
     }
     if (on()) {
-      main.innerHTML = back("#/sync") + '<h1>You\'re already in a family log</h1><div class="panel"><p>This phone syncs with <b>' + esc(cfg().familyName) + '</b>. To join a different family, leave that one first.</p><div class="actions"><a class="btn btn-ghost" href="#/sync/leave">Leave family</a></div></div>'; return;
+      var rg = reg(), full = S.linkedCount(rg) >= S.MAX_FAMILIES;
+      main.innerHTML = back("#/sync") + '<div class="synchero"><div class="beam" aria-hidden="true">🏡</div><h1>Join another family?</h1><p class="lede small">This log syncs with <b>' + esc(cfg().familyName) + '</b>. ' +
+        (full ? "You're already in " + S.MAX_FAMILIES + " families, the most for now. Leave one first to join this one." : "The new family gets its own log on this phone, kept separate. Switch between them from the family button at the top.") + '</p><p class="mono">' + esc(code) + '</p></div>' +
+        (full ? "" : '<div class="actions stack"><button class="btn btn-beacon big" id="jsecond">Add it as a separate family log</button><a class="btn btn-ghost" href="#/sync">Not now</a></div>');
+      var js = document.getElementById("jsecond"); if (js) js.onclick = function () { newLogThen("#/join/" + code); };
+      return;
     }
     main.innerHTML = back("#/", "Home") + '<div class="synchero"><div class="beam" aria-hidden="true">🧭</div><h1>Checking your invite…</h1><p class="mono">' + esc(code) + '</p></div>';
     var r;
@@ -468,6 +515,7 @@
       '<div class="field" id="jnamebox"' + (match ? " hidden" : "") + '><label for="jname">Your name or nickname</label><input id="jname" type="text" maxlength="40" placeholder="e.g. Grandma, Pop, Lily"></div>' +
       (hasLocal ? '<div class="field"><label>This phone already has a log (' + mine.length + (mine.length === 1 ? " person" : " people") + ', ' + A.state.trips.length + ' trips)</label>' +
         '<div class="seg col" role="radiogroup"><label class="opt"><input type="radio" name="jmerge" value="combine" checked> <span><b>Put them together</b><br><span class="small muted">Your maps and trips join the family log. Same names become one person.</span></span></label>' +
+        '<label class="opt"><input type="radio" name="jmerge" value="separate"> <span><b>Keep them separate</b><br><span class="small muted">This phone\'s log stays as it is, and ' + esc(title) + ' gets its own log. Switch between them any time.</span></span></label>' +
         '<label class="opt"><input type="radio" name="jmerge" value="replace"> <span><b>Use the family\'s log on this phone</b><br><span class="small muted">We\'ll save a backup file of this phone\'s log first.</span></span></label></div></div>' : "") +
       '<p class="err" id="jerr" hidden></p><div class="actions"><button class="btn btn-beacon big" id="jyes">Join the family</button><a class="btn btn-ghost" href="#/">Not now</a></div>' +
       '<p class="small muted">Everyone in ' + esc(title) + ' will see the maps and trips you add. You can leave any time.</p></div>';
@@ -475,6 +523,7 @@
     document.getElementById("jyes").onclick = function () {
       var b = this, sel = main.querySelector("input[name=jme]:checked"), pid = sel ? sel.value : "", famP = fam.filter(function (p) { return p.id === pid; })[0];
       var myName = famP ? famP.name : S.cleanName(document.getElementById("jname").value, 40), mode = (main.querySelector("input[name=jmerge]:checked") || {}).value || "combine";
+      if (mode === "separate") { newLogThen("#/join/" + code, inv.family_name); return; }
       if (!myName) return err("jerr", new Error("Add your name so everyone knows who joined."));
       err("jerr"); busy(b, true, "Joining…");
       var newPerson = null;
@@ -534,17 +583,39 @@
       err("eerr"); busy(b, true, "Checking…");
       remote().then(function (x) { r = x; return r.verifyCode(email, code, upgrading ? "email_change" : "email"); }).then(function (u) {
         if (upgrading) { var c = cfg(); c.anonymous = false; c.email = email; return save(c).then(function () { A.toast("Saved. You can sign in with " + email + " on any phone."); location.hash = "#/sync"; }); }
+        return welcomeBack(r, u, email);
+      }).catch(function (e) { busy(b, false); err("eerr", friendly(e)); });
+    };
+  }
+  /** Signed in on this phone (email code or Google): bring the family logs here. */
+  function welcomeBack(r, u, email) {
         return r.myFamilies(u.userId).then(function (rows) {
           if (!rows || !rows.length) { A.toast("You're signed in, but not in a family log yet."); location.hash = "#/sync"; return; }
-          var f = rows[0];
+          var f = rows.filter(function (x) { return !S.logForFamily(reg(), x.family_id); })[0];
+          if (!f) { A.toast("Welcome back! Your family logs are already on this phone."); location.hash = "#/sync"; return; }
+          if (on()) return addFamilyLogs(rows.filter(function (x) { return !S.logForFamily(reg(), x.family_id); }), u.userId, { anonymous: false, email: email })
+            .then(function () { A.toast("Welcome back! Your other family logs are in the family menu at the top."); location.hash = "#/sync"; });
+          var extra = rows.filter(function (x) { return x !== f && !S.logForFamily(reg(), x.family_id); });
           var keepLocal = A.state.kids.length ? confirm("Put this phone's log together with " + S.familyTitle(f.families && f.families.name) + "? (Cancel keeps them apart: we'll save a backup and use the family's log here.)") : true;
           return (keepLocal ? Promise.resolve() : A.doBackup().then(function () { return A.tx(["kids", "trips", "photos"], "readwrite", function (s) { s.forEach(function (st) { st.clear(); }); }); }))
             .then(function () { return save(freshCfg(f.family_id, u.userId, { familyName: f.families ? f.families.name : "", role: f.role, anonymous: false, email: email })); })
+            .then(function () { return addFamilyLogs(extra, u.userId, { anonymous: false, email: email }); })
             .then(A.load).then(function () { return syncNow({ throwErrors: true, quiet: true }); })
             .then(function () { A.toast("Welcome back! Your family log is on this phone now."); location.hash = "#/"; });
         });
-      }).catch(function (e) { busy(b, false); err("eerr", friendly(e)); });
-    };
+  }
+
+
+  /** Signing in on a new phone when you're in more than one family: each extra family gets its own log, ready to sync when opened. */
+  function addFamilyLogs(rows, uid, extra) {
+    return rows.reduce(function (p, f) {
+      return p.then(function () {
+        var r = reg(); if (S.linkedCount(r) >= S.MAX_FAMILIES) return;
+        var db = S.addLog(r, f.families ? f.families.name : ""), c2 = freshCfg(f.family_id, uid, Object.assign({ familyName: f.families ? f.families.name : "", role: f.role, seenAll: true }, extra || {}));
+        S.updateLog(r, db, { familyId: f.family_id, name: c2.familyName }); regSave(r);
+        return A.txIn(db, "meta", "readwrite", function (s) { s.put({ key: "sync", value: c2 }); });
+      });
+    }, Promise.resolve());
   }
 
   // ---------- leave / delete ----------
@@ -563,7 +634,14 @@
       (owner && !alone ? '<div class="panel"><h3>Delete the family\'s cloud copy</h3><p class="small muted">Removes the shared log and all shared photo copies for everyone. Each phone keeps what it has on the device.</p><div class="actions"><button class="btn btn-danger" id="lwipe">Delete the cloud copy for everyone</button></div></div>' : "") +
       '<div class="panel"><h3>Delete my cloud account</h3><p class="small muted">Leaves the family and deletes your sign-in' + (c.email ? " (" + esc(c.email) + ")" : "") + '. Nothing on this phone is deleted.</p><div class="actions"><button class="btn btn-danger" id="lacct">Delete my cloud account</button></div></div>' +
       '<p class="err" id="lerr" hidden></p>';
-    function finish(msg) { return save(null).then(function () { setStatus("off"); A.toast(msg); location.hash = "#/"; }); }
+    function finish(msg) {
+      return save(null).then(function () {
+        setStatus("off"); A.toast(msg);
+        if (HERE !== S.DEFAULT_DB && confirm("Also remove " + (c.familyName || "this log") + " from this phone? We'll save a backup file first. (Cancel keeps it here as a log that isn't shared.)"))
+          return A.doBackup().then(function () { forgetLog(HERE); });
+        location.hash = "#/";
+      });
+    }
     function wipeFiles(r) { return r.listFiles(c.familyId).then(function (paths) { return r.removeFiles(paths); }).catch(function () {}); }
     document.getElementById("lleave").onclick = function () {
       if (!confirm(alone ? "Leave and delete the family's cloud copy? This phone keeps everything." : "Leave " + (c.familyName || "the family") + "? This phone keeps everything.")) return;
@@ -581,6 +659,139 @@
       var r; remote().then(function (x) { r = x; return alone ? wipeFiles(r) : null; }).then(function () { return r.rpc("delete_my_account"); }).then(function () { return r.signOut(); })
         .then(function () { return finish("Your cloud account is deleted. Everything is still on this phone."); }).catch(function (e) { err("lerr", friendly(e)); });
     };
+  }
+
+
+  // ---------- "this is me", and the family logs on this phone ----------
+  function mePanel(c) {
+    var p = c.myPerson ? A.kidById(c.myPerson) : null;
+    return '<div class="panel mepanel"><h3>This is you</h3>' + (p ? '<p class="row">' + dot(p) + ' <span><b>' + esc(p.name) + '</b> <span class="muted small">in ' + esc(c.familyName || "this log") + '</span></span></p>'
+      : '<p class="small muted">Pick which person on the log is you, so trips you add can also go to your other family logs.</p>') +
+      '<div class="actions"><a class="btn btn-ghost" href="#/sync/me">' + (p ? "Change" : "Choose which one is me") + '</a></div></div>';
+  }
+  function logsPanel() {
+    var r = reg(), full = S.linkedCount(r) >= S.MAX_FAMILIES;
+    return '<div class="panel logspanel"><h3>Family logs on this phone</h3>' + r.logs.map(function (l) {
+      return '<div class="row"><span class="fam-ic small" aria-hidden="true">' + (l.familyId ? "🏡" : "📱") + '</span><span class="nm"><b>' + esc(S.logLabel(l)) + '</b><span>' +
+        esc(l.db === HERE ? "Open now" : l.familyId ? "Syncs when you open it" : "Not shared") + '</span></span>' +
+        (l.db === HERE ? '<span class="pill on">✓</span>' : '<button type="button" class="pill" data-open-log="' + esc(l.db) + '">Open</button>') + '</div>';
+    }).join("") +
+      (full ? '<p class="small muted">You\'re in ' + S.MAX_FAMILIES + ' families, the most for now.</p>' : '<div class="actions"><a class="btn btn-ghost" href="#/sync/addjoin">＋ Join another family</a><a class="btn btn-ghost" href="#/sync/new">＋ Start another family log</a></div>') + '</div>';
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-open-log]");
+    if (b) { e.preventDefault(); switchTo(b.getAttribute("data-open-log"), "#/"); }
+  });
+  function viewMe() {
+    var c = cfg(); if (!c) { location.hash = "#/sync"; return; }
+    var taken = {}; (c.members || []).forEach(function (m) { if (m.person_id && m.user_id !== c.userId) taken[m.person_id] = 1; });
+    var list = A.state.kids.map(function (p) { return { id: p.id, name: p.name, color: p.color, taken: !!taken[p.id] }; });
+    main.innerHTML = back("#/sync", "Family") + '<h1>Which one is you?</h1><p class="lede small">If you\'re also in another family (say, your own and your parents\'), pick yourself in each one. Then any trip you\'re on can be added to your other family\'s log with one tap.</p>' +
+      '<div class="panel">' + (list.length ? peoplePicker("mepick", list, c.myPerson || "") : '<p class="muted">Add yourself to the log first.</p>') + '<p class="err" id="meerr" hidden></p><div class="actions"><button class="btn btn-beacon" id="mego">That\'s me</button></div></div>';
+    document.getElementById("mego").onclick = function () {
+      var b = this, sel = main.querySelector("input[name=mepick]:checked"); if (!sel) return err("meerr", new Error("Pick a person."));
+      var pid = sel.value, p = A.kidById(pid); busy(b, true, "Saving…");
+      remote().then(function (r) { return r.updateMe(c.familyId, c.userId, { person_id: pid }).then(function () { return r.linkPerson(c.familyId, pid, c.userId).catch(function () {}); }); })
+        .then(function () {
+          c.myPerson = pid; c.myName = p ? p.name : c.myName;
+          (c.members || []).forEach(function (m) { if (m.user_id === c.userId) m.person_id = pid; });
+          return save(c);
+        }).then(function () { A.toast("Got it, that's you!"); location.hash = "#/sync"; })
+        .catch(function (e) { busy(b, false); err("meerr", friendly(e)); });
+    };
+  }
+  function viewLogs() {
+    main.innerHTML = back("#/", "Home") + '<h1>Your family logs</h1><p class="lede small">Each family gets its own log on this phone, synced on its own and backed up on its own.</p>' + logsPanel();
+  }
+
+  // ---------- the family button at the top ----------
+  function renderChip() {
+    var top = document.querySelector(".topright"); if (!top) return;
+    var el = document.getElementById("famchip"), r = reg(), l = S.findLog(r, HERE) || { db: HERE };
+    var show = r.logs.length > 1 || on();
+    if (!show) { if (el) el.hidden = true; return; }
+    if (!el) {
+      el = document.createElement("button"); el.type = "button"; el.id = "famchip"; el.className = "famchip"; el.setAttribute("aria-haspopup", "true"); el.setAttribute("aria-expanded", "false");
+      top.insertBefore(el, top.firstChild);
+      el.onclick = function (e) { e.stopPropagation(); toggleMenu(); };
+    }
+    el.hidden = false;
+    var name = S.logLabel(on() ? Object.assign({}, l, { familyId: cfg().familyId, name: cfg().familyName || l.name }) : l);
+    el.innerHTML = '<span aria-hidden="true">' + (on() ? "🏡" : "📱") + '</span> <span class="fcname">' + esc(name) + '</span> <span aria-hidden="true">▾</span>';
+    el.setAttribute("aria-label", "Family log: " + name + ". Switch family");
+  }
+  function closeMenu() { var m = document.getElementById("fammenu"); if (m) m.remove(); var c = document.getElementById("famchip"); if (c) c.setAttribute("aria-expanded", "false"); }
+  function toggleMenu() {
+    if (document.getElementById("fammenu")) return closeMenu();
+    var r = reg(), full = S.linkedCount(r) >= S.MAX_FAMILIES, m = document.createElement("div");
+    m.id = "fammenu"; m.className = "fammenu"; m.setAttribute("role", "menu");
+    m.innerHTML = '<div class="fmhead small muted">Switch family log</div>' + r.logs.map(function (l) {
+      var cur = l.db === HERE;
+      return '<button type="button" role="menuitem" class="fmitem' + (cur ? " cur" : "") + '"' + (cur ? "" : ' data-open-log="' + esc(l.db) + '"') + '><span aria-hidden="true">' + (l.familyId ? "🏡" : "📱") + '</span> <span class="nm">' + esc(S.logLabel(l)) + '</span>' + (cur ? ' <span aria-hidden="true">✓</span>' : "") + '</button>';
+    }).join("") +
+      (full ? "" : '<a role="menuitem" class="fmitem add" href="#/sync/addjoin">＋ Join another family</a><a role="menuitem" class="fmitem add" href="#/sync/new">＋ Start another family log</a>') +
+      '<a role="menuitem" class="fmitem add" href="' + (on() ? "#/sync" : "#/sync") + '">' + (on() ? "⚙︎ This family's settings" : "⚙︎ Family Sync") + '</a>';
+    document.body.appendChild(m);
+    var chip = document.getElementById("famchip"), rc = chip.getBoundingClientRect();
+    m.style.top = (rc.bottom + window.scrollY + 6) + "px"; m.style.right = Math.max(8, document.documentElement.clientWidth - rc.right) + "px";
+    chip.setAttribute("aria-expanded", "true");
+    var first = m.querySelector(".fmitem:not(.cur)"); if (first) first.focus();
+  }
+  document.addEventListener("click", function (e) { if (!e.target.closest || !e.target.closest("#fammenu")) closeMenu(); else if (e.target.closest("a")) closeMenu(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeMenu(); });
+
+  // ---------- "also add to my other family's log" ----------
+  function tripExtra(t) {
+    var c = cfg(); if (!c || !c.myPerson || t.kidIds.indexOf(c.myPerson) < 0) return "";
+    var done = (A.state.meta.copies || {})[t.id] || [], src = t.copiedFrom || {};
+    return S.copyTargets(reg(), HERE).filter(function (l) { return l.familyId !== src.familyId; }).map(function (l) {
+      return done.indexOf(l.db) >= 0 ? '<div class="small muted alsoin noprint">✓ Also in ' + esc(l.name || "your other family log") + '</div>'
+        : '<button type="button" class="linkbtn alsoadd noprint" data-copy-trip="' + esc(t.id) + '" data-copy-to="' + esc(l.db) + '">＋ Also add to ' + esc(l.name || "my other family log") + '</button>';
+    }).join("") + (src.familyName ? '<div class="small muted alsoin">Copied from ' + esc(src.familyName) + '</div>' : "");
+  }
+  function copyTripTo(tripId, db) {
+    var c = cfg(), t = A.state.trips.filter(function (x) { return x.id === tripId; })[0], l = S.findLog(reg(), db);
+    if (!c || !t || !l || !l.myPerson) return Promise.reject(new Error("Pick which one is you in that family first."));
+    var now = new Date().toISOString(), copy = S.copyTrip(t, l.myPerson, { familyName: c.familyName, familyId: c.familyId }, M.uid("trip"), now);
+    return (t.photoId ? A.getOne("photos", t.photoId) : Promise.resolve(null)).then(function (ph) {
+      var newPh = ph ? { id: M.uid("photo"), dataUrl: ph.dataUrl } : null;
+      if (newPh) copy.photoId = newPh.id; else delete copy.photoId;
+      return A.txIn(db, ["kids", "trips", "photos"], "readwrite", function (s) {
+        var g = s[0].get(l.myPerson);
+        g.onsuccess = function () {
+          var p = g.result; if (!p) return;   // that person is gone from that log: add nothing
+          M.applyTripMark(copy, [p]); p.updatedAt = now; s[0].put(p);
+          s[1].put(copy); if (newPh) s[2].put(newPh);
+        };
+      });
+    }).then(function () {
+      var copies = Object.assign({}, A.state.meta.copies || {}); copies[tripId] = (copies[tripId] || []).concat([db]);
+      return A.setMeta("copies", copies);
+    }).then(function () { return A.txIn(db, "trips", "readonly", function (s) { return s.get(copy.id); }); }).then(function (got) {
+      if (!got) throw new Error("Couldn't find you in that family log. Open it and choose which one is you.");
+      return l;
+    });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-copy-trip]"); if (!b) return;
+    b.disabled = true;
+    copyTripTo(b.getAttribute("data-copy-trip"), b.getAttribute("data-copy-to")).then(function (l) {
+      A.toast("Added to " + (l.name || "your other family log") + "! It shares when you open that log."); rerender();
+    }).catch(function (x) { b.disabled = false; A.toast(friendly(x).message); });
+  });
+
+  /** Drop a log from the list; its database is deleted the next time another log is open (it can't be while it's in use). */
+  function forgetLog(db) {
+    var r = reg(); S.removeLog(r, db); regSave(r);
+    try { var tr = JSON.parse(localStorage.getItem("mltl-trash") || "[]"); if (tr.indexOf(db) < 0) tr.push(db); localStorage.setItem("mltl-trash", JSON.stringify(tr)); } catch (e) {}
+    switchTo(r.active, "#/");
+  }
+  function emptyTrash() {
+    try {
+      var tr = JSON.parse(localStorage.getItem("mltl-trash") || "[]"), keep = [];
+      tr.forEach(function (db) { if (db === HERE || db === S.DEFAULT_DB) keep.push(db); else A.deleteDb(db); });
+      localStorage.setItem("mltl-trash", JSON.stringify(keep.filter(function (d) { return d !== S.DEFAULT_DB; })));
+    } catch (e) {}
   }
 
   // ---------- family feed ----------
@@ -616,6 +827,45 @@
     return '<a class="panel familycard synccard" href="#/sync"><span class="fam-ic" aria-hidden="true">👨‍👩‍👧‍👦</span><span><h3>Family Sync</h3><span class="muted small">Share one log across everyone\'s phones. Grandma can join with a code.</span><br><span class="small">Turn it on →</span></span></a>';
   }
 
+
+  // ---------- Google (behind FLAGS.google until the provider is set up in Supabase) ----------
+  function googleBtn(kind, label) {
+    if (!FLAGS.google) return "";
+    return '<button type="button" class="btn btn-ghost gbtn" data-google="' + kind + '"><span class="g" aria-hidden="true">G</span> ' + esc(label) + '</button>';
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-google]"); if (!b) return;
+    var kind = b.getAttribute("data-google"); busy(b, true, "Opening Google…");
+    try { localStorage.setItem("mltl-oauth", JSON.stringify({ kind: kind, db: HERE, at: Date.now() })); } catch (x) {}
+    remote().then(function (r) { return r.google(); }).catch(function (x) { busy(b, false); try { localStorage.removeItem("mltl-oauth"); } catch (y) {} A.toast(friendly(x).message); });
+  });
+  /** Back from Google: the URL has ?code=… (or ?error=…). Finish signing in, then tidy the URL. */
+  function oauthReturn() {
+    var q = location.search, intent = null;
+    if (!/[?&](code|error|error_description)=/.test(q)) return;
+    try { intent = JSON.parse(localStorage.getItem("mltl-oauth") || "null"); localStorage.removeItem("mltl-oauth"); } catch (x) {}
+    if (!intent || Date.now() - intent.at > 30 * 60 * 1000) return;
+    var params = new URLSearchParams(q), bad = params.get("error_description") || params.get("error");
+    function tidy(hash) { history.replaceState(null, "", location.pathname + (hash || "#/sync")); A.route(); }
+    if (bad) { tidy("#/sync"); A.toast(friendly(new Error(bad)).message); return; }
+    var r;
+    remote().then(function (x) { r = x; return r.session(); }).then(function (u) {
+      if (!u) throw new Error("Google sign-in didn't finish. Try again.");
+      if (intent.kind === "link" && on()) {
+        var c = cfg(); c.anonymous = false; c.email = u.email || c.email || "";
+        return save(c).then(function () { tidy("#/sync"); A.toast("Saved. Sign in with Google on any phone to get your family logs back."); });
+      }
+      history.replaceState(null, "", location.pathname + "#/sync");
+      return welcomeBack(r, u, u.email || "");
+    }).catch(function (x) { tidy("#/sync"); A.toast(friendly(x).message); });
+  }
+
+  function backupTag() {
+    var c = cfg(), l = S.findLog(reg(), HERE) || {};
+    var name = c && c.familyId ? c.familyName : (HERE !== S.DEFAULT_DB ? l.name || "log" : "");
+    var t = S.slug(name); return t ? t + "-" : "";
+  }
+
   // ---------- wiring ----------
   window.MLTL_onChange = function (store) { if (store !== "meta") schedule(2500); };
   window.MLTL_SYNC = {
@@ -625,7 +875,8 @@
       if (h[0] === "feed") { viewFeed(); return true; }
       return false;
     },
-    homeCard: homeCard, isOn: on, syncNow: syncNow, status: function () { return status; },
+    homeCard: homeCard, isOn: on, syncNow: syncNow, status: function () { return status; }, tripExtra: tripExtra, backupTag: backupTag,
+    logs: reg, switchTo: switchTo,
     photoNote: function () { return on() ? "We shrink it and keep the full photo on this device. A small copy is shared with your family log. Location data is removed." : null; },
     storageNote: function () { return on() ? "Your maps are on this device and synced with " + (cfg().familyName || "your family log") + ". A backup file is still a good idea." : null; },
     _core: S, _confetti: confetti, _cheer: cheer
@@ -639,5 +890,10 @@
   window.addEventListener("offline", function () { if (on()) setStatus("offline", "Changes are saved on this phone and will sync when you're back online."); });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") schedule(800); });
   setInterval(function () { if (document.visibilityState === "visible") syncNow(); }, 90000);
-  A.ready.then(function () { if (on()) { setStatus("syncing"); schedule(300); } });
+  A.ready.then(function () {
+    var c = cfg(), l = S.findLog(reg(), HERE);
+    if (!l || (c && c.familyId ? l.familyId !== c.familyId || (c.familyName && l.name !== c.familyName) : l.familyId)) noteLog(c);   // keep the list in step with this log
+    renderChip(); emptyTrash(); oauthReturn();
+    if (on()) { setStatus("syncing"); schedule(300); }
+  });
 })();

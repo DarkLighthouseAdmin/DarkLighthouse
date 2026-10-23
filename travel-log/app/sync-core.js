@@ -285,9 +285,67 @@
   }
   function cleanName(s, max) { return String(s == null ? "" : s).replace(/[\u0000-\u001f]/g, "").trim().replace(/\s+/g, " ").slice(0, max || 40); }
 
+
+  // ---------- family logs on this phone ----------
+  // Each log is its own IndexedDB database. "mltl" is the phone's original log (it may or may not be linked to a family);
+  // every other family gets "mltl-<random>". The list lives in localStorage "mltl-logs" so app.js can open the right one at start.
+  var LOGS_KEY = "mltl-logs", DEFAULT_DB = "mltl", MAX_FAMILIES = 3;
+  function defaultLogs() { return { active: DEFAULT_DB, logs: [{ db: DEFAULT_DB, name: "", familyId: null }] }; }
+  function cleanLogs(x) {
+    var out = defaultLogs();
+    if (!x || typeof x !== "object" || !Array.isArray(x.logs)) return out;
+    var seen = {}; out.logs = [];
+    x.logs.forEach(function (l) {
+      if (!l || typeof l.db !== "string" || !/^mltl(-[a-z0-9]{4,24})?$/.test(l.db) || seen[l.db]) return;
+      seen[l.db] = 1;
+      out.logs.push({ db: l.db, name: cleanName(l.name, 60), familyId: typeof l.familyId === "string" ? l.familyId : null,
+                      myPerson: typeof l.myPerson === "string" ? l.myPerson : null, myName: cleanName(l.myName, 40) });
+    });
+    if (!seen[DEFAULT_DB]) out.logs.unshift({ db: DEFAULT_DB, name: "", familyId: null, myPerson: null, myName: "" });
+    out.active = seen[x.active] ? x.active : DEFAULT_DB;
+    return out;
+  }
+  function readLogs(store) { try { return cleanLogs(JSON.parse(store.getItem(LOGS_KEY) || "null")); } catch (e) { return defaultLogs(); } }
+  function writeLogs(store, reg) { try { store.setItem(LOGS_KEY, JSON.stringify(cleanLogs(reg))); } catch (e) {} return reg; }
+  function findLog(reg, db) { return reg.logs.filter(function (l) { return l.db === db; })[0] || null; }
+  function linkedCount(reg) { return reg.logs.filter(function (l) { return l.familyId; }).length; }
+  function logForFamily(reg, fid) { return reg.logs.filter(function (l) { return fid && l.familyId === fid; })[0] || null; }
+  /** Add an empty log. rand() gives the random part (tests pass a fixed one). */
+  function addLog(reg, name, rand) {
+    var id, n = 0;
+    do { id = "mltl-" + String(rand ? rand() : Math.random().toString(36).slice(2, 10)).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12); if (n++ > 20) id = "mltl-log" + n + Date.now().toString(36); }
+    while (findLog(reg, id) || id.length < 9);
+    reg.logs.push({ db: id, name: cleanName(name, 60), familyId: null, myPerson: null, myName: "" });
+    return id;
+  }
+  function updateLog(reg, db, vals) { var l = findLog(reg, db); if (l) Object.keys(vals).forEach(function (k) { l[k] = vals[k]; }); return l; }
+  function removeLog(reg, db) {
+    if (db === DEFAULT_DB) return false;
+    var n = reg.logs.length; reg.logs = reg.logs.filter(function (l) { return l.db !== db; });
+    if (reg.active === db) reg.active = DEFAULT_DB;
+    return reg.logs.length < n;
+  }
+  function logLabel(l) { return l.familyId ? (l.name || "Family log") : (l.db === DEFAULT_DB ? "This phone only" : (l.name ? l.name + " (this phone only)" : "Another log on this phone")); }
+  /** "Also add to my other family's log" targets: other linked logs where I've said which person is me. */
+  function copyTargets(reg, fromDb) {
+    return reg.logs.filter(function (l) { return l.db !== fromDb && l.familyId && l.myPerson; });
+  }
+  /** A copy of a trip for another family's log: new id, just me on it, and a note of where it came from. */
+  function copyTrip(t, toPerson, from, newId, now) {
+    var c = JSON.parse(JSON.stringify(t));
+    c.id = newId; c.kidIds = [toPerson]; c.createdAt = now; c.updatedAt = now;
+    c.copiedFrom = { familyName: cleanName(from.familyName, 60), familyId: from.familyId || null, tripId: t.id };
+    if (c.who === undefined) c.who = "";
+    return c;
+  }
+  function slug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30); }
+
   return { WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
            ms: ms, iso: iso, newer: newer, personRow: personRow, tripRow: tripRow, flatVisits: flatVisits, emptyShadow: emptyShadow,
            planPush: planPush, afterPush: afterPush, applyPull: applyPull, nextCursor: nextCursor, photoPath: photoPath,
            matchPeople: matchPeople, remapPeople: remapPeople, access: access, allows: allows, FREE: FREE,
-           joinLine: joinLine, newMembers: newMembers, ago: ago, feed: feed, thumbDims: thumbDims, cleanName: cleanName };
+           joinLine: joinLine, newMembers: newMembers, ago: ago, feed: feed, thumbDims: thumbDims, cleanName: cleanName,
+           LOGS_KEY: LOGS_KEY, DEFAULT_DB: DEFAULT_DB, MAX_FAMILIES: MAX_FAMILIES, readLogs: readLogs, writeLogs: writeLogs, cleanLogs: cleanLogs, findLog: findLog,
+           linkedCount: linkedCount, logForFamily: logForFamily, addLog: addLog, updateLog: updateLog, removeLog: removeLog, logLabel: logLabel,
+           copyTargets: copyTargets, copyTrip: copyTrip, slug: slug };
 });
