@@ -81,5 +81,44 @@ ok(!/oraclinical|mhillORA/i.test(ie), "ireland: no personal identities");
 ok(fs.readFileSync(R("travel/index.html"), "utf8").includes('href="/travel/ireland/"'), "hub links to Ireland guide");
 ok(fs.readFileSync(R("sitemap.xml"), "utf8").includes("<loc>https://darklighthousesolutions.com/travel/ireland/</loc>"), "sitemap has Ireland guide");
 ok(/credit card's rental car cover/.test(fs.readFileSync(R("travel/scotland/index.html"), "utf8")), "scotland: card cover note");
+
+// England and Wales guide pages
+const guideChecks = (slug, titleRe, ids, extra) => {
+  const h = fs.readFileSync(R(`travel/${slug}/index.html`), "utf8");
+  ok(titleRe.test(h), slug + ": title");
+  ok(h.includes(`<link rel="canonical" href="https://darklighthousesolutions.com/travel/${slug}/" />`), slug + ": canonical");
+  const ld = [...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => JSON.parse(m[1]));
+  ok(["Article", "FAQPage", "BreadcrumbList"].every(t => ld.some(x => x["@type"] === t)), slug + ": Article + FAQ + Breadcrumb JSON-LD parse");
+  ids.forEach(id => ok(h.includes(`id="${id}"`), slug + ": section #" + id));
+  ok(h.includes('class="disclose"') && h.includes("/privacy/#affiliate-links"), slug + ": affiliate disclosure");
+  ok(h.includes("emrldtp.cc/NTg5NTIy.js") && h.includes('/travel/affiliates.js'), slug + ": Travelpayouts Drive + affiliates.js");
+  const ks = [...h.matchAll(/data-affiliate="([^"]+)"/g)].map(m => m[1]);
+  ok(ks.length >= 2 && ks.length <= 6, slug + ": 2-6 partner links, got " + ks.length);
+  ok(new Set(ks).size === ks.length, slug + ": no duplicate partner links");
+  ks.forEach(k => ok(affj[k] && h.includes(`href="${affj[k].plain_url.replace(/&/g, "&amp;")}"`), slug + ": partner link matches affiliates.json: " + k));
+  ok([...h.matchAll(/<a [^>]*data-affiliate[^>]*>/g)].every(m => m[0].includes('rel="sponsored nofollow noopener"')), slug + ": partner links are rel=sponsored");
+  ok(/UK ETA/.test(h) && h.includes("https://www.gov.uk/eta") && h.includes("£20 per person"), slug + ": UK ETA note");
+  ok(/excludes only Northern Ireland within the UK/.test(h) && h.includes("usa.visa.com") && h.includes("americanexpress.com"), slug + ": card rental coverage note with sources");
+  ok(h.includes('id="trip-planner-travel-budget"') && h.includes('id="family-travel-kids-planner"'), slug + ": planner cards");
+  ok(!/oraclinical|mhillORA/i.test(h), slug + ": no personal identities");
+  ok(fs.readFileSync(R("travel/index.html"), "utf8").includes(`href="/travel/${slug}/"`), "hub links to " + slug);
+  ok(fs.readFileSync(R("sitemap.xml"), "utf8").includes(`<loc>https://darklighthousesolutions.com/travel/${slug}/</loc>`), "sitemap has " + slug);
+  ok(fs.readFileSync(R("travel/scotland/index.html"), "utf8").includes(`href="/travel/${slug}/"`), "scotland footer links to " + slug);
+  extra(h);
+};
+const common = ["before", "when", "driving", "car-insurance", "routes", "costs", "packing", "kids", "timeline", "planner", "faq", "sources"];
+guideChecks("england", /<title>London &amp; England with Kids[^<]*\| Dark Lighthouse Solutions<\/title>/, common.concat(["london"]), h => {
+  ok(h.includes("Overseas Visitor Pass") && h.includes("english-heritage.org.uk"), "england: English Heritage pass sourced");
+  ok(h.includes("Historic Royal Palaces") && h.includes("hrp.org.uk"), "england: Historic Royal Palaces sourced");
+  ok(h.includes('data-affiliate="gocity-london"'), "england: London Pass via Go City link");
+  ok(h.includes("tfl.gov.uk") && /under 11/i.test(h), "england: TfL kids-free note sourced");
+  ok(/Bath/.test(h) && /Cotswolds/.test(h) && /York/.test(h) && /Lake District/.test(h), "england: beyond-London options");
+});
+guideChecks("wales", /<title>Wales with Kids[^<]*\| Dark Lighthouse Solutions<\/title>/, common.concat(["places"]), h => {
+  ok(h.includes("Cadw Explorer Pass") && h.includes("cadw.gov.wales"), "wales: Cadw pass sourced");
+  ok(/Eryri/.test(h) && /Pembrokeshire/.test(h) && /Cardiff/.test(h) && /castle/i.test(h), "wales: Eryri, castles, Pembrokeshire, Cardiff");
+  ok(/20 mph/.test(h) && h.includes("gov.wales"), "wales: 20 mph note sourced");
+  ok(!h.includes("gocity"), "wales: no Go City link (no Wales pass)");
+});
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

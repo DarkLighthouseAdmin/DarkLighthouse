@@ -58,7 +58,7 @@ TP_DRIVE = """  <script nowprocket data-noptimize="1" data-cfasync="false" data-
     })();
   </script>
 """
-NAV = [("/travel/", "Travel home"), ("/travel/scotland/", "Scotland guide"), ("/travel/ireland/", "Ireland guide"), ("/travel/planners/", "Planners"), ("/travel/tools/", "Travel tools")]
+NAV = [("/travel/", "Travel home"), ("/travel/scotland/", "Scotland guide"), ("/travel/ireland/", "Ireland guide"), ("/travel/england/", "England guide"), ("/travel/wales/", "Wales guide"), ("/travel/planners/", "Planners"), ("/travel/tools/", "Travel tools")]
 
 def crumbs(trail):
     """trail: [(name, path)], last item is the current page."""
@@ -108,7 +108,7 @@ def foot(aff=False):
          'We only link to things we\'d use ourselves. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>\n') if aff else ""
     return f'''
   <footer class="wrap">
-    <p><a href="/travel/">Travel</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/ireland/">Ireland with kids guide</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/travel-budget-calculator/">Travel budget calculator</a> · <a href="/travel/tools/daily-travel-budget-calculator/">Daily travel budget calculator</a> · <a href="/templates/">Money templates</a> · <a href="/tools/">Money calculators</a></p>
+    <p><a href="/travel/">Travel</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/ireland/">Ireland with kids guide</a> · <a href="/travel/england/">London &amp; England with kids guide</a> · <a href="/travel/wales/">Wales with kids guide</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/travel-budget-calculator/">Travel budget calculator</a> · <a href="/travel/tools/daily-travel-budget-calculator/">Daily travel budget calculator</a> · <a href="/templates/">Money templates</a> · <a href="/tools/">Money calculators</a></p>
 {d}    <p style="margin-top:.4rem">Prices and rules change: check official sites before you book. Calculators are estimates for planning; nothing you type leaves your browser.</p>
     <p style="margin-top:.4rem"><strong>Dark Lighthouse Solutions</strong> · Planners sold via Polar (merchant of record). <a href="/privacy/">Privacy</a> · Questions? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
   </footer>
@@ -118,7 +118,9 @@ AFF_SLOT = {"gyg-edinburgh": "tour", "gyg-edinburgh-day-trips": "tour", "viator-
             "discovercars-edinburgh": "car", "airalo-uk": "esim", "booking-edinburgh": "stay",
             "tiqets-edinburgh-castle": "tickets", "klook-edinburgh": "tour",
             "airalo-ireland": "esim", "tiqets-book-of-kells": "tickets", "klook-ireland": "tour", "gyg-dublin-day-trips": "tour",
-            "viator-dublin": "tour", "discovercars-dublin": "car", "booking-dublin": "stay"}
+            "viator-dublin": "tour", "discovercars-dublin": "car", "booking-dublin": "stay",
+            "gocity-london": "tickets", "tiqets-tower-of-london": "tickets", "klook-london": "tour", "discovercars-london": "car", "booking-london": "stay",
+            "tiqets-cardiff": "tickets", "klook-north-wales-rail": "tour", "gyg-wales": "tour", "discovercars-cardiff": "car", "booking-pembrokeshire": "stay"}
 
 def slot(kind, where=""):
     """Marks a natural spot for a partner link. Invisible on the page; grep 'AFFILIATE:' to find them all."""
@@ -368,7 +370,7 @@ def app_ld(name, path, desc):
             "publisher": {"@type": "Organization", "name": "Dark Lighthouse Solutions", "url": SITE + "/"}}
 
 def related(slug):
-    links = [(f"/travel/tools/{c[0]}/", c[1]) for c in CALCS if c[0] != slug] + [("/travel/scotland/", "Scotland trip planning guide"), ("/travel/ireland/", "Ireland with kids guide"), ("/travel/tools/", "All travel tools"), ("/tools/", "Money calculators")]
+    links = [(f"/travel/tools/{c[0]}/", c[1]) for c in CALCS if c[0] != slug] + [("/travel/scotland/", "Scotland trip planning guide"), ("/travel/ireland/", "Ireland with kids guide"), ("/travel/england/", "London & England with kids guide"), ("/travel/wales/", "Wales with kids guide"), ("/travel/tools/", "All travel tools"), ("/tools/", "Money calculators")]
     return '    <h2 id="related">Related</h2>\n    <div class="related">' + "".join(f'<a href="{p}">{e(n)}</a>' for p, n in links) + "</div>\n"
 
 def build_calcs():
@@ -675,6 +677,284 @@ def build_ireland():
 ''' + foot(aff=True) + "</body>\n</html>\n"
     write(path, page)
 
+# ---------------------------------------------------------------- England guide
+CARD_UK = ('Planning to use your credit card\'s rental car cover? It generally works in {where} (Visa\'s standard benefit excludes only Northern Ireland within the UK, '
+           'and Amex\'s standard cover excludes Australia, Italy and New Zealand), but it\'s often secondary and you must decline the rental desk\'s collision damage waiver, '
+           'so check your card\'s guide and carry proof of cover.')
+CARD_SRC = '''      <li><a href="https://usa.visa.com/dam/VCOM/regional/na/us/support-legal/documents/arcdw-secondary.pdf">Visa Auto Rental Collision Damage Waiver terms: country exclusions (Visa)</a></li>
+      <li><a href="https://www.americanexpress.com/content/dam/amex/us/credit-cards/features-benefits/CRLDI_Benefit_Guide_371-397_EDT_2.20_REV_4.24_a11y3_04022026.pdf">Car Rental Loss and Damage Insurance: country exclusions, secondary cover (American Express)</a></li>
+'''
+ETA_HTML = '''    <p>If you're visiting from the US, Canada, Australia or most other countries that don't need a visa, every person in your group needs a UK Electronic Travel Authorisation (ETA) before you travel. That includes babies and children. British and Irish citizens don't need one.</p>
+    <ul>
+      <li>It costs <strong>£20 per person</strong>, so a family of four pays £80.</li>
+      <li>The UK government says to apply <strong>at least 3 working days</strong> before you travel. We'd do it as soon as the flights are booked.</li>
+      <li>Apply only on <a href="https://www.gov.uk/eta">GOV.UK</a> or the official UK ETA app. Third-party sites charge extra for the same form.</li>
+    </ul>
+    <p>Check passports at the same time. US passports for children under 16 are only valid for 5 years, so compare expiry dates with your return date now. If one parent is traveling alone with the kids, or your surnames differ, carry something that shows your relationship, like a birth certificate or a consent letter from the other parent.</p>
+'''
+def daylight_rows(rows): return "".join(f"<tr><td>{m}</td><td>{a}</td><td>{b}</td></tr>" for m, a, b in rows)
+def leg_rows(legs): return "".join(f"<tr><td>{a} → {b}</td><td>{mi}</td><td>{hm(mn)}</td><td>{hm(round(mn * 1.4))}</td></tr>" for a, b, mi, mn in legs)
+def article(headline, path, img):
+    return {"@context": "https://schema.org", "@type": "Article", "headline": headline,
+            "datePublished": "2026-10-22", "dateModified": "2026-10-22", "author": {"@type": "Organization", "name": "Dark Lighthouse Solutions"},
+            "publisher": {"@type": "Organization", "name": "Dark Lighthouse Solutions", "url": SITE + "/"}, "mainEntityOfPage": SITE + path, "image": SITE + img}
+DISCLOSE = '    <p class="disclose">A few links below go to booking sites. Our travel pages use Travelpayouts, which may turn some of them into affiliate links: if you book, we may earn a small commission at no extra cost to you. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>\n'
+
+EN_LEGS = [("London", "Windsor", 22, 44), ("London", "Bath", 111, 150), ("Stonehenge", "Bath", 37, 54), ("Bath", "the Cotswolds (Bourton-on-the-Water)", 51, 82),
+           ("the Cotswolds (Bourton-on-the-Water)", "London", 83, 124), ("the Cotswolds (Bourton-on-the-Water)", "York", 171, 204), ("London", "York", 209, 249),
+           ("York", "Windermere (Lake District)", 97, 139), ("Windermere (Lake District)", "Manchester Airport", 92, 118)]
+EN_DAY = [("January", "8h 20m", "8h 00m"), ("April", "13h 50m", "14h 00m"), ("June", "16h 35m", "17h 05m"), ("August", "14h 35m", "14h 50m"),
+          ("October", "10h 40m", "10h 35m"), ("December", "7h 50m", "7h 25m")]
+EN_FAQ = [
+ ("Do US citizens need anything to visit England?", "Yes: a UK Electronic Travel Authorisation (ETA). It costs £20 per person, every traveler needs their own, babies and children included, and the UK government says to apply at least 3 working days before you travel. Apply on GOV.UK or the official UK ETA app. British and Irish citizens don't need one."),
+ ("Do kids travel free on the London Underground?", "Children under 11 travel free on London buses and trams. On the Tube, DLR, London Overground and the Elizabeth line, up to four children aged 5 to 10 travel free with an adult who's paying, and under-5s are always free. Kids aged 11 to 15 pay a reduced fare if you add a Young Visitor discount to a Visitor Oyster card."),
+ ("Is the London Pass worth it for a family?", "Only if you'll actually visit several of the paid attractions it covers. Write down the places you'd go anyway, add up their family ticket prices, and compare that with the pass for your number of days. Remember many of London's big museums are free, so they don't count towards the saving."),
+ ("Is the English Heritage Overseas Visitor Pass worth it?", "If Stonehenge is on your list plus a castle or two, often yes. For visits from 25 March 2026 to 16 March 2027 the family pass is £116 for 9 days or £127 for 16 days (two adults and up to four children under 18 at the same address). English Heritage says it starts saving money after two or three sites."),
+ ("Should we rent a car in London?", "We wouldn't. Public transport is good, parking is expensive, and driving into central London during charging hours costs £18 a day for the Congestion Charge on top of any ULEZ charge. Pick up a car on the way out of London, or at Heathrow, for the Bath, Cotswolds or York part of the trip."),
+ ("Do kids need car seats in England?", "Yes. UK law says children must use a car seat until they're 12 years old or 135 cm tall, whichever comes first. Rental companies can add one, but numbers are limited, so request it when you book or bring your own."),
+]
+def build_england():
+    path = "/travel/england/"
+    cr, crld = crumbs([("Travel", "/travel/"), ("England & London with kids guide", path)])
+    img = "/assets/travel/family-travel-kids-planner/1.jpg"
+    page = head(path, "London & England with Kids: Family Trip Planning Guide, Routes & Costs (2026) | Dark Lighthouse Solutions",
+                "Planning London and England with kids? The UK ETA, free Tube travel for under-11s, free museums, the London Pass, English Heritage and Historic Royal Palaces, plus Bath, the Cotswolds, York and the Lake District.",
+                img, [article("London and England with kids: routes, costs, passes and what to book when", path, img), faq_ld(EN_FAQ), crld], "/travel/england/")
+    page += f'''
+  <header class="wrap hero">
+    {cr}
+    <h1>London and England with kids: routes, costs, passes and what to book when</h1>
+    <p class="lede">A family trip built around London, with easy ways to add Bath, the Cotswolds, York or the Lake District. What the Tube costs with kids (often nothing), which passes are worth it, and what to book first. Facts checked October 2026, with sources at the end.</p>
+  </header>
+  <main class="wrap copy">
+{DISCLOSE}
+    <h2 id="before">1. Before you book anything: the UK ETA</h2>
+{ETA_HTML}
+    <h2 id="when">2. When to go</h2>
+    <p>England is mild most of the year and it can rain in any month, so plan for it rather than around it. Late spring and early autumn are our pick with kids: long-ish days, fewer crowds and lower prices than high summer. July and August are the school summer holidays, so London's big attractions are at their busiest and rooms cost more. Winter days are short but London is still easy, because so much of it is indoors.</p>
+    <div class="tablewrap"><table><thead><tr><th>Month</th><th>Daylight in London</th><th>Daylight in York</th></tr></thead><tbody>{daylight_rows(EN_DAY)}</tbody></table></div>
+    <p class="muted">Sunrise to sunset on the 15th of each month, calculated for London and York and rounded to 5 minutes.</p>
+
+    <h2 id="london">3. London with kids: getting around and what's free</h2>
+    <ul>
+      <li><strong>Kids under 11 ride free.</strong> Under-11s travel free on London buses and trams. On the Tube, DLR, London Overground and the Elizabeth line, up to four children aged 5 to 10 travel free with a paying adult, and under-5s are always free.</li>
+      <li><strong>Adults just tap a contactless card or phone.</strong> Pay-as-you-go fares are capped each day: £8.90 for travel within zones 1 and 2 (most of central London). Use the same card or phone for every journey so the cap works.</li>
+      <li><strong>Kids aged 11 to 15</strong> pay the adult fare unless you get them a Visitor Oyster card and ask staff at a Tube station to add a Young Visitor discount (half the adult pay-as-you-go rate, for up to 14 days). The child has to be there when it's added.</li>
+      <li><strong>The big museums are free.</strong> The Natural History Museum and the Science Museum have free general admission. Book the free timed tickets online, especially for weekends and school holidays, or you may queue.</li>
+      <li><strong>Don't drive in central London.</strong> The Congestion Charge is £18 a day (if paid on the day or in advance) from 7am to 6pm on weekdays and noon to 6pm at weekends and on bank holidays, and the ULEZ charge applies on top if a car doesn't meet the emission standards.</li>
+    </ul>
+    <p>Buses are the cheapest sightseeing tour going: sit upstairs at the front. And build in a park every day or two, because jet-lagged kids need somewhere to run.</p>
+
+    <h2 id="driving">4. Beyond London: drive times and car hire</h2>
+    <p>For Bath, the Cotswolds, York and the Lake District, a car gives you the most freedom, especially for Cotswold villages and the lakes. Trains are great for London to York or Bath. These are mapped times with no stops, plus a "realistic" column with 40% added for traffic, toilets and snack stops.</p>
+    <div class="tablewrap"><table><thead><tr><th>Drive</th><th>Miles</th><th>Mapped time</th><th>Realistic (+40%)</th></tr></thead><tbody>{leg_rows(EN_LEGS)}</tbody></table></div>
+    <p class="muted">Mapped times: OpenStreetMap road data via the OSRM router, by car, looked up October 2026. Motorways around London are often slower than this.</p>
+    <p>You drive on the left, and children need a car seat until they're 12 or 135 cm tall. Automatics are less common than manuals in the UK, so book early and request the seats when you reserve. Pick the car up on your way out of London (Heathrow works well) rather than in the centre.</p>
+    <p id="car-insurance">{CARD_UK.format(where="England")} Comparison sites like {aff("discovercars-london", "Discover Cars")} show what's available at Heathrow and the other London airports.</p>
+    <p>Taking the train instead? A <strong>Family &amp; Friends Railcard</strong> costs £35 for a year and gives 1/3 off adult fares and 60% off kids' fares (ages 5 to 15) when at least one named adult travels with a child. Book long-distance trains early for the cheapest Advance fares.</p>
+
+    <h2 id="routes">5. Sample routes</h2>
+    <h3>7 nights: London, with one day out</h3>
+    <p>London (7 nights in one place, no packing and unpacking). Spend most days in the city, and take one day trip by train or tour to Windsor, or Stonehenge and Bath. It's the easiest first trip with small kids.</p>
+    {slot("stay", "7-night route: London")}
+    <h3>10 nights: London, Bath and the Cotswolds</h3>
+    <p>London (5 nights) → pick up a car at Heathrow and stop at Stonehenge on the way to Bath (2 nights: the Roman Baths and a walk by the river) → the Cotswolds (2 nights in a village like Bourton-on-the-Water) → back to Heathrow for the flight (1 night nearby if it's an early one).</p>
+    {slot("stay", "10-night route: London, Bath, Cotswolds")}
+    <h3>14 nights: add York and the Lake District</h3>
+    <p>London (5) → Bath (2) → the Cotswolds (2) → York (2: the city walls, the Minster and the railway museum) → the Lake District (2, around Windermere) → fly home from Manchester (1 night nearby). The Cotswolds to York is the longest day, so stop on the way, or take the train from London to York and pick up a car there instead.</p>
+    {slot("stay", "14-night route: London, Bath, Cotswolds, York, Lake District")}
+    <p>Rather not drive at all? Day tours from London to Windsor, Stonehenge and Bath are listed on {aff("klook-london", "Klook")}. With young kids, check how many hours you're actually on the coach.</p>
+
+    <h2 id="costs">6. What things cost (and which passes are worth it)</h2>
+    <p>Flights, rooms and the car will be most of your budget, and they depend so much on dates that we won't guess at them. Get real quotes. Some fixed costs and passes worth knowing:</p>
+    <ul>
+      <li><strong>Tower of London (Historic Royal Palaces):</strong> £38 per adult and £19 per child aged 5 to 15 without the optional donation, and under-5s are free. Historic Royal Palaces membership (from £65 a year) gets you into the Tower and its other palaces, like Hampton Court and Kensington Palace, as often as you like, so it's worth pricing if you'll visit two or more. {aff("tiqets-tower-of-london", "Tiqets also sells Tower of London tickets")}, so compare with the official site.</li>
+      <li><strong>The London Pass:</strong> one pass for a set number of days that covers many paid attractions and a hop-on hop-off bus. It's worth it only if you'll fit in several of the paid sights each day. List the ones you'd actually visit, add up their ticket prices and compare. You can check the current prices and what's included on {aff("gocity-london", "Go City's London Pass page")}.</li>
+      <li><strong>English Heritage Overseas Visitor Pass:</strong> entry to over 100 English Heritage sites, including Stonehenge. For visits from 25 March 2026 to 16 March 2027 the family pass is £116 for 9 days or £127 for 16 days (two adults and up to four children under 18 living at the same address). Buy it online, then collect it at the first staffed site with your confirmation, passport and the card you paid with.</li>
+      <li><strong>Roman Baths, Bath:</strong> prices change by season and day of the week. For September and October 2026, a family ticket (2 adults and 2 to 4 children) booked in advance is £69 on weekdays and £77 at weekends, and on-the-day tickets cost more.</li>
+      <li><strong>UK ETA:</strong> £20 per person (fixed fee).</li>
+      <li><strong>Congestion Charge:</strong> £18 a day if you drive into central London during charging hours. Easiest to avoid.</li>
+      <li><strong>Phone data:</strong> check your plan's roaming charges, or use a travel eSIM such as {aff("airalo-uk", "Airalo's UK eSIM")}.</li>
+    </ul>
+    <p><span class="est">Estimate</span> To get your own number, plug real quotes into the free <a href="/travel/tools/travel-budget-calculator/">travel budget calculator</a> (it also tells you what to save per paycheck), and use the <a href="/travel/tools/daily-travel-budget-calculator/">daily budget calculator</a> for spending money per day in pounds and dollars.</p>
+
+    <h2 id="packing">7. Packing for England</h2>
+    <ul>
+      <li><strong>Layers and a light waterproof jacket for everyone</strong>, even in summer. A small umbrella is handy in London.</li>
+      <li><strong>Comfortable shoes.</strong> London days involve a lot more walking (and stairs at Tube stations) than you'd guess. A light, foldable stroller beats a big one on the Tube.</li>
+      <li><strong>A contactless card or phone</strong> with no foreign transaction fees, for the Tube and buses.</li>
+      <li><strong>Plug adapters:</strong> the UK uses the three-pin plug (type G).</li>
+    </ul>
+
+    <h2 id="kids">8. Tips for London and England with kids</h2>
+    <ul>
+      <li><strong>One big thing a day</strong> in London, plus a park or playground. The city wears little legs out fast.</li>
+      <li><strong>Book timed tickets early</strong> for the busiest places in school holidays, including the free museums.</li>
+      <li><strong>Stay near a Tube station</strong> on a line that reaches the places you'll go most. It saves more time than a slightly cheaper room further out.</li>
+      <li><strong>Jet lag:</strong> London is usually 5 hours ahead of US Eastern time. Get outside in daylight on day one and keep the first day light.</li>
+      <li><strong>Outside London,</strong> keep most driving days under two to three hours of mapped time, and stay two nights or more in each place.</li>
+    </ul>
+
+    <h2 id="timeline">9. What to book when</h2>
+    <ul>
+      <li><strong>6 to 9 months out:</strong> rooms in London for school holidays, and Cotswold cottages for summer. Check {aff("booking-london", "Booking.com")} or book direct.</li>
+      <li><strong>4 to 6 months out:</strong> flights and the rental car (especially an automatic).</li>
+      <li><strong>2 to 3 months out:</strong> long-distance train tickets as soon as Advance fares open, and timed tickets for the Tower of London and other paid sights.{slot("tour", "timeline: tours and tickets")}</li>
+      <li><strong>2 to 4 weeks out:</strong> free museum tickets for your dates, and the English Heritage pass if you're getting one.</li>
+      <li><strong>Once flights are booked:</strong> the ETA for everyone, a passport check, and travel insurance.{slot("insurance", "timeline")}</li>
+      <li><strong>The week before:</strong> download the TfL Go app and offline maps, install the eSIM, and print the emergency info.</li>
+    </ul>
+{cta(["trip-planner-travel-budget", "family-travel-kids-planner"], "Plan it in one sheet", "The Trip Planner & Travel Budget handles costs in pounds and dollars and works out what to save each paycheck. The Family Travel with Kids Planner checks passports against your return date and has a jet-lag plan and packing lists by age.")}
+{FREE}
+{faq_html(EN_FAQ)}
+    <h2 id="sources">Sources</h2>
+    <ul class="src">
+      <li><a href="https://www.gov.uk/eta">UK ETA: who needs one, £20 fee, apply 3 working days ahead (GOV.UK)</a></li>
+      <li><a href="https://www.gov.uk/eta/when-not-need-eta">When you do not need an ETA: British and Irish citizens (GOV.UK)</a></li>
+      <li><a href="https://tfl.gov.uk/travel-information/visiting-london/visitor-oyster-card">Visitor Oyster card and travelling with children (Transport for London)</a></li>
+      <li><a href="https://tfl.gov.uk/fares/find-fares/caps-and-travelcard-prices">Children aged 5 to 10 travel free, up to four per adult (Transport for London)</a></li>
+      <li><a href="https://content.tfl.gov.uk/adult-fares.pdf">Pay as you go daily caps: zones 1-2 £8.90 (Transport for London)</a></li>
+      <li><a href="https://tfl.gov.uk/modes/driving/congestion-charge">Congestion Charge: £18 a day, charging hours, ULEZ (Transport for London)</a></li>
+      <li><a href="https://www.nhm.ac.uk/visit.html">Natural History Museum: free entry, book a free ticket (Natural History Museum)</a></li>
+      <li><a href="https://www.sciencemuseum.org.uk/visit">Science Museum: free entry, book a free ticket (Science Museum)</a></li>
+      <li><a href="https://www.hrp.org.uk/tower-of-london/visit/tickets-and-prices/">Tower of London tickets and prices; membership from £65 (Historic Royal Palaces)</a></li>
+      <li><a href="https://www.english-heritage.org.uk/visit/overseas-visitors">Overseas Visitor Pass prices, 25 March 2026 to 16 March 2027 (English Heritage)</a></li>
+      <li><a href="https://www.romanbaths.co.uk/tickets/2026-09-september">Roman Baths tickets, September and October 2026 (Roman Baths)</a></li>
+      <li><a href="https://www.railcard.co.uk/family-and-friends-railcard/">Family &amp; Friends Railcard: £35, 1/3 off adults, 60% off kids (Railcards)</a></li>
+      <li><a href="https://www.gov.uk/child-car-seats-the-rules">Child car seat rules: until 12 years or 135 cm (GOV.UK)</a></li>
+{CARD_SRC}      <li><a href="https://travel.state.gov/en/passports/apply/child/under-16.html">US passports for children under 16 (U.S. Department of State)</a></li>
+      <li><a href="https://project-osrm.org/">Drive distances and times: OpenStreetMap data via OSRM</a></li>
+    </ul>
+    <p class="muted">Prices, rules and card benefits change. Check the official pages and your own card's guide to benefits before you book. Last checked 22 October 2026.</p>
+  </main>
+''' + foot(aff=True) + "</body>\n</html>\n"
+    write(path, page)
+
+# ---------------------------------------------------------------- Wales guide
+WA_LEGS = [("London", "Cardiff", 150, 187), ("Heathrow Airport", "Cardiff", 137, 158), ("Cardiff", "Brecon", 42, 61), ("Cardiff", "Tenby", 94, 117),
+           ("Tenby", "St Davids", 35, 58), ("Tenby", "Brecon", 75, 108), ("St Davids", "Aberystwyth", 76, 115), ("Aberystwyth", "Betws-y-Coed", 68, 106), ("Betws-y-Coed", "Llanberis", 16, 28),
+           ("Llanberis", "Caernarfon", 8, 17), ("Caernarfon", "Conwy", 24, 34), ("Conwy", "Manchester Airport", 79, 107)]
+WA_DAY = [("January", "8h 20m", "8h 05m"), ("April", "13h 50m", "14h 00m"), ("June", "16h 35m", "16h 55m"), ("August", "14h 35m", "14h 45m"),
+          ("October", "10h 40m", "10h 35m"), ("December", "7h 50m", "7h 35m")]
+WA_FAQ = [
+ ("Do US citizens need anything to visit Wales?", "Yes: a UK Electronic Travel Authorisation (ETA), because Wales is part of the UK. It costs £20 per person, every traveler needs their own, babies and children included, and the UK government says to apply at least 3 working days before you travel. Apply on GOV.UK or the official UK ETA app."),
+ ("Is the speed limit really 20 mph in Wales?", "On most roads in towns and villages, yes. Since 17 September 2023 the default limit on 'restricted roads' (usually streets with street lights) has been 20 mph. Some main roads stay at 30 mph, so follow the signs, and if there's no sign on a lit street, assume 20."),
+ ("Is the Cadw Explorer Pass worth it?", "If you'll visit three or more Cadw castles, usually yes. From 1 April 2026 the family pass (two adults and up to three children or grandchildren under 18) is £67.20 for 3 days of use within 7, or £78.50 for 7 days within 14. Caernarfon Castle alone is £14.90 per adult, for comparison."),
+ ("Can kids get up Yr Wyddfa (Snowdon) without the hike?", "Yes, on the Snowdon Mountain Railway from Llanberis. For 2026, a return to the summit on the traditional diesel train is £45 off-peak or £48 peak for adults and £35 or £38 for children aged 3 to 15. Book ahead in summer, and know that bad weather can stop trains short of the summit."),
+ ("Is there a tourist tax in Wales?", "Not yet. Welsh councils can charge a visitor levy on overnight stays from 1 April 2027: £1.30 per person per night in most accommodation, or 75p in campsites and hostel-style shared rooms. Cardiff has approved one. Other councils decide for themselves, and Pembrokeshire has ruled it out until at least its 2027 elections."),
+ ("Do kids need car seats in Wales?", "Yes. UK law says children must use a car seat until they're 12 years old or 135 cm tall, whichever comes first. Request seats when you book the car, or bring your own."),
+]
+def build_wales():
+    path = "/travel/wales/"
+    cr, crld = crumbs([("Travel", "/travel/"), ("Wales with kids guide", path)])
+    img = "/assets/travel/family-travel-kids-planner/1.jpg"
+    page = head(path, "Wales with Kids: Family Trip Planning Guide to Eryri, Castles, Pembrokeshire & Cardiff (2026) | Dark Lighthouse Solutions",
+                "Planning Wales with kids? The UK ETA, the 20 mph default speed limit, real drive times, 7 and 10-night routes through Cardiff, Pembrokeshire and Eryri (Snowdonia), the Cadw Explorer Pass and the Snowdon railway.",
+                img, [article("Wales with kids: Eryri, castles, Pembrokeshire and Cardiff, with routes, costs and what to book when", path, img), faq_ld(WA_FAQ), crld], "/travel/wales/")
+    page += f'''
+  <header class="wrap hero">
+    {cr}
+    <h1>Wales with kids: Eryri, castles, Pembrokeshire and Cardiff</h1>
+    <p class="lede">Castles you can actually climb, beaches, mountains with a train to the top, and drives that are shorter than they are in Scotland. Here's how to plan it with kids: routes, real drive times, the passes worth buying and what to book first. Facts checked October 2026, with sources at the end.</p>
+  </header>
+  <main class="wrap copy">
+{DISCLOSE}
+    <h2 id="before">1. Before you book anything: the UK ETA</h2>
+{ETA_HTML}
+    <h2 id="when">2. When to go</h2>
+    <p>Wales is mild and can be wet in any month, and the mountains of Eryri make their own weather. Late May, June and September are our pick with kids: long days, warmer sea for paddling, and fewer people than in the school summer holidays in July and August. Winter is quiet and cheap, but days are short and some attractions close or cut their hours.</p>
+    <div class="tablewrap"><table><thead><tr><th>Month</th><th>Daylight in Cardiff</th><th>Daylight in Caernarfon</th></tr></thead><tbody>{daylight_rows(WA_DAY)}</tbody></table></div>
+    <p class="muted">Sunrise to sunset on the 15th of each month, calculated for Cardiff and Caernarfon and rounded to 5 minutes.</p>
+
+    <h2 id="places">3. Where to go: the four big areas</h2>
+    <ul>
+      <li><strong>Eryri (Snowdonia):</strong> mountains, lakes and waterfalls in the north-west, around Betws-y-Coed and Llanberis. Yr Wyddfa (Snowdon) is the highest mountain in Wales, and the Snowdon Mountain Railway takes you to the top from Llanberis if little legs won't make the hike.</li>
+      <li><strong>The castles of north Wales:</strong> Caernarfon, Conwy, Harlech and Beaumaris were built for Edward I and together are a UNESCO World Heritage Site. They're run by Cadw, the Welsh Government's historic environment service, and kids love the walls and towers.</li>
+      <li><strong>Pembrokeshire:</strong> the coast national park in the south-west, with sandy beaches, rock pools, boat trips and the coast path. Tenby is a good family base, with St Davids a short drive away.</li>
+      <li><strong>Cardiff:</strong> an easy first or last stop, with Cardiff Castle in the city centre and St Fagans National Museum of History (free entry, with old buildings from across Wales rebuilt in parkland) just outside it.</li>
+    </ul>
+
+    <h2 id="driving">4. Driving in Wales: 20 mph and real drive times</h2>
+    <p>A car is the easiest way to see Wales with kids. You drive on the left, road signs are in Welsh and English, and many country lanes are narrow with high hedges. One thing catches visitors out: since 17 September 2023, the <strong>default speed limit on most roads in towns and villages is 20 mph</strong>. Some main roads stay at 30, so watch the signs. These are mapped times with no stops, plus a "realistic" column with 40% added for slow lanes, tractors and toilet stops.</p>
+    <div class="tablewrap"><table><thead><tr><th>Drive</th><th>Miles</th><th>Mapped time</th><th>Realistic (+40%)</th></tr></thead><tbody>{leg_rows(WA_LEGS)}</tbody></table></div>
+    <p class="muted">Mapped times: OpenStreetMap road data via the OSRM router, by car, looked up October 2026.</p>
+    <p>Children need a car seat until they're 12 or 135 cm tall. Automatics are less common than manuals in the UK, so book early and request the seats when you reserve. Flying into London? Heathrow to Cardiff is under three hours' mapped drive, and Manchester Airport is the closest big airport to Eryri and the north Wales castles.</p>
+    <p id="car-insurance">{CARD_UK.format(where="Wales")} Comparison sites like {aff("discovercars-cardiff", "Discover Cars")} show what's available in Cardiff and at the airports.</p>
+
+    <h2 id="routes">5. Two sample routes</h2>
+    <h3>7 nights: Cardiff, Pembrokeshire and the Brecon Beacons (Bannau Brycheiniog)</h3>
+    <p>Cardiff (2 nights: the castle and St Fagans) → Tenby (3 nights: beaches, boat trips and a day out to St Davids) → Brecon (2 nights: waterfalls and easy walks in the Brecon Beacons) → back to Cardiff or on to Heathrow. All the drives are under two hours' mapped time.</p>
+    {slot("stay", "7-night route: Cardiff, Tenby, Brecon")}
+    <h3>10 nights: the whole country, south to north</h3>
+    <p>Cardiff (2) → Tenby (3) → Aberystwyth (1, to break up the drive up the coast) → Betws-y-Coed or Llanberis in Eryri (2: the Snowdon railway and the lakes) → Conwy (2: Conwy and Caernarfon castles, and a day trip to Beaumaris on Anglesey) → fly home from Manchester. The St Davids to Aberystwyth and Aberystwyth to Eryri days are the longest, so plan a stop on each.</p>
+    {slot("stay", "10-night route: Cardiff, Tenby, Aberystwyth, Eryri, Conwy")}
+    <p>Short on time and based in London? Guided day trips from London to north Wales, including Caernarfon and Eryri, are on {aff("klook-north-wales-rail", "Klook")}, and guided tours around Wales are listed on {aff("gyg-wales", "GetYourGuide")}. Check how long the day really is before booking with young kids.</p>
+
+    <h2 id="costs">6. What things cost (and the Cadw pass)</h2>
+    <p>Flights, rooms and the car will be most of your budget, and they depend so much on dates that we won't guess at them. Get real quotes. Some fixed costs worth knowing:</p>
+    <ul>
+      <li><strong>Cadw Explorer Pass:</strong> entry to dozens of Cadw sites, including Caernarfon, Conwy, Harlech and Beaumaris. From 1 April 2026 the family pass (two adults and up to three children or grandchildren under 18) is £67.20 for any 3 days within 7, or £78.50 for any 7 days within 14. Single adult passes are £28 and £42. You buy it at Cadw sites.</li>
+      <li><strong>Caernarfon Castle</strong> on its own: £14.90 per adult (1 September 2026 to 31 March 2027), so the pass pays off fast if you're doing several castles.</li>
+      <li><strong>Cardiff Castle</strong> (run by the city, not Cadw, so not on the pass): £16.50 per adult, £11 per child aged 5 to 16, and £44 for a family ticket of 2 adults and 2 children. Under-5s are free.</li>
+      <li><strong>Snowdon Mountain Railway:</strong> for 2026, a summit return on the traditional diesel train is £45 off-peak or £48 peak for adults, and £35 or £38 for children aged 3 to 15. The heritage steam train costs more.</li>
+      <li><strong>St Fagans National Museum of History:</strong> free entry, with a parking charge.</li>
+      <li><strong>Visitor levy:</strong> nothing yet. From 1 April 2027 Welsh councils can add £1.30 per person per night (75p in campsites and hostel-style shared rooms). Cardiff has approved it. Pembrokeshire has ruled it out until at least its 2027 elections.</li>
+      <li><strong>UK ETA:</strong> £20 per person (fixed fee).</li>
+      <li><strong>Phone data:</strong> check your plan's roaming charges, or use a travel eSIM such as {aff("airalo-uk", "Airalo's UK eSIM")}. Signal is patchy in the mountains, so download offline maps too.</li>
+      <li><strong>Things to do in Cardiff:</strong> {aff("tiqets-cardiff", "Tiqets lists Cardiff-area attractions")} if you want to book ahead.</li>
+    </ul>
+    <p><span class="est">Estimate</span> To get your own number, plug real quotes into the free <a href="/travel/tools/travel-budget-calculator/">travel budget calculator</a> (it also tells you what to save per paycheck), and use the <a href="/travel/tools/daily-travel-budget-calculator/">daily budget calculator</a> for spending money per day in pounds and dollars.</p>
+
+    <h2 id="packing">7. Packing for Wales</h2>
+    <ul>
+      <li><strong>Waterproof jackets and layers for everyone</strong>, even in summer. It's colder and windier at the top of Yr Wyddfa than in Llanberis.</li>
+      <li><strong>Proper shoes:</strong> walking shoes or boots for paths and castle steps, plus water shoes or old trainers for rock pools.</li>
+      <li><strong>Swimsuits and a towel in the car</strong> for Pembrokeshire beaches. The sea is cold, so a wetsuit helps if kids want to stay in.</li>
+      <li><strong>Plug adapters:</strong> the UK uses the three-pin plug (type G).</li>
+    </ul>
+
+    <h2 id="kids">8. Tips for Wales with kids</h2>
+    <ul>
+      <li><strong>Castles are the stars.</strong> Let kids climb the towers and walk the walls, but hold small hands on the battlements and spiral stairs.</li>
+      <li><strong>Check the summit forecast</strong> before the Snowdon railway or any mountain walk, and have a plan B (a waterfall walk or a castle) for cloudy days.</li>
+      <li><strong>Learn a few Welsh words.</strong> You'll see them on every sign: <em>croeso</em> (welcome), <em>diolch</em> (thank you), <em>araf</em> (slow).</li>
+      <li><strong>Base yourself for two nights or more</strong> so there are days when you don't pack the car.</li>
+      <li><strong>Jet lag:</strong> Wales is usually 5 hours ahead of US Eastern time. Get outside in daylight on day one and keep the first day light.</li>
+    </ul>
+
+    <h2 id="timeline">9. What to book when</h2>
+    <ul>
+      <li><strong>6 to 9 months out:</strong> summer rooms and cottages in Tenby, Pembrokeshire and Eryri. Check {aff("booking-pembrokeshire", "Booking.com")} or local cottage sites.</li>
+      <li><strong>4 to 6 months out:</strong> flights and the rental car (especially an automatic).</li>
+      <li><strong>1 to 2 months out:</strong> Snowdon Mountain Railway tickets for summer, boat trips and any tours.{slot("tour", "timeline: tours and tickets")}</li>
+      <li><strong>Once flights are booked:</strong> the ETA for everyone, a passport check, and travel insurance.{slot("insurance", "timeline")}</li>
+      <li><strong>The week before:</strong> offline maps, the eSIM installed, and your card's proof of rental car cover.</li>
+    </ul>
+{cta(["trip-planner-travel-budget", "family-travel-kids-planner"], "Plan it in one sheet", "The Trip Planner & Travel Budget handles costs in pounds and dollars and works out what to save each paycheck. The Family Travel with Kids Planner checks passports against your return date and has a jet-lag plan and packing lists by age.")}
+{FREE}
+{faq_html(WA_FAQ)}
+    <h2 id="sources">Sources</h2>
+    <ul class="src">
+      <li><a href="https://www.gov.uk/eta">UK ETA: who needs one, £20 fee, apply 3 working days ahead (GOV.UK)</a></li>
+      <li><a href="https://www.gov.wales/introducing-default-20mph-speed-limits">Default 20 mph speed limits (Welsh Government)</a></li>
+      <li><a href="https://www.gov.wales/introducing-20mph-speed-limits-frequently-asked-questions">20 mph: frequently asked questions (Welsh Government)</a></li>
+      <li><a href="https://cadw.gov.wales/visit/places-to-visit/admissions/explorer-pass-3-7-day">Cadw Explorer Pass prices from 1 April 2026 (Cadw)</a></li>
+      <li><a href="https://cadw.gov.wales/visit/places-to-visit/castell-caernarfon">Castell Caernarfon prices (Cadw)</a></li>
+      <li><a href="https://whc.unesco.org/en/list/374/">Castles and Town Walls of King Edward in Gwynedd (UNESCO)</a></li>
+      <li><a href="https://www.cardiffcastle.com/visit/tickets/">Cardiff Castle admission rates (Cardiff Castle)</a></li>
+      <li><a href="https://snowdonrailway.co.uk/plan-your-visit/">Snowdon Mountain Railway 2026 fares (Snowdon Mountain Railway)</a></li>
+      <li><a href="https://museum.wales/stfagans/visit/">St Fagans National Museum of History: free entry, parking (Museum Wales)</a></li>
+      <li><a href="https://www.cardiffnewsroom.co.uk/releases/c25/37008.html">Cardiff visitor levy from April 2027: £1.30 and 75p rates (Cardiff Council)</a></li>
+      <li><a href="https://pembrokeshire-herald.com/110238/pembrokeshire-rules-out-visitor-levy-for-next-two-years/">Pembrokeshire rules out a visitor levy for now (Pembrokeshire Herald)</a></li>
+      <li><a href="https://www.gov.uk/child-car-seats-the-rules">Child car seat rules: until 12 years or 135 cm (GOV.UK)</a></li>
+{CARD_SRC}      <li><a href="https://travel.state.gov/en/passports/apply/child/under-16.html">US passports for children under 16 (U.S. Department of State)</a></li>
+      <li><a href="https://project-osrm.org/">Drive distances and times: OpenStreetMap data via OSRM</a></li>
+    </ul>
+    <p class="muted">Prices, rules and card benefits change. Check the official pages and your own card's guide to benefits before you book. Last checked 22 October 2026.</p>
+  </main>
+''' + foot(aff=True) + "</body>\n</html>\n"
+    write(path, page)
+
 # ---------------------------------------------------------------- planners, hub, privacy
 PL_FAQ = [
  ("What do I need to use the planners?", "A free Google account for the Google Sheets version, or Excel for the .xlsx file that comes with every order. No add-ons, scripts or subscriptions."),
@@ -724,19 +1004,21 @@ def build_planners():
 def build_hub():
     path = "/travel/"
     cr, crld = crumbs([("Travel", path)])
-    page = head(path, "Family Travel Planning: Budgets, Planners, Scotland & Ireland Guides | Dark Lighthouse Solutions",
-                "Family travel planning without the spreadsheet headache: free travel budget calculators, Scotland and Ireland trip planning guides, a free kids packing checklist and Google Sheets trip planners.",
+    page = head(path, "Family Travel Planning: Budgets, Planners, UK & Ireland Guides | Dark Lighthouse Solutions",
+                "Family travel planning without the spreadsheet headache: free travel budget calculators, Scotland, Ireland, England and Wales trip planning guides, a free kids packing checklist and Google Sheets trip planners.",
                 "/assets/travel/travel-planner-bundle/1.jpg", [crld], "/travel/")
     page += f'''
   <header class="wrap hero">
     {cr}
     <h1>Family trips, planned on a budget</h1>
-    <p class="lede">Practical tools for planning a trip with kids without blowing the budget: what it'll cost, how much to save each payday, and (if you're heading to Scotland or Ireland) how long the drives really take.</p>
+    <p class="lede">Practical tools for planning a trip with kids without blowing the budget: what it'll cost, how much to save each payday, and (if you're heading to Scotland, Ireland, England or Wales) how long the drives really take.</p>
   </header>
   <main class="wrap">
     <div class="hub">
       <a href="/travel/scotland/"><h2>Scotland trip planning guide</h2><p>The UK ETA, realistic Highland drive times, three sample routes, the costs people forget and what to book when.</p></a>
       <a href="/travel/ireland/"><h2>Ireland with kids guide</h2><p>When to go, 7 and 10-night routes, real drive times, the Heritage Card and the rental car insurance catch.</p></a>
+      <a href="/travel/england/"><h2>London &amp; England with kids guide</h2><p>Free Tube rides for under-11s, free museums, the London Pass and English Heritage, plus Bath, the Cotswolds, York and the Lake District.</p></a>
+      <a href="/travel/wales/"><h2>Wales with kids guide</h2><p>Eryri and the Snowdon railway, castles and the Cadw pass, Pembrokeshire beaches, Cardiff and the 20 mph rule.</p></a>
       <a href="/travel/tools/travel-budget-calculator/"><h2>Travel budget calculator</h2><p>Trip total, cost per person and how much to save from each paycheck before you leave. Free.</p></a>
       <a href="/travel/tools/daily-travel-budget-calculator/"><h2>Daily travel budget</h2><p>Spending money per day for the group, per adult and per child, in your currency and the local one. Free.</p></a>
       <a href="/travel/planners/"><h2>Travel planners</h2><p>Google Sheets planners: Trip Planner &amp; Budget, Family Travel with Kids, and Scotland.</p></a>
@@ -776,5 +1058,5 @@ def build_privacy():
     write(path, page)
 
 if __name__ == "__main__":
-    build_hub(); build_scotland(); build_ireland(); build_planners(); build_calcs(); build_privacy()
+    build_hub(); build_scotland(); build_ireland(); build_england(); build_wales(); build_planners(); build_calcs(); build_privacy()
     print("built /travel/ (hub, scotland, ireland, planners, tools + %d calculators) and /privacy/" % len(CALCS))
