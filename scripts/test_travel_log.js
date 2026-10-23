@@ -132,7 +132,7 @@ ok(M.familyStats([], [], MAPS.world).states === 0, "empty family is fine");
 // ---- backup / restore ----
 const px = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2w==";
 const bk = M.makeBackup([a, b], [t1, t2], [{ id: "photo_0123456789abcdef", dataUrl: px }], "2026-10-23T12:00:00.000Z");
-ok(bk.app === "my-lifetime-travel-log" && bk.version === 2, "backup is labeled (version 2)");
+ok(bk.app === "my-lifetime-travel-log" && bk.version === 3, "backup is labeled (version 3)");
 const bk2 = M.readBackup(JSON.parse(JSON.stringify(M.makeBackup([a, mom, gran], [tCouple], []))));
 ok(bk2.kids.map(p => p.role).join() === "kid,adult,grand", "v2 backups keep roles");
 ok(bk2.kids[2].birthYear === 1952, "grandparent birth year survives");
@@ -167,6 +167,103 @@ ok(JSON.stringify(M.fitDims(4032, 3024)) === '{"w":1280,"h":960}' && JSON.string
 ok(M.backupNudge(null, [t1, t2]) === 0 && M.backupNudge(null, [t1, t2, t1]) === 3, "backup nudge after 3 trips");
 ok(M.backupNudge("2999-01-01T00:00:00Z", [t1, t2, t1]) === 0, "no nudge right after a backup");
 
+
+// ---- v1.2: who went, from / to, trips together, backup reminder ----
+{
+  const lily = M.newPerson({ name: "Lily", color: M.COLORS[0] }), mum = M.newPerson({ name: "Mom", role: "adult", color: M.COLORS[1] }),
+        dad = M.newPerson({ name: "Dad", role: "adult", color: M.COLORS[2] }), nan = M.newPerson({ name: "Nana", role: "grand", color: M.COLORS[3] });
+  const T = (ids, place, date, more) => M.newTrip(Object.assign({ kidIds: ids, place, date }, more || {}));
+  const ed = T([lily.id, mum.id, dad.id], "Edinburgh", "2026-07-10", { from: " Orlando ", stops: ["London", "  ", "York"], mark: { kind: "place", id: "SCT" } });
+  ok(ed.from === "Orlando" && ed.stops.join() === "London,York", "From is cleaned, blank stops dropped");
+  ok(M.routeText(ed) === "Orlando to London to York to Edinburgh", "route reads in plain words: " + M.routeText(ed));
+  ok(M.routeText(T([lily.id], "Zion", "")) === "Zion", "no From: just the destination");
+  ok(M.routeText(T([lily.id], "Orlando", "", { from: "orlando" })) === "Orlando", "From = To isn't repeated");
+  ok(M.routeText(T([lily.id], "Edinburgh", "", { from: "Orlando" })) === "Orlando to Edinburgh", "Orlando to Edinburgh");
+  ok(!/→|->/.test(M.routeText(ed)), "no arrows, plain words");
+  ok(T([lily.id], "x", "", { stops: ["a", "b", "c", "d", "e", "f", "g"] }).stops.length === M.MAX_STOPS && M.MAX_STOPS === 5, "stops capped at 5");
+  ok(T([lily.id], "x", "", { stops: "London" }).stops.length === 0 && T([lily.id], "x", "").from === "", "stops/from default empty");
+  ok(T([lily.id], "x", "", { from: "y".repeat(200) }).from.length === 80, "From capped at 80 chars");
+  // a trip with several travelers counts for each of them
+  M.applyTripMark(ed, [lily, mum, dad, nan]);
+  ok(lily.places.SCT && mum.places.SCT && dad.places.SCT && !nan.places.SCT, "trip colors Scotland for everyone who went, not Nana");
+  const beach = T([lily.id, nan.id], "Clearwater", "2025-06-01", { from: "Orlando", mark: { kind: "state", id: "FL" } });
+  const lake = T([lily.id, mum.id], "Lake Lure", "2024-08-02", { from: "Orlando", mark: { kind: "state", id: "NC" } });
+  const work = T([dad.id], "Atlanta", "2024-03-03");
+  const smoky = T([lily.id, mum.id, dad.id, nan.id], "Great Smoky Mountains", "2023-10-01", { from: "Orlando", mark: { kind: "park", id: "great-smoky-mountains" } });
+  const trips = [ed, beach, lake, work, smoky];
+  [beach, lake, work, smoky].forEach(t => M.applyTripMark(t, [lily, mum, dad, nan]));
+  ok(M.stats(lily, trips, MAPS.world).trips === 4 && M.stats(dad, trips, MAPS.world).trips === 3 && M.stats(nan, trips, MAPS.world).trips === 2, "each traveler's trip count includes shared trips");
+  ok(M.stats(lily, trips, MAPS.world).together === 4 && M.stats(dad, trips, MAPS.world).together === 2, "shared trips count as 'together' for each person");
+  ok(M.badges(M.stats(lily, trips, MAPS.world)).find(b => b.id === "together").earned, "Lily earns Better together from shared trips");
+  ok(nan.parks["great-smoky-mountains"] && dad.parks["great-smoky-mountains"], "park trip ticks the park for all 4");
+  // Family map: a shared trip counts once, places count once
+  const F = M.familyStats([lily, mum, dad, nan], trips, MAPS.world);
+  ok(F.trips === 5, "family trips logged = 5 (a 4-person trip isn't counted 4 times), got " + F.trips);
+  ok(F.parks === 1 && F.togetherParks === 1 && F.togetherTrips === 1, "family: 1 park, been together by all 4, 1 trip with all 4");
+  ok(M.whoBeen([lily, mum, dad, nan], "place", MAPS.world).SCT.length === 3, "Scotland: 3 people, one place on the family map");
+  // trips together
+  ok(M.tripsTogether(trips, [mum.id, lily.id]).map(t => t.place).join() === "Edinburgh,Lake Lure,Great Smoky Mountains", "Mom & Lily: 3 trips together, newest first");
+  ok(M.tripsTogether(trips, [lily.id, mum.id, dad.id]).length === 2, "three people together: Edinburgh + Smokies");
+  ok(M.tripsTogether(trips, [lily.id]).length === 0 && M.tripsTogether(trips, []).length === 0, "together needs two or more people");
+  ok(M.tripsTogether(trips, [dad.id, nan.id]).length === 1, "Dad & Nana: 1 trip");
+  const pc = M.pairCounts([lily, mum, dad, nan], trips);
+  ok(pc[0].count === 3 && pc[0].ids.includes(lily.id) && pc[0].ids.includes(mum.id), "top pair is Lily & Mom with 3");
+  ok(pc.length === 6 && pc.every((p, i) => !i || pc[i - 1].count >= p.count), "all 6 pairs listed, most first");
+  ok(M.pairCounts([lily, mum], [work]).length === 0, "pairs with no shared trips are left out");
+  ok(M.joinNames(["Mom", "Lily"]) === "Mom & Lily" && M.joinNames(["Lily", "Mom", "Dad"]) === "Lily, Mom & Dad" && M.joinNames(["Lily"]) === "Lily" && M.joinNames([]) === "", "names join in plain words");
+  // migration: older trips with no travelers or From
+  const old = M.migrateTrip({ id: "trip_aaaaaaaaaaaaaaaa", place: "Zion", kidId: lily.id }, null);
+  ok(old.kidIds.join() === lily.id && old.from === "" && Array.isArray(old.stops) && !("kidId" in old), "old single-person trip: that person is the only traveler");
+  ok(M.migrateTrip({ id: "trip_b", place: "x", kidIds: [] }, mum.id).kidIds.join() === mum.id, "trip with no travelers gets its owner");
+  ok(M.migrateTrip({ id: "trip_c", place: "x", kidIds: [mum.id, mum.id, ""] }).kidIds.join() === mum.id, "duplicate / blank travelers dropped");
+  const kept = M.migrateTrip({ id: "trip_d", place: "x", kidIds: [mum.id], from: "Orlando", stops: ["a"] });
+  ok(kept.from === "Orlando" && kept.stops.join() === "a", "migration leaves new trips alone");
+  // backup v3
+  const b3 = JSON.parse(JSON.stringify(M.makeBackup([lily, mum, dad, nan], trips, [], "2026-10-23T12:00:00.000Z", { home: " Orlando, FL " })));
+  ok(b3.version === 3 && b3.settings.home === "Orlando, FL", "v3 backup carries the home town");
+  const r3 = M.readBackup(b3);
+  ok(r3.settings.home === "Orlando, FL", "home town restores");
+  const red = r3.trips.find(t => t.id === ed.id);
+  ok(red.from === "Orlando" && red.stops.join() === "London,York" && red.kidIds.length === 3, "From, stops and all travelers survive a v3 round trip");
+  ok(M.readBackup(Object.assign({}, b3, { settings: "junk" })).settings.home === "", "junk settings are ignored");
+  ok(M.readBackup(Object.assign({}, b3, { settings: { home: "<script>" + "x".repeat(200) } })).settings.home.length === 80, "home town capped");
+  const v2file = JSON.parse(JSON.stringify(Object.assign(M.makeBackup([lily, mum], [lake], []), { version: 2 })));
+  delete v2file.settings; v2file.trips.forEach(t => { delete t.from; delete t.stops; });
+  const r2 = M.readBackup(v2file);
+  ok(r2.trips.length === 1 && r2.trips[0].from === "" && r2.trips[0].stops.length === 0 && r2.trips[0].kidIds.length === 2 && r2.settings.home === "", "v2 files still restore (shared trip keeps both travelers)");
+  ok(r1.trips[0].from === "" && r1.trips[0].kidIds.join() === "kid_0123456789abcdef" && r1.settings.home === "", "v1 files still restore: the kid is the only traveler");
+  const v1single = JSON.parse(JSON.stringify(v1)); v1single.trips[0] = Object.assign({}, v1single.trips[0], { kidId: "kid_0123456789abcdef" }); delete v1single.trips[0].kidIds;
+  ok(M.readBackup(v1single).trips[0].kidIds.join() === "kid_0123456789abcdef", "a trip saved under one person (kidId) restores with them as the traveler");
+  throws(() => M.readBackup(Object.assign({}, b3, { version: 4 })), /newer/i, "v4 files are refused politely");
+  // backup reminder
+  const now = "2026-10-23T12:00:00.000Z", t3 = [ed, beach, lake], day = 864e5, ago = d => new Date(Date.parse(now) - d * day).toISOString();
+  ok(!M.backupDue({ now, trips: [ed, beach], people: [lily] }), "never backed up, 2 trips: no banner yet");
+  ok(M.backupDue({ now, trips: t3, people: [lily] }), "never backed up, 3 trips: banner");
+  const fresh = Object.assign({}, ed, { updatedAt: ago(1) });
+  ok(!M.backupDue({ now, lastBackupAt: ago(3), trips: [fresh], people: [] }), "new data but backed up 3 days ago: no banner");
+  ok(M.backupDue({ now, lastBackupAt: ago(15), trips: [fresh], people: [] }), "new data and 15 days since backup: banner");
+  ok(M.backupDue({ now, lastBackupAt: ago(14), trips: [fresh], people: [] }), "exactly 14 days counts");
+  ok(!M.backupDue({ now, lastBackupAt: ago(30), trips: [Object.assign({}, ed, { updatedAt: ago(40) })], people: [Object.assign({}, lily, { updatedAt: ago(40) })] }), "nothing new since the backup: no banner, however long ago");
+  ok(M.backupDue({ now, lastBackupAt: ago(30), trips: [], people: [Object.assign({}, lily, { updatedAt: ago(2) })] }), "map changes (not just trips) count as new data");
+  ok(!M.backupDue({ now, dismissedAt: ago(2), trips: t3, people: [] }), "Not now hides it for a week");
+  ok(M.backupDue({ now, dismissedAt: ago(8), trips: t3, people: [] }), "it comes back after a week");
+  ok(M.BACKUP_DAYS === 14 && M.SNOOZE_DAYS === 7, "14-day reminder, 7-day snooze");
+}
+{
+  const js2 = read("app.js"), css2 = read("app.css");
+  ok(/id="tfrom"/.test(js2) && /id="tplace"/.test(js2) && />From</.test(js2) && />To \(where did you go\?\)/.test(js2), "trip form has From and To");
+  ok(/name="kids"/.test(js2) && /Who went\?/.test(js2) && /x\.id === k\.id/.test(js2), "Who went checklist, defaulting to the current person");
+  ok(/setMeta\("home"/.test(js2) && /state\.meta\.home/.test(js2), "home town saved on the device and prefilled");
+  ok(/id="addstop"/.test(js2) && /M\.MAX_STOPS/.test(js2), "optional stops");
+  ok(/function viewTogether/.test(js2) && /#\/together/.test(js2) && /trips together/.test(js2) && /pairCounts/.test(js2), "Trips together view with pair counts");
+  ok(/#\/together\/fam/.test(js2), "family map 'Trips together' links to the trips");
+  ok(/class="travelers"/.test(js2) && /M\.routeText\(t\)/.test(js2), "trip cards show travelers and the route");
+  ok(/function viewPrint[\s\S]*routeText[\s\S]*travelerNames/.test(js2), "print view includes route and travelers");
+  ok(/Save a backup so your log is safe if this phone is lost or reset/.test(js2) && /Back up now/.test(js2) && /data-backup-dismiss/.test(js2), "backup banner text, button and dismiss");
+  ok(/setMeta\("lastBackupAt"/.test(js2) && /setMeta\("backupDismissedAt"/.test(js2), "last backup and dismiss dates stored on the device");
+  ok(/\.backupnag/.test(css2) && /\.travelers/.test(css2) && /\.pairrow/.test(css2), "styles for the new parts");
+}
+
 // ---- the app shell: offline, private, no third parties ----
 const html = read("index.html"), js = read("app.js"), css = read("app.css"), sw = read("sw.js");
 const manifest = JSON.parse(read("manifest.webmanifest"));
@@ -174,7 +271,7 @@ ok(/<meta name="robots" content="noindex/.test(html), "app stays noindex (hidden
 ok(/<title>My Lifetime Travel Log: color in every place your family goes<\/title>/.test(html), "family title");
 ok(/name="description" content="[^"]*family[^"]*kids/i.test(html), "meta description is family-wide and mentions kids");
 ok(/"description": "[^"]*family/.test(read("manifest.webmanifest")), "manifest description is family-wide");
-ok(/var CACHE = "mltl-v2"/.test(sw), "service worker cache bumped to v2 so phones update");
+ok(/var CACHE = "mltl-v3"/.test(sw), "service worker cache bumped to v3 so phones update");
 ok(/Color in every place your family goes, from the first road trip on\./.test(js), "onboarding leads with family, from the first road trip");
 ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.test(js) && /places you\\'ve been together/.test(js), "family map with a together view");
 ok(/Parent\/Adult/.test(read("log-core.js")) && /data-role/.test(js), "add-someone form has roles");
