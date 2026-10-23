@@ -31,10 +31,132 @@
   }
   // Where each park is (Wikidata, CC0; same as data/places.json), for the dots on the Parks map.
   var PARK_LL = {"acadia":[44.35,-68.217],"american-samoa":[-14.258,-170.686],"arches":[38.728,-109.54],"badlands":[43.75,-102.5],"big-bend":[29.25,-103.25],"biscayne":[25.502,-80.181],"black-canyon-of-the-gunnison":[38.58,-107.728],"bryce-canyon":[37.64,-112.17],"canyonlands":[38.167,-109.76],"capitol-reef":[38.2,-111.167],"carlsbad-caverns":[32.175,-104.444],"channel-islands":[33.66,-119.64],"chiricahua":[32.006,-109.357],"congaree":[33.783,-80.783],"crater-lake":[42.912,-122.148],"cuyahoga-valley":[41.242,-81.55],"death-valley":[36.45,-116.85],"denali":[63.2,-150.3],"dry-tortugas":[24.629,-82.873],"everglades":[25.312,-80.688],"gates-of-the-arctic":[67.783,-153.3],"gateway-arch":[38.625,-90.185],"glacier":[48.755,-113.8],"glacier-bay":[58.7,-137.0],"grand-canyon":[36.055,-112.122],"grand-teton":[43.833,-110.701],"great-basin":[39.006,-114.22],"great-sand-dunes":[37.733,-105.512],"great-smoky-mountains":[35.611,-83.425],"guadalupe-mountains":[31.917,-104.867],"haleakala":[20.72,-156.155],"hawaii-volcanoes":[19.401,-155.124],"hot-springs":[34.514,-93.054],"indiana-dunes":[41.648,-87.108],"isle-royale":[47.996,-88.909],"joshua-tree":[33.748,-115.819],"katmai":[58.5,-155.0],"kenai-fjords":[59.918,-149.988],"kings-canyon":[36.789,-118.673],"kobuk-valley":[67.353,-159.199],"lake-clark":[60.97,-153.42],"lassen-volcanic":[40.498,-121.427],"mammoth-cave":[37.187,-86.101],"mesa-verde":[37.26,-108.494],"mount-rainier":[46.85,-121.75],"new-river-gorge":[37.931,-81.075],"north-cascades":[48.483,-120.911],"olympic":[47.7,-123.75],"petrified-forest":[35.088,-109.806],"pinnacles":[36.487,-121.167],"redwood":[41.529,-124.058],"rocky-mountain":[40.35,-105.683],"saguaro":[32.202,-110.611],"sequoia":[36.565,-118.773],"shenandoah":[38.533,-78.35],"theodore-roosevelt":[46.967,-103.45],"virgin-islands":[18.328,-64.933],"voyageurs":[48.5,-92.883],"white-sands":[32.78,-106.172],"wind-cave":[43.556,-103.479],"wrangell-st-elias":[61.435,-142.954],"yellowstone":[44.6,-110.5],"yosemite":[37.742,-119.537],"zion":[37.203,-112.988]};
-  // set: which collection a park belongs to. Only "np" (national parks) today; state parks can be added as more rows with
-  // their own set id (and their own stamps) without touching the screens, which group and count by set.
-  var PARK_SETS = [{ id: "np", name: "National parks" }];
-  var PARKS = PARK_LIST.map(function (p) { var id = slug(p[0]), l = PARK_LL[id] || []; return { id: id, name: p[0], states: p[1], set: "np", lat: l[0], lon: l[1] }; });
+  // set: which collection a park belongs to. PARKS stays the 64 national parks (counts, badges and quests are about those);
+  // ALL_PARKS adds state parks ("sp-" ids) and NPS national monuments ("nm-") and national memorials ("mem-").
+  var PARK_SETS = [{ id: "np", name: "National parks", short: "National" }, { id: "sp", name: "State parks", short: "State" }, { id: "nm", name: "Monuments & memorials", short: "Monuments" }];
+  var PARKS = PARK_LIST.map(function (p) { var id = slug(p[0]), l = PARK_LL[id] || []; return { id: id, name: p[0], full: p[0] + " National Park", states: p[1], set: "np", label: "NATIONAL PARK", lat: l[0], lon: l[1] }; });
+  // [set, short name, official name, states, lat, lon]. State parks: famous ones across the country. Monuments & memorials: National Park
+  // Service units with those official designations only (checked one by one against the NPS list); no logos or seals anywhere.
+  var MORE_PARKS = [
+    ["sp", "Custer", "Custer State Park", "SD", 43.614, -103.689],
+    ["sp", "Niagara Falls", "Niagara Falls State Park", "NY", 43.08, -79.07],
+    ["sp", "Letchworth", "Letchworth State Park", "NY", 42.635, -77.983],
+    ["sp", "Watkins Glen", "Watkins Glen State Park", "NY", 42.377, -76.872],
+    ["sp", "Valley of Fire", "Valley of Fire State Park", "NV", 36.472, -114.537],
+    ["sp", "Anza-Borrego Desert", "Anza-Borrego Desert State Park", "CA", 33.259, -116.399],
+    ["sp", "Julia Pfeiffer Burns", "Julia Pfeiffer Burns State Park", "CA", 36.171, -121.673],
+    ["sp", "Humboldt Redwoods", "Humboldt Redwoods State Park", "CA", 40.312, -123.972],
+    ["sp", "Emerald Bay", "Emerald Bay State Park", "CA", 38.954, -120.094],
+    ["sp", "Starved Rock", "Starved Rock State Park", "IL", 41.321, -88.99],
+    ["sp", "Dead Horse Point", "Dead Horse Point State Park", "UT", 38.508, -109.742],
+    ["sp", "Goblin Valley", "Goblin Valley State Park", "UT", 38.567, -110.71],
+    ["sp", "Palo Duro Canyon", "Palo Duro Canyon State Park", "TX", 34.985, -101.702],
+    ["sp", "Hocking Hills", "Hocking Hills State Park", "OH", 39.431, -82.539],
+    ["sp", "Ichetucknee Springs", "Ichetucknee Springs State Park", "FL", 29.967, -82.776],
+    ["sp", "Bahia Honda", "Bahia Honda State Park", "FL", 24.66, -81.262],
+    ["sp", "John Pennekamp Coral Reef", "John Pennekamp Coral Reef State Park", "FL", 25.12, -80.405],
+    ["sp", "Blue Spring", "Blue Spring State Park", "FL", 28.948, -81.34],
+    ["sp", "Hunting Island", "Hunting Island State Park", "SC", 32.366, -80.444],
+    ["sp", "Kartchner Caverns", "Kartchner Caverns State Park", "AZ", 31.836, -110.344],
+    ["sp", "Slide Rock", "Slide Rock State Park", "AZ", 34.944, -111.753],
+    ["sp", "Silver Falls", "Silver Falls State Park", "OR", 44.856, -122.609],
+    ["sp", "Smith Rock", "Smith Rock State Park", "OR", 44.369, -121.138],
+    ["sp", "Ecola", "Ecola State Park", "OR", 45.918, -123.98],
+    ["sp", "Deception Pass", "Deception Pass State Park", "WA", 48.407, -122.645],
+    ["sp", "Palouse Falls", "Palouse Falls State Park", "WA", 46.664, -118.224],
+    ["sp", "Eldorado Canyon", "Eldorado Canyon State Park", "CO", 39.931, -105.292],
+    ["sp", "Petit Jean", "Petit Jean State Park", "AR", 35.118, -92.938],
+    ["sp", "Tallulah Gorge", "Tallulah Gorge State Park", "GA", 34.725, -83.37],
+    ["sp", "Providence Canyon", "Providence Canyon State Park", "GA", 32.063, -84.92],
+    ["sp", "Fall Creek Falls", "Fall Creek Falls State Park", "TN", 35.662, -85.35],
+    ["sp", "Cumberland Falls", "Cumberland Falls State Resort Park", "KY", 36.841, -84.333],
+    ["sp", "Blackwater Falls", "Blackwater Falls State Park", "WV", 39.109, -79.496],
+    ["sp", "Ricketts Glen", "Ricketts Glen State Park", "PA", 41.335, -76.302],
+    ["sp", "Ohiopyle", "Ohiopyle State Park", "PA", 39.868, -79.494],
+    ["sp", "Baxter", "Baxter State Park", "ME", 46.033, -68.933],
+    ["sp", "Franconia Notch", "Franconia Notch State Park", "NH", 44.149, -71.687],
+    ["sp", "Cape Henlopen", "Cape Henlopen State Park", "DE", 38.803, -75.095],
+    ["sp", "Assateague", "Assateague State Park", "MD", 38.253, -75.128],
+    ["sp", "Jockey's Ridge", "Jockey's Ridge State Park", "NC", 35.964, -75.633],
+    ["sp", "Hanging Rock", "Hanging Rock State Park", "NC", 36.412, -80.254],
+    ["sp", "Chimney Rock", "Chimney Rock State Park", "NC", 35.433, -82.251],
+    ["sp", "Gulf", "Gulf State Park", "AL", 30.26, -87.663],
+    ["sp", "Itasca", "Itasca State Park", "MN", 47.24, -95.207],
+    ["sp", "Gooseberry Falls", "Gooseberry Falls State Park", "MN", 47.147, -91.463],
+    ["sp", "Devil's Lake", "Devil's Lake State Park", "WI", 43.415, -89.713],
+    ["sp", "Mackinac Island", "Mackinac Island State Park", "MI", 45.867, -84.617],
+    ["sp", "Tahquamenon Falls", "Tahquamenon Falls State Park", "MI", 46.604, -85.207],
+    ["sp", "Indiana Dunes", "Indiana Dunes State Park", "IN", 41.66, -87.04],
+    ["sp", "Turkey Run", "Turkey Run State Park", "IN", 39.885, -87.203],
+    ["sp", "Ha Ha Tonka", "Ha Ha Tonka State Park", "MO", 37.974, -92.763],
+    ["sp", "Waimea Canyon", "Waimea Canyon State Park", "HI", 22.056, -159.665],
+    ["sp", "Chugach", "Chugach State Park", "AK", 61.052, -149.797],
+    ["sp", "Natural Bridge", "Natural Bridge State Park", "VA", 37.627, -79.545],
+    ["sp", "Gillette Castle", "Gillette Castle State Park", "CT", 41.422, -72.429],
+    ["sp", "Liberty", "Liberty State Park", "NJ", 40.704, -74.049],
+    ["sp", "Robbers Cave", "Robbers Cave State Park", "OK", 35.003, -95.341],
+    ["sp", "Bruneau Dunes", "Bruneau Dunes State Park", "ID", 42.91, -115.71],
+    ["nm", "Statue of Liberty", "Statue of Liberty National Monument", "NY", 40.694, -74.043],
+    ["nm", "Devils Tower", "Devils Tower National Monument", "WY", 44.591, -104.715],
+    ["nm", "Muir Woods", "Muir Woods National Monument", "CA", 37.892, -122.571],
+    ["nm", "Canyon de Chelly", "Canyon de Chelly National Monument", "AZ", 36.155, -109.509],
+    ["nm", "Natural Bridges", "Natural Bridges National Monument", "UT", 37.601, -110.014],
+    ["nm", "Dinosaur", "Dinosaur National Monument", "CO, UT", 40.5, -108.95],
+    ["nm", "Craters of the Moon", "Craters of the Moon National Monument and Preserve", "ID", 43.462, -113.563],
+    ["nm", "Sunset Crater Volcano", "Sunset Crater Volcano National Monument", "AZ", 35.364, -111.504],
+    ["nm", "Montezuma Castle", "Montezuma Castle National Monument", "AZ", 34.611, -111.837],
+    ["nm", "Walnut Canyon", "Walnut Canyon National Monument", "AZ", 35.166, -111.502],
+    ["nm", "Organ Pipe Cactus", "Organ Pipe Cactus National Monument", "AZ", 31.954, -112.801],
+    ["nm", "Bandelier", "Bandelier National Monument", "NM", 35.779, -106.321],
+    ["nm", "El Morro", "El Morro National Monument", "NM", 35.038, -108.353],
+    ["nm", "Capulin Volcano", "Capulin Volcano National Monument", "NM", 36.782, -103.97],
+    ["nm", "Colorado", "Colorado National Monument", "CO", 39.042, -108.686],
+    ["nm", "Florissant Fossil Beds", "Florissant Fossil Beds National Monument", "CO", 38.914, -105.287],
+    ["nm", "Cedar Breaks", "Cedar Breaks National Monument", "UT", 37.642, -112.849],
+    ["nm", "Timpanogos Cave", "Timpanogos Cave National Monument", "UT", 40.441, -111.709],
+    ["nm", "Rainbow Bridge", "Rainbow Bridge National Monument", "UT", 37.077, -110.964],
+    ["nm", "Jewel Cave", "Jewel Cave National Monument", "SD", 43.729, -103.829],
+    ["nm", "Lava Beds", "Lava Beds National Monument", "CA", 41.714, -121.508],
+    ["nm", "Cabrillo", "Cabrillo National Monument", "CA", 32.673, -117.239],
+    ["nm", "Devils Postpile", "Devils Postpile National Monument", "CA", 37.624, -119.084],
+    ["nm", "Oregon Caves", "Oregon Caves National Monument and Preserve", "OR", 42.096, -123.406],
+    ["nm", "Little Bighorn Battlefield", "Little Bighorn Battlefield National Monument", "MT", 45.57, -107.427],
+    ["nm", "Effigy Mounds", "Effigy Mounds National Monument", "IA", 43.089, -91.186],
+    ["nm", "Castillo de San Marcos", "Castillo de San Marcos National Monument", "FL", 29.898, -81.311],
+    ["nm", "Fort Pulaski", "Fort Pulaski National Monument", "GA", 32.027, -80.89],
+    ["nm", "Fort McHenry", "Fort McHenry National Monument and Historic Shrine", "MD", 39.263, -76.58],
+    ["nm", "Scotts Bluff", "Scotts Bluff National Monument", "NE", 41.835, -103.707],
+    ["nm", "Stonewall", "Stonewall National Monument", "NY", 40.734, -74.002],
+    ["nm", "Katahdin Woods and Waters", "Katahdin Woods and Waters National Monument", "ME", 45.97, -68.619],
+    ["mem", "Mount Rushmore", "Mount Rushmore National Memorial", "SD", 43.879, -103.459],
+    ["mem", "Lincoln Memorial", "Lincoln Memorial", "DC", 38.889, -77.05],
+    ["mem", "Jefferson Memorial", "Thomas Jefferson Memorial", "DC", 38.881, -77.037],
+    ["mem", "Washington Monument", "Washington Monument", "DC", 38.889, -77.035],
+    ["mem", "Vietnam Veterans Memorial", "Vietnam Veterans Memorial", "DC", 38.891, -77.048],
+    ["mem", "Korean War Veterans Memorial", "Korean War Veterans Memorial", "DC", 38.888, -77.047],
+    ["mem", "World War II Memorial", "World War II Memorial", "DC", 38.889, -77.041],
+    ["mem", "MLK Jr. Memorial", "Martin Luther King, Jr. Memorial", "DC", 38.886, -77.044],
+    ["mem", "FDR Memorial", "Franklin Delano Roosevelt Memorial", "DC", 38.884, -77.044],
+    ["mem", "Flight 93", "Flight 93 National Memorial", "PA", 40.057, -78.906],
+    ["mem", "Pearl Harbor", "Pearl Harbor National Memorial", "HI", 21.367, -157.939],
+    ["mem", "Wright Brothers", "Wright Brothers National Memorial", "NC", 36.014, -75.668],
+    ["mem", "De Soto", "De Soto National Memorial", "FL", 27.524, -82.644],
+    ["mem", "Fort Caroline", "Fort Caroline National Memorial", "FL", 30.387, -81.501],
+    ["mem", "Chamizal", "Chamizal National Memorial", "TX", 31.768, -106.454],
+    ["mem", "Coronado", "Coronado National Memorial", "AZ", 31.348, -110.272],
+    ["mem", "Perry's Victory", "Perry's Victory and International Peace Memorial", "OH", 41.654, -82.811],
+    ["mem", "Federal Hall", "Federal Hall National Memorial", "NY", 40.707, -74.01],
+    ["mem", "General Grant", "General Grant National Memorial", "NY", 40.813, -73.963],
+    ["mem", "Johnstown Flood", "Johnstown Flood National Memorial", "PA", 40.346, -78.779],
+    ["mem", "Lincoln Boyhood", "Lincoln Boyhood National Memorial", "IN", 38.118, -86.997],
+    ["mem", "Arkansas Post", "Arkansas Post National Memorial", "AR", 34.017, -91.345]];
+  var LABELS = { sp: "STATE PARK", nm: "NATIONAL MONUMENT", mem: "NATIONAL MEMORIAL" };
+  var ALL_PARKS = PARKS.concat(MORE_PARKS.map(function (r) { return { id: r[0] + "-" + slug(r[1]), name: r[1], full: r[2], states: r[3], set: r[0] === "sp" ? "sp" : "nm", label: LABELS[r[0]], lat: r[4], lon: r[5] }; }));
+  var PARK_BY_ID = {}; ALL_PARKS.forEach(function (p) { PARK_BY_ID[p.id] = p; });
+  function parkById(id) { return PARK_BY_ID[id] || null; }
+  function parksIn(set) { return ALL_PARKS.filter(function (p) { return p.set === set; }); }
+  /** "UT · NATIONAL PARK", the line under the name on a stamp */
+  function parkSub(p) { return p ? p.states.replace(/,\s*/g, " · ") + " · " + p.label : "NATIONAL PARK"; }
 
   var US_STATE_TOTAL = 50;      // DC can be colored too, but it's a bonus, not one of the 50
   var COUNTRY_TOTAL = 195;      // 193 UN members + Vatican City + Palestine, as in the book
@@ -189,7 +311,7 @@
   }
   /** Color in whatever the trip points at, plus every state, country, UK nation and park on its route, for everyone on it.
       Returns the ids of people whose maps changed. */
-  var PARK_STATES = {}; PARKS.forEach(function (p) { PARK_STATES[p.id] = p.states.split(/,\s*/); });
+  var PARK_STATES = {}; ALL_PARKS.forEach(function (p) { PARK_STATES[p.id] = p.states.split(/,\s*/); });
   function applyTripMark(trip, kids) {
     var list = T.areas(trip, PARK_STATES).slice(), changed = [];
     if (trip.mark) list.push(trip.mark);
@@ -391,7 +513,7 @@
     return since >= 3 ? since : 0;
   }
 
-  return { APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
+  return { APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,
            slug: slug, uid: uid, newKid: newKid, toggleArea: toggleArea, togglePark: togglePark, newTrip: newTrip, applyTripMark: applyTripMark,

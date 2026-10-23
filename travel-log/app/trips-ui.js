@@ -14,7 +14,7 @@
   function people(ids) { return (ids || []).map(A().kidById).filter(Boolean); }
   function copy(o) { return JSON.parse(JSON.stringify(o)); }
   function reduced() { return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches; }
-  var PARK_BY = {}; M.PARKS.forEach(function (p) { PARK_BY[p.id] = p; });
+  var PARK_BY = {}; M.ALL_PARKS.forEach(function (p) { PARK_BY[p.id] = p; });
   function parkName(id) { return PARK_BY[id] ? PARK_BY[id].name : id; }
   function areaName(kind, id) { return A().placeName(kind, id); }
   function shortArea(kind, id) { return kind === "park" ? parkName(id) : areaName(kind, id); }
@@ -61,8 +61,8 @@
   }
   function cityPoint(d, r) { return { name: r.name, kind: "city", lat: r.lat, lon: r.lon, country: r.country, region: regionOf(r.country, r.admin1), sub: subOf(d, r.country, r.admin1) }; }
   function parkPoint(d, p) {
-    var ll = d && d.parks[p.id], st = p.states.split(/,\s*/);
-    var o = { name: p.name + " National Park", kind: "park", ref: p.id, country: "USA", sub: p.states };
+    var ll = (d && d.parks[p.id]) || (p.lat != null ? [p.lat, p.lon] : null), st = p.states.split(/,\s*/);
+    var o = { name: p.full, kind: "park", ref: p.id, country: "USA", sub: p.states };
     if (st.length === 1 && T.US_STATES.indexOf(st[0]) >= 0) o.region = st[0];
     if (ll) { o.lat = ll[0]; o.lon = ll[1]; }
     return o;
@@ -71,7 +71,7 @@
   function searchPlaces(q, d) {
     q = q.trim().toLowerCase(); if (q.length < 2) return [];
     var parts = q.split(","), head = parts[0].trim(), tail = (parts[1] || "").trim(), out = [];
-    M.PARKS.forEach(function (p) { var n = p.name.toLowerCase(); if (n.indexOf(head) === 0 || (head.length > 3 && n.indexOf(head) > 0)) out.push(parkPoint(d, p)); });
+    M.ALL_PARKS.forEach(function (p) { var n = p.full.toLowerCase(); if (n.indexOf(head) === 0 || (head.length > 3 && n.indexOf(head) > 0)) out.push(parkPoint(d, p)); });
     out = out.slice(0, 3);
     for (var i = 0; i < d.rows.length && out.length < 9; i++) {
       var r = d.rows[i];
@@ -556,7 +556,7 @@
         if (seen[a.kind + a.id]) return;
         var v = (a.kind === "park" ? p.parks : p.places) || {}; v = v[a.id];
         if (v && v.at && t.date && v.at < t.date) return;
-        out.push({ who: p.name, what: a.kind === "park" ? parkName(a.id) + " National Park" : areaName("place", a.id), kind: a.kind === "park" ? "park" : "country" });
+        out.push({ who: p.name, what: a.kind === "park" ? (PARK_BY[a.id] ? PARK_BY[a.id].full : parkName(a.id)) : areaName("place", a.id), kind: a.kind === "park" ? "park" : "country" });
       });
     });
     return group(out, function (x) { return x.what; });
@@ -864,7 +864,7 @@
   }
   function stampSVG(s, personId) {
     return P.stampSVG(s, stampName(s), { art: s.kind === "state" ? artFor(personId, s.area) : "",
-      sub: s.kind === "park" ? (PARK_BY[s.area] ? PARK_BY[s.area].states.replace(/,\s*/g, " · ") + " · NATIONAL PARK" : "NATIONAL PARK") : "" });
+      sub: s.kind === "park" ? M.parkSub(PARK_BY[s.area]) : "" });
   }
   function bookHTML(title, color, stamps, who, pid) {
     var life = T.lifetime(pid || null, S().trips), counts = { world: 0, states: 0, parks: 0 }; stamps.forEach(function (s) { counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : "world"]++; });
@@ -988,7 +988,7 @@
     if (dl) dl.onclick = function () { holder.stamps = (holder.stamps || []).filter(function (x) { return x.id !== s.id; }); holder.updatedAt = new Date().toISOString(); A_.saveKid(holder).then(function () { closeSheet(); again(); A_.toast("Stamp removed"); }); };
   }
   function areaOptions(sec) {
-    if (sec === "parks") return M.PARKS.map(function (p) { return '<option value="park:' + p.id + '">' + esc(p.name) + '</option>'; }).join("");
+    if (sec === "parks") return M.PARK_SETS.map(function (set) { return '<optgroup label="' + esc(set.name) + '">' + M.parksIn(set.id).map(function (p) { return '<option value="park:' + p.id + '">' + esc(set.id === "np" ? p.name : p.full) + '</option>'; }).join("") + '</optgroup>'; }).join("");
     if (sec === "states") return MAPS.us.shapes.map(function (p) { return '<option value="state:' + p.id + '">' + esc(p.name) + '</option>'; }).join("");
     return '<optgroup label="UK nations">' + MAPS.world.uk.map(function (u) { return '<option value="place:' + u.id + '">' + esc(u.name) + '</option>'; }).join("") + '</optgroup><optgroup label="Countries">' +
       MAPS.world.countries.filter(function (c) { return c.id !== "GBR"; }).slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).map(function (c) { return '<option value="place:' + c.id + '">' + esc(c.name) + '</option>'; }).join("") + '</optgroup>';

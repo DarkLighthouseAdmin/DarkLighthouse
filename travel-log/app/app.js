@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v27" -> "v27").
-  var VERSION = "v27";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v30" -> "v30").
+  var VERSION = "v30";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -72,7 +72,7 @@
   var STATE_NAME = {}; MAPS.us.shapes.forEach(function (s) { STATE_NAME[s.id] = s.name; });
   function placeName(kind, id) {
     if (kind === "state") return STATE_NAME[id] || id;
-    if (kind === "park") { var p = M.PARKS.filter(function (x) { return x.id === id; })[0]; return p ? p.name + " National Park" : id; }
+    if (kind === "park") { var p = M.parkById(id); return p ? p.full : id; }
     return (SHAPE[id] && SHAPE[id].name) || (COUNTRY[id] && COUNTRY[id].name) || id;
   }
   function summaryLine(k) {
@@ -148,7 +148,7 @@
       if (tab === "quests" && window.FS_QUESTS) return window.FS_QUESTS.view(k, h[3] || "");
       if (tab === "firsts" && window.FS_FIRSTS) return window.FS_FIRSTS.view(k, h[3] || "", h[4] || "");
       if (tab === "edit") return viewKidForm(k);
-      return viewKid(k, tab);
+      return viewKid(k, tab, h[3]);
     }
     if (h[0] === "add") return viewKidForm(null);
     if (h[0] === "backup") return viewBackup();
@@ -258,10 +258,10 @@
         return '<a href="#/p/' + esc(k.id) + '/' + t[0] + '"' + (t[0] === cur ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">' + t[2] + '</span>' + t[1] + '</a>';
       }).join("") + '</div></nav>' + inner + '</div>';
   }
-  function viewKid(k, tab) {
+  function viewKid(k, tab, sub) {
     document.title = k.name + " · Famstamp";
     if (tab === "world") return viewWorld(k);
-    if (tab === "parks") return viewParks(k);
+    if (tab === "parks") return viewParks(k, sub);
     if (tab === "trips") return viewTrips(k);
     if (tab === "stats") return viewStats(k);
     return viewUS(k);
@@ -381,13 +381,17 @@
   function niceDate(at) { var d = new Date(String(at).slice(0, 10) + "T12:00:00"); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
   function parkStamp(p, v) {
     var PP = window.WK_PASSPORT; if (!PP) return "";
-    return PP.stampSVG({ id: "pk-" + p.id, kind: "park", area: p.id, date: v && v.at ? v.at : "" }, p.name, { sub: p.states.replace(/,\s*/g, " · ") + " · NATIONAL PARK" });
+    return PP.stampSVG({ id: "pk-" + p.id, kind: "park", area: p.id, date: v && v.at ? v.at : "" }, p.name, { sub: M.parkSub(p) });
   }
-  function parksMapSVG(k) {
-    var u = MAPS.us, T = window.WK_TRIPS, s = '<svg viewBox="0 0 ' + u.w + ' ' + u.h + '" role="img" aria-label="US map with national parks; visited ones are filled in">';
+  var PARK_SETS_TXT = {
+    np: { what: "national parks", find: "Find a park or state", ph: "e.g. Zion, Utah or UT", hint: "Every park has its own stamp below. American Samoa and the Virgin Islands are off the map." },
+    sp: { what: "state parks", find: "Find a state park or state", ph: "e.g. Custer, Florida or NY", hint: "Some of the most loved state parks around the country, each with its own stamp. State parks are run by each state." },
+    nm: { what: "monuments & memorials", find: "Find a monument, memorial or state", ph: "e.g. Lincoln or DC", hint: "National monuments and national memorials run by the National Park Service. Many have a Junior Ranger program too." } };
+  function parksMapSVG(k, list, what) {
+    var u = MAPS.us, T = window.WK_TRIPS, s = '<svg viewBox="0 0 ' + u.w + ' ' + u.h + '" role="img" aria-label="US map with ' + esc(what) + '; visited ones are filled in">';
     u.insets.forEach(function (b) { s += '<rect class="inset" x="' + (b[0] - 4) + '" y="' + (b[1] - 4) + '" width="' + (b[2] + 8) + '" height="' + (b[3] + 8) + '" rx="8"/>'; });
     u.shapes.forEach(function (p) { s += '<path class="a pk" d="' + p.d + '"/>'; });
-    M.PARKS.forEach(function (p) {
+    list.forEach(function (p) {
       if (p.lat == null || p.states === "AS" || p.states === "VI" || !T) return;
       var xy = T.project({ lat: p.lat, lon: p.lon, region: p.states.split(/,\s*/)[0] }, "us"); if (!xy) return;
       var on = !!k.parks[p.id];
@@ -395,25 +399,29 @@
     });
     return s + '</svg>';
   }
-  function viewParks(k) {
-    var s = M.stats(k, state.trips, MAPS.world), kidMode = M.isKid(k), FF = window.FS_FIND, byReg = {};
-    M.PARKS.forEach(function (p) { var r = FF.REGION[p.states.split(/,\s*/)[0]] || "West"; (byReg[r] = byReg[r] || []).push(p); });
+  function viewParks(k, set) {
+    if (!PARK_SETS_TXT[set]) set = "np";
+    var s = M.stats(k, state.trips, MAPS.world), kidMode = M.isKid(k), FF = window.FS_FIND, byReg = {}, list = M.parksIn(set), tx = PARK_SETS_TXT[set], jrOk = set !== "sp";
+    var been = list.filter(function (p) { return k.parks[p.id]; }).length;
+    list.forEach(function (p) { var r = FF.REGION[p.states.split(/,\s*/)[0]] || "West"; (byReg[r] = byReg[r] || []).push(p); });
     var groups = FF.REGIONS.filter(function (r) { return byReg[r]; }).map(function (r) {
       var ps = byReg[r];
       return FF.group(r, r, ps.filter(function (p) { return k.parks[p.id]; }).length, ps.length, ps.map(function (p) {
         var v = k.parks[p.id];
-        return '<div class="row" data-name="' + esc(p.name + " " + p.states + " " + p.states.split(/,\s*/).map(function (x) { return STATE_NAME[x] || ""; }).join(" ")) + '"><span class="pkstamp' + (v ? " on" : "") + '" aria-hidden="true">' + parkStamp(p, v) + '</span><div class="nm"><b data-hl>' + esc(p.name) + '</b><span>' + esc(p.states) + (v && v.at ? " · " + esc(niceDate(v.at)) : "") + '</span></div>' +
+        return '<div class="row" data-name="' + esc(p.full + " " + p.states + " " + p.states.split(/,\s*/).map(function (x) { return STATE_NAME[x] || ""; }).join(" ")) + '"><span class="pkstamp' + (v ? " on" : "") + '" aria-hidden="true">' + parkStamp(p, v) + '</span><div class="nm"><b data-hl>' + esc(p.name) + '</b><span>' + esc(p.states + (set === "np" ? "" : " · " + p.label.charAt(0) + p.label.slice(1).toLowerCase())) + (v && v.at ? " · " + esc(niceDate(v.at)) : "") + '</span></div>' +
           '<button type="button" class="pill" data-park="' + p.id + '" aria-pressed="' + !!v + '">' + (v ? "✓ Been here" : "Been here?") + '</button>' +
-          (kidMode ? '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button>' : "") + '</div>';
+          (kidMode && jrOk ? '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button>' : "") + '</div>';
       }).join(""));
     }).join("");
-    main.innerHTML = shell(k, "parks", counter(s.parks, M.PARKS.length, "national parks", kidMode ? '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>' : "") +
-      '<div class="mapbox us parksmap">' + parksMapSVG(k) + '</div><p class="hint">Green dots are parks ' + esc(M.who(k)) + ' has been to. Every park has its own stamp below. American Samoa and the Virgin Islands are off the map.</p>' +
-      '<div class="panel parks plist" data-plist="parks:' + esc(k.id) + '">' + FF.tools('<div class="field" style="margin-top:0"><label for="pfind">Find a park or state</label><input id="pfind" type="search" placeholder="e.g. Zion, Utah or UT" autocomplete="off"></div>') + groups + '</div>' +
-      (kidMode ? '<p class="hint">Earned a Junior Ranger badge? Tap "Ranger?" too. Ask at any park visitor center; most parks have a free booklet.</p>' : ""));
+    var seg = '<div class="seg parkset" role="group" aria-label="Which parks">' + M.PARK_SETS.map(function (x) {
+      return '<a href="#/p/' + esc(k.id) + '/parks' + (x.id === "np" ? "" : "/" + x.id) + '"' + (x.id === set ? ' class="on" aria-current="page"' : "") + '><span class="lg">' + esc(x.name) + '</span><span class="sh">' + esc(x.short) + '</span></a>'; }).join("") + '</div>';
+    main.innerHTML = shell(k, "parks", seg + counter(been, list.length, tx.what, kidMode && set === "np" ? '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>' : "") +
+      '<div class="mapbox us parksmap">' + parksMapSVG(k, list, tx.what) + '</div><p class="hint">Green dots are places ' + esc(M.who(k)) + ' has been to. ' + esc(tx.hint) + '</p>' +
+      '<div class="panel parks plist" data-plist="parks-' + set + ':' + esc(k.id) + '">' + FF.tools('<div class="field" style="margin-top:0"><label for="pfind">' + esc(tx.find) + '</label><input id="pfind" type="search" placeholder="' + esc(tx.ph) + '" autocomplete="off"></div>') + groups + '</div>' +
+      (kidMode && jrOk ? '<p class="hint">Earned a Junior Ranger badge? Tap "Ranger?" too. Ask at the visitor center; most National Park Service sites have a free booklet.</p>' : ""));
     var f = main.querySelector("#pfind");
     FF.bind(main.querySelector("[data-plist]"), f, true);
-    function again() { var q = f.value, y = window.scrollY, foc = document.activeElement === f; viewParks(k); var f2 = main.querySelector("#pfind"); f2.value = q; f2.dispatchEvent(new Event("input")); if (foc) f2.focus({ preventScroll: true }); window.scrollTo(0, y); }
+    function again() { var q = f.value, y = window.scrollY, foc = document.activeElement === f; viewParks(k, set); var f2 = main.querySelector("#pfind"); f2.value = q; f2.dispatchEvent(new Event("input")); if (foc) f2.focus({ preventScroll: true }); window.scrollTo(0, y); f = f2; }
     main.querySelectorAll("[data-park]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.park, "visit"); saveKid(k); toast(on ? placeName("park", b.dataset.park) + ": visited!" : "Removed"); again(); if (on) UI().askDate(k, "park", b.dataset.park, again); }; });
     main.querySelectorAll("[data-jr]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.jr, "jr"); saveKid(k); if (on) toast("Junior Ranger! ★"); again(); }; });
   }
@@ -459,7 +467,7 @@
     o += '<optgroup label="UK nations">' + MAPS.world.uk.map(function (u) { return '<option value="place:' + u.id + '"' + (v === "place:" + u.id ? " selected" : "") + '>' + esc(u.name) + '</option>'; }).join("") + '</optgroup>';
     o += '<optgroup label="Countries">' + MAPS.world.countries.filter(function (c) { return c.id !== "GBR" && c.id !== "USA"; }).slice().sort(function (a, b) { return a.name.localeCompare(b.name); })
       .map(function (c) { return '<option value="place:' + c.id + '"' + (v === "place:" + c.id ? " selected" : "") + '>' + esc(c.name) + '</option>'; }).join("") + '</optgroup>';
-    o += '<optgroup label="National parks">' + M.PARKS.map(function (p) { return '<option value="park:' + p.id + '"' + (v === "park:" + p.id ? " selected" : "") + '>' + esc(p.name) + '</option>'; }).join("") + '</optgroup>';
+    M.PARK_SETS.forEach(function (set) { o += '<optgroup label="' + esc(set.name) + '">' + M.parksIn(set.id).map(function (p) { return '<option value="park:' + p.id + '"' + (v === "park:" + p.id ? " selected" : "") + '>' + esc(set.id === "np" ? p.name : p.full) + '</option>'; }).join("") + '</optgroup>'; });
     return o;
   }
   function shrinkPhoto(file) {
@@ -636,7 +644,7 @@
   // ---------- print ----------
   function viewPrint(k) {
     var s = M.stats(k, state.trips, MAPS.world), list = kidTrips(k);
-    var parks = M.PARKS.filter(function (p) { return k.parks[p.id]; });
+    var parks = M.ALL_PARKS.filter(function (p) { return k.parks[p.id]; });
     var places = Object.keys(k.places).map(function (id) { return placeName("place", id); }).sort();
     document.title = k.name + "'s travel map · Famstamp";
     main.innerHTML = '<div class="sheet" style="' + kidStyle(k) + '"><a class="back" href="#/p/' + esc(k.id) + '/stats">← Back</a>' +

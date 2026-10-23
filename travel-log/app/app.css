@@ -499,3 +499,11 @@ h2 .units { margin-left:.4rem; }
 .fempty .big { font-size:2.4rem; margin:0; }
 .fentry .qemo { background:#fff6e6; }
 .fform { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:.9rem 1rem 1rem; } .fform h2 { margin:0; font-size:1.3rem; }
+/* Parks tab: National parks / State parks / Monuments & memorials */
+.parkset { display:grid; grid-template-columns:repeat(3, 1fr); gap:0; margin:.2rem 0 .6rem; border:1px solid rgba(31,42,51,.25); border-radius:14px; overflow:hidden; background:#fff; }
+.parkset a { display:flex; align-items:center; justify-content:center; text-align:center; min-height:48px; padding:.35rem .4rem; font-weight:700; font-size:.92rem; line-height:1.15; color:var(--ink); text-decoration:none; }
+.parkset a + a { border-left:1px solid rgba(31,42,51,.18); }
+.parkset a.on { background:var(--navy); color:#fff; }
+.parkset a:focus-visible { outline:3px solid #e8a54b; outline-offset:-3px; }
+.parkset .sh { display:none; }
+@media (max-width:400px) { .parkset .lg { display:none; } .parkset .sh { display:inline; } }

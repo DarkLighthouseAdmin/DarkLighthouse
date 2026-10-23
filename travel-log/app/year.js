@@ -54,14 +54,13 @@
   }
   function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; }); }
   function stampName(s) {
-    if (s.kind === "park") { var p = M.PARKS.filter(function (x) { return x.id === s.area; })[0]; return p ? p.name : s.area; }
+    if (s.kind === "park") { var p = M.parkById(s.area); return p ? p.name : s.area; }
     if (s.kind === "state") { var st = window.MLTL_MAPS.us.shapes.filter(function (x) { return x.id === s.area; })[0]; return st ? st.name : s.area; }
     var c = window.MLTL_MAPS.world.countries.filter(function (x) { return x.id === s.area; })[0]; return c ? c.name : s.area;
   }
   function stampSub(s) {
     if (s.kind !== "park") return "";
-    var p = M.PARKS.filter(function (x) { return x.id === s.area; })[0];
-    return p ? p.states.replace(/,\s*/g, " · ") + " · NATIONAL PARK" : "NATIONAL PARK";
+    return M.parkSub(M.parkById(s.area));
   }
   function mapSVG(sum) {
     var u = window.MLTL_MAPS.us, on = {}; sum.stateIds.forEach(function (id) { on[id] = 1; });
