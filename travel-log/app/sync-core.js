@@ -1,4 +1,4 @@
-/* Wanderkin: Family Sync logic with no browser parts, so it can be tested in Node.
+/* Famstamp: Family Sync logic with no browser parts, so it can be tested in Node.
    Local-first: the phone's IndexedDB is the truth on the device. A "shadow" remembers what this phone last agreed with
    the family's cloud copy, so we can tell local edits (push) from remote ones (pull). Each record is last-write-wins by
    its updatedAt; map coloring syncs one place at a time, so two phones coloring different states never clobber each other. */
