@@ -41,7 +41,8 @@
   function switchTo(db, hash) {
     var r = reg(); if (!S.findLog(r, db)) return;
     r.active = db; regSave(r);
-    history.replaceState(null, "", location.pathname + (hash || "#/")); location.reload();
+    var go = function () { history.replaceState(null, "", location.pathname + (hash || "#/")); location.reload(); };
+    if (history.state && history.state.fsovl) { ovlOpen = false; window.addEventListener("popstate", go, { once: true }); history.back(); } else go();   // step off the open menu's Back entry first
   }
   /** A new, empty log for another family, then straight to creating or joining it there. */
   function newLogThen(hash, name) {
@@ -144,7 +145,7 @@
     el.hidden = !on() && !CFG.showEntry;   // while sync is off it's the way in: "Family Sync" right next to Back up
     var L = { synced: ["✓", "Synced"], syncing: ["↻", "Syncing"], offline: ["☁", "Offline"], error: ["!", "Sync paused"], off: ["☁", entryLabel()] }[on() ? s : "off"] || ["", ""];
     el.className = "syncpill s-" + s;
-    el.innerHTML = '<span aria-hidden="true">' + L[0] + '</span><span class="sl"> ' + esc(L[1]) + '</span>';
+    el.innerHTML = '<span aria-hidden="true">' + L[0] + '</span><span class="sl"> ' + esc(L[1]) + '</span>' + (on() ? "" : '<span class="ss" aria-hidden="true"> Sync</span>');   // "Sync" on the narrowest phones
     el.title = statusMsg || (s === "synced" && cfg() && cfg().lastSync ? "Last synced " + S.ago(cfg().lastSync) : L[1]);
     el.setAttribute("aria-label", "Family Sync: " + L[1] + (statusMsg ? ". " + statusMsg : ""));
   }
@@ -178,9 +179,11 @@
   // ---------- the sync loop ----------
   var running = null, again = false, timer = null;
   function schedule(ms) { if (!on()) return; clearTimeout(timer); timer = setTimeout(function () { syncNow(); }, ms == null ? 2500 : ms); }
+  var wantNow = false;
   function syncNow(opts) {
     if (!on()) { setStatus("off"); return Promise.resolve(); }
-    if (running) { again = true; return running; }
+    if (opts && opts.throwErrors) wantNow = true;   // someone is waiting on this one: redraw right away when it lands
+    if (running) { again = true; return wantNow ? running.then(function (x) { if (rrWaiting) rerender(true); return x; }) : running; }
     if (navigator.onLine === false) { setStatus("offline", "Changes are saved on this phone and will sync when you're back online."); return Promise.resolve(); }
     setStatus("syncing");
     running = doSync(opts || {}).then(function (ch) {
@@ -203,6 +206,7 @@
 
   function doSync(opts) {
     var c = cfg(), fid = c.familyId, r, acc, changed = false, photosIn = 0, celebrate = [];
+    var metaWas = metaHash(c);   // who's in, names, role, plan: shown in the header and on Family Sync
     return remote().then(function (x) { r = x; return r.session(); }).then(function (sess) {
       if (!sess) throw new Error("Signed out. Open Family Sync to sign back in.");
       return Promise.all([r.family(fid), r.members(fid)]);
@@ -221,9 +225,10 @@
       return save(c);
     }).then(function () {
       celebrate.forEach(function (m) { cheer(S.joinLine(m.display_name || "Someone new", m.user_id), personFor(m)); });
-      if (!changed) return;
+      var metaNow = metaHash(c) !== (drawnMeta == null ? metaWas : drawnMeta), now = !!opts.throwErrors || wantNow; wantNow = false;   // an explicit sync (a button, joining) redraws right away; background ones wait for a pause
+      if (!changed) { if (metaNow) rerender(now); return; }
       var was = stateHash();
-      return A.load().then(function () { if (photosIn || stateHash() !== was) rerender(); });
+      return A.load().then(function () { if (photosIn || metaNow || stateHash() !== was) rerender(now); });
     });
 
     function push() {
@@ -293,24 +298,29 @@
     }
   }
   /** What the screen shows, as one string: re-render only when this changes. */
+  var drawnMeta = null, rrWaiting = false;   // the members/family details the screen was last drawn with
+  function metaHash(c) { return JSON.stringify([c.familyName, c.role, c.plan, c.home, (c.members || []).map(function (m) { return [m.user_id, m.role, m.display_name, m.person_id]; })]); }
   function stateHash() {
     var st = A.state, h = 0, str = JSON.stringify([st.kids, st.trips]);
     for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
     return str.length + ":" + h;
   }
   var lastTouch = 0, rrTimer = null;
-  ["scroll", "touchstart", "touchmove", "wheel", "keydown"].forEach(function (ev) { window.addEventListener(ev, function () { lastTouch = Date.now(); }, { passive: true, capture: true }); });
+  var lastInput = 0;   // scrolls count only when a person started them (a fling keeps scrolling after the finger lifts); the app's own scroll-to-top doesn't
+  ["touchstart", "touchmove", "wheel", "keydown", "pointerdown"].forEach(function (ev) { window.addEventListener(ev, function () { lastInput = Date.now(); if (ev !== "pointerdown") lastTouch = lastInput; }, { passive: true, capture: true }); });
+  window.addEventListener("scroll", function () { if (Date.now() - lastInput < 3000) lastTouch = Date.now(); }, { passive: true, capture: true });
   function userBusy() {
     var a = document.activeElement;
     return Date.now() - lastTouch < 2000 || !!(a && a !== document.body && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && main.contains(a));
   }
   /** Background sync brought new data: redraw the screen in place, keeping scroll, open sections, typed text and focus.
       Never while someone is scrolling or typing (it waits for a pause), never on a form. */
-  function rerender() {
+  function rerender(now) {
     var h = location.hash;
     if (/\/(new|edit)\b|^#\/add|^#\/join|^#\/sync\/(email|create)/.test(h)) return;   // don't yank a form out from under someone
     clearTimeout(rrTimer);
-    if (userBusy()) { rrTimer = setTimeout(rerender, 1500); return; }
+    rrWaiting = false;
+    if (!now && userBusy()) { rrWaiting = true; rrTimer = setTimeout(rerender, 1500); return; }
     var y = window.scrollY, x = window.scrollX, open = [], vals = [];
     main.querySelectorAll("details").forEach(function (d, i) { if (d.open) open.push(i); });
     main.querySelectorAll("input, textarea, select").forEach(function (el, i) {
@@ -318,7 +328,7 @@
       if (el.value) vals.push({ key: el.id || el.name || "#" + i, i: i, v: el.value });
     });
     window.MLTL_RENDERS = (window.MLTL_RENDERS || 0) + 1;
-    A.clearPhotos(); A.route();
+    A.clearPhotos(); A.route(); drawnMeta = metaHash(cfg());
     if (location.hash !== h) return;
     var ds = main.querySelectorAll("details"); open.forEach(function (i) { if (ds[i]) ds[i].open = true; });
     var els = main.querySelectorAll("input, textarea, select");
@@ -448,6 +458,7 @@
 
   function viewHub() {
     var c = cfg(), acc = S.access(c.plan, FLAGS), owner = c.role === "owner", grown = c.role !== "kid";
+    drawnMeta = metaHash(c);
     var groups = [], byPerson = {};   // one person can be signed in on several devices: show them once, "a user (2 devices)"
     (c.members || []).forEach(function (m) {
       if (m.person_id && byPerson[m.person_id]) return byPerson[m.person_id].push(m);
@@ -887,13 +898,15 @@
   function closeMenu() { var sc = document.getElementById("fmscrim"); if (sc) sc.remove(); var m = document.getElementById("fammenu"); if (m) m.remove(); var c = document.getElementById("famchip"); if (c) c.setAttribute("aria-expanded", "false"); }
   // the logo (logo.js) and any navigation close the menu, scrim included
   window.addEventListener("hashchange", closeMenu);
+  function markView() { document.body.classList.toggle("fsui", /^#\/(sync|join|backup)/.test(location.hash)); }   // Family Sync, join and Backup screens: roomy tap targets
+  window.addEventListener("hashchange", markView); markView();
   document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".brand")) closeMenu(); }, true);
   function toggleMenu() {
-    if (document.getElementById("fammenu")) return closeMenu();
+    if (document.getElementById("fammenu")) { dismissed = true; return closeMenu(); }
     var r = reg(), m = document.createElement("div"), c = cfg(), grown = !c || c.role !== "kid";
     m.id = "fammenu"; m.className = "fammenu"; m.setAttribute("role", "menu"); m.setAttribute("aria-label", "Family logs");
     m.innerHTML = (on() ? "" : '<a role="menuitem" class="fmitem turnon" href="#/sync"><span aria-hidden="true">☁</span> <span class="nm">Turn on ' + esc(entryLabel()) + '</span></a>') +
-      '<div class="fmhead small muted">Switch family log</div>' + r.logs.map(function (l) {
+      '<div class="fmtop"><span class="fmhead small muted">Switch family log</span><button type="button" class="fmx" data-close-menu aria-label="Close menu">✕</button></div>' + r.logs.map(function (l) {
       var cur = l.db === HERE;
       return '<button type="button" role="menuitem" class="fmitem' + (cur ? " cur" : "") + '"' + (cur ? ' data-current="1" aria-current="true"' : ' data-open-log="' + esc(l.db) + '"') + '><span aria-hidden="true">' + (l.familyId ? "🏡" : "📱") + '</span> <span class="nm">' + esc(S.logLabel(l)) + '</span>' + (cur ? ' <span aria-hidden="true">✓</span>' : "") + '</button>';
     }).join("") +
@@ -908,8 +921,37 @@
     document.getElementById("famchip").setAttribute("aria-expanded", "true");
     var first = m.querySelector(".fmitem:not(.cur)"); if (first) first.focus();
   }
-  document.addEventListener("click", function (e) { if (!e.target.closest || !e.target.closest("#fammenu")) closeMenu(); else if (e.target.closest("a, .fmitem.cur")) closeMenu(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeMenu(); });
+  document.addEventListener("click", function (e) {
+    var inMenu = e.target.closest && e.target.closest("#fammenu");
+    if (!inMenu) { if (document.getElementById("fammenu")) dismissed = true; closeMenu(); }
+    else if (e.target.closest(".fmitem.cur, [data-close-menu]")) { dismissed = true; closeMenu(); }
+    else if (e.target.closest("a")) closeMenu();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape" || document.querySelector(".ppk-bg")) return;   // the place picker (placepick.js) handles its own Esc
+    if (document.getElementById("fammenu")) { dismissed = true; closeMenu(); }
+    else if (document.querySelector(".sheetbg")) { dismissed = true; document.querySelectorAll(".sheetbg").forEach(function (x) { x.remove(); }); }
+  });
+
+  // ---------- Back closes what's open (Android back button, browser Back) ----------
+  // Opening the family menu or a bottom sheet adds a history entry, so Back closes it instead of leaving the screen.
+  // Dismissed (✕, tap outside, Esc): that entry is taken back off. Closed by an action (a link, Save): it's marked spent and Back skips it.
+  var ovlOpen = false, dismissed = false;
+  function ovlCheck() {
+    var now = !!(document.getElementById("fammenu") || document.querySelector(".sheetbg"));
+    if (now && !ovlOpen) { ovlOpen = true; if (!(history.state && history.state.fsovl === 1)) history.pushState({ fsovl: 1 }, ""); }
+    else if (!now && ovlOpen) {
+      ovlOpen = false;
+      if (history.state && history.state.fsovl === 1) { if (dismissed) history.back(); else history.replaceState({ fsovl: 2 }, ""); }
+    }
+    if (!now) dismissed = false;
+  }
+  new MutationObserver(ovlCheck).observe(document.body, { childList: true });
+  document.addEventListener("click", function (e) { var bg = e.target.closest && e.target.closest(".sheetbg"); if (bg && (e.target === bg || e.target.closest("[data-close]"))) dismissed = true; }, true);
+  window.addEventListener("popstate", function () {
+    if (history.state && history.state.fsovl === 2) return history.back();   // a spent entry: keep going
+    if (ovlOpen && !(history.state && history.state.fsovl === 1)) { ovlOpen = false; closeMenu(); document.querySelectorAll(".sheetbg").forEach(function (x) { x.remove(); }); }
+  });
 
   // ---------- "also add to my other family's log" ----------
   function tripExtra(t) {

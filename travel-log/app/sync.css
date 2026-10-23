@@ -133,3 +133,27 @@
   .topbar .brand .logomark { width:112px; height:37px; }
   .topright .syncpill { padding:.3rem .55rem; }
 }
+/* intuitiveness pass: 44px tap targets in the header, the family menu and the Family Sync / join / Backup screens */
+.topright .toplink, .topright .syncpill, .famchip { min-height:44px; }
+.fmitem { min-height:44px; }
+.fmtop { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding-left:.6rem; }
+.fmtop .fmhead { padding:0; }
+.fmx { flex:none; width:44px; height:44px; border:0; border-radius:12px; background:none; font:inherit; font-size:1.15rem; color:var(--muted); cursor:pointer; }
+.fmx:hover, .fmx:focus-visible { background:#f3f6f1; color:var(--ink); outline:none; }
+.fsui #main .btn, .fsui #main .pill, .fsui #main button.linkbtn { min-height:44px; box-sizing:border-box; }
+.fsui #main .pill, .fsui #main button.linkbtn { display:inline-flex; align-items:center; justify-content:center; }
+.fsui #main a.back { display:inline-flex; align-items:center; min-height:44px; }
+/* narrow phones: primary actions full width, stacked */
+@media (max-width:480px) { .fsui #main .actions { flex-wrap:wrap; } .fsui #main .actions > .btn { flex:1 1 100%; justify-content:center; text-align:center; } }
+@media (max-height:500px) and (orientation:landscape) { .fammenu.sheet { max-height:calc(100dvh - 16px); } }
+.brand { min-height:44px; }
+.topright .syncpill .ss { display:none; }
+@media (max-width:340px) {
+  .topbar .wrap { padding-left:.6rem; padding-right:.6rem; gap:.4rem; }
+  .topbar .brand .logomark, .topbar:has(.famchip:not([hidden])) .brand .logomark { width:96px; height:32px; }
+  .topright .syncpill .sl { display:none; } .topright .syncpill .ss { display:inline; }
+  .topright:has(.famchip:not([hidden])) .syncpill .ss { display:none; }
+  .topright .toplink { font-size:.8rem; padding:.3rem .5rem; }
+  .topright:has(.famchip:not([hidden])) .famchip { max-width:28vw; }
+}
+.topbar:has(.famchip:not([hidden])) .brand, .topbar .brand { min-height:44px; }
