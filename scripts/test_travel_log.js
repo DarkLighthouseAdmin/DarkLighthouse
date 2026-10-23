@@ -972,5 +972,32 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/Premium · coming soon/.test(bk) && /nothing to sign up for yet/.test(bk) && !/fetch\(|supabase|waitlist\s*=/.test(bk), "book page is a coming-soon note with no waitlist backend");
 }
 
+{ // v1.6.3: main destination, nicknames, trip memories, one badge sentence
+  const T = require("../travel-log/app/trips-core.js");
+  const ORL = { name: "Orlando", lat: 28.538, lon: -81.379, country: "USA", region: "FL" };
+  const sc = (n, lat, lon, nights) => ({ name: n, lat, lon, country: "GBR", region: "SCT", mode: "car", nights });
+  const route = [ORL, Object.assign(sc("Edinburgh", 55.95, -3.19), { mode: "plane" }), sc("Stirling", 56.12, -3.94), sc("Inverness", 57.48, -4.22), sc("Glasgow", 55.86, -4.25)];
+  ok(T.mainDest(route) === "Scotland", "a trip around Scotland is 'Scotland', not the last stop: " + T.mainDest(route));
+  ok(T.mainDest([ORL, Object.assign({}, route[1])]) === "Edinburgh", "one stop abroad keeps its town");
+  ok(T.mainDest([ORL, { name: "Atlanta", lat: 33.75, lon: -84.39, country: "USA", region: "GA" }, { name: "Nashville", lat: 36.16, lon: -86.78, country: "USA", region: "TN" }]) === "Nashville", "trips at home still name the last stop");
+  ok(T.mainDest([ORL, { name: "London", lat: 51.5, lon: -0.12, country: "GBR", region: "ENG", nights: 2 }, { name: "Paris", lat: 48.86, lon: 2.35, country: "FRA", nights: 5 }, { name: "Rome", lat: 41.9, lon: 12.5, country: "ITA", nights: 1 }]) === "Paris", "across countries: the longest stay");
+  ok(T.mainDest([ORL, { name: "London", lat: 51.5, lon: -0.12, country: "GBR", region: "ENG" }, { name: "Rome", lat: 41.9, lon: 12.5, country: "ITA" }]) === "London", "across countries, no nights: the first stop abroad");
+  const t = T.syncLegacy({ route: route.slice() }); ok(t.place === "Scotland", "syncLegacy names the trip Scotland");
+  ok(T.syncLegacy({ route: route.slice(), title: "Highland Fling" }).place === "Highland Fling", "a trip name they typed wins");
+  const trip = { id: "trip_scot", place: "Scotland", route, roundTrip: true, date: "2026-07-10", memories: { best: "climbing up to Stirling Castle", food: "cranachan", funny: "Dad's kilt in the wind", again: "", moment: "" } };
+  const ctx = { travelers: [{ id: "a", name: "Rosemary", nickname: "Rosie Roo", role: "kid" }, { id: "b", name: "Sam", role: "adult" }],
+    badges: [{ who: "Rosie Roo", name: "First flight" }, { who: "Rosie Roo", name: "Big road trip" }, { who: "Rosie Roo", name: "1,000 miles" }] };
+  for (const style of ["storybook", "journal"]) {
+    for (let seed = 0; seed < 4; seed++) {
+      const st = T.makeStory(trip, ctx, { style, seed }).text;
+      ok(/Rosie Roo/.test(st) && !/Rosemary/.test(st), style + seed + ": story uses the nickname");
+      ok(/Stirling Castle/.test(st) && /cranachan/i.test(st) && /kilt/.test(st), style + seed + ": filled memories are woven in");
+      const bs = st.split(/(?<=[.!?])\s/).filter(x => /badge/i.test(x));
+      ok(bs.length === 1 && /new badges/i.test(bs[0]) && /First flight, Big road trip and 1,000 miles/.test(bs[0]), style + seed + ": one badge sentence: " + bs.join(" | "));
+      ok(/Scotland/.test(st.split(/(?<=[.!?])\s/).slice(0, 2).join(" ")), style + seed + ": opener names Scotland");
+    }
+  }
+}
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

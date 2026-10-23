@@ -254,13 +254,35 @@
     }
     return pts.slice(0, MAX_POINTS);
   }
+  var UK_NAME = { ENG: "England", SCT: "Scotland", WLS: "Wales", NIR: "Northern Ireland" };
+  function countryLabel(id) {
+    var w = typeof self !== "undefined" && self.MLTL_MAPS && self.MLTL_MAPS.world, c = w && w.countries ? w.countries.filter(function (x) { return x.id === id; })[0] : null;
+    return c ? c.name : "";
+  }
+  /** What the trip was "to": a trip abroad that stayed in one country or UK nation is "Scotland" / "France" (one stop abroad keeps its
+      town, "Paris"); a trip across countries is the longest stay, else the first stop abroad. Trips at home: the last stop, as before. */
+  function mainDest(route) {
+    var r = stops(route); if (!r.length) return "";
+    var last = r[r.length - 1].name, home = r[0];
+    if (r.length < 2 || !home.country) return last;
+    var abroad = r.slice(1).filter(function (p) { return p.country && p.country !== home.country; });
+    if (!abroad.length) return last;
+    var one = abroad.every(function (p) { return p.country === abroad[0].country; });
+    if (one && abroad.length > 1) {
+      if (abroad[0].country === "GBR" && UK_NAME[abroad[0].region] && abroad.every(function (p) { return p.region === abroad[0].region; })) return UK_NAME[abroad[0].region];
+      return countryLabel(abroad[0].country) || abroad[0].name;
+    }
+    if (one) return abroad[0].name;
+    var stay = null; abroad.forEach(function (p) { if (typeof p.nights === "number" && p.nights > 0 && (!stay || p.nights > stay.nights)) stay = p; });
+    return (stay || abroad[0]).name;
+  }
   /** Keep the v1.2 fields in step with the route, so older code, sync's from_place / to_place and print all still read right. */
   function syncLegacy(t) {
     var r = t.route || [];
     if (r.length) {
       t.from = r.length > 1 ? r[0].name : (t.from || "");
       t.stops = r.slice(1, -1).map(function (p) { return p.name; }).slice(0, 5);
-      t.place = t.title || r[r.length - 1].name;
+      t.place = t.title || mainDest(r) || r[r.length - 1].name;
     }
     return t;
   }
@@ -389,6 +411,7 @@
   function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function rng(seed) { var a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   function joinNames(list) { list = list.filter(Boolean); return list.length < 2 ? (list[0] || "") : list.slice(0, -1).join(", ") + " and " + list[list.length - 1]; }
+  function nameOf(p) { return p ? (clean(p.nickname, 40) || p.name || "") : ""; }   // the nickname the family uses, else the name
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
   var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   function monthYear(d) { return vdate(d) ? MONTHS[parseInt(d.slice(5, 7), 10) - 1] + " " + d.slice(0, 4) : ""; }
@@ -422,6 +445,12 @@
       firstCountry: ["It was {p}'s very first time in {c}!", "{p} had never been to {c} before, and now they had!"],
       firstPark: ["{p} visited {c} for the very first time.", "{c} was brand new for {p}."],
       badge: ["{p} even earned a new badge: {c}!", "And guess what? {p} unlocked the {c} badge!"],
+      badges: ["{p} earned {n} new badges: {c}!", "And guess what? {p} unlocked {n} new badges: {c}!"],
+      mem: { best: ["The best part of the whole trip? {m}", "Everyone agrees the best part was this: {m}"],
+             food: ["The yummiest thing anyone ate: {m}", "Tummies were happiest with this: {m}"],
+             moment: ["The moment nobody will ever forget: {m}", "Here's a moment to keep forever: {m}"],
+             funny: ["The giggliest moment of all: {m}", "Everyone laughed so hard at this: {m}"],
+             again: ["They'd go back in a heartbeat for this: {m}", "Someday they'll go back, just for this: {m}"] },
       total: ["All together, they traveled {mi}{nights}.", "When they added it all up, they had gone {mi}{nights}."],
       air: ["They spent about {h} up in the sky on {f} {fl}.", "That's about {h} of looking out the airplane window!"],
       close: ["And they all lived happily ever after, already dreaming about the next trip. The end.", "They came home tired, happy and full of stories. The end.",
@@ -454,6 +483,12 @@
       firstCountry: ["It was {p}'s first time in {c}.", "{c} was a first for {p}."],
       firstPark: ["It was {p}'s first visit to {c}.", "{p} saw {c} for the first time."],
       badge: ["{p} earned the {c} badge on this one.", "New badge for {p}: {c}."],
+      badges: ["{p} earned {n} new badges on this one: {c}.", "New badges for {p}: {c}."],
+      mem: { best: ["The best part: {m}", "If we had to pick a best part: {m}"],
+             food: ["Favorite food: {m}", "The best thing we ate: {m}"],
+             moment: ["The moment we'll never forget: {m}", "Most memorable of all: {m}"],
+             funny: ["Funniest moment: {m}", "We still laugh about this: {m}"],
+             again: ["We'd go back for this: {m}", "The reason we'll go back: {m}"] },
       total: ["All told, we covered {mi}{nights}.", "By the end we'd traveled {mi}{nights}."],
       air: ["About {h} of that was in the air, on {f} {fl}.", "We spent about {h} in the air."],
       close: ["Already wondering where we'll go next.", "Here's to the next one.", "A trip worth writing down."]
@@ -469,7 +504,7 @@
     var R = rng(hash(String(t.id || "trip") + ":" + style + ":" + (opts.seed || 0)));
     function pick(a) { return a[Math.floor(R() * a.length)]; }
     var units = ctx.units === "km" ? "km" : "mi";
-    var travelers = (ctx.travelers || []).filter(Boolean), names = travelers.map(function (p) { return p.name; });
+    var travelers = (ctx.travelers || []).filter(Boolean), names = travelers.map(nameOf);
     var who = ctx.familyName && travelers.length > 2 ? "the " + ctx.familyName + " family" : (joinNames(names) || (style === "journal" ? "the family" : "our travelers"));
     var s = summary(t), r = t.route || [], dest = clean(t.title, 80) || t.place || (r.length ? r[r.length - 1].name : "somewhere new");
     var when = monthYear(t.date), out = [];
@@ -505,11 +540,22 @@
     });
     // firsts and badges
     (ctx.firsts || []).slice(0, 4).forEach(function (f) { out.push(fill(pick(f.kind === "park" ? L.firstPark : L.firstCountry), { p: f.who, c: f.what })); });
-    (ctx.badges || []).slice(0, 3).forEach(function (b) { out.push(fill(pick(L.badge), { p: b.who, c: b.name })); });
+    // badges: one sentence per set of people who earned the same ones ("Rosie and Sam earned three new badges: A, B and C!")
+    var byWho = {}, whoOrder = [];
+    (ctx.badges || []).forEach(function (b) { if (!byWho[b.who]) { byWho[b.who] = []; whoOrder.push(b.who); } if (byWho[b.who].indexOf(b.name) < 0) byWho[b.who].push(b.name); });
+    var sets = {}, setOrder = [];
+    whoOrder.forEach(function (w) { var k = byWho[w].join("|"); if (!sets[k]) { sets[k] = { who: [], names: byWho[w] }; setOrder.push(k); } sets[k].who.push(w); });
+    setOrder.slice(0, 3).forEach(function (k) {
+      var g = sets[k], p = joinNames(g.who), list = g.names.slice(0, 6);
+      out.push(list.length === 1 ? fill(pick(L.badge), { p: p, c: list[0] }) : fill(pick(L.badges), { p: p, n: numWord(list.length), c: joinNames(list) }));
+    });
     // moments
     var moments = t.moments || {};
-    travelers.forEach(function (p) { if (moments[p.id]) out.push(fill(pick(L.moment), { p: p.name, m: sentenceEnd(moments[p.id]) })); });
+    travelers.forEach(function (p) { if (moments[p.id]) out.push(fill(pick(L.moment), { p: nameOf(p), m: sentenceEnd(moments[p.id]) })); });
     if (t.memory) out.push(fill(pick(L.memory), { m: sentenceEnd(t.memory) }));
+    // trip memories (Best part, Favorite food, ...): one line each that's filled in
+    var mems = t.memories || {};
+    MEM_PROMPTS.forEach(function (mp) { var v = clean(mems[mp[0]], 400); if (v && L.mem[mp[0]]) out.push(fill(pick(L.mem[mp[0]]), { m: cap(sentenceEnd(v)) })); });
     // totals
     var nights = s.nights ? " over " + plural(s.nights, "night") : "";
     if (s.miles > 0) out.push(fill(pick(L.total), { mi: fmtDist(s.miles, units, { long: true }), nights: nights }));
@@ -532,7 +578,7 @@
 
   return { EARTH_MI: EARTH_MI, KM_PER_MI: KM_PER_MI, AROUND_WORLD: AROUND_WORLD, MAX_POINTS: MAX_POINTS, MAX_STAYS: MAX_STAYS, MAX_FAVS: MAX_FAVS,
            MODES: MODES, MODE: MODE, STAY_TYPES: STAY_TYPES, FAV_CATS: FAV_CATS, FAV: FAV, US_STATES: US_STATES,
-           gcMiles: gcMiles, legMiles: legMiles, airportCity: airportCity, mustFly: mustFly, sameStop: sameStop, stops: stops, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
+           gcMiles: gcMiles, legMiles: legMiles, airportCity: airportCity, mustFly: mustFly, sameStop: sameStop, stops: stops, mainDest: mainDest, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
            airMinutes: airMinutes, fmtAir: fmtAir, crossesBorder: crossesBorder, CRUISE_MPH: CRUISE_MPH, GROUND_MIN_MI: GROUND_MIN_MI,
            cleanStays: cleanStays, cleanFavs: cleanFavs, cleanMoments: cleanMoments, cleanStory: cleanStory, cleanMemories: cleanMemories, MEM_PROMPTS: MEM_PROMPTS, cleanExtras: cleanExtras,
            routeFromLegacy: routeFromLegacy, syncLegacy: syncLegacy, nightsBetween: nightsBetween, summary: summary, areas: areas, isAdult: isAdult,
