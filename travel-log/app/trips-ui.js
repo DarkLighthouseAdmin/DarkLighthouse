@@ -236,9 +236,12 @@
     if (!old && st.meta.homePoint) d.route = [copy(st.meta.homePoint)];
     else if (!old && st.meta.home) d.route = [{ name: st.meta.home, kind: "place" }];
     // v1.8: "Plan this trip" from the family wishlist: the dream place is the destination, the people who voted are going, not done yet
-    var fromWish = !old && window.FS_WISH && window.FS_WISH.take ? window.FS_WISH.take() : null;
+    var wishDest = null, fromWish = !old && window.FS_WISH && window.FS_WISH.take ? window.FS_WISH.take() : null;
     if (fromWish) {
-      d.route.push(fromWish.stop); d.done = false; d.title = "Trip to " + fromWish.stop.name;
+      var wd = copy(fromWish.stop); d.done = false; d.title = "Trip to " + wd.name;
+      // the dream place is a stop, never the start: with no home saved yet, it's added right after they pick where they start
+      if (d.route.length) { wd.mode = guessMode(d.route[0], wd); d.route.push(wd); }
+      else { wishDest = wd; setTimeout(function () { A_.toast("Where do you start from? " + wd.name + " goes in next."); }, 400); }
       if (fromWish.who && fromWish.who.length) d.kidIds = fromWish.who.filter(function (id) { return st.kids.some(function (x) { return x.id === id; }); });
       if (!d.kidIds.length) d.kidIds = [k.id];
     }
@@ -457,6 +460,7 @@
       if (last && T.sameStop(last, c)) { search.value = ""; results.innerHTML = ""; A_.toast(d.route.length === 1 ? "You're already starting from " + last.name + ". Where did you go next?" : "That's the stop you're already at"); return; }
       if (d.route.length) { c.mode = guessMode(d.route[d.route.length - 1], c); if (c.mode === "plane") fillAirports(d.route[d.route.length - 1], c); }
       d.route.push(c); search.value = ""; results.innerHTML = ""; renderRoute();
+      if (wishDest && d.route.length === 1) { var wdst = wishDest; wishDest = null; addPoint(wdst); }
     }
     function guessMode(a, b) { var g = T.gcMiles(a, b); return g == null ? "car" : g > 600 || T.mustFly(a, b) || (a.country && b.country && a.country !== b.country && g > 300) ? "plane" : "car"; }
     function fillAirports(a, b) { if (!airports) return; if (!b.dep) { var x = nearestAirport(a, airports); if (x) b.dep = x; } if (!b.arr) { var y = nearestAirport(b, airports); if (y) b.arr = y; } }
