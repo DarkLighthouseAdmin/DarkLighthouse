@@ -313,7 +313,7 @@ ok(/name="description" content="[^"]*family[^"]*kids/i.test(html), "meta descrip
 ok(/"description": "[^"]*family/.test(read("manifest.webmanifest")), "manifest description is family-wide");
 ok(+((sw.match(/var CACHE = "mltl-v(\d+)"/) || [])[1]) >= 10, "service worker cache bumped past v9 (new logo) so phones update");
 ok(/"logo\.js"/.test(sw) && /"icon\.svg"/.test(sw), "service worker caches logo.js and icon.svg");
-ok(["trips-core.js", "passport-core.js", "trips-ui.js"].every(f => sw.indexOf('"' + f + '"') >= 0), "service worker caches the new trip and passport scripts");
+ok(["trips-core.js", "state-signs.js", "passport-core.js", "trips-ui.js"].every(f => sw.indexOf('"' + f + '"') >= 0), "service worker caches the new trip and passport scripts");
 ok(/Color in every place your family goes, from the first road trip on\./.test(js), "onboarding leads with family, from the first road trip");
 ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.test(js) && /places you\\'ve been together/.test(js), "family map with a together view");
 ok(/Parent\/Adult/.test(read("log-core.js")) && /data-role/.test(js), "add-someone form has roles");
@@ -627,6 +627,33 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   const on = P.signSVG("GA", "Georgia", sg.GA), off = P.signSVG("GA", "Georgia", null);
   ok(/WELCOME TO/.test(on) && /GEORGIA/i.test(on) && /FIRST VISIT/.test(on), "collected sign shows name and first visit");
   ok(/NOT YET/.test(off) && off !== on, "uncollected sign is the faded version");
+  // v1.5 fancier State Signs: every state + DC has its own original design, tiers by visit count, readable panels
+  {
+    const SG = require("../travel-log/app/state-signs.js"), all = P.STATES50.concat(["DC"]);
+    ok(all.every(id => SG.look(id)) && Object.keys(SG.TABLE).length === 51, "all 50 states + DC have a sign design");
+    ok(new Set(all.map(id => SG.look(id).motif)).size === 51, "every sign has its own motif");
+    ok(all.every(id => SG.MOTIFS[SG.look(id).motif] && SG.SHAPES[SG.look(id).shape]), "every motif and shape exists");
+    ok(all.every(id => SG.contrast(SG.look(id).panel, SG.look(id).text) >= 4.5), "name panel text passes WCAG AA contrast on every sign");
+    ok(SG.contrast(SG.MYSTERY.panel, SG.MYSTERY.text) >= 4.5, "mystery (not yet visited) text passes AA contrast");
+    const svgs = all.map(id => P.signSVG(id, id, { first: "2024-07-03", visits: 2 })), off51 = all.map(id => P.signSVG(id, id, null));
+    ok(svgs.every(x => /^<svg[^>]+viewBox="0 0 200 168"[^>]+role="img" aria-label="Welcome to [^"]+Collected, silver: first visit 3 JUL 2024, 2 visits"/.test(x)), "collected signs have full alt text");
+    ok(off51.every(x => /class="signsvg faded/.test(x) && /not collected yet"/.test(x) && /NOT YET VISITED/.test(x) && !/FIRST VISIT/.test(x)), "unvisited signs are mystery signs");
+    ok(svgs.every(x => (x.match(/id="(sg[A-Z]{2}\d+)c"/) || [])[1]) && new Set(svgs.map(x => x.match(/id="(sg[A-Z]{2}\d+)c"/)[1])).size === 51, "each sign's SVG ids are unique on the page");
+    ok(svgs.every(x => x.length < 9000) && off51.every(x => x.length < 7000), "signs stay small: biggest " + Math.max(...svgs.map(x => x.length)) + " bytes");
+    ok(SG.tier(1) === "bronze" && SG.tier(2) === "silver" && SG.tier(3) === "silver" && SG.tier(4) === "gold" && SG.tier(9) === "gold", "frames: bronze 1, silver 2-3, gold 4+");
+    ok(/s-gold/.test(P.signSVG("FL", "Florida", { first: "2024", visits: 5 })) && /5<\/text>/.test(P.signSVG("FL", "Florida", { first: "2024", visits: 5 })), "the plate shows the visit count");
+    ok(/WASHINGTON, D\.C\./.test(P.signSVG("DC", "District of Columbia", { first: "2024", visits: 1 })), "DC sign says Washington, D.C.");
+    ok(/textLength/.test(P.signSVG("NC", "North Carolina", { visits: 1 })) || /font-size="1[0-6]/.test(P.signSVG("NC", "North Carolina", { visits: 1 })), "long names shrink to fit");
+    ok(!/<script|on\w+=/i.test(P.signSVG("GA", "<script>x</script>", { first: "2024", visits: 1 })), "names are escaped");
+    // visits: one per trip (a trip together counts once), plus hand stamps; first date wins
+    const kid = { id: "kid_a", stamps: [{ id: "s1", kind: "state", area: "GA", date: "2020-05" }] }, kid2 = { id: "kid_b" };
+    const t1 = Object.assign({}, rv, { id: "tv1", kidIds: ["kid_a", "kid_b"] }), t2 = Object.assign({}, rv, { id: "tv2", date: "2026-08-01", endDate: "2026-08-03", kidIds: ["kid_a"] });
+    const vs = P.signsFor([kid, kid2], [t1, t2], {});
+    ok(vs.GA.visits === 3 && vs.GA.first === "2020-05" && vs.GA.list[0].source === "hand", "visits: hand stamp + 2 trips = 3, earliest first (" + (vs.GA && vs.GA.visits) + ")");
+    ok(vs.GA.list.filter(v => v.tripId === "tv1")[0].who.length === 2, "a trip together is one visit with both people");
+    ok(P.signTier(vs.GA) === "silver" && P.signTier(null) === "", "tier from visits");
+    ok(P.signsFor([{ id: "kid_c", states: { TX: true } }], [], {}).TX.visits === 1, "a state colored on the map is 1 visit");
+  }
   // backup v4 round trip, v3 still restores
   const ka = L.newKid({ name: "Rosie", role: "kid" }), kb = L.newKid({ name: "Jen", role: "adult" });
   const b4 = L.makeBackup([ka, kb], [Object.assign({ copiedFrom: { familyName: "Hills" } }, rv, { id: "trip_abc12345", kidIds: [ka.id, kb.id] })], [], null, { home: "Orlando", units: "km" });
