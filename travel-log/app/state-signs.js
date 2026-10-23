@@ -186,8 +186,8 @@
     var label = DISPLAY[id] || name || id, NAME = esc(String(label).toUpperCase()), room = NAME_ROOM[L.shape], fs = nameSize(NAME, room), nick = esc(L.nick.toUpperCase());
     var over = NAME.length * fs * 0.74 > room ? ' textLength="' + room + '" lengthAdjust="spacingAndGlyphs"' : "";
     var board = SHAPES[L.shape], panel = on ? L.panel : "#d6cfbf", ptext = on ? L.text : "#57524a", wood = L.style === "wood";
-    var date = on ? (info.first ? fmtShort(info.first, opts.fmtDate).toUpperCase() : "DATE? TAP TO ADD") : "";
-    var aria = on ? "Welcome to " + label + " sign, " + L.nick + ". Collected, " + T + ": " + (info.first ? "first visit " + fmtShort(info.first, opts.fmtDate) : "date not set") + ", " + visits + (visits === 1 ? " visit" : " visits")
+    var date = on ? (info.first ? fmtShort(info.first, opts.fmtDate).toUpperCase() : "") : "";   // no date: nothing at all, the count sits in the middle
+    var aria = on ? "Welcome to " + label + " sign, " + L.nick + ". Collected, " + T + ": " + (info.first ? "first visit " + fmtShort(info.first, opts.fmtDate) + ", " : "") + visits + (visits === 1 ? " visit" : " visits")
                   : label + ", " + L.nick + ": not collected yet";
     var defs = '<defs><clipPath id="' + u + 'c"><path d="' + board + '"/></clipPath>' +
       '<linearGradient id="' + u + 's" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + (on ? L.sky[0] : "#ebe6da") + '"/><stop offset="1" stop-color="' + (on ? L.sky[1] : "#f3efe6") + '"/></linearGradient>' +
@@ -227,12 +227,13 @@
     var bolts = on ? [[22, 20], [178, 20], [22, 100], [178, 100]].filter(function (b) { return L.shape === "rect" || L.shape === "ticket" ? true : L.shape === "arch" ? b[1] > 50 : L.shape === "shield" ? b[1] < 50 : false; })
       .map(function (b) { return circ(b[0], b[1], 2.2, TI[1]) + circ(b[0] - .6, b[1] - .6, .9, "#fff", ' opacity=".7"'); }).join("") : "";
     // the little plate on the posts: first visit and how many visits
+    var vx = date ? 133.5 : 100;
     var plate = on ? '<g><rect x="44" y="124" width="112" height="25" rx="3.5" fill="url(#' + u + 'm)"/><rect x="46.5" y="126.5" width="107" height="20" rx="2.4" fill="#fbf6e9"/>' +
         circ(50.5, 136.5, 1.3, TI[1]) + circ(149.5, 136.5, 1.3, TI[1]) +
-        '<text x="56" y="133.6" font-family="IBM Plex Sans,Arial,sans-serif" font-weight="700" font-size="5" letter-spacing=".9" fill="#5a5246">FIRST VISIT</text>' +
-        '<text x="56" y="143" font-family="IBM Plex Sans,Arial,sans-serif" font-weight="700" font-size="' + (date.length > 12 ? 6.4 : 7.6) + '" fill="#22303c">' + esc(date) + '</text>' +
-        '<rect x="118" y="128.5" width="31" height="16" rx="2" fill="' + L.panel + '"/><text x="133.5" y="138.4" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-weight="700" font-size="9" fill="' + L.text + '">' + visits + '</text>' +
-        '<text x="133.5" y="143.4" text-anchor="middle" font-family="IBM Plex Sans,Arial,sans-serif" font-weight="700" font-size="3.6" letter-spacing=".5" fill="' + L.text + '">' + (visits === 1 ? "VISIT" : "VISITS") + '</text></g>'
+        (date ? '<text x="56" y="133.6" font-family="IBM Plex Sans,Arial,sans-serif" font-weight="700" font-size="5" letter-spacing=".9" fill="#5a5246">FIRST VISIT</text>' +
+          '<text x="56" y="143" font-family="IBM Plex Sans,Arial,sans-serif" font-weight="700" font-size="' + (date.length > 12 ? 6.4 : 7.6) + '" fill="#22303c">' + esc(date) + '</text>' : "") +
+        '<rect x="' + (vx - 15.5) + '" y="128.5" width="31" height="16" rx="2" fill="' + L.panel + '"/><text x="' + vx + '" y="138.4" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-weight="700" font-size="9" fill="' + L.text + '">' + visits + '</text>' +
+        '<text x="' + vx + '" y="143.4" text-anchor="middle" font-family="IBM Plex Sans,Arial,sans-serif" font-weight="700" font-size="3.6" letter-spacing=".5" fill="' + L.text + '">' + (visits === 1 ? "VISIT" : "VISITS") + '</text></g>'
       : '<g><rect x="56" y="126" width="88" height="20" rx="3" fill="#f6f2ea" stroke="#a39c8c" stroke-width="1" stroke-dasharray="3 2.4"/><text x="100" y="138.6" text-anchor="middle" font-family="IBM Plex Sans,Arial,sans-serif" font-weight="700" font-size="6.4" letter-spacing="1.2" fill="#57524a">NOT YET VISITED</text></g>';
     var rosette = on ? '<g transform="translate(' + (L.shape === "oval" ? 172 : 182) + ',' + (L.shape === "oval" ? 22 : L.shape === "arch" ? 36 : 14) + ')"><circle r="9" fill="url(#' + u + 'm)" stroke="#fff" stroke-width="1.2"/><path d="M0,-5 L1.5,-1.6 L5,-1.4 L2.3,.9 L3.1,4.4 L0,2.5 L-3.1,4.4 L-2.3,.9 L-5,-1.4 L-1.5,-1.6Z" fill="#fff" opacity=".9"/></g>' : "";
     return '<svg class="signsvg ' + (on ? "s-" + T : "faded") + ' st-' + L.style + '" viewBox="0 0 200 168" role="img" aria-label="' + esc(aria) + '">' + defs + shadow + posts + plate +

@@ -665,5 +665,69 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(r3 && r3.trips.length === 1 && r3.kids.length === 1, "v3 backups still restore");
 }
 
+// ---- v1.5 stamp art: unique country stamps, state bird / flower / animal, never a "?" for a missing date ----
+{
+  const SA = require("../travel-log/app/stamp-art.js"), SYM = require("../travel-log/app/state-symbols.js"), P = require("../travel-log/app/passport-core.js");
+  const SG = require("../travel-log/app/state-signs.js");
+  const ids51 = P.STATES50.concat(["DC"]);
+  ok(Object.keys(SYM.DATA).length === 51 && ids51.every(id => SYM.DATA[id]), "state symbols for all 50 states + DC");
+  ok(/wikipedia\.org\/wiki\/List_of_U\.S\._state_birds/.test(read("state-symbols.js")) && /List_of_U\.S\._state_and_territory_flowers/.test(read("state-symbols.js")), "symbol data file names its sources");
+  ids51.forEach(id => {
+    const d = SYM.DATA[id];
+    ok(["bird", "flower", "animal"].every(k => d[k] && d[k].name && SA.GLYPHS[d[k].glyph]), id + " has a bird, flower and animal with a drawing");
+    if (d.animal.fallback) ok(d.animal.name === d.bird.name && /no official/i.test(d.note), id + " with no animal falls back to its bird, with a note");
+  });
+  ok(["IN", "IA", "MN"].every(id => SYM.DATA[id].animal.fallback), "IN, IA and MN fall back to the bird");
+  ok(SYM.DATA.CA.bird.name === "California quail" && SYM.DATA.TX.flower.name === "Bluebonnet" && SYM.DATA.FL.bird.name === "Mockingbird", "spot-check symbol data");
+  // every country gets a stamp; deterministic; UK nations differ
+  const countries = MAPS.world.shapes.filter(x => !x.other).map(x => x.id);
+  let bad = [];
+  countries.forEach(c => { const svg = SA.stampSVG({ kind: "place", area: c, id: "stamp_x1" }, { name: c, date: "3 APR 2024" }, {}); if (!/^<svg[^]*<\/svg>$/.test(svg) || !/class="motif"/.test(svg) || svg.length > 9000) bad.push(c); });
+  ok(countries.length > 190 && bad.length === 0, "every country (" + countries.length + ") gets a stamp with a motif, under 9 KB: " + bad.join(","));
+  const one = (k, a, art) => SA.stampSVG({ kind: k, area: a, id: "stamp_aaaa11" }, { name: a, date: "" }, { art });
+  ok(one("place", "FRA") === one("place", "FRA") && one("state", "TX", "bird") === one("state", "TX", "bird"), "stamps render the same every time");
+  ok(SA.design("place", "JPN").shape === SA.design("place", "JPN").shape && JSON.stringify(SA.design("state", "OH", "", "bird")) === JSON.stringify(SA.design("state", "OH", "", "bird")), "design is seeded from the place");
+  const uk = ["ENG", "SCT", "WLS", "NIR"].map(c => SA.design("place", c));
+  ["shape", "motif", "ink", "border"].forEach(f => ok(new Set(uk.map(d => d[f])).size === 4, "UK nations all differ in " + f));
+  const looks = countries.map(c => { const d = SA.design("place", c); return [d.shape, d.border, d.ink, d.motif, d.font, d.label].join("|"); });
+  ok(new Set(looks).size >= countries.length * 0.97, "country stamps are (nearly all) one of a kind: " + new Set(looks).size + "/" + countries.length);
+  ok(Object.keys(SA.COUNTRY).length >= 40, "40+ hand-tuned countries");
+  ok(new Set(countries.map(c => SA.design("place", c).shape)).size === SA.SHAPES.length && SA.SHAPES.length >= 10, "all 10 shapes are used");
+  ok(new Set(countries.map(c => SA.design("place", c).border)).size === 5, "all 5 border styles are used");
+  ok(["red", "blue", "green", "violet", "black", "brown"].every(k => SA.INKS[k]), "curated inks: red, blue, green, violet, black, brown");
+  // state modes and shared symbols
+  ["bird", "flower", "animal"].forEach(m => ok(new RegExp(SYM.DATA.OH[m].name.toUpperCase()).test(one("state", "OH", m)), "OH stamp names its " + m));
+  ok(one("state", "OH", "bird") !== one("state", "OH", "flower"), "bird and flower stamps differ");
+  ok(P.stampArtMode("OH", "mix") === P.stampArtMode("OH", "mix") && new Set(ids51.map(id => P.stampArtMode(id, "mix"))).size === 3, "Mix varies per state and is stable");
+  ["bird", "flower", "animal"].forEach(m => {
+    const by = {}; ids51.forEach(id => { const g = SYM.DATA[id][m].glyph; (by[g] = by[g] || []).push(id); });
+    Object.keys(by).filter(g => by[g].length > 1).forEach(g => {
+      const sig = by[g].map(id => { const d = SA.design("state", id, "", m); return [d.shape, d.ink, d.flip, d.pose, d.border].join("|"); });
+      ok(new Set(sig).size === sig.length, "shared " + m + " drawing '" + g + "' looks different in " + by[g].join(","));
+    });
+  });
+  ok(Object.keys(SA.GLYPHS).length >= 30, "30+ reusable drawings");
+  // no '?' / placeholder when there's no date
+  const noQ = svg => !/\?|DATE|UNKNOWN|NOT SET/i.test(svg.replace(/<[^>]+>/g, " ").replace(/aria-label="[^"]*"/g, ""));
+  const strip = svg => svg.replace(/<[^>]*>/g, " ");
+  const und = { id: "stamp_nodate1", kind: "place", area: "FRA" };
+  ["FRA", "ENG", "JPN", "ZZZ"].forEach(c => { const v = P.stampSVG({ id: "stamp_nodate1", kind: "place", area: c }, c); ok(!/\?|DATE|Unknown|not set/i.test(strip(v)) && !/\?|not set/i.test((v.match(/aria-label="([^"]*)"/) || [])[1]), c + " stamp with no date shows no placeholder"); });
+  ids51.forEach(id => ["bird", "flower", "animal"].forEach(m => { const v = P.stampSVG({ id: "stamp_nd2", kind: "state", area: id }, id, { art: m }); if (/\?|DATE|not set/i.test(strip(v))) ok(false, id + " " + m + " state stamp has a date placeholder"); }));
+  ok(true, "state stamps checked for placeholders");
+  const pk = P.stampSVG({ id: "stamp_nd3", kind: "park", area: "yell" }, "Yellowstone", { sub: "WY · NATIONAL PARK" });
+  ok(!/\?|DATE|not set/i.test(strip(pk)), "park stamp with no date shows no placeholder");
+  const dated = P.stampSVG({ id: "stamp_d1", kind: "place", area: "FRA", date: "2024-04-03" }, "France"), nod = P.stampSVG(und, "France");
+  ok(/3 APR 2024/.test(dated) && !/APR/.test(nod), "the date line is there only with a date");
+  const mz = s => +(s.match(/class="motif" transform="translate\([\d.]+ [\d.]+\) scale\(([\d.]+)\)/) || [0, 0])[1];
+  ok(mz(nod) >= mz(dated), "with no date the picture grows to keep the stamp balanced");
+  ids51.forEach(id => { const v = P.signSVG(id, id, { first: "", visits: 1, who: ["a"], trips: [], list: [] }); if (/\?|DATE|not set|TAP TO ADD/i.test(v.replace(/<[^>]*>/g, " ")) || /not set/.test(v)) ok(false, id + " sign with no date shows a placeholder"); });
+  ok(!/DATE\?|TAP TO ADD|date not set/.test(read("state-signs.js")) && !/Date not set|date not set|DATE \?/.test(read("trips-ui.js") + read("passport-core.js")), "no date placeholders left in the code");
+  ok(/first visit/.test(P.signSVG("TX", "Texas", { first: "2020-05-01", visits: 2 })), "a dated sign still shows its first visit");
+  ok(read("index.html").indexOf("state-symbols.js") < read("index.html").indexOf("stamp-art.js") && read("index.html").indexOf("stamp-art.js") < read("index.html").indexOf("passport-core.js"), "index.html loads symbols, then stamp art, then the passport");
+  const sw2 = read("sw.js"); ok(["state-symbols.js", "stamp-art.js"].every(f => sw2.indexOf('"' + f + '"') >= 0), "service worker caches the stamp art files");
+  ok(read("stamp-art.js").length < 60000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight");
+  ok(/famstamp-stampart:/.test(read("trips-ui.js")) && /data-art=/.test(read("trips-ui.js")), "passport has the Bird / Flower / Animal / Mix toggle, saved per person");
+}
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
