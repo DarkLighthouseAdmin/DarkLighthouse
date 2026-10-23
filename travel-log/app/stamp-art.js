@@ -227,7 +227,8 @@
     congaree: function () { var t = function (x, top, k) { var r = P("M" + (x - 0.9 * k) + " " + top + " L" + (x - 1.3 * k) + " " + (31 - 7 * k) + " Q" + (x - 2.2 * k) + " " + (31 - 2 * k) + " " + (x - 5 * k) + " 31 H" + (x + 5 * k) + " Q" + (x + 2.2 * k) + " " + (31 - 2 * k) + " " + (x + 1.3 * k) + " " + (31 - 7 * k) + " L" + (x + 0.9 * k) + " " + top + "Z");
         [[-3.6, 1, 3.6, 1.4], [3.4, 2.2, 3.8, 1.5], [-3, 5.6, 3.2, 1.2], [3.2, 7.4, 3, 1.2], [0, -0.6, 3.2, 1.5], [-0.4, 3.2, 2.4, 1.2]].forEach(function (c) { r += E(x + c[0] * k, top + c[1] * k, c[2] * k, c[3] * k); });
         return r + S("M" + (x - 3.4 * k) + " " + (top + 2.2 * k) + " v3.6 M" + (x + 4.6 * k) + " " + (top + 3.4 * k) + " v3.4 M" + (x - 2 * k) + " " + (top + 6.6 * k) + " v3", 0.7); };
-      return t(30.6, 11, 0.95) + t(12, 4.6, 1.45) + P("M-1 31 H41 V41 H-1Z") + S("M2 33 Q8 32 14 33 M20 32.8 Q27 31.8 34 32.8", 0.8, PAPER) + P("M21 31 L22 28.4 L23 31Z M24.6 31 L25.4 29 L26.2 31Z M37 31 L38 28.6 L39 31Z M2 31 L2.8 29.4 L3.6 31Z"); },
+      return t(31, 12.4, 0.9) + t(12, 4.6, 1.4) + PO("M-1 26 H41 V31 H-1Z", 0.32) + P("M20 26 L21 23.6 L22 26Z M25 26 L25.8 24.4 L26.6 26Z M37 26 L37.8 24 L38.6 26Z M2 26 L2.8 24.6 L3.6 26Z") + S("M10 6 Q9.6 9 10.4 11 M14 7 Q14.6 9.6 13.8 12 M29.4 13.6 Q29 16 29.8 17.4", 0.6) +
+        P("M-1 29 H41 V30.4 H-1Z") + S("M1 29 V26.4 M7 29 V26.4 M13 29 V26.4 M19 29 V26.4 M25 29 V26.4 M31 29 V26.4 M37 29 V26.4 M-1 26.6 H41", 0.8) + S("M2 30.4 V33 M10 30.4 V33 M18 30.4 V33 M26 30.4 V33 M34 30.4 V33", 0.9) + P("M-1 33 H41 V41 H-1Z"); },
     craterlake: function () { return P("M-1 18 L5 13 L10 15 L15 11 L21 13 L27 10.4 L32 14 L37 12 L41 15 V19.6 H-1Z") + S("M5 13 L6 18 M15 11 L14.6 17 M27 10.4 L27.6 17", 0.9, PAPER) +
       P("M8.6 25 L12.6 20.4 H13.6 L14.4 21 L15 20.4 H15.8 L19.6 25Z") + S("M3 22.6 H7 M22 22.4 H35 M4 27 H38 M24 25 H31", 0.9) +
       P("M-1 28.4 Q10 26.6 20 29 Q30 27 41 28.4 V41 H-1Z") + pines([5, 33, 37], 28.8, 7.6) + S("M2 31.6 Q10 30 18 32", 0.9, PAPER); },
@@ -262,8 +263,10 @@
         S("M1 26 V20.4 L3 19 L5 20.6 L8 18.8 L10.4 20.2 L13 18.6 L15.6 20 L18 18.4 L20.6 19.8 L23 18.2 L25.6 19.8 L28 18.6 L30.6 20.2 L33 18.8 L35.4 20.4 L37.6 19 L39.4 20.6 V26", 1.1) +
         P("M5 20.6 L6.2 26 H4.4Z M12.4 19.4 L13.4 26 H11.2Z M19.6 19.6 L21 26 H18.8Z M27 19.4 L27.6 26 H25.8Z M33.6 19.6 L35 26 H33Z") +
         P("M-1 26 H41 V41 H-1Z") + P("M10 28.6 L11 27.4 L15 27.6 L15.8 28.8Z M24 31 L25.2 29.8 L28.6 30 L29 31.2Z M3 31 L4 30.2 L6.6 30.4 L7 31.2Z M33 28.4 L34 27.6 L36.6 27.8 L37 28.6Z", PAPER); },
-    grandcanyon: function () { return C(20, 5, 3) + P("M-1 8 H6 L7 12 H10 L11 17 H13 L14 23 H16 L17 30 L18 41 H-1Z") + P("M41 9 H33 L32 13 H29 L28 18 H26 L25 24 H23.6 L22.6 30 L22 41 H41Z") +
-      PO("M14 22 L15.4 17.6 H17.6 L18.4 14.6 H21.4 L22.2 17.6 H24.2 L25.6 22Z", 0.5) + S("M0 12.4 H40 M0 17.4 H40 M0 23 H40 M0 27.6 H40", 1, PAPER) + S("M19.6 31 Q21 34 20 37", 1.3); },
+    grandcanyon: function () { return PO("M-1 8.6 H14 L15 9.4 H30 L31 8.4 H41 V20 H-1Z", 0.3) + S("M-1 11.4 H41 M-1 14 H41 M-1 16.8 H41", 0.5, PAPER) +
+      P("M3 21 V16.4 H5 L6 14 H9.4 L10.4 16.4 H12.6 V21Z M23 21 V15.4 H25 L26 12.6 L27.6 9.6 L29.2 12.6 H30.4 L31.4 15.4 H34 V21Z") + S("M3 18.6 H12.6 M23 18 H34 M25.4 15 H30.6", 0.6, PAPER) +
+      P("M-1 20 H13 L14.6 22.6 H16 L17 25.4 H18.2 L19 29 L19.4 31 H-1Z M41 19.6 H28 L26.4 22.4 H24.8 L23.8 25.4 H22.6 L21.8 29 L21.4 31 H41Z") + S("M-1 22.6 H14.4 M-1 25.4 H16.8 M41 22.4 H26.6 M41 25.4 H24 M-1 28 H18.6 M41 28 H22", 0.6, PAPER) +
+      S("M19.6 29.4 Q20.8 30.2 20.2 31.4", 0.9, PAPER) + P("M28 31 Q33 26.4 41 25.6 V31Z") + pines([35.6], 29.4, 15) + S("M35.6 29.4 V31", 1) + S("M7 6 Q8.4 5 9.6 6 Q10.8 5 12 6", 0.7); },
     teton: function () { var b = "M9 33 V27.4 L14 25.2 L15.4 21 L20 17.6 L24.6 21 L26 25.2 L31 27.4 V33Z"; return P("M-1 25 L5 16 L9 19 L13 9 L16 12 L19 3 L22 9 L25 7 L28 14 L32 12 L41 21 V25Z") + S("M19 3 L18 10 M13 9 L12.6 14 M25 7 L25.4 12 M32 12 L32.6 16", 1.1, PAPER) +
       S(b, 2.6, PAPER) + P(b) + P("M18.2 33 V28.6 H21.8 V33Z M19.2 22.4 H20.8 V24.2 H19.2Z", PAPER) + S("M15.4 21 L24.6 21", 0.7, PAPER) + GROUND(33) + S("M0 32.2 H8 M32 32.2 H40", 0.8, PAPER); },
     greatbasin: function () { return PO("M8 26 L18 9 L21 11.6 L24 8 L35 26Z", 0.4) + P("M16 13.2 L18 9 L21 11.6 L24 8 L26.4 12 L24 11.4 L22 13.4 L20 12 L18 14Z", PAPER) +
@@ -352,10 +355,8 @@
         P("M11 19.6 Q11 17 14 16.8 H23.6 Q26 16.8 26.6 18.4 L26.6 20.4 Q26.4 22.4 25 22.8 H15 Q11 22.6 11 19.6Z") + S("M14 22 L13.4 26 L14 30.6 M16 22.4 L16.6 26.4 L16 30.6 M23.4 22.4 L23.8 26.4 L23.4 30.6 M25.4 22 L26 26 L25.6 30.6", 1.1) +
         P("M23.6 17.8 Q25.6 13.4 27.6 10.6 L29.2 11.2 Q27.8 14.4 26.8 18.6Z") + P("M27.4 9.6 Q29.6 8.6 31 9.6 L33.6 11.6 Q33.6 12.8 32.2 12.6 L28.8 11.8Z") +
         P("M28 9.6 L25.8 7.2 L28.8 8.8Z M29.2 9.2 L29.8 6.4 L30.4 9Z") + C(30.4, 10.2, 0.35, PAPER) + P("M11.4 17.6 L9.4 16 L10.6 19Z") + S("M-1 31 H41", 1.1); },
-    roosevelt: function () { return PO("M-1 22 L4 17 L7 18.4 L11 14 L15 16.4 L17 13 V22Z M27 22 V14.4 L30 12.4 L33 15 L37 13 L41 16 V22Z", 0.38) + S("M0 17.6 H40", 0.8, PAPER) +
-      P("M8 13 Q11 5.6 19 5.4 Q24 5.6 27 9.4 Q33 10 36 14 Q38.4 18 37 23 L35.8 31.6 H33.2 L32.8 26.6 L28.6 27.4 L28.2 31.6 H25.6 L25 27.6 L16.6 27.4 L15.8 31.6 H13.2 L12.8 27 Q9.6 26 8.6 22Z") +
-      P("M3 17 Q3.6 13 7 12.6 L10 13 Q11.6 16 10.6 21 Q10 25 7.4 28 Q5.2 28.6 4.6 26 Q2.4 22 3 17Z") + S("M6.6 13 Q4.6 10.4 6.6 9", 1.3) + C(5.6, 16.4, 0.8, PAPER) + S("M37 15 Q39.6 17 39 22", 1.2) +
-      S("M9.6 13.4 Q11.4 18.4 10 24 M13.6 9 Q16 13 15.4 20 M18 7.4 Q20.6 11 20.2 18", 0.9, PAPER) + GROUND(31.6); },
+    roosevelt: function () { return PO("M-1 21 L4 15 L7 16.4 L11 12 L15 14.4 L18 10 L22 13 L26 9.4 L30 12.4 L33 10 L37 12 L41 15 V21Z", 0.38) + S("M0 15.6 H40 M0 18.4 H40", 0.7, PAPER) +
+      P("M-1 30 Q20 27 41 30 V41 H-1Z") + bison(4.6, 9.6, 1.08) + S("M3 33 H37", 0.8, PAPER); },
     virginislands: function () { return P("M28 13 Q32 9.4 41 10.6 V14 H27Z") + palmlet(33.4, 11) + wv(15.4, 1, null) +
         P("M24.6 17.4 Q28.6 11.4 33.4 10.6 Q30 14.6 26.4 19.4Z M24.6 26.6 Q28.6 32.6 33.4 33.4 Q30 29.4 26.4 24.6Z M13.4 18.4 Q10.4 15.6 8 16.4 Q10 18.4 13 20Z M13.4 25.6 Q10.4 28.4 8 27.6 Q10 25.6 13 24Z") +
         E(19.6, 22, 7.6, 5.8) + E(28.8, 22, 2.6, 1.9) + C(29.8, 21.2, 0.4, PAPER) + P("M11.8 22 L9 22.6 L11.8 23Z") +
@@ -367,9 +368,9 @@
     whitesands: function () { return PO("M-1 18 L5 13 L9 15 L14 10 L19 14 L24 12 L30 15 L35 11 L41 15 V19 H-1Z", 0.45) + C(9, 6.4, 3) + C(9, 6.4, 1.9, PAPER) + S("M-1 24 Q9 17.6 19 20.6 Q27 16.8 41 21.4", 1.4) + S("M-1 30.4 Q12 25.6 24 28.6 Q32 26.6 41 29.6", 1.2) +
       S("M3 27 Q8 25 12 26.6 M26 25.4 Q30 23.6 34 25 M12 33 Q17 31 22 32.4 M30 32.6 Q34 31 38 32.4", 0.8) +
       S("M30 26 V15 M30 26 L26 22 M30 26 L34 22 M30 26 L27 20.6 M30 26 L33 20.6 M30 26 L25.4 24.6 M30 26 L34.6 24.6", 1) + E(30, 13, 1.4, 2.4) + C(28.6, 16, 0.8) + C(31.4, 16.6, 0.8); },
-    windcave: function () { return PO("M-1 26 Q10 18 20 22 Q30 17 41 22 V41 H-1Z", 0.32) + H("M27.6 8 H34.6 Q38 8 37.4 5.4 M26 12 H37.6 Q40 12 39.4 14.4", 1) +
-      P("M18 31 Q15 26 16 19 Q16.6 15 19 13.8 Q18 11 20 9.4 Q22.6 8 24.6 10 Q25.8 11.6 25 13.6 Q27 15.6 26.8 20 Q27 26 25 31Z") + S("M24.4 17 L26.8 19.4 M23.6 18 L26 20.6", 1.2) + C(20.6, 9.8, 0.9) + C(23.2, 11, 0.7, PAPER) + C(25.4, 11.8, 0.6) +
-      P("M20.8 18 Q21.6 24 21.6 29 Q24.4 25 23.8 18Z", PAPER) + P("M7 34.4 Q11 29.6 21 30 Q31 29.6 34 34.4Z") + E(11.6, 33, 2, 0.8, 0, PAPER); },
+    windcave: function () { var g = ""; for (var i = -40; i < 44; i += 4.4) g += "M" + i + " -1 L" + (i + 32) + " 31 M" + (i + 32) + " -1 L" + i + " 31 ";
+      return PO("M6 31 Q13 22 21 25 Q28 21 34 26 V31Z", 0.35) + bison(12.4, 20.8, 0.3, 1) + S("M9 13 Q14 11 18 13.4 Q21 15.4 18.6 17 M11 16.6 Q14.6 15.4 16.6 16.6 M23 15 Q27 13.4 30 15", 0.7) +
+        P("M-1 -1 H41 V31 H34.6 Q35 13 20 10.4 Q5 13 5.4 31 H-1Z") + S(g, 0.55, PAPER) + S("M5.4 31 Q5 13 20 10.4 Q35 13 34.6 31", 1.6) + S("M-1 31.4 H41", 1); },
     wrangell: function () { var bl = function (x, y, w, h) { return P("M" + x + " " + (y + h) + " V" + y + " L" + (x + w / 2) + " " + (y - w * 0.42) + " L" + (x + w) + " " + y + " V" + (y + h) + "Z"); };
       var b = bl(10.6, 15, 8, 6.4) + bl(15.4, 20, 8.6, 6.6) + bl(21, 24.6, 9, 6.4);
       return P("M-1 20 L6 10 L11 14 L17 3 L23 12 L28 7 L35 15 L41 11 V20Z") + S("M17 3 L16 9 M28 7 L28.6 12 M6 10 L5.4 14", 1, PAPER) + PO("M-1 30 Q20 25 41 29 V41 H-1Z", 0.5) + '<g stroke="#fff" stroke-width="2.6" stroke-linejoin="round">' + b + "</g>" + b +
@@ -378,7 +379,7 @@
       [[13.4, 12], [12.4, 15.4], [12, 19], [12.2, 22.6], [27, 14], [27.8, 17.6], [28.2, 21.2], [28.2, 24.6]].forEach(function (p) { dots += C(p[0], p[1], 0.7); });
       return P(pl, PAPER) + S(pl, 1.4) + S("M19.6 29 L19 22 Q17.6 15 17.6 9 M21.8 29 L22 22 Q22.4 14 21.8 6 M24.6 6 Q27.6 5.6 29.6 6.6", 0.85) + dots +
         S("M33 5 Q36 4 37.6 6 Q39.6 6.6 39 8.6 M33.6 11 Q36 10.6 37.4 12", 1) +
-        P("M3 34 Q11 28.6 20 29.4 Q29 28.6 37 34Z") + S("M10 31.6 Q20 29.6 30 31.6", 0.9, PAPER) + sub("bison", 29, 22.6, 0.3) + pines([3.4, 6.6], 30, 6.4) + S("M-1 33.6 H41", 1); },
+        P("M3 34 Q11 28.6 20 29.4 Q29 28.6 37 34Z") + S("M10 31.6 Q20 29.6 30 31.6", 0.9, PAPER) + bison(0.4, 20, 0.5) + pines([36.4], 30, 7) + S("M-1 33.6 H41", 1); },
     yosemite: function () { return PO("M-1 30 L-1 10 Q3 9 5 14 L6 30Z", 0.5) + P("M2 30 Q4 18 11 10 Q16 5 21 5 Q24 5.6 24.4 8 L24.6 20 L30 30Z") + S("M23.4 9 V19 M21.8 7.6 V18 M19.6 7 Q16 12 13 20", 0.9, PAPER) +
       S("M-1 30.4 H41", 2, PAPER) + pines([2, 5.4, 9, 12.4, 27.4, 31, 34.4, 38], 33.4, 7.4) + S("M14 33.4 H26", 1) + S("M30 6 Q32 4.4 34 6 Q36 4.4 38 6", 0.9); },
     zion: function () { return P("M-1 -1 H11 Q12 6 10.6 12 Q13 18 12 24 L15 34 H-1Z") + P("M41 -1 H29 Q27.6 6 29.4 12 Q27 18 28 24 L25 34 H41Z") +
@@ -395,8 +396,9 @@
     return s + S(st, 0.7) + S("M" + x0 + " " + y0 + " H" + x1, 1.2); }
   function mist(x0, x1, y) { var s = "", o = ""; for (var x = x0; x <= x1; x += 3.4) { s += C(x, y, 2, PAPER); o += (o ? " " : "M") + (x - 2) + " " + y + " Q" + x + " " + (y - 3) + " " + (x + 2) + " " + y; } return s + S(o, 0.7); }
   function sky(d) { return PO(d, 0.3); }
-  function bison(x, y, s, f) { return T(x, y, s, (f ? '<g transform="matrix(-1 0 0 1 31 0)">' : "<g>") + P("M2 12 Q1 7 5 6 Q7 2 12 1.5 Q17 1 19 4 Q24 4 27 6 Q30 8 29.6 12 L29 18 H27.4 L26.6 13.6 Q22 14.6 18 13.6 L17.4 18 H15.8 L15.4 13.4 Q11 13 9.4 12 L9 18 H7.4 L7 12.6 Q5 14 3 13.6 Q2 13 2 12Z M2.6 12 Q2.4 16 5 15 L5.4 12.6Z") +
-    S("M4.4 6.4 Q3 4.6 4.4 3.2 M29.4 8 Q31 9.6 30.6 12", 0.9) + C(4.4, 8.6, 0.5, PAPER) + S("M8 4.6 Q12 3 16 4.6", 0.7, PAPER) + "</g>"); }
+  function bison(x, y, s, f) { return T(x, y, s * 0.86, (f ? '<g transform="matrix(-1 0 0 1 36 0)">' : "<g>") +
+    P("M1 17 Q0 13 2 11 L4 9 Q6 1 13 0.6 Q19 0.4 22 4 Q28 4.6 32 7 Q34.6 9 34 14 L33.6 22 H32 L31.4 16 Q29 16.8 27.4 16.2 L27 22 H25.4 L25 16.4 Q20 17.4 15.4 16.6 L15 22 H13.4 L12.8 17.4 L11.8 22 H10.2 L10.2 16.4 Q8.6 19.6 6 20 Q3.6 20.4 2.6 18.6 Q1.4 18.6 1 17Z") +
+    S("M3.6 10 Q1.8 8 3.4 6.2", 1.1) + C(4, 12.4, 0.6, PAPER) + S("M33.8 8.6 Q36 10 35.4 14", 0.9) + S("M6 8 Q9 4 13 3 M7.4 13 Q10 11 13.4 12", 0.7, PAPER) + "</g>"); }
   function conifers(xs, y, h) { return pines(xs, y, h) + S(xs.map(function (x) { return "M" + x + " " + y + " v1.6"; }).join(" "), 0.8); }
   function lighthouse(x, y, h, w, band) { var t = y - h, s = P("M" + (x - w) + " " + y + " L" + (x - w * 0.62) + " " + t + " H" + (x + w * 0.62) + " L" + (x + w) + " " + y + "Z");
     if (band) s += P("M" + (x - w * 0.86) + " " + (y - h * 0.3) + " L" + (x - w * 0.78) + " " + (y - h * 0.5) + " H" + (x + w * 0.78) + " L" + (x + w * 0.86) + " " + (y - h * 0.3) + "Z M" + (x - w * 0.72) + " " + (y - h * 0.7) + " L" + (x - w * 0.66) + " " + (y - h * 0.88) + " H" + (x + w * 0.66) + " L" + (x + w * 0.72) + " " + (y - h * 0.7) + "Z", PAPER);
@@ -409,7 +411,7 @@
 
   var XPG = {
     "sp-custer": function () { return sky("M-1 20 L5 14 L8 16 L12 11 L16 15 L21 9 L25 14 L29 12 L34 16 L41 13 V24 H-1Z") + conifers([3, 6, 33, 36.4], 24, 7) + P("M13 14 L14 9 L15 14Z M17 13 L18.2 6.6 L19.4 13Z", 0) +
-        P("M-1 24 Q20 21 41 24 V41 H-1Z") + bison(6, 12.6, 0.86) + S("M2 30 H38", 0.8, PAPER); },
+        PO("M-1 24 Q20 21 41 24 V31 H-1Z", 0.3) + bison(4.4, 10.4, 1.04) + P("M-1 30 H41 V41 H-1Z"); },
     "sp-niagara-falls": function () { return sky("M-1 14 H41 V17 H-1Z") + P("M-1 16 Q20 12 41 16 V19 Q20 15 -1 19Z") +
         P("M1 19 Q20 15 39 19 L37 29 Q20 26 3 29Z", PAPER) + S("M5 19 L4.4 27.6 M11 17.6 L10.6 26.4 M17 17 V26 M23 17 V26 M29 17.6 L29.4 26.4 M35 19 L35.6 27.6", 0.7) + S("M1 19 Q20 15 39 19", 1.2) + mist(4, 36, 29.4) +
         water(31) + P("M24 30.6 H33 L32 32.2 H25Z M27 30.6 V28.6 H30 V30.6Z", PAPER); },
@@ -635,6 +637,7 @@
     c_koutoubia: function () { return R(14, 10, 12, 24) + R(13, 8.4, 14, 1.6) + R(17, 3.6, 6, 4.8) + P("M17 3.6 L20 1 L23 3.6Z") + S("M20 1 V-1", 0.6) + P("M17 14 h2 v4 h-2Z M21 14 h2 v4 h-2Z M18 22 Q19 19.6 20 22 V26 H18Z M20 22 Q21 19.6 22 22 V26 H20Z", PAPER) + S("M14 30 H26", 0.6, PAPER) + palmlet(6, 34) + palmlet(34, 34) + S("M1 34 H39", 1.2); },
     c_parliament: function () { var sp = ""; for (var x = 3; x <= 37; x += 4.2) sp += "M" + (x - 0.8) + " 18 L" + x + " 13 L" + (x + 0.8) + " 18Z "; return R(2, 18, 36, 9) + P(sp) + P("M14 18 Q14 10 20 9 Q26 10 26 18Z") + P("M19 9 L20 2 L21 9Z") + P("M5 21 h1.4 v3 h-1.4Z M9 21 h1.4 v3 h-1.4Z M13 21 h1.4 v3 h-1.4Z M25.6 21 h1.4 v3 h-1.4Z M29.6 21 h1.4 v3 h-1.4Z M33.6 21 h1.4 v3 h-1.4Z M18.6 20 h2.8 v4 h-2.8Z", PAPER) + water(27); }
   };
+  CTYG.c_bahamas = function () { return P("M6 29 Q20 24 34 29Z") + lighthouse(20, 27.6, 21, 3.6, 1) + palmlet(8.4, 28) + palmlet(31.4, 28) + water(29) + S("M27 9 Q28.4 8 29.8 9 Q31.2 8 32.6 9", 0.7); };
   Object.keys(CTYG).forEach(function (k) { G[k] = CTYG[k]; });
 
 
@@ -654,7 +657,7 @@
     MAR: "arch|dotted|red|c_koutoubia|serif|ARRIVÉE", ZAF: "hexagon|solid|green|acacia|sans|ADMITTED", KEN: "oval|dotted|brown|giraffe|cond|ENTRY",
     BRA: "double|toothed|green|parrot|sans|CHEGADA", ARG: "circle|dotted|blue|c_obelisco|serif|ENTRADA", PER: "shield|toothed|brown|llama|slab|ENTRADA",
     CHL: "rect|dashed|blue|volcano|cond|ENTRADA", TUR: "oval|double|red|balloon|serif|GİRİŞ", CRI: "cancel|dotted|green|parrot|cond|ENTRADA",
-    BHS: "circle|dashed|blue|wave|sans|WELCOME", JAM: "octagon|dashed|green|palm|slab|WELCOME", ISR: "hexagon|dashed|blue|olive|serif|ENTRY",
+    BHS: "circle|dashed|blue|c_bahamas|sans|WELCOME", JAM: "octagon|dashed|green|palm|slab|WELCOME", ISR: "hexagon|dashed|blue|olive|serif|ENTRY",
     KOR: "rect|solid|blue|gate|cond|ARRIVAL", VNM: "cancel|double|red|lotus|serif|ARRIVAL", SGP: "oval|solid|violet|c_marinabay|cond|ARRIVED",
     CUB: "arch|solid|blue|palm|slab|ENTRADA", DOM: "triangle|dotted|blue|palm|sans|ENTRADA", PHL: "shield|dashed|blue|volcano|cond|ARRIVAL",
     IDN: "octagon|double|red|volcano|serif|ARRIVAL", POL: "rect|toothed|red|tower|serif|PRZYJAZD", CZE: "arch|dashed|blue|clock|cond|PŘÍJEZD",
