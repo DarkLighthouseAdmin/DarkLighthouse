@@ -482,3 +482,19 @@ h2 .units { margin-left:.4rem; }
 .tripmem > div { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:.7rem .9rem; }
 .tripmem .tmq { display:block; font-size:.85rem; font-weight:800; letter-spacing:.02em; color:var(--sage-deep); }
 .tripmem p { margin:.25rem 0 0; font-size:1.1rem; line-height:1.5; overflow-wrap:anywhere; white-space:pre-line; }
+/* Firsts timeline */
+.ftl { list-style:none; margin:1rem 0; padding:0 0 0 .2rem; position:relative; }
+.ftl::before { content:""; position:absolute; left:calc(.2rem + 27px); top:8px; bottom:8px; width:3px; background:repeating-linear-gradient(#d9cdb6 0 8px, transparent 8px 14px); }
+.fitem { position:relative; display:flex; gap:.8rem; align-items:flex-start; margin:0 0 .8rem; }
+.fbadge { flex:none; width:56px; height:56px; border-radius:50%; display:grid; place-items:center; font-size:1.7rem; background:#fff6e6; border:3px solid var(--beacon, #e8a54b); box-shadow:0 0 0 4px var(--bg, #f7f3ea); position:relative; z-index:1; }
+.fitem.auto .fbadge { background:#eef5ef; border-color:var(--sage); }
+.fbody { flex:1; min-width:0; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:.65rem .9rem .5rem; }
+.fbody h3 { margin:.05rem 0 .15rem; font-family:var(--serif); font-size:1.2rem; }
+.fdate { margin:0; font-size:.82rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--sage-deep); }
+.fplace { margin:0; font-size:1.05rem; overflow-wrap:anywhere; } .fnote { margin:.35rem 0 0; font-size:1rem; font-style:italic; color:var(--muted); overflow-wrap:anywhere; }
+.fmeta { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin:.2rem 0 0; font-size:.82rem; color:var(--muted); }
+.fmeta a { margin-left:auto; min-height:44px; min-width:44px; display:inline-flex; align-items:center; justify-content:flex-end; font-weight:700; color:var(--sage-deep); }
+.fform input, .fform select, .fform textarea { font-size:1.05rem; }
+.fempty .big { font-size:2.4rem; margin:0; }
+.fentry .qemo { background:#fff6e6; }
+.fform { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:.9rem 1rem 1rem; } .fform h2 { margin:0; font-size:1.3rem; }

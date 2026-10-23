@@ -72,6 +72,16 @@
   function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 
   /** Draws the 1080x1350 card (a good size for phone sharing) and resolves with the canvas. */
+  function people1(sum) { var w = {}; (sum.firsts || []).forEach(function (f) { w[f.who] = 1; }); return Object.keys(w).length === 1; }
+  /** "Firsts: ✈️ first flight · 🏞️ first national park", cut to fit */
+  function firstsLine(c, sum, one, max) {
+    var f = sum.firsts || []; if (!f.length) return "";
+    c.font = "700 34px Georgia, serif";
+    var bits = f.map(function (x) { return x.emoji + " " + (one ? "" : x.who + "'s ") + (one ? x.title : x.title.charAt(0).toLowerCase() + x.title.slice(1)); }), line = "", used = 0;
+    for (var i = 0; i < bits.length; i++) { var next = (line ? line + " · " : "") + bits[i], more = bits.length - i - 1, tail = more ? " +" + more : "";
+      if (c.measureText(next + tail).width > max && line) { return line + " +" + (bits.length - used); } line = next; used++; }
+    return line;
+  }
   function draw(sum, title) {
     var W = 1080, H = 1350, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
     var c = cv.getContext("2d");
@@ -98,8 +108,10 @@
         var x = off + col * (sz + gx), y = top + r * (sz + 16);
         c.save(); c.translate(x + sz / 2, y + sz / 2); c.rotate(((i * 37) % 11 - 5) * Math.PI / 180); c.globalAlpha = 0.95; c.drawImage(im, -sz / 2, -sz / 2, sz, sz); c.restore();
       });
-      var mapTop = top + rows * (sz + 16) + 10, mapH = H - 130 - mapTop;
+      var fl = firstsLine(c, sum, people1(sum), W - 140);
+      var mapTop = top + rows * (sz + 16) + 10, mapH = H - 130 - mapTop - (fl ? 70 : 0);
       if (map && mapH > 140) { var mw = Math.min(W - 160, mapH * 1000 / 620), mh = mw * 620 / 1000; c.drawImage(map, (W - mw) / 2, mapTop + (mapH - mh) / 2, mw, mh); }
+      if (fl) { c.fillStyle = "#8a6a2f"; c.font = "800 22px 'Helvetica Neue', Arial, sans-serif"; c.fillText("⭐ FIRSTS THIS YEAR", W / 2, H - 186); c.fillStyle = "#3f5f4c"; c.font = "700 34px Georgia, serif"; c.fillText(fl, W / 2, H - 140); }
       c.fillStyle = "#16283a"; c.font = "700 30px Georgia, serif"; c.fillText("FAMSTAMP · STAMP EVERY TRIP", W / 2, H - 70);
       return cv;
     });
@@ -115,6 +127,7 @@
       st.kids.map(function (k) { return '<option value="' + esc(k.id) + '"' + (one && one.id === k.id ? " selected" : "") + '>' + esc(window.MLTL.who(k)) + '</option>'; }).join("") + '</select></div>';
     var yearSel = ys.length > 1 ? '<div class="field"><label for="yr-year">Year</label><select id="yr-year">' + ys.map(function (y) { return '<option' + (y === year ? " selected" : "") + '>' + y + '</option>'; }).join("") + '</select></div>' : "";
     var sum = summary(people, st.trips, year);
+    sum.firsts = window.FS_FIRSTS ? window.FS_FIRSTS.forYear(people, st.trips, year, window.FS_FIRSTS.ctx()) : [];
     var head = '<a class="back" href="' + back + '">← Back</a><h1>' + esc(year) + ' in stamps</h1>' +
       '<p class="lede">A card of the year to send to grandparents or post. It\'s made right here on your phone.</p><div class="yr-pick">' + who + yearSel + '</div>';
     if (!sum.stamps.length && !sum.trips) {

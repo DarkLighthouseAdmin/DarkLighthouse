@@ -879,6 +879,36 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   const may = T.cleanPoint({ name: "Mamoudzou", country: "FRA", sub: "Mayotte", lat: -12.78, lon: 45.23 });
   ok(may && may.sub === "Mayotte", "a real Mayotte place keeps its name");
 }
+// ---- firsts
+{
+  const F = require("../travel-log/app/firsts.js"), M = require("../travel-log/app/log-core.js");
+  const k = M.newPerson({ id: "kid_first001", name: "Test kid" });
+  k.parks = { zion: { at: "2025-07-02", jr: false }, yell: { at: "2024-06-10", jr: false }, grca: { at: "2025-08-01", jr: true } };
+  k.states = { MA: { at: "2020-01-01" }, ME: { at: "2023-08-15" }, NH: { at: "2024-01-03" } };
+  k.places = { USA: { at: "2020-01-01" }, CAN: { at: "2024-09-09" } };
+  const trips = [
+    { id: "t1", kidIds: [k.id], date: "2023-08-15", route: [{ name: "Home", country: "USA" }, { name: "Portland", country: "USA", mode: "car" }] },
+    { id: "t2", kidIds: [k.id], date: "2024-09-09", title: "Montreal weekend", route: [{ name: "Home", country: "USA" }, { name: "Montreal", country: "CAN", mode: "plane", dep: { code: "BOS" }, arr: { code: "YUL" } }] },
+    { id: "t3", kidIds: ["someone_else"], date: "2019-01-01", route: [{ name: "Home", country: "USA" }, { name: "Paris", country: "FRA", mode: "plane" }] }];
+  const ctx = { home: { country: "USA", region: "MA" }, park: id => ({ zion: "Zion", yell: "Yellowstone", grca: "Grand Canyon" })[id] };
+  const f = F.found(k, trips, ctx);
+  ok(f.park.place === "Yellowstone" && f.park.at === "2024-06-10", "first national park is the earliest dated park");
+  ok(f.jr.place === "Grand Canyon" && /Earned a Junior Ranger badge at Grand Canyon/.test(f.jr.text), "first Junior Ranger badge from parks[].jr");
+  ok(f.state.id === undefined && f.state.at === "2023-08-15", "first new state skips the home state");
+  ok(f.country.at === "2024-09-09", "first new country skips home");
+  ok(f.abroad.place === "Montreal weekend" && f.flight.place === "BOS → YUL", "first trip abroad + first flight from this person's trips only");
+  ok(F.mark(k, "beach", { at: "2022-07-04", place: "  Sample Beach ", note: "Cold water!" }) === "beach", "mark a first by hand");
+  ok(F.mark(k, "other", { at: "2025-01-02", place: "Sample Hill", label: "ski lesson" }) === "x1" && F.mark(k, "other", { label: "" }) === null, "custom firsts need a label");
+  F.mark(k, "flight", { at: "2021-03-03", place: "Earlier trip" });
+  const tl = F.timeline(k, trips, ctx);
+  ok(tl[0].key === "flight" && !tl[0].auto && tl[1].key === "beach", "timeline is oldest first; hand-marked overrides found");
+  ok(tl.filter(r => r.key === "flight").length === 1 && tl.some(r => r.title === "First ski lesson"), "no duplicate kinds; custom title");
+  ok(F.clean({ bogus: { at: "x" }, road: { at: "nope", place: "<b>" + "a".repeat(200) } }).road.place.length === 80 && !F.clean({ bogus: {} }).bogus, "clean drops unknown kinds and bad dates");
+  ok(F.forYear([k], trips, "2024", ctx).map(x => x.title).join("|") === "First national park|First new country|First trip abroad", "year card firsts for 2024 " + F.forYear([k], trips, "2024", ctx).map(x => x.title).join("|"));
+  ok(F.unmark(k, "flight") && F.timeline(k, trips, ctx).find(r => r.key === "flight").auto, "removing the hand-marked one falls back to the found one");
+  const bk = M.readBackup(JSON.parse(JSON.stringify(M.makeBackup([k], [], []))));
+  ok(bk.kids[0].firsts && bk.kids[0].firsts.beach.place === "Sample Beach", "firsts survive a backup round trip");
+}
 
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
