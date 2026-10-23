@@ -17,7 +17,7 @@ TP = {  # slug: (name, price, short, image dir)
  "family-travel-kids-planner": ("Family Travel with Kids Planner", 12, "Passport expiry checker, a gentle jet-lag plan, packing by age, day pacing and an emergency info page."),
  "scotland-trip-planner": ("Scotland Trip Planner", 14, "Pick where you sleep each night; it fills in drive times, flags long days and budgets in pounds. Sample 7, 10 and 14-night routes."),
  "travel-planner-bundle": ("Travel Planner Bundle (all 3)", 24, "Trip Planner, Family Travel with Kids and the Scotland Trip Planner. $38 bought separately."),
- "kids-travel-packing-checklist": ("Kids Travel Packing Checklist", 0, "Free 2-page printable: packing by age plus a plane & car bag page for travel day."),
+ "kids-travel-packing-checklist": ("Kids Travel Packing Checklist", 0, "Free 3-page printable: packing by age, kids' clothes with counts, and a plane & car bag page for travel day."),
 }
 
 TCSS = """
@@ -156,7 +156,7 @@ def cta(slugs, heading, sub):
 '''
 
 FREE = f'''    <div class="free">
-      <div><h2>Free: kids travel packing checklist</h2><p>Two printable pages: what to pack by age (baby, toddler, school-age) and a plane & car bag list for travel day.</p></div>
+      <div><h2>Free: kids travel packing checklist</h2><p>Three printable pages: what to pack by age (baby, toddler, school-age), kids' clothes with counts for a weekend, 1 week or 2 weeks, and a plane & car bag list for travel day.</p></div>
       <a class="btn btn-beacon" href="{URLS["kids-travel-packing-checklist"]}">Get the free checklist</a>
     </div>
 '''
