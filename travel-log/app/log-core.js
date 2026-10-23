@@ -1,13 +1,15 @@
 /* Famstamp (My Lifetime Travel Log app): the app's logic with no browser parts, so it can be tested in Node
    (node scripts/test_travel_log.js). Everything here works on plain objects; storage lives in app.js. */
 (function (root, factory) {
-  if (typeof module === "object" && module.exports) module.exports = factory();
-  else root.MLTL = factory();
-})(typeof self !== "undefined" ? self : this, function () {
+  if (typeof module === "object" && module.exports) module.exports = factory(require("./trips-core.js"), require("./passport-core.js"));
+  else root.MLTL = factory(root.WK_TRIPS, root.WK_PASSPORT);
+})(typeof self !== "undefined" ? self : this, function (T, P) {
   "use strict";
 
-  var APP_ID = "my-lifetime-travel-log";   // stays the same after the Famstamp rename so every old backup still restores
-  var BACKUP_VERSION = 3;   // v2 added roles (kid / adult / grandparent); v3 adds trip From / stops and the family's home town. v1 and v2 files still restore.
+  var APP_ID = "my-lifetime-travel-log";   // stays the same after the Wanderkin and Famstamp renames so every old backup still restores
+  // v2 added roles (kid / adult / grandparent); v3 adds trip From / stops and the family's home town; v4 (Famstamp 1.4) adds trip routes with
+  // miles, stays, favorites, moments and stories, plus hand-added passport stamps on each person. v1-v3 files still restore.
+  var BACKUP_VERSION = 4;
   var MAX_STOPS = 5;
 
   // All 64 US national parks as of October 2026 (Chiricahua became #64 on Oct 20, 2026). Same list as the book.
@@ -97,8 +99,14 @@
     var mark = null;
     if (opts.mark && /^(state|place|park)$/.test(opts.mark.kind) && opts.mark.id) mark = { kind: opts.mark.kind, id: clean(opts.mark.id, 40) };
     var now = opts.now || new Date().toISOString();
-    return { id: opts.id || uid("trip"), kidIds: kidIds, place: place, from: clean(opts.from, 80), stops: stops, date: validDate(opts.date), who: clean(opts.who, 120),
+    var t = { id: opts.id || uid("trip"), kidIds: kidIds, place: place, from: clean(opts.from, 80), stops: stops, date: validDate(opts.date), who: clean(opts.who, 120),
              memory: clean(opts.memory, 1000), photoId: opts.photoId || null, mark: mark, createdAt: opts.createdAt || now, updatedAt: now };
+    // v1.4: route, stays, favorites, moments, story (all optional). No route given = build one from From / stops / To.
+    var x = T.cleanExtras(opts, kidIds);
+    Object.keys(x).forEach(function (k) { t[k] = x[k]; });
+    if (t.endDate && t.date && t.endDate < t.date) t.endDate = "";
+    if (t.route.length) T.syncLegacy(t); else t.route = T.routeFromLegacy(t);
+    return T.fitSize(t);
   }
   /** Older trips (v1/v2) have no From or stops; a trip with no travelers belongs to the person it was saved under. */
   function migrateTrip(t, ownerId) {
@@ -110,10 +118,16 @@
     if (typeof t.from !== "string") t.from = "";
     if (!Array.isArray(t.stops)) t.stops = [];
     delete t.kidId;
+    // v1.4: older trips get a route built from their words (no locations yet, so their miles show as "?")
+    if (!Array.isArray(t.route) || !t.route.length) t.route = T.routeFromLegacy(t);
+    if (!Array.isArray(t.stays)) t.stays = [];
+    if (!Array.isArray(t.favs)) t.favs = [];
+    if (!t.moments || typeof t.moments !== "object") t.moments = {};
     return t;
   }
   /** "Orlando to Edinburgh", "Orlando to London to Edinburgh", or just "Edinburgh". Plain words, no arrows. */
   function routeText(t) {
+    if (Array.isArray(t.route) && t.route.length > 1 && t.route.some(function (p) { return p.lat != null; })) return t.route.map(function (p) { return p.name; }).join(" to ");
     var parts = [t.from].concat(t.stops || []).concat([t.place]).map(function (x) { return String(x || "").trim(); }).filter(Boolean);
     return parts.filter(function (x, i) { return i === parts.length - 1 || x.toLowerCase() !== parts[i + 1].toLowerCase(); }).join(" to ");
   }
@@ -147,14 +161,20 @@
     var changed = trips.some(function (t) { return (t.updatedAt || "") > last; }) || people.some(function (p) { return (p.updatedAt || "") > last; });
     return changed && now - new Date(last).getTime() >= BACKUP_DAYS * DAY;
   }
-  /** Color in whatever the trip points at, for every kid on it. */
+  /** Color in whatever the trip points at, plus every state, country, UK nation and park on its route, for everyone on it.
+      Returns the ids of people whose maps changed. */
+  var PARK_STATES = {}; PARKS.forEach(function (p) { PARK_STATES[p.id] = p.states.split(/,\s*/); });
   function applyTripMark(trip, kids) {
-    if (!trip.mark) return;
+    var list = T.areas(trip, PARK_STATES).slice(), changed = [];
+    if (trip.mark) list.push(trip.mark);
     kids.forEach(function (k) {
       if (trip.kidIds.indexOf(k.id) < 0) return;
-      if (trip.mark.kind === "park") { if (!k.parks[trip.mark.id]) k.parks[trip.mark.id] = { at: trip.date || today(), jr: false }; }
-      else toggleArea(k, trip.mark.kind, trip.mark.id, true, trip.date);
+      list.forEach(function (a) {
+        if (a.kind === "park") { if (PARK_STATES[a.id] && !k.parks[a.id]) { k.parks[a.id] = { at: trip.date || today(), jr: false }; changed.push(k.id); } }
+        else if (a.kind === "state" ? !k.states[a.id] : !k.places[a.id]) { toggleArea(k, a.kind, a.id, true, trip.date); changed.push(k.id); }
+      });
     });
+    return changed.filter(function (x, i) { return changed.indexOf(x) === i; });
   }
 
   function ageOn(birthYear, dateStr) {
@@ -182,7 +202,8 @@
     var dates = mine.map(function (t) { return t.date; }).filter(Boolean).sort();
     var years = {}; dates.forEach(function (d) { years[d.slice(0, 4)] = 1; });
     var abroad = countries.filter(function (id) { return id !== "USA"; }).length;
-    return {
+    var life = T.lifetime(kid.id, trips);
+    return { miles: life.miles, flights: life.flights, bigRoad: life.bigRoad,
       role: validRole(kid.role), kid: isKid(kid), together: mine.filter(function (t) { return t.kidIds.length > 1; }).length,
       states: states, statesTotal: US_STATE_TOTAL, dc: !!kid.states.DC,
       countries: countries.length, countriesTotal: COUNTRY_TOTAL, abroad: abroad,
@@ -210,14 +231,20 @@
     { id: "park-1", name: "Park ranger", desc: "Visit a national park", need: 1, key: "parks" },
     { id: "parks-10", name: "Trail blazer", desc: "Visit 10 national parks", need: 10, key: "parks" },
     { id: "together", name: "Better together", desc: "Take 3 trips with family", need: 3, key: "together" },
-    { id: "junior-ranger", name: "Junior Ranger", desc: "Earn a Junior Ranger badge", need: 1, key: "juniorRanger", kidsOnly: true }
+    { id: "junior-ranger", name: "Junior Ranger", desc: "Earn a Junior Ranger badge", need: 1, key: "juniorRanger", kidsOnly: true },
+    // v1.4: these come from trip routes
+    { id: "first-flight", name: "First flight", desc: "Take a trip with a flight", need: 1, key: "flights" },
+    { id: "road-trip", name: "Big road trip", desc: "Drive 500 miles on one trip", need: 500, key: "bigRoad" },
+    { id: "miles-1000", name: "1,000 miles", desc: "Travel 1,000 miles", need: 1000, key: "miles" },
+    { id: "miles-10000", name: "10,000 miles", desc: "Travel 10,000 miles", need: 10000, key: "miles" },
+    { id: "around-world", name: "Around the world", desc: "Travel 24,901 miles, once around the Earth", need: 24901, key: "miles" }
   ];
   function badges(s) {
     var v = Object.assign({ scotlandN: s.scotland ? 1 : 0 }, s);
     var kid = s.kid !== false;   // older callers (no role) are kids
     return BADGES.filter(function (b) { return kid || !b.kidsOnly; }).map(function (b) {
       var have = Math.min(v[b.key] || 0, b.need);
-      return { id: b.id, name: kid ? b.name : (b.adultName || b.name), desc: b.desc, earned: have >= b.need, have: have, need: b.need };
+      return { id: b.id, name: kid ? b.name : (b.adultName || b.name), desc: b.desc, earned: have >= b.need, have: Math.round(have), need: b.need };
     });
   }
 
@@ -256,9 +283,12 @@
 
   // ---------- backup ----------
   function makeBackup(kids, trips, photos, now, settings) {
+    var st = { home: clean(settings && settings.home, 80) };
+    var hp = settings && settings.homePoint ? T.cleanPoint(settings.homePoint, true) : null; if (hp) st.homePoint = hp;
+    if (settings && settings.units === "km") st.units = "km";
     return { app: APP_ID, version: BACKUP_VERSION, exportedAt: now || new Date().toISOString(),
              note: "Famstamp backup. Keep this file somewhere safe (email it to yourself, or save it to your cloud drive).",
-             kids: kids, trips: trips, photos: photos, settings: { home: clean(settings && settings.home, 80) } };
+             kids: kids, trips: trips, photos: photos, settings: st };
   }
   function cleanArea(bag, idRe) {
     var out = {};
@@ -278,6 +308,7 @@
       // v1 files have no role: everyone in them was a kid
       var kid = newPerson({ id: k.id, name: k.name, role: obj.version >= 2 ? k.role : "kid", birthYear: k.birthYear, color: k.color, now: k.createdAt });
       kid.states = cleanArea(k.states, /^[A-Z]{2}$/); kid.places = cleanArea(k.places, /^[A-Z0-9]{3}$/); kid.parks = cleanArea(k.parks, /^[a-z0-9-]{2,40}$/);
+      if (obj.version >= 4 && Array.isArray(k.stamps) && k.stamps.length) kid.stamps = P.cleanStamps(k.stamps);
       kid.createdAt = typeof k.createdAt === "string" ? k.createdAt.slice(0, 30) : kid.createdAt;
       kid.updatedAt = typeof k.updatedAt === "string" ? k.updatedAt.slice(0, 30) : kid.updatedAt;
       return kid;
@@ -288,14 +319,30 @@
     }).map(function (p) { return { id: p.id, dataUrl: p.dataUrl }; });
     var photoIds = photos.map(function (p) { return p.id; });
     var trips = obj.trips.filter(function (t) { return t && idOk.test(t.id) && (Array.isArray(t.kidIds) || typeof t.kidId === "string"); }).map(function (t) {
+      var v4 = obj.version >= 4; if (!v4) { t = JSON.parse(JSON.stringify(t)); delete t.route; }
       t = migrateTrip(JSON.parse(JSON.stringify(t)));
       var ids = t.kidIds.filter(function (id) { return kidIds.indexOf(id) >= 0; });
       if (!ids.length || !clean(t.place, 80)) return null;
-      return newTrip({ id: t.id, kidIds: ids, place: t.place, from: obj.version >= 3 ? t.from : "", stops: obj.version >= 3 ? t.stops : [], date: t.date, who: t.who, memory: t.memory, mark: t.mark,
-                       photoId: photoIds.indexOf(t.photoId) >= 0 ? t.photoId : null, createdAt: t.createdAt, now: t.updatedAt });
+      return keepUnknown(t, newTrip({ id: t.id, kidIds: ids, place: t.place, from: obj.version >= 3 ? t.from : "", stops: obj.version >= 3 ? t.stops : [], date: t.date, who: t.who, memory: t.memory, mark: t.mark,
+                       photoId: photoIds.indexOf(t.photoId) >= 0 ? t.photoId : null, createdAt: t.createdAt, now: t.updatedAt,
+                       route: v4 ? t.route : [], title: v4 ? t.title : "", endDate: v4 ? t.endDate : "", nights: v4 ? t.nights : null, roundTrip: v4 && t.roundTrip, done: v4 && t.done,
+                       stays: v4 ? t.stays : [], favs: v4 ? t.favs : [], moments: v4 ? t.moments : {}, story: v4 ? t.story : null }));
     }).filter(Boolean);
     var home = obj.version >= 3 && obj.settings && typeof obj.settings === "object" ? clean(obj.settings.home, 80) : "";
-    return { kids: kids, trips: trips, photos: photos, settings: { home: home }, exportedAt: typeof obj.exportedAt === "string" ? obj.exportedAt : "" };
+    var settings = { home: home };
+    if (obj.version >= 4 && obj.settings && typeof obj.settings === "object") { var hp = T.cleanPoint(obj.settings.homePoint, true); if (hp) settings.homePoint = hp; if (obj.settings.units === "km") settings.units = "km"; }
+    return { kids: kids, trips: trips, photos: photos, settings: settings, exportedAt: typeof obj.exportedAt === "string" ? obj.exportedAt : "" };
+  }
+
+  /** Fields a newer app version (or Family Sync, e.g. copiedFrom) added that this version doesn't know: keep them as plain JSON, small ones only. */
+  function keepUnknown(src, built) {
+    var out = {};
+    Object.keys(src || {}).forEach(function (k) {
+      if (k in built || k === "kidId" || !/^[A-Za-z][A-Za-z0-9]{0,29}$/.test(k)) return;
+      var j; try { j = JSON.stringify(src[k]); } catch (e) { return; }
+      if (j && j.length <= 2000) out[k] = JSON.parse(j);
+    });
+    return Object.assign(out, built);
   }
 
   /** Long edge capped at max px, keeping the shape. */
@@ -321,5 +368,5 @@
            ageOn: ageOn, stats: stats, badges: badges, BADGES: BADGES, makeBackup: makeBackup, readBackup: readBackup, fitDims: fitDims,
            esc: esc, prettyDate: prettyDate, validDate: validDate, today: today, backupNudge: backupNudge,
            MAX_STOPS: MAX_STOPS, migrateTrip: migrateTrip, routeText: routeText, joinNames: joinNames, tripsTogether: tripsTogether, pairCounts: pairCounts,
-           backupDue: backupDue, BACKUP_DAYS: BACKUP_DAYS, SNOOZE_DAYS: SNOOZE_DAYS };
+           backupDue: backupDue, BACKUP_DAYS: BACKUP_DAYS, SNOOZE_DAYS: SNOOZE_DAYS, PARK_STATES: PARK_STATES, T: T, P: P };
 });

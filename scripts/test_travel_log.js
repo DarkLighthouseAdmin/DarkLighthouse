@@ -77,7 +77,7 @@ ok(M.ageOn(2016, "2026-07-14") === 10 && M.ageOn(null, "2026-07-14") === null, "
 
 // ---- badges ----
 const bs = M.badges(M.stats(a, [t1], MAPS.world)), got = id => bs.find(x => x.id === id).earned;
-ok(bs.length === 16, "16 badges for kids");
+ok(bs.length === 21, "21 badges for kids");
 ok(got("first-trip") && got("photo") && got("states-5") && !got("states-10"), "trip/photo/state badges");
 ok(got("scotland") && got("uk-4") && got("abroad") && got("continents-3") && !got("countries-5"), "Wee explorer, All four nations, Passport power");
 ok(got("park-1") && !got("junior-ranger"), "park badge, no ranger yet");
@@ -104,7 +104,7 @@ ok(ms.firstTripAge === null, "no 'age on first trip' for adults");
 ok(M.stats(a, [tFam], MAPS.world).firstTripAge === 10, "kids still get age on first trip");
 ok(ms.together === 2 && ms.trips === 2, "trips together counted per person");
 const mb = M.badges(ms), mg = id => mb.find(x => x.id === id);
-ok(mb.length === 15 && !mg("junior-ranger"), "adults skip the Junior Ranger badge");
+ok(mb.length === 20 && !mg("junior-ranger"), "adults skip the Junior Ranger badge");
 ok(mg("scotland").name === "Scotland calling" && mg("scotland").earned, "adults get 'Scotland calling', not 'Wee explorer'");
 ok(M.badges(M.stats(a, [], MAPS.world)).find(x => x.id === "scotland").name === "Wee explorer", "kids keep 'Wee explorer'");
 ok(mg("park-1").earned && mg("abroad").earned && !mg("together").earned, "adults earn the same badges");
@@ -132,7 +132,7 @@ ok(M.familyStats([], [], MAPS.world).states === 0, "empty family is fine");
 // ---- backup / restore ----
 const px = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2w==";
 const bk = M.makeBackup([a, b], [t1, t2], [{ id: "photo_0123456789abcdef", dataUrl: px }], "2026-10-23T12:00:00.000Z");
-ok(bk.app === "my-lifetime-travel-log" && bk.version === 3, "backup is labeled (version 3)");
+ok(bk.app === "my-lifetime-travel-log" && bk.version === 4, "backup is labeled (version 4)");
 const bk2 = M.readBackup(JSON.parse(JSON.stringify(M.makeBackup([a, mom, gran], [tCouple], []))));
 ok(bk2.kids.map(p => p.role).join() === "kid,adult,grand", "v2 backups keep roles");
 ok(bk2.kids[2].birthYear === 1952, "grandparent birth year survives");
@@ -222,7 +222,7 @@ ok(M.backupNudge("2999-01-01T00:00:00Z", [t1, t2, t1]) === 0, "no nudge right af
   ok(kept.from === "Orlando" && kept.stops.join() === "a", "migration leaves new trips alone");
   // backup v3
   const b3 = JSON.parse(JSON.stringify(M.makeBackup([lily, mum, dad, nan], trips, [], "2026-10-23T12:00:00.000Z", { home: " Orlando, FL " })));
-  ok(b3.version === 3 && b3.settings.home === "Orlando, FL", "v3 backup carries the home town");
+  ok(b3.version === 4 && b3.settings.home === "Orlando, FL", "v3 backup carries the home town");
   const r3 = M.readBackup(b3);
   ok(r3.settings.home === "Orlando, FL", "home town restores");
   const red = r3.trips.find(t => t.id === ed.id);
@@ -236,7 +236,7 @@ ok(M.backupNudge("2999-01-01T00:00:00Z", [t1, t2, t1]) === 0, "no nudge right af
   ok(r1.trips[0].from === "" && r1.trips[0].kidIds.join() === "kid_0123456789abcdef" && r1.settings.home === "", "v1 files still restore: the kid is the only traveler");
   const v1single = JSON.parse(JSON.stringify(v1)); v1single.trips[0] = Object.assign({}, v1single.trips[0], { kidId: "kid_0123456789abcdef" }); delete v1single.trips[0].kidIds;
   ok(M.readBackup(v1single).trips[0].kidIds.join() === "kid_0123456789abcdef", "a trip saved under one person (kidId) restores with them as the traveler");
-  throws(() => M.readBackup(Object.assign({}, b3, { version: 4 })), /newer/i, "v4 files are refused politely");
+  throws(() => M.readBackup(Object.assign({}, b3, { version: 5 })), /newer/i, "v5 files are refused politely");
   // backup reminder
   const now = "2026-10-23T12:00:00.000Z", t3 = [ed, beach, lake], day = 864e5, ago = d => new Date(Date.parse(now) - d * day).toISOString();
   ok(!M.backupDue({ now, trips: [ed, beach], people: [lily] }), "never backed up, 2 trips: no banner yet");
@@ -253,10 +253,12 @@ ok(M.backupNudge("2999-01-01T00:00:00Z", [t1, t2, t1]) === 0, "no nudge right af
 }
 {
   const js2 = read("app.js"), css2 = read("app.css");
-  ok(/id="tfrom"/.test(js2) && /id="tplace"/.test(js2) && />From</.test(js2) && />To \(where did you go\?\)/.test(js2), "trip form has From and To");
-  ok(/name="kids"/.test(js2) && /Who went\?/.test(js2) && /x\.id === k\.id/.test(js2), "Who went checklist, defaulting to the current person");
+  const ui = read("trips-ui.js");
+  ok(/id="psearch"/.test(ui) && /Where did you go\?/.test(ui) && /Tap places in order/.test(ui), "trip builder: tap places in order");
+  ok(/name="kids"/.test(ui) && /Who went\?/.test(ui) && /kidIds: \[k\.id\]/.test(ui), "Who went checklist, defaulting to the current person");
   ok(/setMeta\("home"/.test(js2) && /state\.meta\.home/.test(js2), "home town saved on the device and prefilled");
-  ok(/id="addstop"/.test(js2) && /M\.MAX_STOPS/.test(js2), "optional stops");
+  ok(/T\.MAX_POINTS/.test(ui) && /class="leg"/.test(ui), "up to 12 stops, with a leg between each");
+  ok(/Object\.assign\(old \? copy\(old\) : \{\}/.test(ui), "editing a trip keeps fields this version doesn't know about");
   ok(/function viewTogether/.test(js2) && /#\/together/.test(js2) && /trips together/.test(js2) && /pairCounts/.test(js2), "Trips together view with pair counts");
   ok(/#\/together\/fam/.test(js2), "family map 'Trips together' links to the trips");
   ok(/class="travelers"/.test(js2) && /M\.routeText\(t\)/.test(js2), "trip cards show travelers and the route");
@@ -302,7 +304,8 @@ ok((js.match(/My Lifetime Travel Log/g) || []).length === 4 && /matching paperba
 ok(M.APP_ID === "my-lifetime-travel-log", "backup id unchanged so old backups still restore");
 ok(/name="description" content="[^"]*family[^"]*kids/i.test(html), "meta description is family-wide and mentions kids");
 ok(/"description": "[^"]*family/.test(read("manifest.webmanifest")), "manifest description is family-wide");
-ok(/var CACHE = "mltl-v8"/.test(sw), "service worker cache bumped (Family Sync visible) so phones update");
+ok(/var CACHE = "mltl-v9"/.test(sw), "service worker cache bumped to v9 (Trips + Passport) so phones update");
+ok(["trips-core.js", "passport-core.js", "trips-ui.js"].every(f => sw.indexOf('"' + f + '"') >= 0), "service worker caches the new trip and passport scripts");
 ok(/Color in every place your family goes, from the first road trip on\./.test(js), "onboarding leads with family, from the first road trip");
 ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.test(js) && /places you\\'ve been together/.test(js), "family map with a together view");
 ok(/Parent\/Adult/.test(read("log-core.js")) && /data-role/.test(js), "add-someone form has roles");
@@ -471,7 +474,7 @@ ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view
   ok(fd[0].trip.id === "b" && fd[0].by === "Nana" && fd[1].by === "", "feed is newest first with who added it");
   ok(S.thumbDims(4032, 3024).w === 1024 && S.thumbDims(3024, 4032).h === 1024 && S.thumbDims(800, 600).w === 800, "shared photo copies are 1024px on the long edge, never upscaled");
   // wiring + privacy
-  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
+  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="trips-ui\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
   ok(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co/.test(html), "CSP allows only the family database");
   ok(!/service_role|sb_secret_/.test(scfg + ssrc + score), "no secret keys in the app");
   ok(/key: "sb_publishable_[A-Za-z0-9_-]+"/.test(scfg), "sync uses the publishable key");
@@ -544,6 +547,87 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/signInWithOAuth\(opts\)/.test(sj) && /linkIdentity\(opts\)/.test(sj) && /flowType: "pkce"/.test(sj) && /redirectTo: location\.origin \+ location\.pathname/.test(sj), "Google: link for anonymous members, sign in otherwise, back to the app's own URL");
   const cfgSrc = fs.readFileSync(path.join(APP, "sync-config.js"), "utf8");
   ok(/google: false/.test(cfgSrc), "Google button is off until the provider is set up");
+}
+
+// ---------- v1.4: trips, miles, stories, passport, State Signs ----------
+{
+  const T = require("../travel-log/app/trips-core.js"), P = require("../travel-log/app/passport-core.js"), L = require("../travel-log/app/log-core.js");
+  const pt = (name, lat, lon, country, region, mode) => ({ name, lat, lon, country, region, mode, kind: "city" });
+  const rv = { id: "t1", kidIds: ["a", "b"], date: "2026-04-03", endDate: "2026-04-10", place: "Asheville",
+    route: [pt("Orlando", 28.54, -81.38, "USA", "FL"), pt("Savannah", 32.08, -81.09, "USA", "GA", "car"), pt("Asheville", 35.6, -82.55, "USA", "NC", "car")],
+    favs: [{ cat: "pub", name: "The Wee Pub" }, { cat: "drink", name: "Hazy IPA" }, { cat: "restaurant", name: "Crab Shack" }] };
+  const people = [{ id: "a", name: "Rosie", role: "kid" }, { id: "b", name: "Jen", role: "adult" }];
+  const lhrJfk = T.gcMiles({ lat: 51.47, lon: -0.45 }, { lat: 40.64, lon: -73.78 });
+  ok(Math.abs(lhrJfk - 3443) < 15, "great-circle LHR-JFK is about 3,443 mi: " + Math.round(lhrJfk));
+  const sm = T.summary(rv);
+  ok(sm.legs.length === 2 && sm.legs.every(l => l.how === "about"), "ground legs are labelled 'about'");
+  ok(Math.abs(sm.legs[0].miles - 1.2 * T.gcMiles(rv.route[0], rv.route[1])) < 0.01, "car leg = great-circle x 1.2");
+  ok(sm.miles === 603 && sm.roadMiles === 603 && sm.nights === 7, "trip total 603 mi road, 7 nights");
+  ok(sm.states.join() === "GA,NC" && sm.countries.join() === "USA", "seen: states GA, NC; country USA (start point not counted)");
+  const fly = Object.assign({}, rv, { route: [pt("Orlando", 28.43, -81.31, "USA", "FL"), pt("Edinburgh", 55.95, -3.37, "GBR", "SCT", "plane")] });
+  ok(T.summary(fly).legs[0].how === "flight" && T.summary(fly).flights === 1, "plane legs are flights (great circle)");
+  ok(T.cleanPoint({ name: "X", nights: null, mode: "car" }).nights === undefined, "nights: null stays empty, not 0");
+  ok(T.cleanPoint({ name: "X", nights: "" }).nights === undefined && T.cleanPoint({ name: "X", nights: true }).nights === undefined, "blank/boolean nights ignored");
+  ok(T.fmtDist(1609.344 / 1000 * 10 / 1.609344, "km").indexOf("km") >= 0, "km formatting");
+  // stories
+  const s1 = T.makeStory(rv, { travelers: people }, { style: "storybook" }), s2 = T.makeStory(rv, { travelers: people }, { style: "storybook" }), s3 = T.makeStory(rv, { travelers: people }, { style: "storybook", seed: 3 });
+  ok(s1.text === s2.text, "story is deterministic for the same trip and seed");
+  ok(s1.text !== s3.text, "Shuffle (new seed) changes the story");
+  ok(!/Wee Pub|Hazy IPA/.test(s1.text), "storybook never mentions adult picks");
+  const rich = Object.assign({}, rv, { memory: "Rosie found a shark tooth on the beach", moments: { a: "the ghost tour", b: "sunrise on the porch" },
+    stays: [{ name: "Oak Cabin", type: "rental", nights: 4, rating: 5, where: "Asheville" }, { name: "River Camp", type: "camp", nights: 3, where: "Savannah" }],
+    favs: rv.favs.concat([{ cat: "activity", name: "Tubing on the river" }, { cat: "treat", name: "Peach ice cream" }]),
+    route: rv.route.map((p, i) => Object.assign({}, p, i ? { nights: i === 1 ? 3 : 4 } : {})) });
+  const wc = T.wordCount(T.makeStory(rich, { travelers: people }, { style: "storybook" }).text), wj = T.wordCount(T.makeStory(rich, { travelers: people }, { style: "journal" }).text);
+  ok(wc >= 150 && wc <= 400 && wj >= 150 && wj <= 400, "a filled-in trip gives a 150-400 word story: " + wc + "/" + wj);
+  ok(T.wordCount(s1.text) <= 400, "a sparse trip gives a short story, never padded past 400");
+  const bare = T.makeStory({ id: "x", kidIds: [], place: "Somewhere" }, {}, { style: "journal" });
+  ok(typeof bare.text === "string" && bare.text.length > 40 && !/undefined|null|NaN/.test(bare.text), "story copes with missing fields");
+  ok(T.splitSentences("One. Two! Three?").length === 3, "sentence split for read-aloud highlight");
+  ok(!T.showAdult(rv, people, people[0], false) && T.showAdult(rv, people, people[0], true) && T.showAdult(rv, people, people[1], false), "adult picks hidden on kid views unless toggled");
+  // lifetime: no double counting across people
+  const lf = T.lifetime(null, [rv, rv]), la = T.lifetime("a", [rv]);
+  ok(la.miles === 603, "lifetime miles for a person");
+  ok(typeof lf === "object", "family lifetime computes");
+  // passport
+  const again = Object.assign({}, rv, { id: "t2", date: "2026-08-01", endDate: "2026-08-03" });
+  const ps = P.stampsFor(people[0], [rv, again], {});
+  ok(ps.filter(x => x.area === "GA").length === 2, "repeat visit adds a new stamp");
+  ok(ps.every(x => /^t-t[12]-state-/.test(x.id) && x.source === "trip"), "trip stamps are derived with stable ids");
+  ok(P.familyStamps(people, [rv], {}).length === 2 && P.familyStamps(people, [rv], {})[0].who.length === 2, "family passport: one stamp per trip area, with who was there");
+  ok(P.cleanStamps(Array.from({ length: 99 }, (_, i) => P.newStamp ? P.newStamp({ kind: "place", area: "FRA", date: "2026-01-0" + (i % 9 + 1) }) : null).filter(Boolean)).length <= P.MAX_STAMPS, "hand stamps capped at MAX_STAMPS");
+  // sync size limits: 16 KB per trip row, 8 KB per person row
+  { const X = n => "x".repeat(n), ap = { code: "EDI", name: X(60), lat: 55.9, lon: -3.3 }, pid = c => "person_" + c.repeat(16);
+    const big = L.newTrip({ kidIds: ["a", "b", "c", "d"].map(pid), place: X(80), date: "2026-01-01", endDate: "2026-02-01", who: X(200), memory: X(900), title: X(80),
+      route: Array.from({ length: 12 }, () => ({ name: X(80), kind: "city", lat: 10.1, lon: 20.4, country: "GBR", region: "SCT", sub: X(80), near: X(60), nights: 3, mode: "plane", miles: 1234.5, dep: ap, arr: ap, ref: X(40) })),
+      stays: Array.from({ length: 8 }, () => ({ name: X(80), type: "hotel", nights: 3, rating: 5, note: X(300), where: X(80) })),
+      favs: Array.from({ length: 12 }, () => ({ cat: "restaurant", name: X(80), note: X(200), where: X(80) })),
+      moments: Object.fromEntries(["a", "b", "c", "d"].map(c => [pid(c), X(300)])), story: { text: X(3000), style: "journal", seed: 5, at: "2026-01-01T00:00:00Z" } });
+    const n = Buffer.byteLength(JSON.stringify(big));
+    ok(n <= 16384 && n <= T.TRIP_BUDGET, "a maxed-out trip still fits the 16 KB sync row: " + n);
+    ok(big.route.length === 12 && big.stays.length === 8 && big.favs.length === 12 && big.route.every(p => p.lat != null), "trimming keeps every stop, stay and favorite");
+    const small = L.newTrip({ kidIds: [pid("a")], place: "Paris", date: "2026-01-01", memory: "Crepes " + X(500) });
+    ok(small.memory.length > 500, "small trips are never trimmed");
+    const st = P.cleanStamps(Array.from({ length: 70 }, (_, i) => ({ kind: "place", area: "FRA", date: "2026-01-0" + (i % 9 + 1), end: "2026-02-01", via: X(40), note: X(140) })));
+    ok(st.length === 60 && JSON.stringify(st).length <= 6000, "60 stamps with notes fit a person's 8 KB row: " + JSON.stringify(st).length);
+  }
+  // State Signs
+  const sg = P.signsFor(people, [rv], {});
+  ok(Object.keys(sg).join() === "GA,NC" && sg.GA.first === "2026-04-03" && sg.GA.who.length === 2, "signs fill in from US trip stops");
+  ok(P.signCount(Object.assign({ DC: { id: "DC" } }, sg)).have === 2 && P.signCount({ DC: { id: "DC" } }).dc === true, "DC is a bonus, not counted in 50");
+  ok(P.STATES50.length === 50 && P.STATES50.indexOf("DC") < 0, "50 states, no DC");
+  const on = P.signSVG("GA", "Georgia", sg.GA), off = P.signSVG("GA", "Georgia", null);
+  ok(/WELCOME TO/.test(on) && /GEORGIA/i.test(on) && /FIRST VISIT/.test(on), "collected sign shows name and first visit");
+  ok(/NOT YET/.test(off) && off !== on, "uncollected sign is the faded version");
+  // backup v4 round trip, v3 still restores
+  const ka = L.newKid({ name: "Rosie", role: "kid" }), kb = L.newKid({ name: "Jen", role: "adult" });
+  const b4 = L.makeBackup([ka, kb], [Object.assign({ copiedFrom: { familyName: "Riveras" } }, rv, { id: "trip_abc12345", kidIds: [ka.id, kb.id] })], [], null, { home: "Orlando", units: "km" });
+  ok(b4.version === 4, "backup is v4");
+  const r4 = L.readBackup(JSON.parse(JSON.stringify(b4)));
+  ok(r4 && r4.trips.length === 1 && r4.trips[0].route.length === 3 && r4.trips[0].favs.length === 3, "v4 backup keeps route and favorites");
+  ok(r4.trips[0].copiedFrom && r4.trips[0].copiedFrom.familyName === "Riveras", "unknown trip fields (copiedFrom) survive backup");
+  const r3 = L.readBackup({ app: "my-lifetime-travel-log", version: 3, kids: [Object.assign(L.newKid({ name: "Lily" }), { id: "person_k1234567" })], trips: [{ id: "trip_old12345", kidIds: ["person_k1234567"], place: "Paris", date: "2020-01-01" }], photos: [], settings: { home: "Orlando" } });
+  ok(r3 && r3.trips.length === 1 && r3.kids.length === 1, "v3 backups still restore");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

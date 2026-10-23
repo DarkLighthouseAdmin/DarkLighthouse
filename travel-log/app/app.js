@@ -3,6 +3,7 @@
 (function () {
   "use strict";
   var M = window.MLTL, MAPS = window.MLTL_MAPS, esc = M.esc;
+  function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
 
@@ -93,7 +94,7 @@
   }
   function doBackup() {
     return all("photos").then(function (photos) {
-      var data = M.makeBackup(state.kids, state.trips, photos, null, { home: state.meta.home || "" }), blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+      var data = M.makeBackup(state.kids, state.trips, photos, null, { home: state.meta.home || "", homePoint: state.meta.homePoint, units: state.meta.units }), blob = new Blob([JSON.stringify(data)], { type: "application/json" });
       var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "famstamp-backup-" + ((window.MLTL_SYNC && window.MLTL_SYNC.backupTag && window.MLTL_SYNC.backupTag()) || "") + M.today() + ".json";
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
       return setMeta("lastBackupAt", data.exportedAt);
@@ -112,13 +113,18 @@
     var h = location.hash.replace(/^#\/?/, "").split("/");
     document.body.classList.remove("kidview");
     if (window.MLTL_SYNC && window.MLTL_SYNC.route(h)) return;
+    if (h[0] === "family" && h[1] === "passport") return UI().passportFamily();
+    if (h[0] === "family" && h[1] === "signs") return UI().signs(null);
     if (h[0] === "family") return viewFamily();
     if (h[0] === "together") return viewTogether(h[1]);
     if ((h[0] === "p" || h[0] === "kid") && kidById(h[1])) {
       document.body.classList.add("kidview");
       var k = kidById(h[1]), tab = h[2] || "us";
-      if (tab === "trips" && h[3] === "new") return viewTripForm(k, null);
-      if (tab === "trips" && h[3] === "edit") return viewTripForm(k, h[4]);
+      if (tab === "trips" && h[3] === "new") return UI().builder(k, null);
+      if (tab === "trips" && h[3] === "edit") return UI().builder(k, h[4]);
+      if (tab === "trip" && h[3]) return UI().detail(k, h[3]);
+      if (tab === "passport") return UI().passport(k);
+      if (tab === "signs") return UI().signs(k);
       if (tab === "print") return viewPrint(k);
       if (tab === "edit") return viewKidForm(k);
       return viewKid(k, tab);
@@ -206,12 +212,13 @@
   }
 
   // ---------- kid view ----------
-  var TABS = [["us", "USA", "🇺🇸"], ["world", "World", "🌍"], ["parks", "Parks", "🏞️"], ["trips", "Trips", "📖"], ["stats", "Badges", "⭐"]];
+  var TABS = [["us", "USA", "🇺🇸"], ["world", "World", "🌍"], ["parks", "Parks", "🏞️"], ["trips", "Trips", "📖"], ["passport", "Passport", "🛂"], ["stats", "Badges", "⭐"]];
   var worldZoom = "world";
   function shell(k, tab, inner) {
+    var cur = tab === "trip" ? "trips" : tab;
     return (tab === "trips" ? backupBanner() : "") + '<div style="' + kidStyle(k) + '"><a class="back" href="#/">← Everyone</a><div class="kidhead"><span class="avatar">' + initial(k.name) + '</span><h1>' + esc(k.name) + ' <span class="role">' + esc(roleLabel(k)) + '</span></h1></div>' +
       '<nav class="tabs" aria-label="Sections" style="' + kidStyle(k) + '"><div class="wrap">' + TABS.map(function (t) {
-        return '<a href="#/p/' + esc(k.id) + '/' + t[0] + '"' + (t[0] === tab ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">' + t[2] + '</span>' + t[1] + '</a>';
+        return '<a href="#/p/' + esc(k.id) + '/' + t[0] + '"' + (t[0] === cur ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">' + t[2] + '</span>' + t[1] + '</a>';
       }).join("") + '</div></nav>' + inner + '</div>';
   }
   function viewKid(k, tab) {
@@ -251,12 +258,14 @@
         if (kind === "place" && id === "USA" && Object.keys(k.states).length) { toast("Color states on the USA map"); return; }
         var on = M.toggleArea(k, kind, id, null);
         saveKid(k); toast(on ? placeName(kind, id) + ": colored in!" : placeName(kind, id) + ": color removed"); rerender();
+        if (on) UI().askDate(k, kind, id, rerender);
       });
     });
     main.querySelectorAll("input[data-kind]").forEach(function (cb) {
       cb.addEventListener("change", function () {
         M.toggleArea(k, cb.dataset.kind, cb.dataset.id, cb.checked); saveKid(k);
         toast(placeName(cb.dataset.kind, cb.dataset.id) + (cb.checked ? ": colored in!" : ": color removed")); rerender(true);
+        if (cb.checked) UI().askDate(k, cb.dataset.kind, cb.dataset.id, function () { rerender(true); });
       });
     });
   }
@@ -274,6 +283,7 @@
     }).join("");
     main.innerHTML = shell(k, "us", counter(s.states, 50, "states") +
       '<div class="mapbox us">' + usSVG(k) + '</div><p class="hint">Tap a state to color it in. Tap again to undo. Tiny states are easier in the list.</p>' +
+        '<p class="small"><a href="#/p/' + esc(k.id) + '/signs">🪧 See ' + esc(k.name) + '\'s State Signs →</a></p>' +
       '<details class="list"><summary>Pick from a list</summary><div class="checks">' + list + '</div></details>');
     bindMap(k, function () { keepOpen(function () { viewUS(k); }); });
   }
@@ -323,7 +333,7 @@
     var f = main.querySelector("#pfind");
     f.addEventListener("input", function () { var q = f.value.trim().toLowerCase(); main.querySelectorAll(".parks .row").forEach(function (r) { r.hidden = q && r.dataset.name.indexOf(q) < 0; }); });
     function again() { var q = f.value, y = window.scrollY; viewParks(k); var f2 = main.querySelector("#pfind"); f2.value = q; f2.dispatchEvent(new Event("input")); window.scrollTo(0, y); }
-    main.querySelectorAll("[data-park]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.park, "visit"); saveKid(k); toast(on ? placeName("park", b.dataset.park) + ": visited!" : "Removed"); again(); }; });
+    main.querySelectorAll("[data-park]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.park, "visit"); saveKid(k); toast(on ? placeName("park", b.dataset.park) + ": visited!" : "Removed"); again(); if (on) UI().askDate(k, "park", b.dataset.park, again); }; });
     main.querySelectorAll("[data-jr]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.jr, "jr"); saveKid(k); if (on) toast("Junior Ranger! ★"); again(); }; });
   }
 
@@ -340,6 +350,7 @@
   }
   /** k = whose list this card is on (for their age and the Edit link); leave it off on the Trips together view. */
   function tripCard(t, k) {
+    if (UI()) return UI().tripCard(t, k);
     var age = k && M.isKid(k) ? M.ageOn(k.birthYear, t.date) : null, route = M.routeText(t), owner = k || kidById(t.kidIds[0]);
     return '<article class="trip">' + (t.photoId ? '<img alt="" data-photo="' + esc(t.photoId) + '">' : "") + '<div class="body"><h3>' + esc(t.place) + '</h3>' +
       (route !== t.place ? '<div class="route">' + esc(route) + '</div>' : "") +
@@ -383,88 +394,12 @@
       img.src = url;
     });
   }
-  function viewTripForm(k, tripId) {
-    var t = tripId ? state.trips.filter(function (x) { return x.id === tripId; })[0] : null;
-    if (tripId && !t) { location.hash = "#/p/" + k.id + "/trips"; return; }
-    var newPhoto = null, removePhoto = false;
-    var picks = state.kids.map(function (x) {
-      var on = t ? t.kidIds.indexOf(x.id) >= 0 : x.id === k.id;
-      return '<label style="' + kidStyle(x) + '"><input type="checkbox" name="kids" value="' + esc(x.id) + '"' + (on ? " checked" : "") + '> <span class="dotp" aria-hidden="true">' + initial(x.name) + '</span> ' + esc(x.name) + '</label>';
-    }).join("");
-    var home = state.meta.home || "", fromVal = t ? t.from : home;
-    function stopRow(v) { return '<div class="stop"><input type="text" name="stop" maxlength="80" value="' + esc(v || "") + '" placeholder="Stop along the way, e.g. London" aria-label="Stop along the way"><button type="button" class="btn btn-ghost rmstop" aria-label="Remove this stop">×</button></div>'; }
-    main.innerHTML = shell(k, "trips", '<h2>' + (t ? "Edit trip" : "Add a trip") + '</h2><div class="panel">' +
-      '<div class="field" style="margin-top:0"><label>Who went? <span class="muted small">Check everyone who traveled</span></label><div class="kidpick">' + picks + '</div>' +
-      (state.kids.length > 2 ? '<button type="button" class="linkbtn" id="tall">Everyone went</button>' : "") + '</div>' +
-      '<div class="field"><label for="tfrom">From</label><input id="tfrom" type="text" maxlength="80" value="' + esc(fromVal) + '" placeholder="e.g. Orlando (where you started)">' +
-      '<label class="check small homechk"><input type="checkbox" id="thome"' + (!home ? " checked" : "") + '> ' + (home ? "Make this our new home town" : "Save as our home town, so it\'s filled in next time") + '</label>' +
-      '<div id="stops">' + (t ? t.stops : []).map(stopRow).join("") + '</div><button type="button" class="linkbtn" id="addstop">+ Add a stop along the way</button></div>' +
-      '<div class="field"><label for="tplace">To (where did you go?)</label><input id="tplace" type="text" maxlength="80" value="' + (t ? esc(t.place) : "") + '" placeholder="e.g. Grandma\'s lake house, Edinburgh, Zion"></div>' +
-      '<div class="fields"><div class="field"><label for="tdate">When?</label><input id="tdate" type="date" value="' + (t ? esc(t.date) : M.today()) + '"></div>' +
-      '<div class="field"><label for="tmark">Color it in on the map?</label><select id="tmark">' + markOptions(t && t.mark) + '</select></div></div>' +
-      '<div class="field"><label for="twho">Anyone else along?</label><input id="twho" type="text" maxlength="120" value="' + (t ? esc(t.who) : "") + '" placeholder="e.g. cousins, the Smiths, the dog"></div>' +
-      '<div class="field"><label for="tmem">Favorite memory</label><textarea id="tmem" maxlength="1000" placeholder="The funny thing, the best food, the moment you want to remember">' + (t ? esc(t.memory) : "") + '</textarea></div>' +
-      '<div class="field"><label for="tphoto">Photo (optional)</label><input id="tphoto" type="file" accept="image/*"><p class="small muted">' + esc((window.MLTL_SYNC && window.MLTL_SYNC.photoNote()) || "We shrink it and keep it only on this device. Location data in the photo is removed.") + '</p>' +
-      '<img id="tprev" class="photo-prev" alt="" hidden>' + (t && t.photoId ? '<button type="button" class="btn btn-ghost" id="trmphoto" style="margin-top:.5rem">Remove photo</button>' : "") + '</div>' +
-      '<p class="err" id="terr" hidden></p><div class="actions"><button class="btn btn-primary" id="tsave">Save trip</button>' +
-      '<a class="btn btn-ghost" href="#/p/' + esc(k.id) + '/trips">Cancel</a>' + (t ? '<button class="btn btn-danger" id="tdel">Delete trip</button>' : "") + '</div></div>');
-    var stopsEl = document.getElementById("stops"), addStop = document.getElementById("addstop");
-    function syncStops() {
-      stopsEl.querySelectorAll(".rmstop").forEach(function (b) { b.onclick = function () { b.parentNode.remove(); syncStops(); }; });
-      addStop.hidden = stopsEl.querySelectorAll(".stop").length >= M.MAX_STOPS;
-    }
-    addStop.onclick = function () { stopsEl.insertAdjacentHTML("beforeend", stopRow("")); syncStops(); stopsEl.lastElementChild.querySelector("input").focus(); };
-    syncStops();
-    var tall = document.getElementById("tall");
-    if (tall) tall.onclick = function () { main.querySelectorAll("input[name=kids]").forEach(function (c) { c.checked = true; }); };
-    var fromIn = document.getElementById("tfrom"), homeChk = document.getElementById("thome");
-    fromIn.addEventListener("input", function () { if (home) homeChk.parentNode.hidden = fromIn.value.trim() === home || !fromIn.value.trim(); });
-    if (home) homeChk.parentNode.hidden = fromIn.value.trim() === home || !fromIn.value.trim();
-    var prev = document.getElementById("tprev");
-    if (t && t.photoId) photoURL(t.photoId).then(function (u) { if (u) { prev.src = u; prev.hidden = false; } });
-    document.getElementById("tphoto").onchange = function (e) {
-      var f = e.target.files[0]; if (!f) return;
-      shrinkPhoto(f).then(function (d) { newPhoto = d; removePhoto = false; prev.src = d; prev.hidden = false; })
-        .catch(function (er) { var el = document.getElementById("terr"); el.textContent = er.message; el.hidden = false; });
-    };
-    var rm = document.getElementById("trmphoto");
-    if (rm) rm.onclick = function () { removePhoto = true; newPhoto = null; prev.hidden = true; rm.hidden = true; };
-    document.getElementById("tsave").onclick = function () {
-      var err = document.getElementById("terr"); err.hidden = true;
-      var mv = document.getElementById("tmark").value, mark = mv ? { kind: mv.split(":")[0], id: mv.split(":")[1] } : null;
-      var kidIds = Array.prototype.map.call(main.querySelectorAll('input[name=kids]:checked'), function (c) { return c.value; });
-      var photoId = t ? t.photoId : null, jobs = [];
-      if (removePhoto && photoId) { jobs.push(del("photos", photoId)); delete photoCache[photoId]; photoId = null; }
-      if (newPhoto) { if (photoId) { jobs.push(del("photos", photoId)); delete photoCache[photoId]; } photoId = M.uid("photo"); }
-      var trip;
-      try {
-        trip = M.newTrip({ id: t ? t.id : undefined, createdAt: t ? t.createdAt : undefined, kidIds: kidIds, place: document.getElementById("tplace").value,
-          from: fromIn.value, stops: Array.prototype.map.call(stopsEl.querySelectorAll("input[name=stop]"), function (i) { return i.value; }),
-          date: document.getElementById("tdate").value, who: document.getElementById("twho").value, memory: document.getElementById("tmem").value, mark: mark, photoId: photoId });
-      } catch (e) { err.textContent = e.message; err.hidden = false; return; }
-      if (newPhoto) { jobs.push(put("photos", { id: photoId, dataUrl: newPhoto })); photoCache[photoId] = newPhoto; }
-      M.applyTripMark(trip, state.kids);
-      state.kids.forEach(function (x) { if (trip.kidIds.indexOf(x.id) >= 0) jobs.push(saveKid(x)); });
-      jobs.push(put("trips", trip));
-      if (trip.from && homeChk.checked && !homeChk.parentNode.hidden && trip.from !== home) jobs.push(setMeta("home", trip.from));
-      state.trips = state.trips.filter(function (x) { return x.id !== trip.id; }).concat([trip]);
-      Promise.all(jobs).then(function () {
-        location.hash = "#/p/" + (trip.kidIds.indexOf(k.id) >= 0 ? k.id : trip.kidIds[0]) + "/trips";
-        toast(t ? "Trip saved" : "Trip added!" + (trip.mark ? " " + placeName(trip.mark.kind, trip.mark.id) + " is colored in." : ""));
-      }).catch(function () { err.textContent = "Couldn't save. Is the device out of space?"; err.hidden = false; });
-    };
-    var d = document.getElementById("tdel");
-    if (d) d.onclick = function () {
-      if (!confirm("Delete this trip? The map stays colored in.")) return;
-      var jobs = [del("trips", t.id)]; if (t.photoId) jobs.push(del("photos", t.photoId));
-      state.trips = state.trips.filter(function (x) { return x !== t; });
-      Promise.all(jobs).then(function () { location.hash = "#/p/" + k.id + "/trips"; toast("Trip deleted"); });
-    };
-  }
+  // The trip builder lives in trips-ui.js (v1.4).
 
   // ---------- stats + badges ----------
   var MEDALS = { "first-trip": "🎒", storyteller: "📖", photo: "📷", "states-5": "🚗", "states-10": "🗺️", "states-25": "🏁", "states-50": "🏆",
-                 abroad: "🛂", "countries-5": "🌍", "continents-3": "🧭", scotland: "🏴", "uk-4": "👑", "park-1": "🌲", "parks-10": "🥾", "junior-ranger": "⭐", together: "🤝" };
+                 abroad: "🛂", "countries-5": "🌍", "continents-3": "🧭", scotland: "🏴", "uk-4": "👑", "park-1": "🌲", "parks-10": "🥾", "junior-ranger": "⭐", together: "🤝",
+                 "first-flight": "✈️", "road-trip": "🚐", "miles-1000": "🧭", "miles-10000": "🚀", "around-world": "🌐" };
   function statBox(v, total, k) { return '<div class="stat"><div class="v">' + v + (total ? ' <small>/ ' + total + '</small>' : "") + '</div><div class="k">' + k + '</div></div>'; }
   function viewStats(k) {
     var s = M.stats(k, state.trips, MAPS.world), b = M.badges(s), earned = b.filter(function (x) { return x.earned; }).length;
@@ -472,6 +407,7 @@
       statBox(s.states, 50, "States") + statBox(s.countries, 195, "Countries") + statBox(s.ukNations, 4, "UK nations") + statBox(s.parks, 64, "National parks") +
       (s.kid ? statBox(s.juniorRanger, 0, "Junior Ranger") : "") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
       (s.years ? statBox(s.years, 0, s.years === 1 ? "Year of trips" : "Years of trips") : "") + (s.firstTripAge != null ? statBox(s.firstTripAge, 0, "Age on first trip") : "") + '</div>' +
+      UI().lifetimeHTML(k.id) +
       '<h2>Badges <span class="muted small">' + earned + ' of ' + b.length + '</span></h2><div class="badges">' + b.map(function (x) {
         return '<div class="badge' + (x.earned ? "" : " locked") + '"><div class="medal" aria-hidden="true">' + (MEDALS[x.id] || "★") + '</div><b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span>' +
           (x.earned ? "" : '<span>' + x.have + ' / ' + x.need + '</span>') + '</div>';
@@ -479,6 +415,7 @@
       '<div class="actions"><a class="btn btn-primary" href="#/p/' + esc(k.id) + '/print">🖨 Print my map</a><a class="btn btn-ghost" href="#/p/' + esc(k.id) + '/edit">Edit name or color</a><a class="btn btn-ghost" href="#/backup">Back up</a></div>' +
       '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div><h3>' + (s.kid ? "Want this on paper?" : "A paper copy for the kids?") + '</h3><p class="small muted">The paperback has the same maps to color and 40 trip pages' + (s.kid ? "" : ", made for kids 3 to 18") + '. ' +
       '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>');
+    UI().bindLifetime(function () { viewStats(k); });
   }
 
   // ---------- family map ----------
@@ -549,6 +486,8 @@
       '<h2>' + (n > 1 ? "Together" : "Totals") + (n > 1 ? ' <span class="muted small">' + esc(n === state.kids.length ? "the whole family" : names(famSel).join(" & ")) + '</span>' : "") + '</h2><div class="stats">' +
       (n > 1 ? '<a class="stat person" href="#/together/fam" style="--kid:var(--sage-deep)"><div class="v">' + fs.togetherTrips + '</div><div class="k">Trips together · see them →</div></a>' + statBox(fs.togetherStates, 50, "States together") + statBox(fs.togetherCountries, 195, "Countries together") + statBox(fs.togetherParks, 64, "Parks together") : "") +
       statBox(fs.states, 50, "States, anyone") + statBox(fs.countries, 195, "Countries, anyone") + statBox(fs.parks, 64, "Parks, anyone") + statBox(fs.trips, 0, "Trips logged") + '</div>' +
+      '<a class="panel familycard" href="#/family/passport"><span class="fam-ic" aria-hidden="true">🛂</span><span><h3>Family passport</h3><span class="small">Every stamp, with who was there →</span></span></a>' +
+      UI().lifetimeHTML(null) +
       '<h2>Everyone</h2><div class="stats">' + people.map(function (p) {
         var ps = M.stats(p, state.trips, MAPS.world);
         return '<a class="stat person" href="#/p/' + esc(p.id) + '" style="' + kidStyle(p) + '"><div class="v"><span class="dotp">' + initial(p.name) + '</span> ' + esc(p.name) + '</div><div class="k">' + ps.states + ' states · ' + ps.countries + ' countries · ' + ps.parks + ' parks</div></a>';
@@ -560,6 +499,7 @@
     main.querySelectorAll("[data-mode]").forEach(function (b) { b.onclick = function () { famMode = b.dataset.mode; viewFamily(); }; });
     main.querySelectorAll("[data-fmap]").forEach(function (b) { b.onclick = function () { famMap = b.dataset.fmap; viewFamily(); }; });
     main.querySelectorAll("[data-zoom]").forEach(function (b) { b.onclick = function () { worldZoom = b.dataset.zoom; viewFamily(); }; });
+    UI().bindLifetime(viewFamily);
     main.querySelectorAll("[data-fam]").forEach(function (el) { el.addEventListener("click", function () { toast(el.dataset.names.indexOf(":") > 0 ? el.dataset.names : el.dataset.names + ": not yet"); }); });
   }
 
@@ -625,7 +565,7 @@
         var r = M.routeText(t), others = t.kidIds.filter(function (x) { return x !== k.id; });
         return '<li><b>' + esc(t.place) + '</b>' + (t.date ? ", " + esc(M.prettyDate(t.date)) : "") + (r !== t.place ? " (" + esc(r) + ")" : "") +
           (others.length ? ". With " + esc(travelerNames(others)) : "") + (t.who ? (others.length ? ", plus " : ". With ") + esc(t.who) : "") + (t.memory ? ": " + esc(t.memory) : "") + '</li>'; }).join("") + '</ul>' : "") +
-      '<p class="small muted" style="margin-top:1rem">Famstamp · Map data: Natural Earth (public domain). Alaska and Hawaii are not to scale.</p></section></div>';
+      '<p class="small muted" style="margin-top:1rem">Famstamp · Map data: Natural Earth (public domain). Alaska and Hawaii are not to scale.</p></section>' + UI().printExtra(k) + '</div>';
     document.getElementById("doprint").onclick = function () { window.print(); };
   }
 
@@ -651,6 +591,8 @@
         return tx(["kids", "trips", "photos"], "readwrite", function (s) {
           data.kids.forEach(function (k) { s[0].put(k); }); data.trips.forEach(function (t) { s[1].put(t); }); data.photos.forEach(function (p) { s[2].put(p); });
         }).then(function () { return data.settings.home && !state.meta.home ? setMeta("home", data.settings.home) : null; })
+          .then(function () { return data.settings.homePoint && !state.meta.homePoint ? setMeta("homePoint", data.settings.homePoint) : null; })
+          .then(function () { return data.settings.units && !state.meta.units ? setMeta("units", data.settings.units) : null; })
           .then(load).then(function () { photoCache = {}; toast("Restored!"); location.hash = "#/"; });
       }).catch(function (x) { err.textContent = x.message; err.hidden = false; });
     };
@@ -671,7 +613,10 @@
   var readyRes; var ready = new Promise(function (r) { readyRes = r; });
   window.MLTL_APP = { state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, setMeta: setMeta,
                       kidById: kidById, doBackup: doBackup, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
-                      dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb };
+                      dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
+                      // for trips-ui.js
+                      main: main, shell: shell, placeName: placeName, saveKid: saveKid, kidStyle: kidStyle, initial: initial, avatars: avatars, travelerNames: travelerNames,
+                      photoURL: photoURL, shrinkPhoto: shrinkPhoto, markOptions: markOptions };
   load().then(function () { readyRes(); route(); }).catch(function () {
     main.innerHTML = '<div class="panel"><h3>Storage isn\'t available</h3><p class="muted">This browser is blocking on-device storage (private browsing can do this). Try a normal window so your maps can be saved.</p></div>';
   });
