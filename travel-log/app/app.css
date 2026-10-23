@@ -12,7 +12,8 @@ main.wrap { padding-bottom:calc(5.5rem + env(safe-area-inset-bottom)); }
 .topbar { background:var(--navy); color:#e8eef6; padding-top:env(safe-area-inset-top); }
 .topbar .wrap { display:flex; justify-content:space-between; align-items:center; padding:.75rem 1rem; gap:1rem; }
 .topbar a { color:#e8eef6; text-decoration:none; font-weight:600; }
-.brand { font-family:var(--serif); font-size:1.15rem; } .brand span { color:var(--beacon); }
+.brand { position:relative; z-index:46; display:inline-flex; align-items:center; color:var(--beacon); line-height:0; border-radius:8px; margin:-.2rem 0; -webkit-tap-highlight-color:transparent; }
+.topbar a.brand { color:var(--beacon); }
 .toplink { font-size:.9rem; padding:.35rem .8rem; border:1px solid rgba(232,238,246,.35); border-radius:999px; }
 h1 { font-family:var(--serif); font-size:clamp(1.7rem,6vw,2.5rem); line-height:1.12; color:var(--navy); margin-top:1.4rem; }
 h2 { font-family:var(--serif); font-size:1.35rem; color:var(--navy); margin:1.6rem 0 .5rem; }
@@ -343,3 +344,14 @@ h2 .units { margin-left:.4rem; }
 .stampfx.calm .fxsign { animation:inkfade .4s ease both; }
 @keyframes signup { 0% { transform:translateY(40px) scaleY(.2); opacity:0; } 60% { transform:translateY(-6px) scaleY(1.05); opacity:1; } 100% { transform:none; opacity:1; } }
 @media (prefers-reduced-motion: reduce) { .stampfx .fxsign { animation:inkfade .2s ease both; } }
+
+/* Famstamp logo: an ink-stamp mark that links Home and "thunks" when tapped */
+/* sits above sheets (z 40) and the family menu (45) so it always works as a way Home */
+.brand .logomark { display:block; width:144px; height:48px; overflow:visible; transform-origin:50% 60%; }
+.brand:focus-visible { outline:2px solid #fff; outline-offset:3px; }
+.brand:hover .logomark { filter:brightness(1.08); }
+.brand.thunk .logomark { animation:logothunk .34s cubic-bezier(.3,1.5,.5,1); }
+@keyframes logothunk { 0% { transform:scale(1.22) rotate(-3deg); opacity:.55; } 55% { transform:scale(.93); opacity:1; } 100% { transform:none; } }
+@media (max-width:380px) { .brand .logomark { width:120px; height:40px; } }
+@media (prefers-color-scheme: dark) { .brand, .topbar a.brand { color:#f2b862; } }
+@media (prefers-reduced-motion: reduce) { .brand.thunk .logomark { animation:none; } }

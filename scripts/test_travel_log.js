@@ -297,14 +297,22 @@ const html = read("index.html"), js = read("app.js"), css = read("app.css"), sw 
 const manifest = JSON.parse(read("manifest.webmanifest"));
 ok(/<meta name="robots" content="noindex/.test(html), "app stays noindex (hidden test link)");
 ok(/<title>Famstamp: stamp every trip<\/title>/.test(html), "Famstamp title with the tagline");
-ok(/>Fam<span>stamp<\/span><\/a>/.test(html) && /content="Famstamp"/.test(html), "header and iOS home-screen name say Famstamp");
+ok(/<a class="brand" href="#\/" aria-label="Famstamp home"[^>]*><svg class="logomark"[\s\S]*?>FAMSTAMP<\/text>[\s\S]*?>STAMP EVERY TRIP<\/text>[\s\S]*?<\/svg><\/a>/.test(html) && /content="Famstamp"/.test(html), "header logo is the inline FAMSTAMP stamp mark, a link Home labelled 'Famstamp home'; iOS name says Famstamp");
+{ const svg = (html.match(/<svg class="logomark"[\s\S]*?<\/svg>/) || [""])[0];
+  ok(svg.length < 3000 && /currentColor/.test(svg) && /aria-hidden="true"/.test(svg) && /rotate\(-4/.test(svg) && (svg.match(/<rect[^>]*fill="none"/g) || []).length === 2, "logo: small inline SVG, ink in currentColor, decorative, tilted, double border: " + svg.length + " bytes");
+  const lj = fs.readFileSync(path.join(APP, "logo.js"), "utf8");
+  ok(/preventDefault/.test(lj) && /\.sheetbg/.test(lj) && /#fammenu/.test(lj) && /scrollTo\(0, 0\)/.test(lj) && /location\.hash = "#\/"/.test(lj) && /MLTL_APP\.route\(\)/.test(lj), "logo click goes Home from anywhere, closes sheets and menus, scrolls to top");
+  ok(/prefers-reduced-motion: reduce\) \{ \.brand\.thunk \.logomark \{ animation:none/.test(fs.readFileSync(path.join(APP, "app.css"), "utf8")), "logo thunk respects reduced motion");
+  ok(/<link rel="icon" href="icon\.svg" type="image\/svg\+xml"/.test(html) && /FAMSTAMP/.test(fs.readFileSync(path.join(APP, "icon.svg"), "utf8")), "SVG favicon is the stamp roundel");
+  ok(manifest.icons.some(i => i.src === "icon.svg"), "manifest lists the SVG icon"); }
 ok(!/Lifetime Travel Log|Travel Log</.test(html), "index.html no longer shows the old app name");
 ok(/a\.download = "famstamp-backup-"/.test(js) && /Famstamp · Map data/.test(js) && /" · Famstamp"/.test(js), "backup file name, print view and page titles say Famstamp");
 ok((js.match(/My Lifetime Travel Log/g) || []).length === 4 && /matching paperback, My Lifetime Travel Log/.test(js), "only the book keeps the My Lifetime Travel Log name");
 ok(M.APP_ID === "my-lifetime-travel-log", "backup id unchanged so old backups still restore");
 ok(/name="description" content="[^"]*family[^"]*kids/i.test(html), "meta description is family-wide and mentions kids");
 ok(/"description": "[^"]*family/.test(read("manifest.webmanifest")), "manifest description is family-wide");
-ok(/var CACHE = "mltl-v9"/.test(sw), "service worker cache bumped to v9 (Trips + Passport) so phones update");
+ok(+((sw.match(/var CACHE = "mltl-v(\d+)"/) || [])[1]) >= 10, "service worker cache bumped past v9 (new logo) so phones update");
+ok(/"logo\.js"/.test(sw) && /"icon\.svg"/.test(sw), "service worker caches logo.js and icon.svg");
 ok(["trips-core.js", "passport-core.js", "trips-ui.js"].every(f => sw.indexOf('"' + f + '"') >= 0), "service worker caches the new trip and passport scripts");
 ok(/Color in every place your family goes, from the first road trip on\./.test(js), "onboarding leads with family, from the first road trip");
 ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.test(js) && /places you\\'ve been together/.test(js), "family map with a together view");
@@ -474,7 +482,7 @@ ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view
   ok(fd[0].trip.id === "b" && fd[0].by === "Nana" && fd[1].by === "", "feed is newest first with who added it");
   ok(S.thumbDims(4032, 3024).w === 1024 && S.thumbDims(3024, 4032).h === 1024 && S.thumbDims(800, 600).w === 800, "shared photo copies are 1024px on the long edge, never upscaled");
   // wiring + privacy
-  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="trips-ui\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
+  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="trips-ui\.js"><\/script>\s*<script src="logo\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
   ok(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co/.test(html), "CSP allows only the family database");
   ok(!/service_role|sb_secret_/.test(scfg + ssrc + score), "no secret keys in the app");
   ok(/key: "sb_publishable_[A-Za-z0-9_-]+"/.test(scfg), "sync uses the publishable key");
