@@ -12,7 +12,9 @@ self.addEventListener("activate", function (e) {
 });
 self.addEventListener("fetch", function (e) {
   var req = e.request;
-  if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
+  var url = new URL(req.url);
+  if (req.method !== "GET" || url.origin !== self.location.origin) return;
+  if (url.pathname.indexOf("/download/") >= 0) return;   // the Android download page and APK go straight to the network, never into the cache
   // Cache first, then refresh the cached copy in the background so updates land on the next visit.
   e.respondWith(caches.open(CACHE).then(function (c) {
     return c.match(req, { ignoreSearch: true }).then(function (hit) {
