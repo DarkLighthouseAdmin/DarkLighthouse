@@ -703,3 +703,27 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .rbadge:focus-visible { outline:3px solid var(--beacon); }
 .rbadge svg, .rbig svg { width:100%; height:auto; display:block; filter:drop-shadow(0 2px 3px rgba(0,0,0,.18)); }
 .rbig { max-width:220px; margin:.2rem auto .4rem; }
+/* cities / food & drink / pubs (spots.js) */
+.seg.kindseg { margin-bottom:.6rem; }
+.seg.kindseg a { min-height:44px; }
+.panel .plh { margin:0 0 .5rem; }
+.ehead { display:flex; align-items:center; justify-content:space-between; gap:.6rem; flex-wrap:wrap; }
+.ehead h3 { margin:0; }
+.ehead .btn { min-height:44px; }
+.echips { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; margin:.6rem 0; }
+.echips .chip { min-height:44px; }
+.echips .chip.on { background:var(--ink, #1f2a37); color:#fff; }
+.esort { display:inline-flex; align-items:center; gap:.3rem; font-size:.9rem; margin-left:auto; }
+.esort select { min-height:44px; }
+.row.eat .eicon { flex:0 0 52px; width:52px; height:52px; display:grid; place-items:center; font-size:1.6rem; }
+.row.eat .enote { display:block; font-style:italic; }
+.row.eat .pkstamp { filter:none; opacity:1; }
+.spots .spsec { margin:1rem 0; }
+.spgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:.5rem; }
+.spitem { background:none; border:0; padding:2px; min-height:44px; cursor:pointer; border-radius:50%; }
+.spitem .spst { display:block; aspect-ratio:1; }
+.spitem svg, .spbig svg { width:100%; height:auto; display:block; }
+.spbig { max-width:260px; margin:0 auto .6rem; }
+.spsug .echips { margin-bottom:0; }
+.spots .bshead { display:flex; align-items:baseline; justify-content:space-between; gap:.6rem; } .spots .bshead h3 { margin:0; } .spots .bshead .tapline { min-height:44px; display:inline-flex; align-items:center; }
+.eats .pill, [data-plist^="spots"] .pill, .spgrid .spitem { min-height:44px; }
