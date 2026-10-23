@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v47" -> "v47").
-  var VERSION = "v47";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v48" -> "v48").
+  var VERSION = "v48";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -47,11 +47,15 @@
   function del(store, id, silent) { return tx(store, "readwrite", function (s) { s.delete(id); }).then(function (x) { changed(store, silent); return x; }); }
   function getOne(store, id) { return tx(store, "readonly", function (s) { return s.get(id); }); }
 
-  var state = { kids: [], trips: [], meta: {} };
+  var state = { kids: [], trips: [], bin: [], meta: {} };
   function load() {
     return Promise.all([all("kids"), all("trips"), all("meta")]).then(function (r) {
       state.kids = r[0].map(function (p) { p.role = M.validRole(p.role); return p; }).sort(byRole);
-      state.trips = r[1].map(function (t) { return M.migrateTrip(t); }).filter(function (t) { return t.kidIds.length; });
+      // Recently deleted trips stay in the database (and the cloud) for 30 days; only live ones are shown. Older ones go for good.
+      var sp = M.splitTrips(r[1].map(function (t) { return M.migrateTrip(t); }));
+      state.trips = sp.live.filter(function (t) { return t.kidIds.length; });
+      state.bin = sp.bin;
+      if (sp.purge.length) setTimeout(function () { sp.purge.forEach(function (t) { del("trips", t.id); if (t.photoId) del("photos", t.photoId); }); }, 0);
       state.meta = {}; r[2].forEach(function (m) { state.meta[m.key] = m.value; });
     });
   }
@@ -60,6 +64,17 @@
   function roleLabel(p) { return M.relLabel(p); }   // relationship in this log (Parent, Kid, Grandparent...), not the login role
   function saveKid(k) { return put("kids", k); }
   function setMeta(key, value) { state.meta[key] = value; return put("meta", { key: key, value: value }); }
+  /** Delete a trip the safe way: it moves to Recently deleted (kept 30 days) and can be brought back. */
+  function trashTrip(t) {
+    var b = M.binTrip(t);
+    return put("trips", b).then(function () { state.trips = state.trips.filter(function (x) { return x.id !== t.id; }); state.bin = [b].concat(state.bin.filter(function (x) { return x.id !== t.id; })); return b; });
+  }
+  function restoreTrip(id) {
+    var t = state.bin.filter(function (x) { return x.id === id; })[0]; if (!t) return Promise.resolve(null);
+    var u = M.unbinTrip(t);
+    if (!u.kidIds.some(function (k) { return kidById(k); })) return Promise.reject(new Error("No one on this trip is in the log any more."));
+    return put("trips", u).then(load).then(function () { return u; });
+  }
   function kidById(id) { return state.kids.filter(function (k) { return k.id === id; })[0]; }
 
   // ---------- helpers ----------
@@ -96,7 +111,7 @@
   }
   function doBackup() {
     return all("photos").then(function (photos) {
-      var data = M.makeBackup(state.kids, state.trips, photos, null, { home: state.meta.home || "", homePoint: state.meta.homePoint, units: state.meta.units }), blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+      var data = M.makeBackup(state.kids, state.trips.concat(state.bin), photos, null, { home: state.meta.home || "", homePoint: state.meta.homePoint, units: state.meta.units }), blob = new Blob([JSON.stringify(data)], { type: "application/json" });
       var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "famstamp-backup-" + ((window.MLTL_SYNC && window.MLTL_SYNC.backupTag && window.MLTL_SYNC.backupTag()) || "") + M.today() + ".json";
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
       return setMeta("lastBackupAt", data.exportedAt);
@@ -156,6 +171,7 @@
     }
     if (h[0] === "add") return viewKidForm(null);
     if (h[0] === "backup") return viewBackup();
+    if (h[0] === "deleted") return viewDeleted();
     return viewHome();
   }
   window.addEventListener("hashchange", function () { route(); window.scrollTo(0, 0); });
@@ -511,7 +527,8 @@
       (state.kids.length > 1 ? '<a class="btn btn-ghost" href="#/together/' + esc(k.id) + '">🤝 Trips together</a>' : "") + '</div>' +
       (list.length ? '<div class="trips">' + list.map(function (t) { return tripCard(t, k); }).join("") + '</div>'
                    : '<div class="panel"><h3>No trips yet</h3><p class="muted">A weekend at Grandma\'s counts just as much as a plane to the other side of the world. Add the first one!</p>' +
-                     (window.MLTL_IMPORT ? '<div class="actions">' + window.MLTL_IMPORT.emptyButton(k) + '</div>' : "") + '</div>'));
+                     (window.MLTL_IMPORT ? '<div class="actions">' + window.MLTL_IMPORT.emptyButton(k) + '</div>' : "") + '</div>') +
+      (state.bin.length ? '<p class="small binlink"><a class="tapline" href="#/deleted">🗑 Recently deleted (' + state.bin.length + ')</a></p>' : ""));
     fillPhotos();
   }
   function markOptions(sel) {
@@ -740,6 +757,53 @@
     document.getElementById("doprint").onclick = function () { window.print(); };
   }
 
+  // ---------- Recently deleted ----------
+  function binRow(t) {
+    var who = travelerNames(t.kidIds.filter(function (id) { return kidById(id); })), left = M.binDaysLeft(t);
+    return '<div class="binrow"><div class="nm"><b>' + esc(M.tripLabel(t)) + '</b><span class="small muted">' + esc([t.date ? M.prettyDate(t.date) : "", who].filter(Boolean).join(" · ")) + '</span>' +
+      '<span class="small muted">Deleted ' + esc(M.prettyDate(t.deletedAt.slice(0, 10))) + ' · gone for good in ' + left + (left === 1 ? " day" : " days") + '</span></div>' +
+      '<button type="button" class="btn btn-primary" data-unbin="' + esc(t.id) + '">Restore</button></div>';
+  }
+  function viewDeleted() {
+    main.innerHTML = '<a class="back" href="#/">← Home</a><h1>Recently deleted</h1>' +
+      '<p class="lede small">Deleted trips wait here for ' + M.BIN_DAYS + ' days, then they\'re gone for good. Restore one and it comes back for everyone in the family.</p>' +
+      (state.bin.length ? '<div class="panel binlist">' + state.bin.map(binRow).join("") + '</div>' : '<div class="panel"><p class="muted">Nothing here. Trips you delete wait here for ' + M.BIN_DAYS + ' days.</p></div>') +
+      '<p class="small muted">Deleted before this was added? Restore it from a backup file on <a href="#/backup">Back up and restore</a>.</p>';
+    Array.prototype.forEach.call(main.querySelectorAll("[data-unbin]"), function (b) {
+      b.onclick = function () {
+        b.disabled = true;
+        restoreTrip(b.dataset.unbin).then(function (t) { if (!t) return; toast(M.tripLabel(t) + " is back"); location.hash = "#/p/" + t.kidIds.filter(function (id) { return kidById(id); })[0] + "/trip/" + t.id; })
+          .catch(function (x) { b.disabled = false; toast(x.message); });
+      };
+    });
+  }
+  /** Restore one trip from a backup file: people on this phone are left alone, the trip gets today's time so it syncs. */
+  function bindOneTrip() {
+    var inp = document.getElementById("b1file"), box = document.getElementById("b1list"), err = document.getElementById("b1err");
+    inp.onchange = function (e) {
+      var f = e.target.files[0]; err.hidden = true; box.innerHTML = ""; if (!f) return;
+      f.text().then(function (txt) {
+        var data; try { data = M.readBackup(JSON.parse(txt)); } catch (x) { throw new Error(x instanceof SyntaxError ? "That file isn't a backup (it couldn't be read)." : x.message); }
+        var have = {}; state.trips.forEach(function (t) { have[t.id] = 1; });
+        var list = data.trips.filter(function (t) { return t.kidIds.some(function (id) { return kidById(id); }); }).sort(function (a, b) { return (a.date || "") < (b.date || "") ? 1 : -1; });
+        if (!list.length) throw new Error("None of the trips in that file belong to people in this log.");
+        box.innerHTML = '<p class="small muted">' + list.length + (list.length === 1 ? " trip" : " trips") + ' in this file. Trips you still have are marked.</p>' + list.map(function (t) {
+          return '<div class="binrow"><div class="nm"><b>' + esc(M.tripLabel(t)) + '</b><span class="small muted">' + esc([t.date ? M.prettyDate(t.date) : "", t.place && t.title ? t.place : ""].filter(Boolean).join(" · ")) + '</span></div>' +
+            (have[t.id] ? '<span class="small muted">Already here</span>' : '<button type="button" class="btn btn-primary" data-one="' + esc(t.id) + '">Restore</button>') + '</div>'; }).join("");
+        Array.prototype.forEach.call(box.querySelectorAll("[data-one]"), function (b) {
+          b.onclick = function () {
+            var r; try { r = M.tripFromBackup(data, b.dataset.one, state.kids.map(function (k) { return k.id; })); } catch (x) { err.textContent = x.message; err.hidden = false; return; }
+            if (!confirm("Bring back " + M.tripLabel(r.trip) + "? No one's map or passport is changed.")) return;
+            b.disabled = true;
+            tx(["trips", "photos"], "readwrite", function (s) { s[0].put(r.trip); if (r.photo) s[1].put(r.photo); })
+              .then(function () { changed("trips"); return load(); })
+              .then(function () { photoCache = {}; toast(M.tripLabel(r.trip) + " is back"); b.outerHTML = '<span class="small muted">Restored</span>'; });
+          };
+        });
+      }).catch(function (x) { err.textContent = x.message; err.hidden = false; });
+    };
+  }
+
   // ---------- backup / restore ----------
   function viewBackup() {
     var last = state.meta.lastBackupAt;
@@ -749,12 +813,16 @@
       '<p class="small">' + (last ? "Last backup: " + esc(M.prettyDate(last.slice(0, 10))) : "No backup yet.") + '</p>' +
       '<div class="actions"><button class="btn btn-primary" id="bdown">Save a backup file</button></div></div>' +
       (window.MLTL_IMPORT ? window.MLTL_IMPORT.backupCard() : "") +
-      '<div class="panel"><h3>Restore</h3><p class="muted small">Pick a backup file. Kids and trips in the file are added back; anything with the same name in both places is replaced by the file\'s copy.</p>' +
+      '<div class="panel" id="binpanel"><h3>Recently deleted</h3><p class="muted small">Deleted trips wait ' + M.BIN_DAYS + ' days before they\'re gone for good.</p><div class="actions"><a class="btn btn-ghost" href="#/deleted">🗑 Recently deleted (' + state.bin.length + ')</a></div></div>' +
+      '<div class="panel" id="onetrip"><h3>Restore one trip</h3><p class="muted small">Pick a backup file, then tap Restore next to the trip you want back. Only that trip comes back; everyone\'s maps and passports stay as they are. It syncs to the family like a new edit.</p>' +
+      '<div class="field"><label for="b1file">Backup file (.json)</label><input id="b1file" type="file" accept="application/json,.json"></div><p class="err" id="b1err" hidden></p><div id="b1list" class="binlist"></div></div>' +
+      '<div class="panel"><h3>Restore everything</h3><p class="muted small">Pick a backup file. Kids and trips in the file are added back; anything with the same name in both places is replaced by the file\'s copy.</p>' +
       '<div class="field"><label for="bfile">Backup file (.json)</label><input id="bfile" type="file" accept="application/json,.json"></div><p class="err" id="berr" hidden></p></div>' +
       (window.MLTL_SYNC && window.MLTL_SYNC.settingsPanel ? window.MLTL_SYNC.settingsPanel() : "") +
       '<div class="panel"><h3>Start over</h3><p class="muted small">Deletes everyone\'s maps, trips and photos from this device. Make a backup first if you might want them later.</p>' +
       '<div class="actions"><button class="btn btn-danger" id="bwipe">Delete everything on this device</button></div></div>' +
       '<p class="small muted appver" id="appver">Famstamp · Version ' + esc(VERSION) + '</p>';
+    bindOneTrip();
     document.getElementById("bdown").onclick = function () { doBackup().then(function () { toast("Backup saved"); viewBackup(); }); };
     document.getElementById("bfile").onchange = function (e) {
       var f = e.target.files[0], err = document.getElementById("berr"); err.hidden = true; if (!f) return;
@@ -790,7 +858,7 @@
                       dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
                       // for trips-ui.js
                       main: main, badgeStrip: badgeStrip, bindBadgeStrip: bindBadgeStrip, shell: shell, placeName: placeName, saveKid: saveKid, kidStyle: kidStyle, initial: initial, avatars: avatars, travelerNames: travelerNames,
-                      photoURL: photoURL, shrinkPhoto: shrinkPhoto, usSVG: usSVG, worldSVG: worldSVG, markOptions: markOptions, parkStamp: parkStamp };
+                      trashTrip: trashTrip, restoreTrip: restoreTrip, photoURL: photoURL, shrinkPhoto: shrinkPhoto, usSVG: usSVG, worldSVG: worldSVG, markOptions: markOptions, parkStamp: parkStamp };
   load().then(function () { readyRes(); route(); }).catch(function () {
     main.innerHTML = '<div class="panel"><h3>Storage isn\'t available</h3><p class="muted">This browser is blocking on-device storage (private browsing can do this). Try a normal window so your maps can be saved.</p></div>';
   });

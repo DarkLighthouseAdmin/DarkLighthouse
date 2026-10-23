@@ -1212,3 +1212,51 @@ setTimeout(() => {
   var sug = SP.fromTrips(mom, trips); ok(sug.length === 1 && sug[0].item.id === "c-edinburgh" && sug[0].date === "2024-05-02", "spots: trips offer the city stamp");
   var svg = SP.stampSVG(SP.BY["c-edinburgh"], "2025-06-14"); ok(/EDINBURGH/.test(svg) && /JUN 14, 2025/.test(svg) && !/undefined|NaN/.test(svg), "spots: stamp svg has name and date");
 })();
+
+// ---- Recently deleted trips (soft delete) + restore one trip from a backup. Zz Test data only. ----
+(function () {
+  const S = require("../travel-log/app/sync-core.js");
+  const mom = M.newPerson({ name: "Zz Test Parent", role: "adult" }), kid = M.newPerson({ name: "Zz Test Kid", role: "kid" });
+  const t1 = M.newTrip({ kidIds: [mom.id, kid.id], place: "Zz Testville", title: "Zz Test Beach Trip", date: "2024-06-08", favs: [{ cat: "pub", name: "Zz Test Pub" }] });
+  const t2 = M.newTrip({ kidIds: [mom.id], place: "Zz Other Town", date: "2023-01-02" });
+  const b = M.binTrip(t1, "2026-10-23T22:43:00.000Z");
+  ok(b.deletedAt === "2026-10-23T22:43:00.000Z" && b.updatedAt === b.deletedAt && b.id === t1.id && b.favs[0].name === "Zz Test Pub" && !t1.deletedAt, "bin: soft delete keeps the whole trip, original untouched");
+  let sp = M.splitTrips([b, t2], "2026-10-24T00:00:00Z");
+  ok(sp.live.length === 1 && sp.live[0].id === t2.id && sp.bin.length === 1 && sp.purge.length === 0, "bin: deleted trip is hidden but kept");
+  ok(M.binDaysLeft(b, "2026-10-24T00:00:00Z") === 30, "bin: 30 days left");
+  sp = M.splitTrips([b, t2], "2026-11-23T00:00:00Z"); ok(sp.purge.length === 1 && !sp.bin.length, "bin: after 30 days it's purged");
+  const u = M.unbinTrip(b, "2026-10-24T01:00:00.000Z"); ok(!("deletedAt" in u) && u.updatedAt === "2026-10-24T01:00:00.000Z", "bin: restore clears deletedAt with a fresh time");
+  ok(M.tripLabel(t1) === "Zz Test Beach Trip" && M.tripLabel(t2) === "Zz Other Town", "bin: trip label is the name or the place");
+  // sync: a soft delete is an ordinary edit (no tombstone, data kept), with no travelers so share links skip it
+  const shadow = S.emptyShadow ? S.emptyShadow() : { people: {}, visits: {}, trips: {}, photos: {} };
+  shadow.trips[t1.id] = t1.updatedAt; shadow.trips[t2.id] = t2.updatedAt;
+  const plan = S.planPush({ people: [mom, kid], trips: [b, t2], photoIds: [] }, shadow, "fam");
+  const row = plan.trips.filter(r => r.id === t1.id)[0];
+  ok(row && row.deleted === false && row.data.deletedAt && row.data.favs[0].name === "Zz Test Pub" && row.traveler_ids.length === 0, "sync: soft delete pushes the full trip, not a blank tombstone");
+  ok(plan.trips.length === 1, "sync: only the changed trip is pushed");
+  // the v47 bug: a trip missing from the database (hard delete) became a blank tombstone
+  const hard = S.planPush({ people: [mom, kid], trips: [t2], photoIds: [] }, shadow, "fam");
+  ok(hard.trips.some(r => r.id === t1.id && r.deleted && JSON.stringify(r.data) === "{}"), "sync: (why v47 lost trips) a hard delete blanks the cloud copy");
+  // other phones: pulling the soft-deleted row keeps the trip, just hidden
+  const other = { people: [mom, kid], trips: [JSON.parse(JSON.stringify(t1))], photoIds: [] }, sh2 = { people: {}, visits: {}, trips: { [t1.id]: t1.updatedAt }, photos: {} };
+  S.applyPull(other, sh2, { trips: [Object.assign({}, row, { server_at: "2026-10-23T22:43:01Z" })] });
+  ok(other.trips.length === 1 && other.trips[0].deletedAt && other.trips[0].kidIds.length === 2, "sync: other phones keep the trip in their bin, travelers intact");
+  // restore one trip from a backup: fresh time, only people still here, photo with it, people untouched
+  const bk = M.readBackup(JSON.parse(JSON.stringify(M.makeBackup([mom, kid], [Object.assign({}, t1, { photoId: "photo_zzTest1" }), t2], [{ id: "photo_zzTest1", dataUrl: "data:image/jpeg;base64,AAAA" }], null, {}))));
+  const r = M.tripFromBackup(bk, t1.id, [mom.id], "2026-10-24T02:00:00.000Z");
+  ok(r.trip.updatedAt === "2026-10-24T02:00:00.000Z" && r.trip.kidIds.join() === mom.id && r.photo && r.photo.id === "photo_zzTest1" && !r.trip.deletedAt, "backup: one trip comes back with today's time, its photo, only people still here");
+  ok(r.trip.favs && r.trip.favs[0].name === "Zz Test Pub", "backup: trip details come back");
+  throws(() => M.tripFromBackup(bk, t1.id, ["kid_nobody1"]), /No one on/, "backup: refuses when none of its people are here");
+  throws(() => M.tripFromBackup(bk, "trip_missing1", [mom.id]), /isn't in this backup/, "backup: unknown trip");
+  // restored trip beats the cloud's newer tombstone (the server keeps the row with the later updated_at)
+  ok(r.trip.updatedAt > "2026-10-23T22:43:00.000Z", "backup: restored trip is newer than the delete, so the cloud accepts it");
+  const sh3 = { people: {}, visits: {}, trips: {}, photos: {} }, p3 = S.planPush({ people: [mom, kid], trips: [r.trip], photoIds: ["photo_zzTest1"] }, sh3, "fam");
+  ok(p3.trips.length === 1 && !p3.trips[0].deleted && p3.trips[0].traveler_ids.join() === mom.id, "backup: restored trip is queued to sync with its traveler");
+  // UI wiring: Delete trip is out of the pinned Save bar, the confirm names the trip, and it soft-deletes
+  const tu = read("trips-ui.js");
+  const bar = tu.slice(tu.indexOf('<div class="actions sticky">'), tu.indexOf('tdelzone'));
+  ok(!/id="tdel"/.test(bar), "ui: Delete trip is not in the sticky Save bar");
+  ok(/Delete the whole trip/.test(tu) && /M\.tripLabel\(old\)/.test(tu) && /A_\.trashTrip\(old\)/.test(tu) && !/A_\.del\("trips", old\.id\)/.test(tu), "ui: confirm names the trip and the delete is a soft delete");
+  const sj = read("spots.js"); ok(!/del\(\s*"trips"/.test(sj) && !/state\.trips\s*=/.test(sj), "ui: pubs/food code never touches trips");
+  const aj = read("app.js"); ok(/viewDeleted/.test(aj) && /bindOneTrip/.test(aj) && /M\.splitTrips/.test(aj), "ui: Recently deleted page and restore-one-trip are wired");
+})();

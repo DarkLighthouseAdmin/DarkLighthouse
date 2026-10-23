@@ -61,7 +61,8 @@
   }
   function tripRow(t, fid) {
     var data = JSON.parse(JSON.stringify(t));
-    return { family_id: fid, id: t.id, data: data, traveler_ids: (t.kidIds || []).slice(), from_place: t.from || "", to_place: t.place || "",
+    return { family_id: fid, id: t.id, data: data, traveler_ids: t.deletedAt ? [] : (t.kidIds || []).slice(),   // Recently deleted: no travelers, so share links skip it
+             from_place: t.from || "", to_place: t.place || "",
              trip_date: /^\d{4}-\d{2}-\d{2}$/.test(t.date || "") ? t.date : null, photo_id: t.photoId || null, updated_at: iso(t.updatedAt), deleted: false };
   }
   /** Every colored-in place, flattened: "personId|kind|placeId" -> { at, jr } */
