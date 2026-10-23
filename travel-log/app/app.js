@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v35" -> "v35").
-  var VERSION = "v35";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v36" -> "v36").
+  var VERSION = "v36";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -129,6 +129,8 @@
   function routeView() {
     var h = location.hash.replace(/^#\/?/, "").split("/");
     document.body.classList.remove("kidview"); document.body.classList.remove("bookpdf");
+    document.body.classList.remove("followview");
+    if (h[0] === "follow" && window.FS_FOLLOW) return window.FS_FOLLOW.view(h[1] || "");
     if (window.MLTL_SYNC && window.MLTL_SYNC.route(h)) return;
     if (h[0] === "family" && h[1] === "passport") return UI().passportFamily();
     if (h[0] === "family" && h[1] === "signs") return UI().signs(null);
@@ -187,7 +189,7 @@
     if (window.MLTL_SYNC) html += window.MLTL_SYNC.homeCard();
     html += '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div>' +
             '<h3>Like paper too?</h3><p class="small muted">The matching paperback, My Lifetime Travel Log, has the same maps to color, all 64 parks and 40 trip pages, for the shelf. ' +
-            '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>';
+            '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" class="tapline" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>';
     main.innerHTML = html;
     // a tap that's only closing the family menu (dropdown on wide screens) shouldn't also start a trip
     var ha = document.getElementById("homeadd"); if (ha) ha.onclick = function (e) { if (document.getElementById("fammenu")) { e.preventDefault(); return; } if (ha.tagName === "BUTTON") UI().whoWentSheet(); };
@@ -336,7 +338,7 @@
     }).join("");
     main.innerHTML = shell(k, "us", counter(s.states, 50, "states") +
       '<div class="pzfind"></div><div class="mapbox us">' + usSVG(k) + '</div>' + MAP_HINT + ' Tiny states are easy in the list too.</p>' +
-        '<p class="small"><a href="#/p/' + esc(k.id) + '/signs">🪧 See ' + esc(M.who(k)) + '\'s State Signs →</a></p>' +
+        '<p class="small"><a class="tapline" href="#/p/' + esc(k.id) + '/signs">🪧 See ' + esc(M.who(k)) + '\'s State Signs →</a></p>' +
       '<details class="list"><summary>Pick from a list</summary><div class="checks plist" data-plist="us:' + esc(k.id) + '">' +
         FF.tools('<div class="field"><label for="find">Find a state</label><input id="find" type="search" placeholder="Type a state, e.g. Utah or UT" autocomplete="off"></div>') + list + '</div></details>');
     FF.bind(main.querySelector("[data-plist]"), main.querySelector("#find"), false);
@@ -511,7 +513,7 @@
       }).join("") + '</div>' +
       '<div class="actions"><a class="btn btn-primary" href="#/p/' + esc(k.id) + '/print">🖨 Print my map</a><a class="btn btn-ghost" href="#/year/' + esc(k.id) + '">🎉 My year in stamps</a><a class="btn btn-ghost" href="#/p/' + esc(k.id) + '/edit">Edit name or color</a><a class="btn btn-ghost" href="#/backup">Back up</a></div>' +
       '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div><h3>' + (s.kid ? "Want this on paper?" : "A paper copy for the kids?") + '</h3><p class="small muted">The paperback has the same maps to color and 40 trip pages' + (s.kid ? "" : ", made for kids 3 to 18") + '. ' +
-      '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>');
+      '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" class="tapline" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>');
     UI().bindLifetime(function () { viewStats(k); });
   }
 

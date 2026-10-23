@@ -519,7 +519,7 @@
     main.innerHTML = back("#/", "Home") + '<h1>' + esc(c.familyName || "Family log") + '</h1>' +
       '<div class="syncstate"><span class="syncpill s-' + esc(status) + '">' + (status === "synced" ? "✓ Synced" : status === "syncing" ? "↻ Syncing" : status === "offline" ? "☁ Offline" : status === "error" ? "! Sync paused" : "") + '</span>' +
       '<span class="small muted">' + esc(statusMsg || (c.lastSync ? "Last synced " + S.ago(c.lastSync) : "Not synced yet")) + '</span><button type="button" class="linkbtn" id="snow">Sync now</button></div>' +
-      '<div class="actions">' + (grown ? '<a class="btn btn-beacon" href="#/sync/invite">＋ Invite someone</a>' : "") + '<a class="btn btn-primary" href="#/feed">📰 Family feed</a></div>' +
+      '<div class="actions">' + (grown ? '<a class="btn btn-beacon" href="#/sync/invite">＋ Invite someone</a>' : "") + '<a class="btn btn-primary" href="#/feed">📰 Family feed</a>' + (grown ? '<a class="btn" href="#/follow">👵 Grandparent follow-along</a>' : "") + '</div>' +
       '<h2>Who\'s in <span class="muted small">' + (c.members || []).length + '</span></h2><div class="panel members">' + (members || '<p class="muted">Just you so far.</p>') + '</div>' +
       mePanel(c) + logsPanel() +
       '<div class="panel"><h3>Plan</h3><p class="small">' + esc(acc.label) + '</p><p class="small muted">' + (acc.tier === "founder" ? "Everyone you invite into this family gets every feature free, on every device, up to " + (c.plan.max_people || 10) + " people." : 'Family Keeper (' + esc(CFG.price || "") + ') will cover everyone you invite with one subscription. Nothing is charged today.') + '</p></div>' +
@@ -540,6 +540,17 @@
   }
 
   var lastInvite = null;
+  // Who each invite is for. Kept on this device right away, and saved to the invite (set_invite_for) when the server has it,
+  // so the Open invites list can say "For Rosie" everywhere. Older servers without that function just keep the local label.
+  var FOR_KEY = "fs-invite-for";
+  function forMap() { try { return JSON.parse(localStorage.getItem(FOR_KEY) || "{}") || {}; } catch (e) { return {}; } }
+  function forSet(code, pid) {
+    var m = forMap(); if (pid) m[code] = pid; else delete m[code];
+    var keys = Object.keys(m); if (keys.length > 60) keys.slice(0, keys.length - 60).forEach(function (k) { delete m[k]; });
+    try { localStorage.setItem(FOR_KEY, JSON.stringify(m)); } catch (e) {}
+    remote().then(function (r) { return r.rpc("set_invite_for", { p_code: code, p_person: pid || "" }); }).catch(function () {});
+  }
+  function invFor(i) { return (i && (i.for_person || forMap()[i.code])) || ""; }
   function viewInvite() {
     var c = cfg(); if (!c) { location.hash = "#/sync"; return; }
     document.title = "Invite · Famstamp";
@@ -549,7 +560,7 @@
         A.state.kids.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(M.who(k)) + '</option>'; }).join("") + '</select></div>' : "") +
       '<div class="panel invite" id="invbox"><p class="muted">Making a code…</p></div><p class="err" id="ierr" hidden></p>' +
       '<h2 id="invhead">Open invites</h2><div class="panel" id="invlist"><p class="muted small">Loading…</p></div>';
-    var role = "adult";
+    var role = "adult", lastRows = [];
     // Reuse an open invite for this role when there is one (opening this screen used to make a new code every time,
     // and a family can only have 10 open). At the cap, turn off the oldest unused one and make a fresh code.
     function usable(i) { return i.role === role && i.uses < i.max_uses && Date.parse(i.expires_at) > Date.now() + 2 * 864e5; }
@@ -562,14 +573,18 @@
           return create().catch(function (e) {
             if (!/Too many open invites|10 open invites/i.test(String(e && e.message))) throw e;
             return r.invites(c.familyId).then(function (all) {
-              var old = (all || []).slice().sort(function (a, b) { return (a.uses - b.uses) || (Date.parse(a.created_at) - Date.parse(b.created_at)); })[0];
+              // codes saved for someone go last, so a code you just gave Grandma isn't the one turned off
+              var old = (all || []).slice().sort(function (a, b) { return (!!invFor(a) - !!invFor(b)) || (a.uses - b.uses) || (Date.parse(a.created_at) - Date.parse(b.created_at)); })[0];
               if (!old) throw e;
               return r.rpc("revoke_invite", { p_code: old.code }).then(create);
             });
           });
         });
       }), needQR()]).then(function (res) {
-        var inv = Array.isArray(res[0]) ? res[0][0] : res[0]; lastInvite = inv; showInvite(inv);
+        var inv = Array.isArray(res[0]) ? res[0][0] : res[0]; lastInvite = inv;
+        var fsel = document.getElementById("ifor");
+        if (fsel) { if (fsel.value && fsel.value !== invFor(inv)) forSet(inv.code, fsel.value); else if (!fsel.value && invFor(inv)) fsel.value = invFor(inv); }
+        showInvite(inv);
       }).catch(function (e) {
         box.innerHTML = '<p class="muted small">No code yet.</p><div class="actions"><button type="button" class="btn btn-beacon" id="iretry">Try again</button></div>';
         document.getElementById("iretry").onclick = function () { make(); };
@@ -594,13 +609,14 @@
     function list() {
       remote().then(function (r) { return r.allInvites ? r.allInvites(c.familyId) : r.invites(c.familyId); }).then(function (rows) {
         var el = document.getElementById("invlist"); if (!el) return;
-        rows = rows || [];
+        rows = rows || []; lastRows = rows;
         function state(i) { return i.revoked_at ? "Cancelled" : i.uses >= i.max_uses ? "Used up" : Date.parse(i.expires_at) <= Date.now() ? "Expired" : ""; }
         var open = rows.filter(function (i) { return !state(i); }), closed = rows.filter(function (i) { return state(i); });
         var h = document.getElementById("invhead"); if (h) h.innerHTML = 'Open invites <span class="muted small">' + open.length + ' of 10</span>';
         function line(i) {
           var st = state(i), shown = lastInvite && lastInvite.code === i.code;
-          var meta = (i.role === "kid" ? "Kid" : "Grown-up") + " · " + (i.uses ? "used " + i.uses + " of " + i.max_uses : "not used yet") + " · " + (st === "Expired" ? "ended " : "ends ") + M.prettyDate(String(i.expires_at).slice(0, 10)) + " · made " + M.prettyDate(String(i.created_at).slice(0, 10));
+          var fp = invFor(i), fk = fp && A.state.kids.filter(function (k) { return k.id === fp; })[0];
+          var meta = (fk ? "For " + M.who(fk) + " · " : "") + (i.role === "kid" ? "Kid" : "Grown-up") + " · " + (i.uses ? "used " + i.uses + " of " + i.max_uses : "not used yet") + " · " + (st === "Expired" ? "ended " : "ends ") + M.prettyDate(String(i.expires_at).slice(0, 10)) + " · made " + M.prettyDate(String(i.created_at).slice(0, 10));
           return '<div class="row invrow' + (st ? " invdone" : "") + '"><span class="nm"><b class="mono">' + esc(i.code) + (st ? ' <span class="invtag">' + esc(st) + '</span>' : shown ? ' <span class="invtag invon">Shown above</span>' : "") + '</b><span>' + esc(meta) + '</span></span>' +
             (st ? "" : '<span class="invbtns">' + (shown ? "" : '<button type="button" class="pill" data-ishow="' + esc(i.code) + '" aria-label="Show code and QR for ' + esc(i.code) + '">Show</button>') +
               '<button type="button" class="pill" data-ishare="' + esc(i.code) + '" aria-label="Share ' + esc(i.code) + '">Share</button><button type="button" class="pill" data-icp="' + esc(i.code) + '" aria-label="Copy the link for ' + esc(i.code) + '">Copy</button>' +
@@ -609,10 +625,10 @@
         el.innerHTML = (open.length ? open.map(line).join("") : '<p class="muted small">No open invites.</p>') +
           (closed.length ? '<details class="invold"><summary>Earlier invites (' + closed.length + ')</summary>' + closed.map(line).join("") + '</details>' : "");
         function byCode(code) { return rows.filter(function (i) { return i.code === code; })[0]; }
-        function linkFor(i) { var forSel = document.getElementById("ifor"), pid = forSel ? forSel.value : ""; return S.inviteLink(location.origin + location.pathname, i.code) + (pid ? "&for=" + encodeURIComponent(pid) : ""); }
+        function linkFor(i) { var pid = invFor(i); return S.inviteLink(location.origin + location.pathname, i.code) + (pid ? "&for=" + encodeURIComponent(pid) : ""); }
         el.querySelectorAll("[data-ishow]").forEach(function (b) { b.onclick = function () {
           var inv = byCode(b.dataset.ishow); if (!inv) return;
-          needQR().then(function () { lastInvite = inv; showInvite(inv); list(); document.getElementById("invbox").scrollIntoView({ block: "center", behavior: "smooth" }); });
+          needQR().then(function () { lastInvite = inv; var fsel = document.getElementById("ifor"); if (fsel) fsel.value = invFor(inv); showInvite(inv); list(); document.getElementById("invbox").scrollIntoView({ block: "center", behavior: "smooth" }); });
         }; });
         el.querySelectorAll("[data-icp]").forEach(function (b) { b.onclick = function () { var i = byCode(b.dataset.icp); if (i) copy(linkFor(i)); }; });
         el.querySelectorAll("[data-ishare]").forEach(function (b) { b.onclick = function () {
@@ -626,9 +642,19 @@
         });
       }).catch(function () { var el = document.getElementById("invlist"); if (el) el.innerHTML = '<p class="muted small">Couldn\'t load your invites just now. The code above still works.</p>'; });
     }
-    var fs = document.getElementById("ifor"); if (fs) fs.onchange = function () { if (lastInvite) showInvite(lastInvite); };
+    // Picking someone labels the code on screen. If that code is already someone else's, they get their own fresh code.
+    var fs = document.getElementById("ifor"); if (fs) fs.onchange = function () {
+      if (!lastInvite) return;
+      var was = invFor(lastInvite);
+      if (fs.value && was && was !== fs.value) {
+        var theirs = lastRows.filter(function (i) { return !i.revoked_at && usable(i) && invFor(i) === fs.value; })[0];
+        if (theirs) { lastInvite = theirs; showInvite(theirs); list(); } else make(true);
+        return;
+      }
+      forSet(lastInvite.code, fs.value); lastInvite.for_person = fs.value || null; showInvite(lastInvite); list();
+    };
     main.querySelectorAll("[data-irole]").forEach(function (b) { b.onclick = function () { role = b.dataset.irole; main.querySelectorAll("[data-irole]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); make(); }; });
-    if (lastInvite && lastInvite.family_id === c.familyId && Date.parse(lastInvite.expires_at) > Date.now() && lastInvite.role === role) needQR().then(function () { showInvite(lastInvite); list(); }); else make();
+    if (lastInvite && lastInvite.family_id === c.familyId && Date.parse(lastInvite.expires_at) > Date.now() && lastInvite.role === role) needQR().then(function () { if (fs) fs.value = invFor(lastInvite); showInvite(lastInvite); list(); }); else make();
   }
   function copy(text) {
     (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { A.toast("Copied! Paste it in a text to your family."); }, function () {
@@ -640,13 +666,15 @@
   // ---------- join ----------
   function viewJoin(code) {
     document.title = "Join a family log · Famstamp";
-    code = S.codeFromLink(code || "");
+    var typed = String(code || "").trim(); try { typed = decodeURIComponent(typed); } catch (x) {}
+    code = S.codeFromLink(typed);
     if (!code) {
       main.innerHTML = back("#/sync") + '<h1>Join your family</h1><div class="panel"><div class="field" style="margin-top:0"><label for="jcode">Invite code</label>' +
         '<input id="jcode" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="e.g. MAPLE-COMPASS-4821" class="codein"></div>' +
         '<p class="small muted">It\'s in the invite someone sent you. Spaces or dashes are fine.</p><p class="err" id="jerr" hidden></p><div class="actions"><button class="btn btn-beacon" id="jgo">Next</button></div></div>';
       var go = function () { var c2 = S.codeFromLink(document.getElementById("jcode").value); if (!c2) return err("jerr", new Error("That doesn't look like a code. It's two words and four numbers, like MAPLE-COMPASS-4821.")); location.hash = "#/join/" + c2; };
       document.getElementById("jgo").onclick = go; document.getElementById("jcode").onkeydown = function (e) { if (e.key === "Enter") go(); };
+      if (typed) { document.getElementById("jcode").value = typed.slice(0, 60); err("jerr", new Error("That invite code doesn't look right. It's two words and four numbers, like MAPLE-COMPASS-4821. Check the message it came in, or ask for a fresh one.")); }
       setTimeout(function () { document.getElementById("jcode").focus(); }, 50); return;
     }
     if (on() && !viewJoin.asked) return remote().then(function (r) {
@@ -658,7 +686,10 @@
           return identityJoin(code, inv, sess, r, x[1] || []);
         });
       });
-    }).catch(function () { viewJoin.asked = true; try { viewJoin(code); } finally { viewJoin.asked = false; } });
+    }).catch(function (e) {
+      if (/Too many tries/i.test(String(e && e.message))) { main.innerHTML = back("#/sync", "Family") + '<div class="panel"><h3>Couldn\'t open the invite</h3><p class="muted">' + esc(friendly(e).message) + '</p></div>'; return; }
+      viewJoin.asked = true; try { viewJoin(code); } finally { viewJoin.asked = false; }
+    });
     if (on()) {
       var rg = reg(), full = S.linkedCount(rg) >= S.MAX_FAMILIES;
       main.innerHTML = back("#/sync") + '<div class="synchero"><div class="beam" aria-hidden="true">🏡</div><h1>Join another family?</h1><p class="lede small">This log syncs with <b>' + esc(cfg().familyName) + '</b>. ' +
@@ -1268,6 +1299,13 @@
     logs: reg, switchTo: switchTo,
     photoNote: function () { return on() ? "We shrink it and keep the full photo on this device. A small copy is shared with your family log. Location data is removed." : null; },
     storageNote: function () { return on() ? "Your maps are on this device and synced with " + (cfg().familyName || "your family log") + ". A backup file is still a good idea." : null; },
+    // for follow.js (grandparent follow-along): call() signs in first; open() is for the read-only page (no sign-in)
+    follow: {
+      cfg: function () { return cfg(); },
+      access: function () { var c = cfg(); return S.access(c && c.plan, FLAGS); },
+      call: function (fn, args) { return remote().then(function (r) { return ensureSession(r).then(function () { return r.rpc(fn, args); }); }); },
+      open: function (fn, args) { return remote().then(function (r) { return r.rpc(fn, args); }); }
+    },
     _core: S, _confetti: confetti, _cheer: cheer
   };
   // ?join=CODE links: turn them into the in-app join screen

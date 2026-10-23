@@ -493,6 +493,9 @@
     renderStays(); renderFavs(); renderMoments();
     var tall = $("#tall"); if (tall) tall.onclick = function () { $$("input[name=kids]").forEach(function (c) { c.checked = true; }); renderFavs(); renderMoments(); };
     var end = $("#tend"), done = $("#tdone");
+    // The end can't be before the start: the picker won't offer earlier days, and Save says so if one is typed anyway.
+    var startIn = $("#tdate"); function endMin() { end.min = startIn.value || ""; } endMin();
+    startIn.addEventListener("change", endMin);
     end.onchange = function () { if (end.value && end.value <= M.today()) done.checked = true; };
 
     // photo
@@ -512,6 +515,7 @@
       var err = $("#terr"); err.hidden = true;
       var ids = kidIds(), mv = $("#tmark").value, jobs = [];
       if (!d.route.length) { err.textContent = "Add where you went (type a town or park above)."; err.hidden = false; search.focus(); return; }
+      if (end.value && $("#tdate").value && end.value < $("#tdate").value) { err.textContent = "The end date is before the start date. Pick an end on or after " + M.prettyDate($("#tdate").value) + "."; err.hidden = false; end.focus(); return; }
       var photoId = d.photoId || null;
       if (removePhoto && photoId) { jobs.push(A_.del("photos", photoId)); photoId = null; }
       if (newPhoto) { if (photoId) jobs.push(A_.del("photos", photoId)); photoId = M.uid("photo"); }
@@ -900,7 +904,7 @@
           return '<button type="button" class="stamp" data-sid="' + esc(c.stamp.id) + '" style="left:' + (c.x / 3).toFixed(1) + '%;top:' + (c.y / 4).toFixed(1) + '%;--r:' + c.rot + 'deg" aria-label="' + esc(stampName(c.stamp) + (c.stamp.kind === "state" ? ", " + artFor(pid, c.stamp.area) : "") + (P.fmtDate(c.stamp.date) ? ", " + P.fmtDate(c.stamp.date) : "")) + '">' + stampSVG(c.stamp, pid) +
             (who && c.stamp.who.length ? '<span class="dots">' + A().avatars(c.stamp.who) + '</span>' : "") + '</button>';
         }).join("") + '</section>';
-      }).join("") : '<section class="ppage empty"><header><span>' + esc(secName.toUpperCase()) + '</span><span>1</span></header><p>No ' + esc(secName.toLowerCase()) + ' stamps yet.<br>' +
+      }).join("") : '<section class="ppage empty"><header><span>' + esc(secName.toUpperCase()) + '</span><span>1</span></header><p>' + esc({ world: "No country stamps yet.", states: "No state stamps yet.", parks: "No national park stamps yet." }[psec]) + '<br>' +
         (psec === "parks" ? "Mark a park on the Parks tab, or add one to a trip." : psec === "states" ? "Color a state on the USA map, or add a trip." : "Color a country on the World map, or add a trip abroad.") + '</p></section>') +
       '</div><div class="pager"><button type="button" class="btn btn-ghost" id="pprev" aria-label="Previous page">‹</button><span id="pgn">Cover</span><button type="button" class="btn btn-ghost" id="pnext" aria-label="Next page">›</button></div></div>';
     return html;

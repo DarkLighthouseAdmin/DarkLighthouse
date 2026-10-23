@@ -84,7 +84,18 @@
       // typed input is debounced; programmatic input (e.g. restoring the box after a re-render) applies at once so nothing flickers
       input.addEventListener("input", function (e) { clearTimeout(t); if (!e.isTrusted) return setQ(input.value); t = setTimeout(function () { setQ(input.value); }, 110); });
       input.addEventListener("search", function () { clearTimeout(t); setQ(input.value); });
-      input.addEventListener("keydown", function (e) { if (e.key === "Escape" && input.value) { input.value = ""; setQ(""); e.preventDefault(); } });
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && input.value) { input.value = ""; setQ(""); e.preventDefault(); }
+        // Enter (or Search/Go on a phone keyboard): filter now and jump to the first match, ready to tap or press Enter again
+        if (e.key === "Enter") {
+          e.preventDefault(); clearTimeout(t); setQ(input.value); if (!q) return;
+          var first = null; groups.some(function (g) { return g.rows.some(function (r) { if (!r.el.hidden) { first = r.el; return true; } }); });
+          if (!first) return;
+          var btn = first.querySelector("button, [role=button], a, input");
+          first.scrollIntoView({ block: "center" });
+          if (btn) btn.focus({ preventScroll: true });
+        }
+      });
     }
     setQ(input ? input.value : "");
     return { set: setQ, groups: groups };

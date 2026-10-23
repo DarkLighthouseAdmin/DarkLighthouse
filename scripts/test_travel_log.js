@@ -999,5 +999,41 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   }
 }
 
+
+// ---- grandparent follow-along ----
+{
+  const C = require("../travel-log/app/follow-core.js");
+  ok(C.validToken("abcDEF123_-abcDEF123_-xy") && !C.validToken("short") && !C.validToken("bad token with spaces 1234567890") && !C.validToken("<script>alert(1)</script>xxxxxx"), "follow: token check");
+  const people = [
+    { id: "k1", name: "Rosemary", nickname: "Rosie", role: "kid", states: { UT: { at: "2026-06-02" } }, parks: { zion: { at: "2026-06-02", jr: true } } },
+    { id: "k2", name: "Max", role: "kid", states: { UT: { at: "2026-06-02" } } },
+    { id: "a1", name: "Pat", role: "adult", states: { NV: { at: "2026-06-01" } } },
+    { id: "g1", name: "June", role: "grand", relationship: "grandparent" }];
+  ok(JSON.stringify(C.defaultShare(people)) === '["k1","k2"]', "follow: kids shared by default");
+  ok(C.shareable(people).every(p => p.id !== "g1"), "follow: followers can't be shared");
+  const trips = [{ id: "t1", kidIds: ["k1", "k2", "a1"], place: "Zion", date: "2026-06-02", memories: { best: "Angels Landing view" },
+                   moments: { k1: "Rosie's moment", a1: "Pat's secret", k2: "" }, route: [{ name: "Springdale" }] },
+                 { id: "t2", kidIds: ["a1"], place: "Work trip", date: "2026-07-01" }];
+  const f = C.fromLocal(people, trips, ["k1", "k2", "g1"], { family: "Zz", label: "Grandma June" });
+  ok(f.people.length === 2 && !f.people.some(p => p.id === "g1" || p.id === "a1"), "follow: only shared people (no followers, no unshared)");
+  ok(f.trips.length === 1 && f.trips[0].to === "Springdale" && JSON.stringify(f.trips[0].kidIds) === '["k1","k2"]', "follow: only trips with shared people, unshared names stripped");
+  ok(f.trips[0].moments.k1 && !f.trips[0].moments.a1 && !JSON.stringify(f).includes("Pat's secret") && !JSON.stringify(f).includes("NV"), "follow: an unshared person's moment and stamps never leave the device");
+  ok(!("route" in f.trips[0]) && !JSON.stringify(f).includes("photo"), "follow: no route or photos in the feed");
+  const c = C.clean(JSON.parse(JSON.stringify(Object.assign({}, f, { people: f.people.concat([{ id: "x", name: "<b>x</b>", color: "red;}" }]),
+    visits: f.visits.concat([{ person: "nobody", kind: "state", id: "CA", at: "2026-01-01" }, { person: "k1", kind: "evil", id: "CA", at: "2026-01-01" }]) }))));
+  ok(c.people.find(p => p.id === "x").color === "" && !c.visits.some(v => v.person === "nobody" || v.kind === "evil"), "follow: clean drops bad colours, unknown people and kinds");
+  ok(C.clean(null) === null && C.clean({ paused: true, family: "Zz" }).paused === true, "follow: off and paused feeds");
+  const u = C.updates(c);
+  const tripItem = u.find(i => i.trip);
+  ok(tripItem && tripItem.stamps.filter(s => s.kind === "state" && s.id === "UT").length === 1, "follow: a state both kids got shows once on the trip card");
+  const zion = tripItem.stamps.find(s => s.id === "zion");
+  ok(zion && zion.jr && !zion.everyone && zion.who.join() === "k1", "follow: a stamp only one kid got says who");
+  ok(u.length <= 40, "follow: updates capped");
+  ok(C.linkURL("https://x.test/app/", "abcDEF123_-abcDEF123_-xy") === "https://x.test/app/#/follow/abcDEF123_-abcDEF123_-xy", "follow: link format");
+  const fj = read("follow.js"), idx = read("index.html"), sw = read("sw.js"), app = read("app.js");
+  ok(/follow-core\.js/.test(idx) && /follow\.js/.test(idx) && /"follow-core\.js"/.test(sw) && /"follow\.js"/.test(sw) && /FS_FOLLOW/.test(app), "follow: loaded, cached offline and routed");
+  ok(!/innerHTML\s*=\s*[^;]*\+\s*(f|feed)\.(family|label)\b/.test(fj), "follow: family and label are escaped");
+}
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
