@@ -13,14 +13,14 @@
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#0e1c2a" />
   <!-- /dls-head-meta -->
-  <title>Free Money Calculators: Debt Payoff, Wedding Budget &amp; Sinking Funds | Dark Lighthouse Solutions</title>
-  <meta name="description" content="Free, private calculators for debt payoff (snowball vs avalanche), wedding budgets and sinking funds. No sign-up; nothing you type leaves your browser." />
+  <title>Free Money Calculators: Budget by Paycheck, Debt Payoff, Grocery &amp; Moving | Dark Lighthouse Solutions</title>
+  <meta name="description" content="Free, private money calculators: budget by paycheck, debt payoff (snowball vs avalanche), grocery budget, moving costs, sinking funds and wedding budget. No sign-up; nothing you type leaves your browser." />
   <meta name="author" content="Dark Lighthouse Solutions" />
   <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://darklighthousesolutions.com/tools/" />
   <meta property="og:site_name" content="Dark Lighthouse Solutions" />
-  <meta property="og:title" content="Free Money Calculators: Debt Payoff, Wedding Budget &amp; Sinking Funds" />
-  <meta property="og:description" content="Free, private calculators for debt payoff (snowball vs avalanche), wedding budgets and sinking funds. No sign-up; nothing you type leaves your browser." />
+  <meta property="og:title" content="Free Money Calculators: Budget by Paycheck, Debt Payoff, Grocery &amp; Moving" />
+  <meta property="og:description" content="Free, private money calculators: budget by paycheck, debt payoff (snowball vs avalanche), grocery budget, moving costs, sinking funds and wedding budget. No sign-up; nothing you type leaves your browser." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://darklighthousesolutions.com/tools/" />
   <meta property="og:image" content="https://darklighthousesolutions.com/assets/money/sheets-bundle-5/1.jpg" />
@@ -51,6 +51,24 @@
    "position": 3,
    "url": "https://darklighthousesolutions.com/tools/sinking-funds-calculator/",
    "name": "Sinking Funds Calculator: How Much to Save Each Month"
+  },
+  {
+   "@type": "ListItem",
+   "position": 4,
+   "url": "https://darklighthousesolutions.com/tools/grocery-budget-calculator/",
+   "name": "Grocery Budget Calculator: How Much Should You Spend on Food?"
+  },
+  {
+   "@type": "ListItem",
+   "position": 5,
+   "url": "https://darklighthousesolutions.com/tools/moving-cost-calculator/",
+   "name": "Moving Cost Calculator: Budget and Timeline for Your Move"
+  },
+  {
+   "@type": "ListItem",
+   "position": 6,
+   "url": "https://darklighthousesolutions.com/tools/budget-by-paycheck-calculator/",
+   "name": "Budget by Paycheck Calculator: Which Paycheck Pays Which Bill"
   }
  ]
 }
@@ -82,6 +100,15 @@
     .row { display:grid; gap:.6rem; align-items:end; padding:.7rem; border:1px solid var(--line); border-radius:12px; background:#fff; }
     .row.debt { grid-template-columns:1.6fr 1fr .8fr 1fr auto; }
     .row.goal { grid-template-columns:1.6fr 1fr 1fr 1.2fr auto; }
+    .row.person { grid-template-columns:1fr auto; }
+    .row.cost { grid-template-columns:2fr 1fr 1.2fr auto; }
+    .row.bill { grid-template-columns:1.6fr 1fr 1.4fr auto; }
+    .stat.over { border:2px solid var(--bad); background:#fff8f5; }
+    .stat ul.bl { list-style:none; margin:.5rem 0 0; font-size:.92rem; }
+    .stat ul.bl li { display:flex; justify-content:space-between; gap:.6rem; padding:.2rem 0; border-top:1px dashed var(--line); }
+    .related { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:.6rem; }
+    .related a { display:inline-block; padding:.5rem .9rem; border:1px solid var(--line); border-radius:999px; background:var(--card); text-decoration:none; font-weight:600; }
+    .related a:hover { border-color:var(--sage); }
     .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.8rem; margin-top:1rem; }
     .rm { border:0; background:transparent; color:var(--muted); font-size:1.4rem; line-height:1; padding:.45rem .5rem; cursor:pointer; border-radius:8px; }
     .rm:hover { background:#f1ece2; color:var(--bad); }
@@ -132,7 +159,7 @@
     .tool .go { display:inline-block; margin-top:.7rem; font-weight:600; color:var(--sage-deep); }
     footer { margin:3.5rem 0 2rem; color:var(--muted); font-size:.92rem; border-top:1px solid var(--line); padding-top:1.2rem; }
     @media (max-width:720px) {
-      .row.debt, .row.goal { grid-template-columns:1fr 1fr; }
+      .row.debt, .row.goal, .row.cost, .row.bill { grid-template-columns:1fr 1fr; }
       .row .name { grid-column:1 / -1; }
       .row .rm { grid-column:2; justify-self:end; }
       th, td { padding:.4rem .5rem; font-size:.86rem; }
@@ -154,6 +181,9 @@
       <a class="tool" href="/tools/debt-payoff-calculator/"><h2>Debt Payoff Calculator</h2><p>Compare snowball vs avalanche: debt-free date, total interest, payoff order and a month-by-month table.</p><span class="go">Open the calculator →</span></a>
       <a class="tool" href="/tools/wedding-budget-calculator/"><h2>Wedding Budget Calculator</h2><p>Split your total by category, see cost per guest and preview when deposits are usually due.</p><span class="go">Open the calculator →</span></a>
       <a class="tool" href="/tools/sinking-funds-calculator/"><h2>Sinking Funds Calculator</h2><p>See how much to save each month and per paycheck for every goal, with a total.</p><span class="go">Open the calculator →</span></a>
+      <a class="tool" href="/tools/grocery-budget-calculator/"><h2>Grocery Budget Calculator</h2><p>Weekly and monthly grocery budget for your household at four USDA price levels, and where your spending sits.</p><span class="go">Open the calculator →</span></a>
+      <a class="tool" href="/tools/moving-cost-calculator/"><h2>Moving Cost Calculator</h2><p>Total moving budget, a date-by-date timeline of when each cost hits, and a weekly amount to save.</p><span class="go">Open the calculator →</span></a>
+      <a class="tool" href="/tools/budget-by-paycheck-calculator/"><h2>Budget by Paycheck Calculator</h2><p>See which paycheck pays each bill, what&#x27;s left from every check, and how to fix a short one.</p><span class="go">Open the calculator →</span></a>
       <a class="tool" href="/renewal-radar/"><h2>Renewal Radar (browser extension)</h2><p>Tracks your subscriptions and free trials and reminds you before each charge. Free for up to 10 items, and private.</p><span class="go">See the extension →</span></a>
     </div>
     <section class="copy">
@@ -163,7 +193,7 @@
   </main>
 
   <footer class="wrap">
-    <p><a href="/tools/">Free tools</a> · <a href="/tools/debt-payoff-calculator/">Debt payoff calculator</a> · <a href="/tools/wedding-budget-calculator/">Wedding budget calculator</a> · <a href="/tools/sinking-funds-calculator/">Sinking funds calculator</a> · <a href="/templates/">Money templates</a></p>
+    <p><a href="/tools/">Free tools</a> · <a href="/tools/debt-payoff-calculator/">Debt payoff calculator</a> · <a href="/tools/wedding-budget-calculator/">Wedding budget calculator</a> · <a href="/tools/sinking-funds-calculator/">Sinking funds calculator</a> · <a href="/tools/grocery-budget-calculator/">Grocery budget calculator</a> · <a href="/tools/moving-cost-calculator/">Moving cost calculator</a> · <a href="/tools/budget-by-paycheck-calculator/">Budget by paycheck calculator</a> · <a href="/templates/">Money templates</a></p>
     <p style="margin-top:.4rem">These calculators are estimates for planning, not financial advice. Nothing you type leaves your browser.</p>
     <p style="margin-top:.4rem"><strong>Dark Lighthouse Solutions</strong> · Templates sold via Polar (merchant of record). Questions? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
   </footer>

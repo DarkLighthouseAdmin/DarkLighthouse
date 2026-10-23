@@ -142,6 +142,15 @@
     .row { display:grid; gap:.6rem; align-items:end; padding:.7rem; border:1px solid var(--line); border-radius:12px; background:#fff; }
     .row.debt { grid-template-columns:1.6fr 1fr .8fr 1fr auto; }
     .row.goal { grid-template-columns:1.6fr 1fr 1fr 1.2fr auto; }
+    .row.person { grid-template-columns:1fr auto; }
+    .row.cost { grid-template-columns:2fr 1fr 1.2fr auto; }
+    .row.bill { grid-template-columns:1.6fr 1fr 1.4fr auto; }
+    .stat.over { border:2px solid var(--bad); background:#fff8f5; }
+    .stat ul.bl { list-style:none; margin:.5rem 0 0; font-size:.92rem; }
+    .stat ul.bl li { display:flex; justify-content:space-between; gap:.6rem; padding:.2rem 0; border-top:1px dashed var(--line); }
+    .related { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:.6rem; }
+    .related a { display:inline-block; padding:.5rem .9rem; border:1px solid var(--line); border-radius:999px; background:var(--card); text-decoration:none; font-weight:600; }
+    .related a:hover { border-color:var(--sage); }
     .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.8rem; margin-top:1rem; }
     .rm { border:0; background:transparent; color:var(--muted); font-size:1.4rem; line-height:1; padding:.45rem .5rem; cursor:pointer; border-radius:8px; }
     .rm:hover { background:#f1ece2; color:var(--bad); }
@@ -192,7 +201,7 @@
     .tool .go { display:inline-block; margin-top:.7rem; font-weight:600; color:var(--sage-deep); }
     footer { margin:3.5rem 0 2rem; color:var(--muted); font-size:.92rem; border-top:1px solid var(--line); padding-top:1.2rem; }
     @media (max-width:720px) {
-      .row.debt, .row.goal { grid-template-columns:1fr 1fr; }
+      .row.debt, .row.goal, .row.cost, .row.bill { grid-template-columns:1fr 1fr; }
       .row .name { grid-column:1 / -1; }
       .row .rm { grid-column:2; justify-self:end; }
       th, td { padding:.4rem .5rem; font-size:.86rem; }
@@ -265,6 +274,9 @@
     <p>A calculator gives you the plan once. If you want it to stay up to date as you pay (balances, interest saved, progress bars and next month's payments), the template below does that in Google Sheets.</p>
     </section>
 
+    <h2 id="related">Related free calculators</h2>
+    <div class="related"><a href="/tools/budget-by-paycheck-calculator/">Budget by Paycheck Calculator</a><a href="/tools/sinking-funds-calculator/">Sinking Funds Calculator</a><a href="/tools/">All free tools</a></div>
+
     <h2 id="faq">Questions</h2>
     <div class="faq">
       <details><summary>Is the avalanche or snowball method better?</summary><p>Avalanche (highest interest rate first) always costs the same or less in interest, so it's the better deal on paper. Snowball (smallest balance first) clears a whole debt sooner, and that early win keeps a lot of people going. If the interest difference this calculator shows is small, pick the one you'll stick with.</p></details>
@@ -276,7 +288,7 @@
   </main>
 
   <footer class="wrap">
-    <p><a href="/tools/">Free tools</a> · <a href="/tools/debt-payoff-calculator/">Debt payoff calculator</a> · <a href="/tools/wedding-budget-calculator/">Wedding budget calculator</a> · <a href="/tools/sinking-funds-calculator/">Sinking funds calculator</a> · <a href="/templates/">Money templates</a></p>
+    <p><a href="/tools/">Free tools</a> · <a href="/tools/debt-payoff-calculator/">Debt payoff calculator</a> · <a href="/tools/wedding-budget-calculator/">Wedding budget calculator</a> · <a href="/tools/sinking-funds-calculator/">Sinking funds calculator</a> · <a href="/tools/grocery-budget-calculator/">Grocery budget calculator</a> · <a href="/tools/moving-cost-calculator/">Moving cost calculator</a> · <a href="/tools/budget-by-paycheck-calculator/">Budget by paycheck calculator</a> · <a href="/templates/">Money templates</a></p>
     <p style="margin-top:.4rem">These calculators are estimates for planning, not financial advice. Nothing you type leaves your browser.</p>
     <p style="margin-top:.4rem"><strong>Dark Lighthouse Solutions</strong> · Templates sold via Polar (merchant of record). Questions? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
   </footer>
