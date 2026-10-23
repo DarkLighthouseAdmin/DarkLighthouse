@@ -38,7 +38,7 @@
     if (DATA.places) return Promise.resolve(DATA.places);
     return getJSON("places").then(function (j) {
       var rows = j.rows.split("\n").map(function (l) {
-        var c = l.split("\t"); return { name: c[0], low: (c[1] || c[0]).toLowerCase(), nlow: c[0].toLowerCase(), lat: +c[2], lon: +c[3], country: c[4], admin1: c[5], pop: +c[6] || 0 };
+        var c = l.split("\t"); return { name: c[0], low: normQ(c[1] || c[0]), nlow: normQ(c[0]), lat: +c[2], lon: +c[3], country: c[4], admin1: c[5], pop: +c[6] || 0 };
       });
       DATA.places = { rows: rows, countries: j.countries, admin: j.admin, parks: j.parks }; return DATA.places;
     });
@@ -67,20 +67,37 @@
     if (ll) { o.lat = ll[0]; o.lon = ll[1]; }
     return o;
   }
-  /** Cities, towns and national parks matching what they typed ("Edinburgh", "inver", "portland, me", "zion"). */
-  function searchPlaces(q, d) {
-    q = q.trim().toLowerCase(); if (q.length < 2) return [];
+  // "St Andrews" / "St. Andrews" / "Saint Andrews", "Mt" / "Mount", "Ft" / "Fort" all find the same town
+  function normQ(s) { return String(s || "").toLowerCase().replace(/\b(st|saint|ste)\.?(\s|-)/g, "saint ").replace(/\bmt\.?(\s|-)/g, "mount ").replace(/\bft\.?(\s|-)/g, "fort ").replace(/\s+/g, " "); }
+  // famous islands, lochs and glens that aren't towns: a point people know, at the main village
+  var ALIASES = [
+    { k: ["isle of skye", "skye"], name: "Isle of Skye", lat: 57.413, lon: -6.194, country: "GBR", admin1: "SCT" },
+    { k: ["loch ness"], name: "Loch Ness", lat: 57.334, lon: -4.48, country: "GBR", admin1: "SCT" },
+    { k: ["glencoe", "glen coe"], name: "Glencoe", lat: 56.682, lon: -5.102, country: "GBR", admin1: "SCT" },
+    { k: ["loch lomond"], name: "Loch Lomond", lat: 56.083, lon: -4.633, country: "GBR", admin1: "SCT" },
+    { k: ["isle of mull", "mull"], name: "Isle of Mull", lat: 56.622, lon: -6.067, country: "GBR", admin1: "SCT" },
+    { k: ["lake district"], name: "Lake District", lat: 54.43, lon: -2.96, country: "GBR", admin1: "ENG" },
+    { k: ["cotswolds"], name: "Cotswolds", lat: 51.83, lon: -1.83, country: "GBR", admin1: "ENG" }];
+  /** Cities, towns and national parks matching what they typed ("Edinburgh", "inver", "portland, me", "zion").
+      near = the country of the stop before, whose matches come first ("Glencoe" after Edinburgh is the Scottish one). */
+  function searchPlaces(q, d, near) {
+    q = normQ(q.trim()); if (q.length < 2) return [];
     var parts = q.split(","), head = parts[0].trim(), tail = (parts[1] || "").trim(), out = [];
     M.ALL_PARKS.forEach(function (p) { var n = p.full.toLowerCase(); if (n.indexOf(head) === 0 || (head.length > 3 && n.indexOf(head) > 0)) out.push(parkPoint(d, p)); });
     out = out.slice(0, 3);
-    for (var i = 0; i < d.rows.length && out.length < 9; i++) {
+    var al = ALIASES.filter(function (a) { return a.k.some(function (k) { return k.indexOf(head) === 0 && (head.length >= 3 || k === head); }); });
+    al.forEach(function (a) { out.push(cityPoint(d, a)); });
+    var nParks = out.length, cities = [];
+    for (var i = 0; i < d.rows.length && cities.length < 40; i++) {
       var r = d.rows[i];
       if (r.low.indexOf(head) !== 0 && r.nlow.indexOf(head) !== 0) continue;
       var pt = cityPoint(d, r);
       if (tail && (pt.sub.toLowerCase().indexOf(tail) < 0 && (r.admin1 || "").toLowerCase() !== tail && r.country.toLowerCase() !== tail)) continue;
-      out.push(pt);
+      if (al.some(function (a) { return a.name === pt.name && a.country === pt.country; })) continue;
+      cities.push(pt);
     }
-    return out;
+    if (near) cities = cities.filter(function (p) { return p.country === near; }).concat(cities.filter(function (p) { return p.country !== near; }));
+    return out.concat(cities).slice(0, Math.max(9, nParks + 6));
   }
   function searchAirports(q, list) {
     q = q.trim().toLowerCase(); if (q.length < 2) return [];
@@ -374,7 +391,7 @@
       var q = search.value.trim();
       if (q.length < 2) { results.innerHTML = ""; return; }
       if (!places) { results.innerHTML = '<p class="small muted">Loading places…</p>'; loadPlaces().then(function (x) { places = x; search.dispatchEvent(new Event("input")); }).catch(function () { showResults(results, [], function () { addPoint({ name: q, kind: "place" }); }, q); }); return; }
-      showResults(results, searchPlaces(q, places), function (p) { addPoint(p || { name: q, kind: "place" }); if (!p) A_.toast("Added. Tap 📍 to put it on the map, or type the real miles."); }, q);
+      showResults(results, searchPlaces(q, places, d.route.length > 1 ? d.route[d.route.length - 1].country : null), function (p) { addPoint(p || { name: q, kind: "place" }); if (!p) A_.toast("Added. Tap 📍 to put it on the map, or type the real miles."); }, q);
     });
     search.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); var b = $("[data-pick]", results); if (b) b.click(); } });
     routeEl.addEventListener("click", function (e) {
@@ -502,7 +519,7 @@
       var before = stampKeys(ids), grown = adultOn(ids), trip;
       try {
         var made = M.newTrip({ id: old ? old.id : undefined, createdAt: old ? old.createdAt : undefined, kidIds: ids,
-          place: title || (d.route[d.route.length - 1] || {}).name, route: T.stops(d.route), title: title, date: $("#tdate").value, endDate: end.value,
+          place: title || T.mainDest(d.route) || (d.route[d.route.length - 1] || {}).name, route: T.stops(d.route), title: title, date: $("#tdate").value, endDate: end.value,
           nights: end.value ? null : (nightsV === "" ? null : +nightsV), roundTrip: d.route.length > 1 && $("#tround").checked, done: done.checked,
           fly: fly, back: $("#tround").checked ? d.back : null, stays: d.stays, favs: d.favs.filter(function (f) { return grown || !T.FAV[f.cat].adult; }), moments: d.moments, story: d.story, memories: memVals(),
           who: $("#twho").value, memory: $("#tmem").value, mark: mv ? { kind: mv.split(":")[0], id: mv.split(":")[1] } : null, photoId: photoId });
@@ -556,7 +573,7 @@
         if (seen[a.kind + a.id]) return;
         var v = (a.kind === "park" ? p.parks : p.places) || {}; v = v[a.id];
         if (v && v.at && t.date && v.at < t.date) return;
-        out.push({ who: p.name, what: a.kind === "park" ? (PARK_BY[a.id] ? PARK_BY[a.id].full : parkName(a.id)) : areaName("place", a.id), kind: a.kind === "park" ? "park" : "country" });
+        out.push({ who: M.who(p), what: a.kind === "park" ? (PARK_BY[a.id] ? PARK_BY[a.id].full : parkName(a.id)) : areaName("place", a.id), kind: a.kind === "park" ? "park" : "country" });
       });
     });
     return group(out, function (x) { return x.what; });
@@ -567,7 +584,7 @@
     people(t.kidIds).forEach(function (p) {
       var before = S().trips.filter(function (o) { return o.id !== t.id && o.kidIds.indexOf(p.id) >= 0 && order(o) < order(t); });
       var a = T.lifetime(null, before), b = T.lifetime(null, before.concat([t]));
-      M.BADGES.forEach(function (bd) { if (["miles", "flights", "flightMiles", "bigRoad"].indexOf(bd.key) >= 0 && a[bd.key] < bd.need && b[bd.key] >= bd.need) out.push({ who: p.name, name: bd.name }); });
+      M.BADGES.forEach(function (bd) { if (["miles", "flights", "flightMiles", "bigRoad"].indexOf(bd.key) >= 0 && a[bd.key] < bd.need && b[bd.key] >= bd.need) out.push({ who: M.who(p), name: bd.name }); });
     });
     return group(out, function (x) { return x.name; });
   }
