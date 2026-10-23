@@ -68,8 +68,21 @@ ok(["Article", "FAQPage", "BreadcrumbList"].every(t => lds.some(x => x["@type"] 
 ["when", "driving", "car-insurance", "routes", "costs", "packing", "kids", "timeline", "faq", "sources"].forEach(id => ok(ie.includes(`id="${id}"`), "ireland: section #" + id));
 ok(ie.includes('class="disclose"') && ie.includes("/privacy/#affiliate-links"), "ireland: affiliate disclosure");
 ok(ie.includes("emrldtp.cc/NTg5NTIy.js") && ie.includes('/travel/affiliates.js'), "ireland: Travelpayouts Drive + affiliates.js");
+// "What to pack" boxes hold 3-5 retail product links; the 2-6 booking-link cap applies outside the box.
+const PACK_RE = /<aside class="packbox"[\s\S]*?<\/aside>/;
+const packKeys = h => { const m = h.match(PACK_RE); return m ? [...m[0].matchAll(/data-affiliate="([^"]+)"/g)].map(x => x[1]) : []; };
+const bookingKeys = h => [...h.replace(PACK_RE, "").matchAll(/data-affiliate="([^"]+)"/g)].map(m => m[1]);
+const packChecks = (slug, h) => {
+  const pk = packKeys(h);
+  ok(pk.length >= 3 && pk.length <= 5, slug + ": What to pack box has 3-5 product links, got " + pk.length);
+  ["what-to-wear-in-scotland", "best-travel-stroller-europe", "best-carry-on-luggage-family-travel"].forEach(g => ok((h.match(PACK_RE) || [""])[0].includes(`href="/travel/gear/${g}/"`), slug + ": pack box links to gear page " + g));
+  ok(h.indexOf('class="disclose"') > -1 && h.indexOf('class="disclose"') < h.indexOf("data-affiliate="), slug + ": disclosure before first partner link");
+  ok(h.includes("Some links on this page are affiliate links. If you book or buy through them we may earn a commission at no extra cost to you."), slug + ": FTC disclosure wording");
+};
 const keys = [...ie.matchAll(/data-affiliate="([^"]+)"/g)].map(m => m[1]);
-ok(keys.length >= 2 && keys.length <= 6, "ireland: 2-6 partner links, got " + keys.length);
+const ieBook = bookingKeys(ie);
+ok(ieBook.length >= 2 && ieBook.length <= 6, "ireland: 2-6 booking partner links, got " + ieBook.length);
+packChecks("ireland", ie);
 keys.forEach(k => ok(affj[k] && ie.includes(`href="${affj[k].plain_url.replace(/&/g, "&amp;")}"`), "ireland: partner link matches affiliates.json: " + k));
 ok([...ie.matchAll(/<a [^>]*data-affiliate[^>]*>/g)].every(m => m[0].includes('rel="sponsored nofollow noopener"')), "ireland: partner links are rel=sponsored");
 ok(/Republic of Ireland/.test(ie) && ie.includes("usa.visa.com") && ie.includes("americanexpress.com"), "ireland: card rental coverage note with sources");
@@ -93,7 +106,9 @@ const guideChecks = (slug, titleRe, ids, extra) => {
   ok(h.includes('class="disclose"') && h.includes("/privacy/#affiliate-links"), slug + ": affiliate disclosure");
   ok(h.includes("emrldtp.cc/NTg5NTIy.js") && h.includes('/travel/affiliates.js'), slug + ": Travelpayouts Drive + affiliates.js");
   const ks = [...h.matchAll(/data-affiliate="([^"]+)"/g)].map(m => m[1]);
-  ok(ks.length >= 2 && ks.length <= 6, slug + ": 2-6 partner links, got " + ks.length);
+  const bk = bookingKeys(h);
+  ok(bk.length >= 2 && bk.length <= 6, slug + ": 2-6 booking partner links, got " + bk.length);
+  packChecks(slug, h);
   ok(new Set(ks).size === ks.length, slug + ": no duplicate partner links");
   ks.forEach(k => ok(affj[k] && h.includes(`href="${affj[k].plain_url.replace(/&/g, "&amp;")}"`), slug + ": partner link matches affiliates.json: " + k));
   ok([...h.matchAll(/<a [^>]*data-affiliate[^>]*>/g)].every(m => m[0].includes('rel="sponsored nofollow noopener"')), slug + ": partner links are rel=sponsored");
@@ -120,5 +135,65 @@ guideChecks("wales", /<title>Wales with Kids[^<]*\| Dark Lighthouse Solutions<\/
   ok(/20 mph/.test(h) && h.includes("gov.wales"), "wales: 20 mph note sourced");
   ok(!h.includes("gocity"), "wales: no Go City link (no Wales pass)");
 });
+
+// Scotland "What to pack" box
+const sc = fs.readFileSync(R("travel/scotland/index.html"), "utf8");
+packChecks("scotland", sc);
+[...sc.matchAll(/data-affiliate="([^"]+)"/g)].forEach(m => ok(affj[m[1]] && sc.includes(`href="${affj[m[1]].plain_url.replace(/&/g, "&amp;")}"`), "scotland: partner link matches affiliates.json: " + m[1]));
+ok(sc.includes('/travel/affiliates.js'), "scotland: affiliates.js loaded");
+
+// Packing & gear pages
+const GEAR = ["what-to-wear-in-scotland", "best-travel-stroller-europe", "best-carry-on-luggage-family-travel"];
+const FTC = "Some links on this page are affiliate links. If you book or buy through them we may earn a commission at no extra cost to you.";
+const NETWORKS = ["Impact", "CJ", "Rakuten Advertising", "Awin", "AvantLink", "Partnerize", "FlexOffers"];
+const sm = fs.readFileSync(R("sitemap.xml"), "utf8"), hub = fs.readFileSync(R("travel/index.html"), "utf8");
+["", ...GEAR].forEach(g => {
+  const p = "/travel/gear/" + (g ? g + "/" : ""), slug = "gear" + (g ? "/" + g : "");
+  const h = fs.readFileSync(R(p.slice(1) + "index.html"), "utf8");
+  ok(h.includes(`<link rel="canonical" href="https://darklighthousesolutions.com${p}" />`), slug + ": canonical");
+  ok(/<title>[^<]+\| Dark Lighthouse Solutions<\/title>/.test(h), slug + ": title");
+  const ld = [...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => JSON.parse(m[1]));
+  const faq = ld.find(x => x["@type"] === "FAQPage");
+  ok(faq && faq.mainEntity.length >= 2 && faq.mainEntity.every(q => q.name && q.acceptedAnswer && q.acceptedAnswer.text), slug + ": FAQPage JSON-LD");
+  ok(["Article", "BreadcrumbList"].every(t => ld.some(x => x["@type"] === t)), slug + ": Article + Breadcrumb JSON-LD");
+  const main = h.slice(h.indexOf('<header class="wrap hero">'));
+  const di = main.indexOf(FTC), firstLink = main.indexOf("<a ");
+  ok(di > -1 && di < firstLink, slug + ": FTC disclosure is before the first link in the page content");
+  ok(main.slice(0, main.indexOf("</p>", di) + 4).includes('href="/privacy/#affiliate-links"'), slug + ": disclosure links to /privacy/#affiliate-links");
+  ok(!/As an Amazon Associate/.test(h) && !/amazon\.com/.test(h), slug + ": no Amazon links or Amazon sentence yet");
+  ok(!/\b(whisk(e)?y|beer|wine|gin|pubs?|distiller(y|ies)|alcohol|cocktails?|brewer(y|ies))\b/i.test(h.replace(/<script[\s\S]*?<\/script>/g, "")), slug + ": no alcohol content");
+  ok(!/oraclinical|mhillORA/i.test(h), slug + ": no personal identities");
+  ok(!/Dark Lighthouse Solutions/.test(h.slice(h.indexOf("<main"), h.indexOf("</main>"))), slug + ": brand name only in the credit, not the page copy");
+  ok(h.includes('href="/travel/gear/"') && h.includes("Packing &amp; gear"), slug + ": section nav has Packing & gear");
+  ok(h.includes('/travel/affiliates.js'), slug + ": affiliates.js loaded");
+  ok(sm.includes(`<loc>https://darklighthousesolutions.com${p}</loc>`), "sitemap has " + p);
+  const tags = [...h.matchAll(/<a [^>]*data-affiliate="([^"]+)"[^>]*>/g)];
+  if (g) ok(tags.length >= 4, slug + ": has product links, got " + tags.length);
+  tags.forEach(m => {
+    const k = m[1], a = affj[k];
+    ok(a && m[0].includes(`href="${a.plain_url.replace(/&/g, "&amp;")}"`), slug + ": link matches affiliates.json: " + k);
+    ok(m[0].includes('rel="sponsored nofollow noopener"'), slug + ": rel=sponsored: " + k);
+    ok(a && a.status === "not-joined" && a.tracked_url === "" && NETWORKS.includes(a.network) && a.program.includes(a.network), slug + ": not-joined with program and network named: " + k);
+  });
+  if (g) ok(new Set(tags.map(m => m[1])).size === tags.length, slug + ": no duplicate product links");
+  if (g) ok(hub.includes(`href="/travel/gear/"`) && fs.readFileSync(R("travel/gear/index.html"), "utf8").includes(`href="${p}"`), "hubs link to " + slug);
+  if (g) ok(sc.includes(`href="${p}"`), "scotland pack box links to " + slug);
+});
+const wear = fs.readFileSync(R("travel/gear/what-to-wear-in-scotland/index.html"), "utf8");
+ok(wear.includes("metoffice.gov.uk") && /72 mm/.test(wear) && /Oct<\/td><td>13°C/.test(wear), "wear: Met Office monthly table");
+ok(/<td>Jan<\/td>/.test(wear) && /<td>Dec<\/td>/.test(wear), "wear: all 12 months");
+ok(wear.includes("backcountry-barbour-bedale") && wear.includes("orvis-barbour-beadnell"), "wear: Barbour via retailers");
+ok(/href="https:\/\/www\.sierra\.com[^"]*" rel="noopener"/.test(wear) && !/data-affiliate="sierra/.test(wear), "wear: Sierra is a plain, non-sponsored link");
+const str = fs.readFileSync(R("travel/gear/best-travel-stroller-europe/index.html"), "utf8");
+["Doona", "YOYO", "Minu", "Nuna"].forEach(n => ok(str.includes(n), "stroller page covers " + n));
+ok(/cobble/i.test(str) && /train/i.test(str) && /ferr/i.test(str), "stroller page: cobbles, trains, ferries");
+const lug = fs.readFileSync(R("travel/gear/best-carry-on-luggage-family-travel/index.html"), "utf8");
+["United", "Delta", "American", "British Airways", "Aer Lingus", "Ryanair", "easyJet"].forEach(n => ok(lug.includes(n), "luggage page: " + n + " limit"));
+ok(lug.includes("ridge-carry-on") && lug.includes("target-trunki") && lug.includes("peakdesign-packing-cube"), "luggage page: suitcase, ride-on, packing cubes");
+const priv = fs.readFileSync(R("privacy/index.html"), "utf8");
+ok(priv.includes('id="affiliate-links"') && /retailers/.test(priv) && /\/travel\/gear\//.test(priv) && !/Amazon/.test(priv), "privacy: covers retail/product links, no Amazon sentence");
+ok(fs.readFileSync(R("index.html"), "utf8").includes("impact-site-verification"), "homepage keeps Impact verification meta");
+ok(fs.readFileSync(R("index.html"), "utf8").includes('href="/travel/gear/"'), "homepage footer links to gear");
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
