@@ -98,3 +98,7 @@ select.ppk-native { position:absolute !important; width:1px !important; height:1
 .ppk-btn.ppk-empty .ppk-v { color:var(--muted); font-weight:500; }
 .ppk-btn.ppk-empty .ppk-ch { display:none; }
 .sheetbox .btn-primary:disabled { opacity:.45; cursor:not-allowed; }
+/* v1.7: route lines keep a readable on-screen width at any zoom (the strokes don't scale here) */
+.mapbox.pz.routebox .leg { stroke-width:3px; }
+.mapbox.pz.routebox .leg.plane { stroke-width:2.5px; stroke-dasharray:8 6; }
+.mapbox.pz.routebox .stopdot circle, .mapbox.pz.routebox .homeflag rect { vector-effect:non-scaling-stroke; stroke-width:1.5px; }

@@ -593,3 +593,35 @@ body.followview .topright { display:none; }
 .trip h3 .tlink { display:inline-block; padding:.55rem 0; margin:-.55rem 0; }
 input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .tapline { display:inline-block; padding:.7rem 0; margin:-.7rem 0; }
+/* v1.7: fly home from a different airport */
+.flyhome { margin-top:.5rem; padding:.55rem .8rem .3rem; border-radius:12px; background:#f6f9fc; border:1px dashed #c9d5e2; }
+.flyhome .aplabel { margin-bottom:.35rem; }
+.flyhome input[type=search] { width:100%; min-height:44px; }
+.routebox .homeflag rect { fill:#fff; stroke:#2b4c9b; stroke-width:.4; opacity:.92; }
+.routebox .homeflag text { fill:#16283a; font-weight:700; font-family:sans-serif; }
+/* v1.7: weather, day by day */
+.wxsec h3.sec { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+.wxsec h3 .units { margin-left:auto; font-family:var(--sans, sans-serif); }
+.wxdays { list-style:none; margin:.4rem 0 .3rem; padding:0; display:grid; gap:.35rem; }
+.wxday { display:grid; grid-template-columns:6.2rem 1fr auto; align-items:center; gap:.5rem; padding:.45rem .7rem; border-radius:12px; background:#fff; border:1px solid #e3e8ee; }
+.wxday.manual { border-color:#e0a63a; background:#fff8ea; }
+.wxdate { font-weight:700; font-size:.9rem; }
+.wxstops { display:flex; flex-direction:column; gap:.15rem; min-width:0; }
+.wxstop { display:flex; align-items:center; gap:.45rem; flex-wrap:wrap; font-size:.92rem; }
+.wxstop.none { color:var(--muted); }
+.wxic { font-size:1.35rem; line-height:1; }
+.wxname { min-width:0; overflow-wrap:anywhere; }
+.wxt { font-weight:700; } .wxr { color:#2b6cb0; font-size:.85rem; }
+.wxside { display:flex; flex-direction:column; align-items:flex-end; gap:.15rem; }
+.wxtag { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:.1rem .45rem; border-radius:99px; background:#eef2f6; color:#4a5a6a; white-space:nowrap; }
+.wxtag.past { background:#e3f3e8; color:#22663a; } .wxtag.forecast { background:#e6eefb; color:#2b4c9b; } .wxtag.typical { background:#f1ecfa; color:#5b3f8f; } .wxtag.manual { background:#fde7b8; color:#7a4b00; }
+.wxside .linkbtn { min-height:32px; }
+.wxpick { padding:.7rem; border-radius:12px; border:2px solid #16283a; background:#f6f9fc; }
+.wxkinds { display:flex; flex-wrap:wrap; gap:.35rem; margin:.45rem 0; }
+.wxkinds .chip { min-height:40px; }
+.wxkinds .chip[aria-pressed=true] { background:#16283a; color:#fff; border-color:#16283a; }
+.wxtemp { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; margin:.3rem 0 .5rem; }
+.wxtemp input { width:5.5rem; min-height:40px; }
+.wxsec .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+@media (max-width:480px) { .wxday { grid-template-columns:1fr auto; } .wxdate { grid-column:1 / -1; } }
+@media (min-width:700px) { .wxside { flex-direction:row; align-items:center; gap:.6rem; } .wxday { padding:.35rem .8rem; } }
