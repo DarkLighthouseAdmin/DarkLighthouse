@@ -36,7 +36,7 @@
     var opts = Array.prototype.slice.call(sel.options), kinds = {}, lead = [], items = [];
     opts.forEach(function (o) {
       var m = /^(place|state|park):(.+)$/.exec(o.value);
-      if (!m) { lead.push(o); return; }
+      if (!m) { if (!o.hasAttribute("data-ppk-ph")) lead.push(o); return; }
       kinds[m[1]] = 1; items.push({ o: o, kind: m[1], id: m[2], name: o.textContent.trim() });
     });
     var mixed = Object.keys(kinds).length > 1, groups = {}, order = [];
@@ -66,7 +66,7 @@
     sel.__ppk = true; uid++;
     var btn = document.createElement("button");
     btn.type = "button"; btn.className = "ppk-btn"; btn.setAttribute("aria-haspopup", "dialog"); btn.id = "ppk-b" + uid;
-    function paint() { btn.innerHTML = '<span class="ppk-v">' + (esc(current(sel)) || "Choose…") + '</span><span class="ppk-ch">Change</span>'; btn.setAttribute("aria-label", labelFor(sel) + " " + current(sel) + ". Tap to choose a different place"); }
+    function paint() { btn.innerHTML = '<span class="ppk-v">' + (esc(current(sel)) || "Choose…") + '</span><span class="ppk-ch">Change</span>'; btn.setAttribute("aria-label", sel.value ? labelFor(sel) + " " + current(sel) + ". Tap to choose a different place" : labelFor(sel) + " Choose a place"); }
     paint();
     sel.classList.add("ppk-native"); sel.tabIndex = -1; sel.setAttribute("aria-hidden", "true");
     sel.parentNode.insertBefore(btn, sel.nextSibling);
@@ -76,7 +76,16 @@
     // "Add a stamp": nothing is chosen yet, so go straight to the list (pick a place, then fill in the date)
     var lead = Array.prototype.some.call(sel.options, function (o) { return !/^(place|state|park):/.test(o.value); });
     var chosen = Array.prototype.some.call(sel.options, function (o) { return o.defaultSelected; });
-    if (sel.closest(".sheetbox") && !lead && !chosen) show(sel, btn, paint);
+    if (sel.closest(".sheetbox") && !lead && !chosen) {
+      // Nothing chosen yet: the form gets an empty "Choose a place" first option (not the first country in the list), its main
+      // button waits until a place is picked, and we go straight to the list.
+      var ph = document.createElement("option"); ph.value = ""; ph.textContent = "Choose a place"; ph.setAttribute("data-ppk-ph", "");
+      sel.insertBefore(ph, sel.firstChild); sel.value = ""; paint();
+      var go = sel.closest(".sheetbox").querySelector(".actions .btn-primary");
+      var gate = function () { if (go) { go.disabled = !sel.value; go.setAttribute("aria-disabled", String(!sel.value)); } btn.classList.toggle("ppk-empty", !sel.value); };
+      sel.addEventListener("change", gate); sel.addEventListener("input", gate); gate();
+      show(sel, btn, paint);
+    }
     var l = sel.id && document.querySelector('label[for="' + sel.id + '"]');
     if (l) l.addEventListener("click", function (e) { e.preventDefault(); btn.focus(); });
   }
