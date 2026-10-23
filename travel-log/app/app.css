@@ -659,3 +659,40 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .wmadeline { margin: .45rem 0 0; }
 @media (min-width: 900px) { .wlist { grid-template-columns: 1fr 1fr; } }
 .wact [data-wdel] { margin-left: auto; }
+/* whose page + switcher; the "Who's been there?" picker; undo toast */
+.whobar { margin:.35rem 0 .6rem; }
+.whobar .whose { margin:0 0 .35rem; font-size:.92rem; }
+.whoswitch { display:flex; gap:.4rem; overflow-x:auto; padding-bottom:.2rem; scrollbar-width:thin; }
+.whoswitch a { flex:0 0 auto; display:inline-flex; align-items:center; gap:.35rem; min-height:44px; padding:0 .8rem 0 .35rem; border-radius:999px; border:2px solid rgba(31,42,51,.14); background:var(--card); color:var(--ink); text-decoration:none; font-weight:600; font-size:.9rem; }
+.whoswitch a[aria-current=page] { border-color:var(--kid, var(--navy)); background:var(--kid-soft, #eef3f7); }
+.whoswitch .dotp, .wchip .dotp { width:30px; height:30px; border-radius:50%; background:var(--kid, var(--navy)); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:.85rem; font-weight:700; }
+.whoswitch small, .wchip small { font-weight:500; opacity:.75; }
+.whochips { display:flex; flex-wrap:wrap; gap:.45rem; margin:.5rem 0 .3rem; }
+.wchip { display:inline-flex; align-items:center; gap:.4rem; min-height:44px; padding:0 .75rem 0 .5rem; border-radius:999px; border:2px solid rgba(31,42,51,.16); background:var(--card); cursor:pointer; font-weight:600; max-width:100%; }
+.wchip input { width:20px; height:20px; margin:0; accent-color:var(--kid, var(--navy)); }
+.wchip:has(input:checked) { border-color:var(--kid, var(--navy)); background:var(--kid-soft, #eef3f7); }
+.wchip.lock { opacity:.85; cursor:default; }
+.wchip .wn { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wchip .wtag { font-size:.72rem; background:rgba(31,42,51,.08); border-radius:999px; padding:.1rem .45rem; }
+.whoshort { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.4rem; }
+.whoshort .chip { min-height:44px; padding:0 .9rem; border-radius:999px; border:1.5px dashed rgba(31,42,51,.3); background:transparent; font-weight:600; cursor:pointer; color:var(--ink); max-width:100%; text-align:left; }
+.whoask { background:#fff6dc; border-radius:10px; padding:.55rem .7rem; }
+.wlabel { margin:.7rem 0 0; }
+.withline { margin:.2rem 0; }
+.undotoast { position:fixed; left:50%; bottom:calc(76px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:60; display:flex; align-items:center; gap:.4rem; background:var(--navy); color:#fff; padding:.3rem .35rem .3rem 1rem; border-radius:16px; width:max-content; max-width:calc(100vw - 24px); box-shadow:0 8px 24px rgba(0,0,0,.25); font-weight:600; font-size:.92rem; }
+.undotoast .undobtn { min-height:44px; min-width:64px; border:0; border-radius:12px; background:var(--beacon); color:var(--navy); font-weight:800; cursor:pointer; }
+.undotoast .undox { min-height:44px; min-width:44px; border:0; background:transparent; color:#fff; font-size:1rem; cursor:pointer; }
+@media (min-width:760px) { .undotoast { bottom:24px; } }
+/* badges on the passport */
+.pbadges { margin:.4rem 0 .7rem; }
+.pbadges .pbh { display:flex; align-items:baseline; justify-content:space-between; gap:.5rem; }
+.pbadges h3 { margin:0; font-family:var(--serif); font-size:1.05rem; }
+.pbadges-all { display:inline-flex; align-items:center; min-height:44px; font-weight:600; font-size:.9rem; }
+.pbrow { display:flex; gap:.5rem; overflow-x:auto; padding:.15rem .1rem .35rem; scroll-snap-type:x proximity; scrollbar-width:thin; }
+.pbadge { flex:0 0 auto; scroll-snap-align:start; width:84px; min-height:96px; display:flex; flex-direction:column; align-items:center; gap:.3rem; padding:.5rem .35rem; border-radius:14px; border:1px solid rgba(31,42,51,.14); background:var(--card); color:var(--ink); cursor:pointer; font:inherit; }
+.pbadge .pbm { width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-size:1.35rem; background:#f6efe2; box-shadow:inset 0 0 0 2px #e2cfa8; }
+.pbadge.jr .pbm { background:#e9f1ea; box-shadow:inset 0 0 0 2px #9fbfa4; }
+.pbadge .pbn { font-size:.72rem; font-weight:700; line-height:1.15; text-align:center; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.pbig { font-size:2.4rem; text-align:center; }
+/* speed: skip laying out passport pages that are off screen */
+.ppage { content-visibility:auto; contain-intrinsic-size:auto 360px auto 480px; }

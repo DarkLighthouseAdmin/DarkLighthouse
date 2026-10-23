@@ -104,7 +104,7 @@ ok(ms.firstTripAge === null, "no 'age on first trip' for adults");
 ok(M.stats(a, [tFam], MAPS.world).firstTripAge === 10, "kids still get age on first trip");
 ok(ms.together === 2 && ms.trips === 2, "trips together counted per person");
 const mb = M.badges(ms), mg = id => mb.find(x => x.id === id);
-ok(mb.length === 22 && !mg("junior-ranger"), "adults skip the Junior Ranger badge");
+ok(mb.length === 23 && mg("junior-ranger"), "grown-ups can earn the Junior Ranger badge too");
 ok(mg("scotland").name === "Scotland calling" && mg("scotland").earned, "adults get 'Scotland calling', not 'Wee explorer'");
 ok(M.badges(M.stats(a, [], MAPS.world)).find(x => x.id === "scotland").name === "Wee explorer", "kids keep 'Wee explorer'");
 ok(mg("park-1").earned && mg("abroad").earned && !mg("together").earned, "adults earn the same badges");
@@ -490,7 +490,24 @@ ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view
   ok(fd[0].trip.id === "b" && fd[0].by === "Nana" && fd[1].by === "", "feed is newest first with who added it");
   ok(S.thumbDims(4032, 3024).w === 1024 && S.thumbDims(3024, 4032).h === 1024 && S.thumbDims(800, 600).w === 800, "shared photo copies are 1024px on the long edge, never upscaled");
   // wiring + privacy
-  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="trips-ui\.js"><\/script>\s*<script src="logo\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
+  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="stamp-who-core\.js"><\/script>\s*<script src="trips-ui\.js"><\/script>\s*<script src="stamp-who\.js"><\/script>\s*<script src="logo\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
+  ok(/"stamp-who-core\.js", "stamp-who\.js"/.test(fs.readFileSync(path.join(APP, "sw.js"), "utf8")), "the who-picker files are cached for offline");
+  { // "Who's been there?": who's ticked to start, shared visits, no duplicates, undo
+    const W = require(path.join(APP, "stamp-who-core.js"));
+    const pa = M.newPerson({ name: "Zz A", role: "adult" }), pb = M.newPerson({ name: "Zz B", role: "adult" }), pk = M.newPerson({ name: "Zz K", role: "kid" }), ppl = [pa, pb, pk];
+    ok(JSON.stringify(W.startWith(ppl, {}, { mode: "add", synced: true, me: pb.id, page: pa.id })) === JSON.stringify([pb.id]), "synced: the signed-in person starts ticked, not the page's");
+    ok(W.startWith(ppl, {}, { mode: "add", synced: true, me: null, page: pa.id }).length === 0, "synced but not linked: nobody, we ask");
+    ok(JSON.stringify(W.startWith(ppl, {}, { mode: "add", synced: false, page: pa.id })) === JSON.stringify([pa.id]), "no sync: the page's person");
+    const r1 = W.apply(ppl, [], "park", "zion", [pa.id, pk.id], { date: "2026-05-02" });
+    ok(r1.added.length === 2 && pa.parks.zion && pk.parks.zion && !pb.parks.zion, "stamps only the people ticked");
+    ok(pa.stamps.length === 1 && pa.stamps[0].with.length === 2 && pk.stamps[0].date === "2026-05-02", "a shared visit: same date, with each other");
+    W.apply(ppl, [], "park", "zion", [pa.id, pk.id], { date: "2026-05-02" });
+    ok(pa.stamps.length === 1, "no duplicate stamps");
+    const r2 = W.apply(ppl, [], "park", "zion", [pa.id], { date: "2026-05-02", visitDate: "2026-05-02" });
+    ok(!pk.parks.zion && r2.removed.length === 1 && !(pa.stamps[0].with || []).length, "unticking takes it off, and the visit isn't shared any more");
+    W.restore(ppl, r2.undo);
+    ok(ppl.find(p => p.id === pk.id).parks.zion, "undo puts it back");
+  }
   ok(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co/.test(html), "CSP allows only the family database");
   ok(!/service_role|sb_secret_/.test(scfg + ssrc + score), "no secret keys in the app");
   ok(/key: "sb_publishable_[A-Za-z0-9_-]+"/.test(scfg), "sync uses the publishable key");

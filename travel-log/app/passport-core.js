@@ -43,6 +43,8 @@
     var end = cleanDate(o.end); if (end && (!s.date || end >= s.date)) s.end = end;
     if (clean(o.via, 40)) s.via = clean(o.via, 40);
     if (clean(o.note, 140)) s.note = clean(o.note, 140);
+    // a shared visit: everyone who was there together (person ids), kept on each of their stamps
+    if (Array.isArray(o.with)) { var w = o.with.filter(function (x, i, a) { return typeof x === "string" && /^[A-Za-z0-9_-]{2,60}$/.test(x) && a.indexOf(x) === i; }).slice(0, 20); if (w.length > 1) s.with = w; }
     return s;
   }
   function cleanStamps(list) {
@@ -106,7 +108,7 @@
     });
     (person.stamps || []).forEach(function (s) {
       if (out.some(function (o) { return o.source === "trip" && o.kind === s.kind && o.area === s.area && sameVisit(o, s); })) return;
-      out.push({ id: s.id, kind: s.kind, area: s.area, date: s.date || "", end: s.end || "", via: s.via || "", note: s.note || "", source: "hand", who: [person.id] });
+      out.push({ id: s.id, kind: s.kind, area: s.area, date: s.date || "", end: s.end || "", via: s.via || "", note: s.note || "", source: "hand", who: [person.id], with: Array.isArray(s.with) ? s.with.slice() : [] });
       have[s.kind + ":" + s.area] = 1;
     });
     [["state", person.states], ["place", person.places], ["park", person.parks]].forEach(function (b) {
