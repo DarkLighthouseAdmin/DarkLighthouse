@@ -962,5 +962,15 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(M.ALL_PARKS.slice(64).every(p => SA.GLYPHS[SA.design("park", p.id, p.name).motif]), "every extra park has a drawn picture");
 }
 
+
+{ // printed travel book: premium coming-soon page + sample PDF, no backend
+  const bk = read("book.js"), sw = read("sw.js"), idx = read("index.html");
+  ok(/"book\.js"/.test(sw) && /<script src="book\.js"><\/script>/.test(idx), "book.js is loaded and cached offline");
+  ok(!/famstamp-sample-book\.pdf/.test(sw), "the sample PDF isn't in the offline cache");
+  const pdf = fs.statSync(path.join(APP, "samples", "famstamp-sample-book.pdf"));
+  ok(pdf.size > 50000 && pdf.size < 5e6, "sample book PDF is there and not huge: " + pdf.size);
+  ok(/Premium · coming soon/.test(bk) && /nothing to sign up for yet/.test(bk) && !/fetch\(|supabase|waitlist\s*=/.test(bk), "book page is a coming-soon note with no waitlist backend");
+}
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

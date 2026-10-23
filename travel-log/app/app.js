@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v30" -> "v30").
-  var VERSION = "v30";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v31" -> "v31").
+  var VERSION = "v31";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -128,7 +128,7 @@
   }
   function routeView() {
     var h = location.hash.replace(/^#\/?/, "").split("/");
-    document.body.classList.remove("kidview");
+    document.body.classList.remove("kidview"); document.body.classList.remove("bookpdf");
     if (window.MLTL_SYNC && window.MLTL_SYNC.route(h)) return;
     if (h[0] === "family" && h[1] === "passport") return UI().passportFamily();
     if (h[0] === "family" && h[1] === "signs") return UI().signs(null);
@@ -146,6 +146,7 @@
       if (tab === "signs") return UI().signs(k);
       if (tab === "print") return viewPrint(k);
       if (tab === "quests" && window.FS_QUESTS) return window.FS_QUESTS.view(k, h[3] || "");
+      if (tab === "book" && window.FS_BOOK) return window.FS_BOOK.view(k, h[3] || "");
       if (tab === "firsts" && window.FS_FIRSTS) return window.FS_FIRSTS.view(k, h[3] || "", h[4] || "");
       if (tab === "edit") return viewKidForm(k);
       return viewKid(k, tab, h[3]);
@@ -503,7 +504,7 @@
       statBox(s.states, 50, "States") + statBox(s.countries, 195, "Countries") + statBox(s.ukNations, 4, "UK nations") + statBox(s.parks, 64, "National parks") +
       (s.kid ? statBox(s.juniorRanger, 0, "Junior Ranger") : "") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
       (s.years ? statBox(s.years, 0, s.years === 1 ? "Year of trips" : "Years of trips") : "") + (s.firstTripAge != null ? statBox(s.firstTripAge, 0, "Age on first trip") : "") + '</div>' +
-      UI().lifetimeHTML(k.id) + questsCard(k) + (window.FS_FIRSTS ? window.FS_FIRSTS.card(k) : "") +
+      UI().lifetimeHTML(k.id) + questsCard(k) + (window.FS_FIRSTS ? window.FS_FIRSTS.card(k) : "") + (window.FS_BOOK ? window.FS_BOOK.card(k) : "") +
       '<h2>Badges <span class="muted small">' + earned + ' of ' + b.length + '</span></h2><div class="badges">' + b.map(function (x) {
         return '<div class="badge' + (x.earned ? "" : " locked") + '"><div class="medal" aria-hidden="true">' + (MEDALS[x.id] || "★") + '</div><b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span>' +
           (x.earned ? "" : '<span>' + x.have + ' / ' + x.need + '</span>') + '</div>';
@@ -657,7 +658,7 @@
       '<section class="page"><h1>Where ' + esc(M.who(k)) + ' has been</h1><div class="cols">' +
       '<div><h2>States</h2><p>' + (Object.keys(k.states).sort().map(function (x) { return esc(STATE_NAME[x]); }).join(", ") || "Not yet!") + '</p>' +
       '<h2>Countries and places</h2><p>' + (places.map(esc).join(", ") || "Not yet!") + '</p></div>' +
-      '<div><h2>National parks</h2>' + (parks.length ? '<ul>' + parks.map(function (p) { return '<li>' + esc(p.name) + (k.parks[p.id].jr ? " ★ Junior Ranger" : "") + '</li>'; }).join("") + '</ul>' : "<p>Not yet!</p>") + '</div></div>' +
+      '<div><h2>Parks, monuments & memorials</h2>' + (parks.length ? '<ul>' + parks.map(function (p) { return '<li>' + esc(p.full) + (k.parks[p.id].jr ? " ★ Junior Ranger" : "") + '</li>'; }).join("") + '</ul>' : "<p>Not yet!</p>") + '</div></div>' +
       (list.length ? '<h2>Trips</h2><ul>' + list.map(function (t) {
         var r = M.routeText(t), others = t.kidIds.filter(function (x) { return x !== k.id; });
         return '<li><b>' + esc(t.place) + '</b>' + (t.date ? ", " + esc(M.prettyDate(t.date)) : "") + (r !== t.place ? " (" + esc(r) + ")" : "") +
@@ -716,7 +717,7 @@
                       dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
                       // for trips-ui.js
                       main: main, shell: shell, placeName: placeName, saveKid: saveKid, kidStyle: kidStyle, initial: initial, avatars: avatars, travelerNames: travelerNames,
-                      photoURL: photoURL, shrinkPhoto: shrinkPhoto, markOptions: markOptions, parkStamp: parkStamp };
+                      photoURL: photoURL, shrinkPhoto: shrinkPhoto, usSVG: usSVG, worldSVG: worldSVG, markOptions: markOptions, parkStamp: parkStamp };
   load().then(function () { readyRes(); route(); }).catch(function () {
     main.innerHTML = '<div class="panel"><h3>Storage isn\'t available</h3><p class="muted">This browser is blocking on-device storage (private browsing can do this). Try a normal window so your maps can be saved.</p></div>';
   });
