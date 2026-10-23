@@ -1,0 +1,469 @@
+/* My Lifetime Travel Log: the app. Plain JavaScript, no libraries, no network calls.
+   Data lives in this browser's IndexedDB ("mltl"); photos are shrunk and re-saved as JPEG, which also drops GPS/EXIF data. */
+(function () {
+  "use strict";
+  var M = window.MLTL, MAPS = window.MLTL_MAPS, esc = M.esc;
+  // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
+  var BOOK_URL = null;
+
+  // ---------- storage ----------
+  var DB_NAME = "mltl", DB_VER = 1, dbp = null;
+  function db() {
+    if (dbp) return dbp;
+    dbp = new Promise(function (res, rej) {
+      var r = indexedDB.open(DB_NAME, DB_VER);
+      r.onupgradeneeded = function () {
+        var d = r.result;
+        ["kids", "trips", "photos"].forEach(function (s) { if (!d.objectStoreNames.contains(s)) d.createObjectStore(s, { keyPath: "id" }); });
+        if (!d.objectStoreNames.contains("meta")) d.createObjectStore("meta", { keyPath: "key" });
+      };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+    });
+    return dbp;
+  }
+  function tx(store, mode, fn) {
+    return db().then(function (d) {
+      return new Promise(function (res, rej) {
+        var t = d.transaction(store, mode), out;
+        var s = Array.isArray(store) ? store.map(function (n) { return t.objectStore(n); }) : t.objectStore(store);
+        out = fn(s);
+        t.oncomplete = function () { res(out && out.result !== undefined ? out.result : out); };
+        t.onerror = function () { rej(t.error); }; t.onabort = function () { rej(t.error); };
+      });
+    });
+  }
+  function all(store) { return tx(store, "readonly", function (s) { return s.getAll(); }); }
+  function put(store, v) { return tx(store, "readwrite", function (s) { s.put(v); }); }
+  function del(store, id) { return tx(store, "readwrite", function (s) { s.delete(id); }); }
+  function getOne(store, id) { return tx(store, "readonly", function (s) { return s.get(id); }); }
+
+  var state = { kids: [], trips: [], meta: {} };
+  function load() {
+    return Promise.all([all("kids"), all("trips"), all("meta")]).then(function (r) {
+      state.kids = r[0].sort(function (a, b) { return a.createdAt < b.createdAt ? -1 : 1; });
+      state.trips = r[1];
+      state.meta = {}; r[2].forEach(function (m) { state.meta[m.key] = m.value; });
+    });
+  }
+  function saveKid(k) { return put("kids", k); }
+  function setMeta(key, value) { state.meta[key] = value; return put("meta", { key: key, value: value }); }
+  function kidById(id) { return state.kids.filter(function (k) { return k.id === id; })[0]; }
+
+  // ---------- helpers ----------
+  var main = document.getElementById("main"), toastEl = document.getElementById("toast"), toastT;
+  function toast(msg) { toastEl.textContent = msg; toastEl.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(function () { toastEl.classList.remove("show"); }, 2200); }
+  function initial(name) { return esc((name || "?").trim().charAt(0).toUpperCase()); }
+  function kidStyle(k) { return "--kid:" + esc(k.color); }
+  var COUNTRY = {}; MAPS.world.countries.forEach(function (c) { COUNTRY[c.id] = c; });
+  var SHAPE = {}; MAPS.world.shapes.forEach(function (s) { SHAPE[s.id] = s; });
+  var STATE_NAME = {}; MAPS.us.shapes.forEach(function (s) { STATE_NAME[s.id] = s.name; });
+  function placeName(kind, id) {
+    if (kind === "state") return STATE_NAME[id] || id;
+    if (kind === "park") { var p = M.PARKS.filter(function (x) { return x.id === id; })[0]; return p ? p.name + " National Park" : id; }
+    return (SHAPE[id] && SHAPE[id].name) || (COUNTRY[id] && COUNTRY[id].name) || id;
+  }
+  function summaryLine(k) {
+    var s = M.stats(k, state.trips, MAPS.world);
+    return s.states + " states · " + s.countries + (s.countries === 1 ? " country" : " countries") + " · " + s.parks + (s.parks === 1 ? " park" : " parks");
+  }
+
+  // ---------- router ----------
+  function route() {
+    var h = location.hash.replace(/^#\/?/, "").split("/");
+    document.body.classList.remove("kidview");
+    if (h[0] === "kid" && kidById(h[1])) {
+      document.body.classList.add("kidview");
+      var k = kidById(h[1]), tab = h[2] || "us";
+      if (tab === "trips" && h[3] === "new") return viewTripForm(k, null);
+      if (tab === "trips" && h[3] === "edit") return viewTripForm(k, h[4]);
+      if (tab === "print") return viewPrint(k);
+      if (tab === "edit") return viewKidForm(k);
+      return viewKid(k, tab);
+    }
+    if (h[0] === "add") return viewKidForm(null);
+    if (h[0] === "backup") return viewBackup();
+    return viewHome();
+  }
+  window.addEventListener("hashchange", function () { route(); window.scrollTo(0, 0); });
+
+  // ---------- home ----------
+  function viewHome() {
+    var nudge = M.backupNudge(state.meta.lastBackupAt, state.trips);
+    var html = '<h1>Every place they go, colored in.</h1>' +
+      '<p class="lede">One travel map for each kid: states, countries and national parks, plus the little stories from every trip. It all stays right here on this device.</p>';
+    if (nudge) html += '<div class="nudge"><b>Time for a backup?</b> You\'ve added ' + nudge + ' trips since your last one. <a href="#/backup">Save a backup file</a> so a lost phone never means a lost map.</div>';
+    html += '<h2>Who\'s traveling?</h2><div class="kids">';
+    state.kids.forEach(function (k) {
+      html += '<a class="kidcard" href="#/kid/' + esc(k.id) + '" style="' + kidStyle(k) + '"><span class="avatar">' + initial(k.name) + '</span>' +
+              '<span><h3>' + esc(k.name) + '</h3><span class="muted">' + esc(summaryLine(k)) + '</span></span></a>';
+    });
+    html += '<a class="kidcard add" href="#/add">+ Add a kid</a></div>';
+    if (!state.kids.length) html += '<p class="hint">Start with a name or a nickname. Nicknames work great.</p>';
+    html += '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div>' +
+            '<h3>Like paper too?</h3><p class="small muted">The matching paperback has the same maps to color, all 64 parks and 40 trip pages, for the shelf. ' +
+            '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>';
+    main.innerHTML = html;
+    document.title = "My Lifetime Travel Log";
+  }
+
+  // ---------- add / edit kid ----------
+  function viewKidForm(k) {
+    var editing = !!k, color = k ? k.color : M.COLORS[state.kids.length % M.COLORS.length];
+    var html = '<a class="back" href="' + (k ? "#/kid/" + esc(k.id) + "/stats" : "#/") + '">← Back</a>' +
+      '<h1>' + (editing ? "Edit " + esc(k.name) : "Add a kid") + '</h1><div class="panel">' +
+      '<div class="field"><label for="kname">Name or nickname</label><input id="kname" type="text" maxlength="40" autocomplete="off" value="' + (k ? esc(k.name) : "") + '" placeholder="e.g. Bug, Ellie, Captain" /></div>' +
+      '<div class="field"><label for="kyear">Year they were born (optional, for ages on trips)</label><input id="kyear" type="number" inputmode="numeric" min="2001" max="' + new Date().getFullYear() + '" value="' + (k && k.birthYear ? k.birthYear : "") + '" /></div>' +
+      '<div class="field"><label>Map color</label><div class="swatches" role="group" aria-label="Map color">' +
+      M.COLORS.map(function (c) { return '<button type="button" class="swatch" data-color="' + c + '" aria-pressed="' + (c === color) + '" aria-label="Color ' + c + '" style="background:' + c + '"></button>'; }).join("") +
+      '</div></div><p class="err" id="kerr" hidden></p><div class="actions"><button class="btn btn-primary" id="ksave">' + (editing ? "Save" : "Add") + '</button>' +
+      (editing ? '<button class="btn btn-danger" id="kdel">Remove ' + esc(k.name) + '</button>' : "") + '</div></div>';
+    main.innerHTML = html;
+    main.querySelectorAll(".swatch").forEach(function (b) {
+      b.onclick = function () { color = b.dataset.color; main.querySelectorAll(".swatch").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); };
+    });
+    document.getElementById("ksave").onclick = function () {
+      var name = document.getElementById("kname").value, year = document.getElementById("kyear").value, err = document.getElementById("kerr");
+      try {
+        var kid = editing ? k : M.newKid({ name: name, birthYear: year, color: color });
+        if (editing) { var tmp = M.newKid({ name: name, birthYear: year, color: color }); k.name = tmp.name; k.birthYear = tmp.birthYear; k.color = tmp.color; k.updatedAt = new Date().toISOString(); }
+        saveKid(kid).then(function () { if (!editing) state.kids.push(kid); location.hash = "#/kid/" + kid.id + (editing ? "/stats" : "/us"); toast(editing ? "Saved" : "Welcome aboard, " + kid.name + "!"); });
+      } catch (e) { err.textContent = e.message; err.hidden = false; }
+    };
+    if (editing) document.getElementById("kdel").onclick = function () {
+      if (!confirm("Remove " + k.name + " and their map from this device? Trips shared with other kids stay. This can't be undone unless you have a backup.")) return;
+      var jobs = [del("kids", k.id)];
+      state.trips.slice().forEach(function (t) {
+        if (t.kidIds.indexOf(k.id) < 0) return;
+        t.kidIds = t.kidIds.filter(function (x) { return x !== k.id; });
+        if (t.kidIds.length) jobs.push(put("trips", t));
+        else { jobs.push(del("trips", t.id)); if (t.photoId) jobs.push(del("photos", t.photoId)); state.trips = state.trips.filter(function (x) { return x !== t; }); }
+      });
+      state.kids = state.kids.filter(function (x) { return x !== k; });
+      Promise.all(jobs).then(function () { location.hash = "#/"; toast("Removed"); });
+    };
+    if (!editing) setTimeout(function () { document.getElementById("kname").focus(); }, 50);
+  }
+
+  // ---------- kid view ----------
+  var TABS = [["us", "USA", "🇺🇸"], ["world", "World", "🌍"], ["parks", "Parks", "🏞️"], ["trips", "Trips", "📖"], ["stats", "Badges", "⭐"]];
+  var worldZoom = "world";
+  function shell(k, tab, inner) {
+    return '<div style="' + kidStyle(k) + '"><a class="back" href="#/">← All kids</a><div class="kidhead"><span class="avatar">' + initial(k.name) + '</span><h1>' + esc(k.name) + '</h1></div>' +
+      '<nav class="tabs" aria-label="Sections" style="' + kidStyle(k) + '"><div class="wrap">' + TABS.map(function (t) {
+        return '<a href="#/kid/' + esc(k.id) + '/' + t[0] + '"' + (t[0] === tab ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">' + t[2] + '</span>' + t[1] + '</a>';
+      }).join("") + '</div></nav>' + inner + '</div>';
+  }
+  function viewKid(k, tab) {
+    document.title = k.name + " · My Lifetime Travel Log";
+    if (tab === "world") return viewWorld(k);
+    if (tab === "parks") return viewParks(k);
+    if (tab === "trips") return viewTrips(k);
+    if (tab === "stats") return viewStats(k);
+    return viewUS(k);
+  }
+  function counter(n, total, label, extra) {
+    return '<div class="count"><div class="big">' + n + ' <small>of ' + total + ' ' + label + '</small></div>' + (extra || "") + '</div><div class="bar"><i style="width:' + Math.round(100 * n / total) + '%"></i></div>';
+  }
+  function usSVG(k, opts) {
+    var u = MAPS.us, s = '<svg viewBox="0 0 ' + u.w + ' ' + u.h + '" role="img" aria-label="US map with ' + esc(k.name) + '\'s states colored in">';
+    u.insets.forEach(function (b) { s += '<rect class="inset" x="' + (b[0] - 4) + '" y="' + (b[1] - 4) + '" width="' + (b[2] + 8) + '" height="' + (b[3] + 8) + '" rx="8"/>'; });
+    u.shapes.forEach(function (p) { s += '<path class="a' + (k.states[p.id] ? " on" : "") + '" data-kind="state" data-id="' + p.id + '" d="' + p.d + '"><title>' + esc(p.name) + '</title></path>'; });
+    return s + '</svg>';
+  }
+  var ZOOMS = { world: null, europe: [452, 32, 130, 80], uk: [467, 44, 38, 33], na: [60, 15, 330, 190] };
+  function worldSVG(k, zoom) {
+    var w = MAPS.world, vb = ZOOMS[zoom] || [0, 0, w.w, w.h];
+    var s = '<svg viewBox="' + vb.join(" ") + '" role="img" aria-label="World map with ' + esc(k.name) + '\'s places colored in"><path class="ocean" d="' + w.outline + '"/><path class="grat" d="' + w.grat + '"/>';
+    var r = Math.max(vb[2] / 260, 0.25);
+    w.shapes.forEach(function (p) {
+      var on = !!k.places[p.id] || (p.id === "USA" && Object.keys(k.states).length > 0);
+      s += '<path class="a' + (p.other ? " o" : "") + (p.uk ? " uk" : "") + (on ? " on" : "") + '" data-kind="place" data-id="' + p.id + '" d="' + p.d + '"><title>' + esc(p.name) + '</title></path>';
+    });
+    w.shapes.forEach(function (p) { if (p.dot && !p.other) s += '<circle class="dot' + (k.places[p.id] ? " on" : "") + '" data-kind="place" data-id="' + p.id + '" cx="' + p.c[0] + '" cy="' + p.c[1] + '" r="' + (r * 1.15).toFixed(2) + '"><title>' + esc(p.name) + '</title></circle>'; });
+    return s + '</svg>';
+  }
+  function bindMap(k, rerender) {
+    main.querySelectorAll("[data-kind]").forEach(function (el) {
+      if (el.tagName === "INPUT") return;
+      el.addEventListener("click", function () {
+        var kind = el.dataset.kind, id = el.dataset.id;
+        if (kind === "place" && id === "USA" && Object.keys(k.states).length) { toast("Color states on the USA map"); return; }
+        var on = M.toggleArea(k, kind, id, null);
+        saveKid(k); toast(on ? placeName(kind, id) + ": colored in!" : placeName(kind, id) + ": color removed"); rerender();
+      });
+    });
+    main.querySelectorAll("input[data-kind]").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        M.toggleArea(k, cb.dataset.kind, cb.dataset.id, cb.checked); saveKid(k);
+        toast(placeName(cb.dataset.kind, cb.dataset.id) + (cb.checked ? ": colored in!" : ": color removed")); rerender(true);
+      });
+    });
+  }
+  function keepOpen(fn) {
+    var d = main.querySelector("details.list"), open = d && d.open, y = window.scrollY, q = main.querySelector("#find"), qv = q ? q.value : "";
+    fn();
+    var d2 = main.querySelector("details.list"); if (d2 && open) d2.open = true;
+    var q2 = main.querySelector("#find"); if (q2 && qv) { q2.value = qv; q2.dispatchEvent(new Event("input")); }
+    window.scrollTo(0, y);
+  }
+  function viewUS(k) {
+    var s = M.stats(k, state.trips, MAPS.world);
+    var list = MAPS.us.shapes.map(function (p) {
+      return '<label class="check"><input type="checkbox" data-kind="state" data-id="' + p.id + '"' + (k.states[p.id] ? " checked" : "") + '> ' + esc(p.name) + (p.id === "DC" ? '<span class="meta">bonus</span>' : "") + '</label>';
+    }).join("");
+    main.innerHTML = shell(k, "us", counter(s.states, 50, "states") +
+      '<div class="mapbox us">' + usSVG(k) + '</div><p class="hint">Tap a state to color it in. Tap again to undo. Tiny states are easier in the list.</p>' +
+      '<details class="list"><summary>Pick from a list</summary><div class="checks">' + list + '</div></details>');
+    bindMap(k, function () { keepOpen(function () { viewUS(k); }); });
+  }
+  function viewWorld(k) {
+    var s = M.stats(k, state.trips, MAPS.world);
+    var byCont = {};
+    MAPS.world.countries.forEach(function (c) { (byCont[c.cont] = byCont[c.cont] || []).push(c); });
+    var list = Object.keys(byCont).map(function (cont) {
+      return '<h3>' + esc(cont) + '</h3>' + byCont[cont].map(function (c) {
+        if (c.id === "GBR") {
+          return '<div class="check" data-name="united kingdom england scotland wales northern ireland"><b>United Kingdom</b><span class="meta">' + s.ukNations + ' of 4</span></div>' +
+            MAPS.world.uk.map(function (u) { return '<label class="check sub" data-name="' + esc(u.name.toLowerCase()) + ' united kingdom"><input type="checkbox" data-kind="place" data-id="' + u.id + '"' + (k.places[u.id] ? " checked" : "") + '> ' + esc(u.name) + '</label>'; }).join("");
+        }
+        var on = c.id === "USA" ? Object.keys(k.states).length > 0 || !!k.places.USA : !!k.places[c.id];
+        return '<label class="check" data-name="' + esc(c.name.toLowerCase()) + '"><input type="checkbox" data-kind="place" data-id="' + c.id + '"' + (on ? " checked" : "") + (c.id === "USA" && Object.keys(k.states).length ? " disabled" : "") + '> ' + esc(c.name) + '</label>';
+      }).join("");
+    }).join("");
+    var others = MAPS.world.shapes.filter(function (p) { return p.other; });
+    list += '<h3>Other places</h3><p class="small muted">Territories and places that aren\'t on the list of 195, like Puerto Rico or Greenland. They\'re on your map but don\'t add to the country count.</p>' +
+      others.map(function (p) { return '<label class="check" data-name="' + esc(p.name.toLowerCase()) + '"><input type="checkbox" data-kind="place" data-id="' + p.id + '"' + (k.places[p.id] ? " checked" : "") + '> ' + esc(p.name) + '</label>'; }).join("");
+    var extra = '<div class="muted small">UK nations: ' + s.ukNations + ' of 4</div>';
+    main.innerHTML = shell(k, "world", counter(s.countries, 195, "countries", extra) +
+      '<div class="seg" role="group" aria-label="Zoom">' + [["world", "Whole world"], ["na", "North America"], ["europe", "Europe"], ["uk", "UK & Ireland"]].map(function (z) {
+        return '<button type="button" data-zoom="' + z[0] + '" aria-pressed="' + (worldZoom === z[0]) + '">' + z[1] + '</button>'; }).join("") + '</div>' +
+      '<div class="mapbox">' + worldSVG(k, worldZoom) + '</div><p class="hint">Tap a country to color it in. England, Scotland, Wales and Northern Ireland each get their own color. Tiny countries have a dot.</p>' +
+      '<details class="list"><summary>Pick from a list</summary><div class="checks"><div class="field"><label for="find">Find a place</label><input id="find" type="search" placeholder="Type a country" autocomplete="off"></div>' + list + '</div></details>');
+    main.querySelectorAll("[data-zoom]").forEach(function (b) { b.onclick = function () { worldZoom = b.dataset.zoom; keepOpen(function () { viewWorld(k); }); }; });
+    var find = main.querySelector("#find");
+    find.addEventListener("input", function () {
+      var q = find.value.trim().toLowerCase();
+      main.querySelectorAll(".checks .check").forEach(function (el) { el.hidden = q && (el.dataset.name || "").indexOf(q) < 0; });
+      main.querySelectorAll(".checks h3").forEach(function (h) { h.hidden = !!q; });
+    });
+    bindMap(k, function () { keepOpen(function () { viewWorld(k); }); });
+  }
+  function viewParks(k) {
+    var s = M.stats(k, state.trips, MAPS.world);
+    var rows = M.PARKS.map(function (p) {
+      var v = k.parks[p.id];
+      return '<div class="row" data-name="' + esc((p.name + " " + p.states).toLowerCase()) + '"><div class="nm"><b>' + esc(p.name) + '</b><span>' + esc(p.states) + '</span></div>' +
+        '<button type="button" class="pill" data-park="' + p.id + '" aria-pressed="' + !!v + '">' + (v ? "✓ Been here" : "Been here?") + '</button>' +
+        '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button></div>';
+    }).join("");
+    main.innerHTML = shell(k, "parks", counter(s.parks, 64, "national parks", '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>') +
+      '<div class="panel parks"><div class="field" style="margin-top:0"><label for="pfind">Find a park or state</label><input id="pfind" type="search" placeholder="e.g. Zion or UT" autocomplete="off"></div>' + rows + '</div>' +
+      '<p class="hint">Earned a Junior Ranger badge? Tap "Ranger?" too. Ask at any park visitor center; most parks have a free booklet.</p>');
+    var f = main.querySelector("#pfind");
+    f.addEventListener("input", function () { var q = f.value.trim().toLowerCase(); main.querySelectorAll(".parks .row").forEach(function (r) { r.hidden = q && r.dataset.name.indexOf(q) < 0; }); });
+    function again() { var q = f.value, y = window.scrollY; viewParks(k); var f2 = main.querySelector("#pfind"); f2.value = q; f2.dispatchEvent(new Event("input")); window.scrollTo(0, y); }
+    main.querySelectorAll("[data-park]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.park, "visit"); saveKid(k); toast(on ? placeName("park", b.dataset.park) + ": visited!" : "Removed"); again(); }; });
+    main.querySelectorAll("[data-jr]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.jr, "jr"); saveKid(k); if (on) toast("Junior Ranger! ★"); again(); }; });
+  }
+
+  // ---------- trips ----------
+  var photoCache = {};
+  function photoURL(id) {
+    if (!id) return Promise.resolve(null);
+    if (photoCache[id]) return Promise.resolve(photoCache[id]);
+    return getOne("photos", id).then(function (p) { if (p) photoCache[id] = p.dataUrl; return p ? p.dataUrl : null; });
+  }
+  function kidTrips(k) {
+    return state.trips.filter(function (t) { return t.kidIds.indexOf(k.id) >= 0; })
+      .sort(function (a, b) { return (b.date || b.createdAt) < (a.date || a.createdAt) ? -1 : 1; });
+  }
+  function tripCard(t, k) {
+    var age = M.ageOn(k.birthYear, t.date), others = t.kidIds.filter(function (x) { return x !== k.id; }).map(kidById).filter(Boolean).map(function (x) { return x.name; });
+    var who = [t.who, others.length ? "with " + others.join(" & ") : ""].filter(Boolean).join(" · ");
+    return '<article class="trip">' + (t.photoId ? '<img alt="" data-photo="' + esc(t.photoId) + '">' : "") + '<div class="body"><h3>' + esc(t.place) + '</h3>' +
+      '<div class="when">' + esc([M.prettyDate(t.date), age != null ? "age " + age : "", t.mark ? "🖍 " + placeName(t.mark.kind, t.mark.id) : ""].filter(Boolean).join(" · ")) + '</div>' +
+      (t.memory ? '<p class="mem">' + esc(t.memory) + '</p>' : "") + (who ? '<div class="who">' + esc(who) + '</div>' : "") +
+      '<a class="edit noprint" href="#/kid/' + esc(k.id) + '/trips/edit/' + esc(t.id) + '">Edit</a></div></article>';
+  }
+  function fillPhotos() { main.querySelectorAll("img[data-photo]").forEach(function (img) { photoURL(img.dataset.photo).then(function (u) { if (u) img.src = u; }); }); }
+  function viewTrips(k) {
+    var list = kidTrips(k);
+    main.innerHTML = shell(k, "trips", '<div class="actions"><a class="btn btn-beacon" href="#/kid/' + esc(k.id) + '/trips/new">+ Add a trip</a></div>' +
+      (list.length ? '<div class="trips">' + list.map(function (t) { return tripCard(t, k); }).join("") + '</div>'
+                   : '<div class="panel"><h3>No trips yet</h3><p class="muted">A weekend at Grandma\'s counts just as much as a plane to the other side of the world. Add the first one!</p></div>'));
+    fillPhotos();
+  }
+  function markOptions(sel) {
+    var v = sel ? sel.kind + ":" + sel.id : "";
+    var o = '<option value="">No, just save the trip</option><optgroup label="US states">' +
+      MAPS.us.shapes.map(function (p) { return '<option value="state:' + p.id + '"' + (v === "state:" + p.id ? " selected" : "") + '>' + esc(p.name) + '</option>'; }).join("") + '</optgroup>';
+    o += '<optgroup label="UK nations">' + MAPS.world.uk.map(function (u) { return '<option value="place:' + u.id + '"' + (v === "place:" + u.id ? " selected" : "") + '>' + esc(u.name) + '</option>'; }).join("") + '</optgroup>';
+    o += '<optgroup label="Countries">' + MAPS.world.countries.filter(function (c) { return c.id !== "GBR" && c.id !== "USA"; }).slice().sort(function (a, b) { return a.name.localeCompare(b.name); })
+      .map(function (c) { return '<option value="place:' + c.id + '"' + (v === "place:" + c.id ? " selected" : "") + '>' + esc(c.name) + '</option>'; }).join("") + '</optgroup>';
+    o += '<optgroup label="National parks">' + M.PARKS.map(function (p) { return '<option value="park:' + p.id + '"' + (v === "park:" + p.id ? " selected" : "") + '>' + esc(p.name) + '</option>'; }).join("") + '</optgroup>';
+    return o;
+  }
+  function shrinkPhoto(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var d = M.fitDims(img.naturalWidth, img.naturalHeight, 1280), c = document.createElement("canvas");
+        c.width = d.w; c.height = d.h; c.getContext("2d").drawImage(img, 0, 0, d.w, d.h); URL.revokeObjectURL(url);
+        var q = 0.82, out = c.toDataURL("image/jpeg", q);
+        while (out.length > 360000 && q > 0.45) { q -= 0.1; out = c.toDataURL("image/jpeg", q); }   // aim for ~250 KB or less
+        res(out);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error("That photo couldn't be opened. Try a JPEG or PNG.")); };
+      img.src = url;
+    });
+  }
+  function viewTripForm(k, tripId) {
+    var t = tripId ? state.trips.filter(function (x) { return x.id === tripId; })[0] : null;
+    if (tripId && !t) { location.hash = "#/kid/" + k.id + "/trips"; return; }
+    var newPhoto = null, removePhoto = false;
+    var picks = state.kids.map(function (x) {
+      var on = t ? t.kidIds.indexOf(x.id) >= 0 : x.id === k.id;
+      return '<label><input type="checkbox" name="kids" value="' + esc(x.id) + '"' + (on ? " checked" : "") + '> ' + esc(x.name) + '</label>';
+    }).join("");
+    main.innerHTML = shell(k, "trips", '<h2>' + (t ? "Edit trip" : "Add a trip") + '</h2><div class="panel">' +
+      '<div class="field" style="margin-top:0"><label for="tplace">Where did you go?</label><input id="tplace" type="text" maxlength="80" value="' + (t ? esc(t.place) : "") + '" placeholder="e.g. Grandma\'s lake house, Edinburgh, Zion"></div>' +
+      '<div class="fields"><div class="field"><label for="tdate">When?</label><input id="tdate" type="date" value="' + (t ? esc(t.date) : M.today()) + '"></div>' +
+      '<div class="field"><label for="tmark">Color it in on the map?</label><select id="tmark">' + markOptions(t && t.mark) + '</select></div></div>' +
+      '<div class="field"><label>Which kids went?</label><div class="kidpick">' + picks + '</div></div>' +
+      '<div class="field"><label for="twho">Who else came?</label><input id="twho" type="text" maxlength="120" value="' + (t ? esc(t.who) : "") + '" placeholder="e.g. Mom, Dad, Grandpa Joe, the dog"></div>' +
+      '<div class="field"><label for="tmem">Favorite memory</label><textarea id="tmem" maxlength="1000" placeholder="The funny thing, the best food, the moment you want to remember">' + (t ? esc(t.memory) : "") + '</textarea></div>' +
+      '<div class="field"><label for="tphoto">Photo (optional)</label><input id="tphoto" type="file" accept="image/*"><p class="small muted">We shrink it and keep it only on this device. Location data in the photo is removed.</p>' +
+      '<img id="tprev" class="photo-prev" alt="" hidden>' + (t && t.photoId ? '<button type="button" class="btn btn-ghost" id="trmphoto" style="margin-top:.5rem">Remove photo</button>' : "") + '</div>' +
+      '<p class="err" id="terr" hidden></p><div class="actions"><button class="btn btn-primary" id="tsave">Save trip</button>' +
+      '<a class="btn btn-ghost" href="#/kid/' + esc(k.id) + '/trips">Cancel</a>' + (t ? '<button class="btn btn-danger" id="tdel">Delete trip</button>' : "") + '</div></div>');
+    var prev = document.getElementById("tprev");
+    if (t && t.photoId) photoURL(t.photoId).then(function (u) { if (u) { prev.src = u; prev.hidden = false; } });
+    document.getElementById("tphoto").onchange = function (e) {
+      var f = e.target.files[0]; if (!f) return;
+      shrinkPhoto(f).then(function (d) { newPhoto = d; removePhoto = false; prev.src = d; prev.hidden = false; })
+        .catch(function (er) { var el = document.getElementById("terr"); el.textContent = er.message; el.hidden = false; });
+    };
+    var rm = document.getElementById("trmphoto");
+    if (rm) rm.onclick = function () { removePhoto = true; newPhoto = null; prev.hidden = true; rm.hidden = true; };
+    document.getElementById("tsave").onclick = function () {
+      var err = document.getElementById("terr"); err.hidden = true;
+      var mv = document.getElementById("tmark").value, mark = mv ? { kind: mv.split(":")[0], id: mv.split(":")[1] } : null;
+      var kidIds = Array.prototype.map.call(main.querySelectorAll('input[name=kids]:checked'), function (c) { return c.value; });
+      var photoId = t ? t.photoId : null, jobs = [];
+      if (removePhoto && photoId) { jobs.push(del("photos", photoId)); delete photoCache[photoId]; photoId = null; }
+      if (newPhoto) { if (photoId) { jobs.push(del("photos", photoId)); delete photoCache[photoId]; } photoId = M.uid("photo"); }
+      var trip;
+      try {
+        trip = M.newTrip({ id: t ? t.id : undefined, createdAt: t ? t.createdAt : undefined, kidIds: kidIds, place: document.getElementById("tplace").value,
+          date: document.getElementById("tdate").value, who: document.getElementById("twho").value, memory: document.getElementById("tmem").value, mark: mark, photoId: photoId });
+      } catch (e) { err.textContent = e.message; err.hidden = false; return; }
+      if (newPhoto) { jobs.push(put("photos", { id: photoId, dataUrl: newPhoto })); photoCache[photoId] = newPhoto; }
+      M.applyTripMark(trip, state.kids);
+      state.kids.forEach(function (x) { if (trip.kidIds.indexOf(x.id) >= 0) jobs.push(saveKid(x)); });
+      jobs.push(put("trips", trip));
+      state.trips = state.trips.filter(function (x) { return x.id !== trip.id; }).concat([trip]);
+      Promise.all(jobs).then(function () {
+        location.hash = "#/kid/" + (trip.kidIds.indexOf(k.id) >= 0 ? k.id : trip.kidIds[0]) + "/trips";
+        toast(t ? "Trip saved" : "Trip added!" + (trip.mark ? " " + placeName(trip.mark.kind, trip.mark.id) + " is colored in." : ""));
+      }).catch(function () { err.textContent = "Couldn't save. Is the device out of space?"; err.hidden = false; });
+    };
+    var d = document.getElementById("tdel");
+    if (d) d.onclick = function () {
+      if (!confirm("Delete this trip? The map stays colored in.")) return;
+      var jobs = [del("trips", t.id)]; if (t.photoId) jobs.push(del("photos", t.photoId));
+      state.trips = state.trips.filter(function (x) { return x !== t; });
+      Promise.all(jobs).then(function () { location.hash = "#/kid/" + k.id + "/trips"; toast("Trip deleted"); });
+    };
+  }
+
+  // ---------- stats + badges ----------
+  var MEDALS = { "first-trip": "🎒", storyteller: "📖", photo: "📷", "states-5": "🚗", "states-10": "🗺️", "states-25": "🏁", "states-50": "🏆",
+                 abroad: "🛂", "countries-5": "🌍", "continents-3": "🧭", scotland: "🏴", "uk-4": "👑", "park-1": "🌲", "parks-10": "🥾", "junior-ranger": "⭐" };
+  function statBox(v, total, k) { return '<div class="stat"><div class="v">' + v + (total ? ' <small>/ ' + total + '</small>' : "") + '</div><div class="k">' + k + '</div></div>'; }
+  function viewStats(k) {
+    var s = M.stats(k, state.trips, MAPS.world), b = M.badges(s), earned = b.filter(function (x) { return x.earned; }).length;
+    main.innerHTML = shell(k, "stats", '<h2>' + esc(k.name) + '\'s travel stats</h2><div class="stats">' +
+      statBox(s.states, 50, "States") + statBox(s.countries, 195, "Countries") + statBox(s.ukNations, 4, "UK nations") + statBox(s.parks, 64, "National parks") +
+      statBox(s.juniorRanger, 0, "Junior Ranger") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.photos, 0, "Photos") +
+      (s.years ? statBox(s.years, 0, s.years === 1 ? "Year of trips" : "Years of trips") : "") + (s.firstTripAge != null ? statBox(s.firstTripAge, 0, "Age on first trip") : "") + '</div>' +
+      '<h2>Badges <span class="muted small">' + earned + ' of ' + b.length + '</span></h2><div class="badges">' + b.map(function (x) {
+        return '<div class="badge' + (x.earned ? "" : " locked") + '"><div class="medal" aria-hidden="true">' + (MEDALS[x.id] || "★") + '</div><b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span>' +
+          (x.earned ? "" : '<span>' + x.have + ' / ' + x.need + '</span>') + '</div>';
+      }).join("") + '</div>' +
+      '<div class="actions"><a class="btn btn-primary" href="#/kid/' + esc(k.id) + '/print">🖨 Print my map</a><a class="btn btn-ghost" href="#/kid/' + esc(k.id) + '/edit">Edit name or color</a><a class="btn btn-ghost" href="#/backup">Back up</a></div>' +
+      '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div><h3>Want this on paper?</h3><p class="small muted">The paperback has the same maps to color and 40 trip pages. ' +
+      '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>');
+  }
+
+  // ---------- print ----------
+  function viewPrint(k) {
+    var s = M.stats(k, state.trips, MAPS.world), list = kidTrips(k);
+    var parks = M.PARKS.filter(function (p) { return k.parks[p.id]; });
+    var places = Object.keys(k.places).map(function (id) { return placeName("place", id); }).sort();
+    document.title = k.name + "'s travel map";
+    main.innerHTML = '<div class="sheet" style="' + kidStyle(k) + '"><a class="back" href="#/kid/' + esc(k.id) + '/stats">← Back</a>' +
+      '<div class="actions noprint"><button class="btn btn-primary" id="doprint">🖨 Print or save as PDF</button></div>' +
+      '<p class="hint noprint">Tip: choose "Landscape" and turn on "Background graphics" so the colors print.</p>' +
+      '<section class="page"><h1>' + esc(k.name) + '\'s United States</h1><p class="statline">' + s.states + ' of 50 states · ' + s.parks + ' of 64 national parks · ' + s.trips + ' trips</p>' +
+      '<div class="mapbox us">' + usSVG(k) + '</div></section>' +
+      '<section class="page"><h1>' + esc(k.name) + '\'s world</h1><p class="statline">' + s.countries + ' of 195 countries · ' + s.continents + ' continents · UK nations ' + s.ukNations + ' of 4</p>' +
+      '<div class="mapbox">' + worldSVG(k, "world") + '</div></section>' +
+      '<section class="page"><h1>Where ' + esc(k.name) + ' has been</h1><div class="cols">' +
+      '<div><h2>States</h2><p>' + (Object.keys(k.states).sort().map(function (x) { return esc(STATE_NAME[x]); }).join(", ") || "Not yet!") + '</p>' +
+      '<h2>Countries and places</h2><p>' + (places.map(esc).join(", ") || "Not yet!") + '</p></div>' +
+      '<div><h2>National parks</h2>' + (parks.length ? '<ul>' + parks.map(function (p) { return '<li>' + esc(p.name) + (k.parks[p.id].jr ? " ★ Junior Ranger" : "") + '</li>'; }).join("") + '</ul>' : "<p>Not yet!</p>") + '</div></div>' +
+      (list.length ? '<h2>Trips</h2><ul>' + list.map(function (t) { return '<li><b>' + esc(t.place) + '</b>' + (t.date ? ", " + esc(M.prettyDate(t.date)) : "") + (t.memory ? ": " + esc(t.memory) : "") + '</li>'; }).join("") + '</ul>' : "") +
+      '<p class="small muted" style="margin-top:1rem">My Lifetime Travel Log · Map data: Natural Earth (public domain). Alaska and Hawaii are not to scale.</p></section></div>';
+    document.getElementById("doprint").onclick = function () { window.print(); };
+  }
+
+  // ---------- backup / restore ----------
+  function viewBackup() {
+    var last = state.meta.lastBackupAt;
+    main.innerHTML = '<a class="back" href="#/">← Home</a><h1>Back up and restore</h1>' +
+      '<p class="lede">Your maps live only on this device. A backup file keeps them safe if the phone is lost, replaced or cleared.</p>' +
+      '<div class="panel"><h3>Back up</h3><p class="muted small">Saves one file with every kid, map, trip and photo. Email it to yourself or save it to your cloud drive.</p>' +
+      '<p class="small">' + (last ? "Last backup: " + esc(M.prettyDate(last.slice(0, 10))) : "No backup yet.") + '</p>' +
+      '<div class="actions"><button class="btn btn-primary" id="bdown">Save a backup file</button></div></div>' +
+      '<div class="panel"><h3>Restore</h3><p class="muted small">Pick a backup file. Kids and trips in the file are added back; anything with the same name in both places is replaced by the file\'s copy.</p>' +
+      '<div class="field"><label for="bfile">Backup file (.json)</label><input id="bfile" type="file" accept="application/json,.json"></div><p class="err" id="berr" hidden></p></div>' +
+      '<div class="panel"><h3>Start over</h3><p class="muted small">Deletes every kid, map, trip and photo from this device. Make a backup first if you might want them later.</p>' +
+      '<div class="actions"><button class="btn btn-danger" id="bwipe">Delete everything on this device</button></div></div>';
+    document.getElementById("bdown").onclick = function () {
+      all("photos").then(function (photos) {
+        var data = M.makeBackup(state.kids, state.trips, photos), blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+        var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "my-lifetime-travel-log-backup-" + M.today() + ".json";
+        document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        return setMeta("lastBackupAt", data.exportedAt);
+      }).then(function () { toast("Backup saved"); viewBackup(); });
+    };
+    document.getElementById("bfile").onchange = function (e) {
+      var f = e.target.files[0], err = document.getElementById("berr"); err.hidden = true; if (!f) return;
+      if (f.size > 200e6) { err.textContent = "That file is too big to be a backup."; err.hidden = false; return; }
+      f.text().then(function (txt) {
+        var data; try { data = M.readBackup(JSON.parse(txt)); } catch (x) { throw new Error(x instanceof SyntaxError ? "That file isn't a backup (it couldn't be read)." : x.message); }
+        if (!confirm("Restore " + data.kids.length + " kid(s), " + data.trips.length + " trip(s) and " + data.photos.length + " photo(s) from this backup?")) return null;
+        return tx(["kids", "trips", "photos"], "readwrite", function (s) {
+          data.kids.forEach(function (k) { s[0].put(k); }); data.trips.forEach(function (t) { s[1].put(t); }); data.photos.forEach(function (p) { s[2].put(p); });
+        }).then(load).then(function () { photoCache = {}; toast("Restored!"); location.hash = "#/"; });
+      }).catch(function (x) { err.textContent = x.message; err.hidden = false; });
+    };
+    document.getElementById("bwipe").onclick = function () {
+      if (!confirm("Delete every kid, map, trip and photo on this device? This can't be undone.")) return;
+      tx(["kids", "trips", "photos", "meta"], "readwrite", function (s) { s.forEach(function (st) { st.clear(); }); })
+        .then(load).then(function () { photoCache = {}; toast("All cleared"); location.hash = "#/"; });
+    };
+  }
+
+  // ---------- boot ----------
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[data-book]");
+    if (a && !BOOK_URL) { e.preventDefault(); toast("The paperback is on its way to Amazon. Check back soon!"); }
+  });
+  load().then(route).catch(function () {
+    main.innerHTML = '<div class="panel"><h3>Storage isn\'t available</h3><p class="muted">This browser is blocking on-device storage (private browsing can do this). Try a normal window so your maps can be saved.</p></div>';
+  });
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(function () {});
+})();

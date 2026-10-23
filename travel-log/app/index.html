@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>My Lifetime Travel Log: color in every place your kids go</title>
+  <meta name="description" content="A free travel map for kids. Color in every state, country and national park they visit, add trip memories and photos, and keep it all on your own device." />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#16283a" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Travel Log" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="#/" aria-label="My Lifetime Travel Log home">My Lifetime <span>Travel Log</span></a>
+      <a class="toplink" href="#/backup">Back up</a>
+    </div>
+  </header>
+  <main id="main" class="wrap" tabindex="-1">
+    <noscript><p class="panel">This app needs JavaScript turned on. Everything stays on your device.</p></noscript>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <footer class="foot wrap">
+    <p>Everything you add stays on this device. No accounts, no ads, no tracking.</p>
+    <p class="credit">Made by Dark Lighthouse Solutions · Map data: Natural Earth (public domain)</p>
+  </footer>
+  <script src="maps.js"></script>
+  <script src="log-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
