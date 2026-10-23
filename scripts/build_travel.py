@@ -600,7 +600,7 @@ def build_privacy():
     <h2 id="checkout">Checkout</h2>
     <p>Templates and planners are sold through <a href="https://polar.sh">Polar</a>, which acts as the merchant of record and handles payment, tax and your receipt. We receive your name, email and order details from Polar so we can deliver your purchase and answer questions.</p>
     <h2 id="affiliate-links">Partner (affiliate) links</h2>
-    <p>Our travel pages (everything under <a href="/travel/">/travel/</a>) link to booking sites for tours, car hire, eSIMs and hotels. Those pages load a small script from Travelpayouts, an affiliate network, which may turn links to travel partners into affiliate links and set partner cookies so a booking can be credited to us. If you book through one, we may earn a small commission. It costs you nothing extra, it never changes the price you pay, and we only link to things we'd use ourselves.</p>
+    <p>Our travel pages (everything under <a href="/travel/">/travel/</a>) link to booking sites for tours, car hire, eSIMs and hotels. Those pages, and the homepage, load a small script from Travelpayouts, an affiliate network, which may turn links to travel partners into affiliate links and set partner cookies so a booking can be credited to us. If you book through one, we may earn a small commission. It costs you nothing extra, it never changes the price you pay, and we only link to things we'd use ourselves.</p>
     <p>The script only runs on travel pages, not on the money templates, calculators or data kits.</p>
     <p>Official information (like GOV.UK and VisitScotland) is never a partner link.</p>
     <h2 id="extension">Renewal Radar</h2>
