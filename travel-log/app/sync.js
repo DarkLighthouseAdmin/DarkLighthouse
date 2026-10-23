@@ -6,7 +6,19 @@
   var A = window.MLTL_APP, M = window.MLTL, S = window.MLTL_SYNCCORE, CFG = window.MLTL_SYNC_CONFIG || {}, esc = M.esc;
   if (!A || !S) return;
   var main = document.getElementById("main");
-  var FLAGS = { testing: !!CFG.testing, google: !!CFG.google };
+  // ?google=1 shows "Continue with Google" for this tab even while the flag is off (live testing); ?google=0 hides it again.
+  var GOOGLE_TRY = (function () {
+    try {
+      var m = /[?&]google=([01])\b/.exec(location.search);
+      if (m) {
+        if (m[1] === "1") sessionStorage.setItem("mltl-google", "1"); else sessionStorage.removeItem("mltl-google");
+        var q = location.search.replace(/([?&])google=[01]&?/, "$1").replace(/[?&]$/, "");
+        history.replaceState(null, "", location.pathname + q + location.hash);
+      }
+      return sessionStorage.getItem("mltl-google") === "1";
+    } catch (e) { return false; }
+  })();
+  var FLAGS = { testing: !!CFG.testing, google: !!CFG.google || GOOGLE_TRY };
   var ROLE_NAME = { owner: "Organizer", adult: "Grown-up", kid: "Kid" };
 
   // ---------- sync settings on this phone (meta "sync") ----------
