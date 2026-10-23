@@ -1,0 +1,91 @@
+/* Famstamp: the printed passport book (#/p/<id>/book). A premium "coming soon" page with a live preview of the book made
+   from this person's own maps, stamps, trips, trip memories and firsts, plus a sample PDF (made from a fake family).
+   Nothing to sign up for: no waitlist, no backend. #/p/<id>/book/pdf shows just the pages (how the sample PDF is made). */
+(function () {
+  "use strict";
+  function A() { return window.MLTL_APP; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  var SAMPLE = "samples/famstamp-sample-book.pdf";
+  var MAX_STAMP_PAGES = 6, PER_PAGE = 9, MAX_TRIPS = 12;
+
+  function fmt(at) { if (!at) return ""; var d = new Date(String(at).slice(0, 10) + "T12:00:00"); return isNaN(d) ? "" : d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }); }
+  function stampName(s) {
+    var M = window.MLTL, maps = window.MLTL_MAPS;
+    if (s.kind === "park") { var p = M.parkById(s.area); return p ? p.name : s.area; }
+    if (s.kind === "state") { var st = maps.us.shapes.filter(function (x) { return x.id === s.area; })[0]; return st ? st.name : s.area; }
+    var c = maps.world.countries.filter(function (x) { return x.id === s.area; })[0]; return c ? c.name : s.area;
+  }
+  function stampsOf(k) {
+    var P = window.WK_PASSPORT, M = window.MLTL;
+    return P.stampsFor(k, A().state.trips, { parkStates: M.PARK_STATES }).slice().sort(function (a, b) { return (a.date || "9") < (b.date || "9") ? -1 : (a.date || "9") > (b.date || "9") ? 1 : 0; });
+  }
+  function tripsOf(k) {
+    return A().state.trips.filter(function (t) { return t.kidIds.indexOf(k.id) >= 0; })
+      .sort(function (a, b) { return (a.date || a.createdAt || "") < (b.date || b.createdAt || "") ? -1 : 1; });
+  }
+  function years(k, trips, stamps) {
+    var marks = [k.states, k.places, k.parks].reduce(function (o, m) { return o.concat(Object.keys(m || {}).map(function (id) { return m[id] && m[id].at; })); }, []);
+    var ys = trips.map(function (t) { return t.date; }).concat(stamps.map(function (s) { return s.date; }), marks).filter(Boolean).map(function (d) { return +String(d).slice(0, 4); }).sort();
+    if (!ys.length) return String(new Date().getFullYear());
+    return ys[0] === ys[ys.length - 1] ? String(ys[0]) : ys[0] + "–" + ys[ys.length - 1];
+  }
+  function map(svg) { return '<div class="mapbox bookmap"><div>' + svg.replace(/ data-pz(init)?="[^"]*"/g, "") + '</div></div>'; }
+  function page(cls, inner, n) { return '<section class="bpage ' + cls + '">' + inner + (n ? '<span class="bpn">' + n + '</span>' : "") + '</section>'; }
+
+  /** All the pages of k's book as HTML. */
+  function pagesHTML(k) {
+    var M = window.MLTL, P = window.WK_PASSPORT, T = window.WK_TRIPS, app = A(), who = M.who(k);
+    var s = M.stats(k, app.state.trips, window.MLTL_MAPS.world), trips = tripsOf(k), stamps = stampsOf(k), n = 1, out = [];
+    var cover = stamps.slice(-3);
+    out.push(page("bcover", '<div class="bcv"><span class="bkick">FAMSTAMP · TRAVEL BOOK</span><h1>' + esc(who) + '\'s<br>Travel Book</h1><p class="byrs">' + esc(years(k, trips, stamps)) + '</p>' +
+      '<div class="bcstamps" aria-hidden="true">' + cover.map(function (x) { return '<span>' + P.stampSVG(x, stampName(x), { sub: x.kind === "park" ? M.parkSub(M.parkById(x.area)) : "" }) + '</span>'; }).join("") + '</div>' +
+      '<p class="bstat">' + [s.states + " states", s.countries + " countries", s.parks + " national parks", s.trips + " trips"].join(" · ") + '</p></div>'));
+    out.push(page("bmap", '<h2>' + esc(who) + '\'s United States</h2><p class="bsub">' + s.states + ' of 50 states colored in</p>' + map(app.usSVG(k)), n++));
+    out.push(page("bmap", '<h2>' + esc(who) + '\'s world</h2><p class="bsub">' + s.countries + ' ' + (s.countries === 1 ? "country" : "countries") + ' · ' + s.continents + ' ' + (s.continents === 1 ? "continent" : "continents") + '</p>' + map(app.worldSVG(k, "world")), n++));
+    var shown = stamps.slice(0, MAX_STAMP_PAGES * PER_PAGE);
+    for (var i = 0; i < shown.length; i += PER_PAGE) {
+      var more = i + PER_PAGE >= shown.length && stamps.length > shown.length ? stamps.length - shown.length : 0;
+      out.push(page("bstamps", '<h2>Passport stamps</h2><div class="bgrid">' + shown.slice(i, i + PER_PAGE).map(function (x) {
+        return '<figure>' + P.stampSVG(x, stampName(x), { sub: x.kind === "park" ? M.parkSub(M.parkById(x.area)) : "" }) + '</figure>'; }).join("") + '</div>' +
+        (more ? '<p class="bsub">…and ' + more + ' more stamps in the full book</p>' : ""), n++));
+    }
+    trips.slice(-MAX_TRIPS).forEach(function (t) {
+      var m = t.memories || {}, rows = T.MEM_PROMPTS.filter(function (p) { return m[p[0]]; }), route = M.routeText(t);
+      var age = M.isKid(k) ? M.ageOn(k.birthYear, t.date) : null;
+      out.push(page("btrip", (t.photoId ? '<img class="bphoto" alt="" data-photo="' + esc(t.photoId) + '">' : "") +
+        '<h2>' + esc(t.title || t.place) + '</h2><p class="bsub">' + esc([fmt(t.date), age != null ? "age " + age : ""].filter(Boolean).join(" · ")) + '</p>' +
+        (route && route !== (t.title || t.place) ? '<p class="broute">' + esc(route) + '</p>' : "") +
+        (t.memory ? '<p class="bnote">“' + esc(t.memory) + '”</p>' : "") +
+        (rows.length ? '<dl class="bmems">' + rows.map(function (p) { return '<div><dt>' + p[2] + ' ' + esc(p[1]) + '</dt><dd>' + esc(m[p[0]]) + '</dd></div>'; }).join("") + '</dl>' : ""), n++));
+    });
+    var F = window.FS_FIRSTS, firsts = F ? F.timeline(k, app.state.trips, F.ctx()).filter(function (r) { return r.at; }) : [];
+    if (firsts.length) out.push(page("bfirsts", '<h2>' + esc(who) + '\'s firsts</h2><ol>' + firsts.slice(0, 12).map(function (r) {
+      return '<li><span class="bfe" aria-hidden="true">' + r.emoji + '</span><div><b>' + esc(r.title) + '</b><span>' + esc([fmt(r.at), r.place].filter(Boolean).join(" · ")) + '</span></div></li>'; }).join("") + '</ol>', n++));
+    out.push(page("bback", '<div class="bcv"><p class="bend">The end… until the next trip.</p><span class="bkick">MADE WITH FAMSTAMP</span></div>'));
+    return out;
+  }
+
+  function view(k, sub) {
+    var app = A(), main = app.main, M = window.MLTL, who = M.who(k), pages = pagesHTML(k);
+    document.title = who + "'s travel book · Famstamp";
+    if (sub === "pdf") {   // just the pages, for printing the sample PDF
+      document.body.classList.add("bookpdf");
+      main.innerHTML = '<div class="bookpages" style="' + app.kidStyle(k) + '">' + pages.join("") + '</div>'; app.fillPhotos(); return;
+    }
+    main.innerHTML = app.shell(k, "stats",
+      '<a class="back" href="#/p/' + esc(k.id) + '/stats">← Badges</a>' +
+      '<div class="panel bookhero"><span class="pchip">Premium · coming soon</span><h2>A real printed book of ' + esc(who) + '\'s travels</h2>' +
+      '<p>We\'re working on a hardcover book made from ' + esc(who) + '\'s maps, passport stamps, trips and trip memories. One to keep on the shelf, or to give to Grandma.</p>' +
+      '<p class="small muted">It\'ll be part of Famstamp Premium (Family Keeper). There\'s nothing to sign up for yet; when it\'s ready, you\'ll see it right here.</p>' +
+      '<div class="actions"><a class="btn btn-primary" href="' + SAMPLE + '" target="_blank" rel="noopener">📘 See a sample book (PDF)</a>' +
+      '<a class="btn btn-ghost" href="#/p/' + esc(k.id) + '/print">🖨 Print my map at home (free)</a></div></div>' +
+      '<h2 class="bprevh">Your preview <span class="muted small">' + pages.length + ' pages</span></h2>' +
+      '<p class="hint">Made from ' + esc(who) + '\'s own maps and trips, so it grows with every trip.</p>' +
+      '<div class="bookpages preview" style="' + app.kidStyle(k) + '">' + pages.join("") + '</div>');
+    app.fillPhotos();
+  }
+  function card(k) {
+    return '<a class="familycard qentry bentry" href="#/p/' + esc(k.id) + '/book"><span class="qemo" aria-hidden="true"><i>📘</i></span><span><b>Printed travel book</b><span class="small muted">Premium · coming soon. Peek at a preview</span></span><span class="qgo" aria-hidden="true">›</span></a>';
+  }
+  window.FS_BOOK = { view: view, card: card, pagesHTML: pagesHTML, SAMPLE: SAMPLE };
+})();
