@@ -350,7 +350,7 @@ WED_COPY = """
       <li><strong>A buffer</strong> of 5–10% covers overtime, tips, delivery fees and the things you forgot.</li>
     </ul>
     <h3>Simple, classic or formal</h3>
-    <p>The style toggle changes the splits. <em>Simple</em> puts more into food and keeps a bigger buffer, with no videographer. <em>Classic</em> is a middle-of-the-road split. <em>Formal</em> moves money toward the venue, flowers, music and a planner. None of these is right or wrong: they're a sketch you then adjust.</p>
+    <p>The style toggle changes the splits. <em>Simple</em> puts more into food and keeps a bigger buffer, with no videographer. <em>Classic</em> is a middle-of-the-road split. <em>Formal</em> moves money toward the venue, flowers and music, and still keeps a 5% buffer. None of these is right or wrong: they're a sketch you then adjust.</p>
     <h3>The payment timeline</h3>
     <p>Most of the money doesn't leave your account on one day. The timeline estimates when the usual deposits fall based on your date: the venue and photographer first, caterer and music next, then attire, flowers and invitations, with final balances a couple of weeks before. If a date has already passed, it shows today, meaning that booking is due now. It's a preview of typical terms, so check every contract.</p>
     <p>Once you start getting quotes, a spreadsheet beats a calculator: you can track planned vs actual vs paid, see payments coming due and keep the guest list in the same place. The template below does exactly that.</p>

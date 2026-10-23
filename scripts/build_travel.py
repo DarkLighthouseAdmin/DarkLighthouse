@@ -472,7 +472,7 @@ def build_scotland():
 
     <h2 id="routes">4. Three sample routes</h2>
     <h3>7 nights: Edinburgh, the Highlands and Skye</h3>
-    <p>Edinburgh (2 nights) → Inverness via Pitlochry (2 nights) → Portree on Skye (1 night) → Fort William (1 night) → Glencoe and on to Glasgow for the flight home. The fullest of the three: it works best for older kids who are fine in the car.</p>
+    <p>Edinburgh (2 nights) → Inverness via Pitlochry (2 nights) → Portree on Skye (1 night) → Fort William (1 night) → Glencoe and on to Glasgow (1 night) for the flight home. The fullest of the three: it works best for older kids who are fine in the car.</p>
     {slot("stay", "7-night route: Edinburgh, Inverness, Portree, Fort William")}
     <h3>10 nights: add Perthshire and breathing room</h3>
     <p>Edinburgh (3 nights, with a day trip to St Andrews) → Pitlochry (1) → Inverness (2) → Skye (2) → Fort William (1) → Glasgow (1). Two nights on Skye means one day where you don't pack the car.</p>
@@ -497,7 +497,7 @@ def build_scotland():
 
     <h2 id="packing">Packing for Scotland's weather</h2>
     <p>It can rain in any month, and the Highlands are windier and colder than Edinburgh. Bring layers and a waterproof for everyone, kids included, and midge repellent from late May to September.</p>
-{packbox("Scotland", [("patagonia-torrentshell-kids", "Patagonia Kids' Torrentshell 3L Rain Jacket", "a packable, properly waterproof shell"), ("hunter-kids-first-classic", "Hunter Kids First Classic Rain Boots", "wellies for puddles and muddy paths"), ("smartwool-classic-thermal-crew", "Smartwool Classic Thermal Merino Base Layer", "for cold months, or anyone who feels the cold"), ("saxx-quest-boxer-brief", "SAXX Quest Quick-Dry Boxer Brief", "washes in the sink and dries overnight")], "Scotland's weather changes fast, so think layers, not one big coat.")}
+{packbox("Scotland", [("patagonia-torrentshell-womens", "Patagonia Women's Torrentshell 3L Rain Jacket", "the grown-ups need a real waterproof too (there's a men's version)"), ("patagonia-torrentshell-kids", "Patagonia Kids' Torrentshell 3L Rain Jacket", "a packable, properly waterproof shell"), ("hunter-kids-first-classic", "Hunter Kids First Classic Rain Boots", "wellies for puddles and muddy paths"), ("smartwool-classic-thermal-crew", "Smartwool Classic Thermal Merino Base Layer", "for cold months, or anyone who feels the cold"), ("saxx-quest-boxer-brief", "SAXX Quest Quick-Dry Boxer Brief", "washes in the sink and dries overnight")], "Scotland's weather changes fast, so think layers, not one big coat.")}
 {kids_clothes("Scotland", "Plan for rain, wind and four seasons in a day, and colder, windier weather in the Highlands than in Edinburgh. From late May to September, long sleeves and long trousers for evenings in the west also help with midges.")}
     <h2 id="timeline">6. What to book when</h2>
     <p>Our rule of thumb for a summer trip, counting back from the day you land. Book earlier for July and August, and later is usually fine for the quieter months.</p>
@@ -924,7 +924,7 @@ def build_wales():
       <li><strong>Swimsuits and a towel in the car</strong> for Pembrokeshire beaches. The sea is cold, so a wetsuit helps if kids want to stay in.</li>
       <li><strong>Plug adapters:</strong> the UK uses the three-pin plug (type G).</li>
     </ul>
-{packbox("Wales", [("patagonia-torrentshell-womens", "Patagonia Torrentshell 3L Rain Jacket", "packable waterproof with pit zips for mountain walks"), ("zappos-merrell-moab-3-wp", "Merrell Moab 3 Waterproof (Zappos)", "waterproof walking shoes for paths and castle steps"), ("llbean-discovery-rain-jacket", "L.L.Bean Infants' and Toddlers' Discovery Rain Jacket", "for the littlest walkers"), ("saxx-quest-boxer-brief", "SAXX Quest Quick-Dry Boxer Brief", "pack fewer pairs: it dries overnight")], "Wales can be wet in any month, and Eryri makes its own weather.")}
+{packbox("Wales", [("patagonia-torrentshell-womens", "Patagonia Women's Torrentshell 3L Rain Jacket", "packable waterproof with pit zips for mountain walks (there's a men's version too)"), ("zappos-merrell-moab-3-wp", "Merrell Moab 3 Waterproof (Zappos)", "waterproof walking shoes for paths and castle steps"), ("llbean-discovery-rain-jacket", "L.L.Bean Infants' and Toddlers' Discovery Rain Jacket", "for the littlest walkers"), ("saxx-quest-boxer-brief", "SAXX Quest Quick-Dry Boxer Brief", "pack fewer pairs: it dries overnight")], "Wales can be wet in any month, and Eryri makes its own weather.")}
 {kids_clothes("Wales", "Wales is wet and windy, and the mountains in Eryri are colder than the valleys. Add water shoes or old trainers for rock pools, and a second swimsuit and towel if you're heading to Pembrokeshire beaches (a wetsuit helps, as the sea is cold).")}
     <h2 id="kids">8. Tips for Wales with kids</h2>
     <ul>
@@ -1006,10 +1006,11 @@ def gear_head(path, title, desc, headline, faq, crumb_name, extra_ld=()):
 
 def packbox(where, keys_text, guide_note):
     """Short 'What to pack' box for the country guides: links to the gear pages and to 3-5 products."""
+    wear = "what to wear, month by month" if where == "Scotland" else "what to wear in Scotland, month by month (the same layering works here)"
     items = "".join(f"<li>{aff(k, t)}{': ' + n if n else ''}</li>" for k, t, n in keys_text)
     return f'''    <aside class="packbox" id="what-to-pack">
       <h3>What to pack for {where}</h3>
-      <p>{guide_note} Our packing guides go deeper: <a href="/travel/gear/what-to-wear-in-scotland/">what to wear, month by month</a>, <a href="/travel/gear/best-travel-stroller-europe/">travel strollers for cobbles and trains</a> and <a href="/travel/gear/best-carry-on-luggage-family-travel/">carry-on bags that fit the airlines' limits</a>.</p>
+      <p>{guide_note} Our packing guides go deeper: <a href="/travel/gear/what-to-wear-in-scotland/">{wear}</a>, <a href="/travel/gear/best-travel-stroller-europe/">travel strollers for cobbles and trains</a> and <a href="/travel/gear/best-carry-on-luggage-family-travel/">carry-on bags that fit the airlines' limits</a>.</p>
       <ul>{items}</ul>
       <p class="muted">Product links are affiliate links (see the note at the top of the page). Prices change, so check the retailer.</p>
     </aside>
@@ -1121,6 +1122,7 @@ def build_gear_wear():
       <li>Waterproof jacket for every person (and waterproof trousers for kids)</li>
       <li>A fleece or warm mid layer each</li>
       <li>Quick-dry or merino base layers; fewer cotton T-shirts</li>
+      <li>Everyday clothes (counts in the list above): trousers or leggings rather than jeans, pyjamas, and socks and underwear for each day</li>
       <li>Waterproof shoes or boots, wellies for small kids, wool socks</li>
       <li>Hat and gloves outside summer; sun hat and suncream in summer</li>
       <li>Midge repellent and a head net (late May to September, west Highlands)</li>
@@ -1356,12 +1358,12 @@ GIFTS = {
    ("saxx-quest-boxer-brief", "SAXX Quest Quick-Dry Mesh Boxer Brief", "$36", "Quick-dry micro-mesh designed for travel and sink washing.", "Not exciting to unwrap, but the kind of gift that gets worn every week. Washes in a hotel sink and dries overnight."),
    ("bespokepost-sidecar-toiletry-kit", "Halfday Sidecar Toiletry Kit (Bespoke Post)", "$48", "8.75 × 3.5 × 6.75 in; 0.68 lb; water-resistant polyester; hanging loop; reusable liquids pouch included.", "Replaces the plastic grocery bag of toiletries. The hanging loop is the part that wins people over in small bathrooms."),
    ("bespokepost-grooming-tool-kit", "Men &amp; Nails Medium Grooming Tool Kit (Bespoke Post)", "$60", "12 stainless steel tools in a brown vegan leather case.", "Nail clippers, scissors and tweezers that live in one case instead of three drawers. A good add-on gift."),
+   ("smartwool-classic-thermal-crew", "Smartwool Men's Classic Thermal Merino Base Layer Crew", "$66 in sale colors (up to $125)", "100% merino, 250 g/m² midweight.", "A warm layer under a jacket for cold walks and early starts. Sale colors bring the price down a lot, so check a few."),
    ("bespokepost-weekender", "Line of Trade Weekender Bag (Bespoke Post)", "$75", "Cotton canvas on a metal frame, leather handles, removable shoulder strap; 21 × 13 × 7 in; laptop pocket fits up to 15 in.", "A canvas duffel that stays open while you pack. It fits the US carry-on guideline, so it works for a weekend away or a short work trip."),
-   ("darntough-mens-hiker-3-pack", "Darn Tough Men's Hiker Micro Crew 3-Pack", "$78", "Three pairs of Darn Tough's cushioned merino Hiker Micro Crew in classic colors; $26 a pair bought singly.", "Merino hiking socks are one of those things people don't buy for themselves. Three pairs means they're not saving them for best."),
    ("ridge-wallet-royal-black", "Ridge Wallet, Royal Black", "$76 on sale (regular $95)", "Anodized aluminum plates, a scratch-resistant finish and a track that expands for 1 to 12 cards, per Ridge.", "For the guy with a fat leather wallet he keeps meaning to replace. It forces you down to the cards you actually use."),
+   ("darntough-mens-hiker-3-pack", "Darn Tough Men's Hiker Micro Crew 3-Pack", "$78", "Three pairs of Darn Tough's cushioned merino Hiker Micro Crew in classic colors; $26 a pair bought singly.", "Merino hiking socks are one of those things people don't buy for themselves. Three pairs means they're not saving them for best."),
   ]),
   ("$100 and up", [
-   ("smartwool-classic-thermal-crew", "Smartwool Men's Classic Thermal Merino Base Layer Crew", "$66–$125 depending on color and style", "100% merino, 250 g/m² midweight.", "A warm layer under a jacket for cold walks and early starts. Sale colors bring the price down a lot, so check a few."),
    ("llbean-bean-boots-8", "L.L.Bean Men's Bean Boots, 8\"", "$150", "Made in Maine; L.L.Bean says to order a full size down from your usual shoe size.", "The classic duck boot for slush, mud and walking the dog. Do read L.L.Bean's sizing note before ordering, because most people get it wrong the first time."),
    ("patagonia-black-hole-duffel-40", "Patagonia Black Hole Duffel 40L", "$165", "19.7 × 12.5 × 8.5 in; 1,045 g; Patagonia says it fits most airline carry-on requirements.", "The bag that ends up in the truck, at the gym and in the overhead bin. A safe pick if you don't know his clothing size."),
    ("bespokepost-barbour-transport", "Barbour Transport Wax Jacket (Bespoke Post)", "$425", "6 oz waxed cotton with a cord collar, tartan lining and an inner storm skirt, in a roomier, more modern cut.", "The big one. A Barbour gets better with age and can be re-waxed for years. Bespoke Post calls it water-resistant, not waterproof, so it's a jacket for drizzle and wind rather than a downpour."),
@@ -1409,7 +1411,7 @@ GIFT_COMMON_FAQ = ("Are the prices current?", f"They're what each retailer's own
 GIFT_AFF_FAQ = ("Are these affiliate links?", "Some are. If you buy through a product link we may earn a commission, at no extra cost to you. It doesn't change the price you pay or which products we pick, and nobody paid to be on these lists.")
 GIFT_FAQ = {
  "gifts-for-travelers": [
-  ("Which of these bags fit as a carry-on?", "On the makers' listed sizes, the Patagonia Black Hole 40L (19.7 × 12.5 × 8.5 in) and the Bespoke Post toiletry kit fit easily inside the 22 × 14 × 9 in guideline most US airlines use. The Ridge Carry-On is listed at 22.5 × 14.5 × 9 in and the Cotopaxi Allpa 35L is 10 in deep, so both are slightly over on paper. Europe's budget airlines are much stricter: check the airline before you fly."),
+  ("Which of these bags fit as a carry-on?", "On the makers' listed sizes, the Patagonia Black Hole 40L (19.7 × 12.5 × 8.5 in) fits inside the 22 × 14 × 9 in guideline most US airlines use. The Osprey Daylite Plus and the Kånken are daypacks, so they're the second bag that goes under the seat (check the airline's personal-item size). The Ridge Carry-On is listed at 22.5 × 14.5 × 9 in and the Cotopaxi Allpa 35L is 10 in deep, so both are slightly over on paper. Europe's budget airlines are much stricter: check the airline before you fly."),
   ("What's a good travel gift under $50?", "Merino socks ($20 for kids' Darn Tough), a Peak Design packing cube (from $39.95), the Small Tech Pouch ($49.95) or the Halfday toiletry kit ($48). They're all things people use on every trip and rarely buy for themselves."),
   ("What do you get a kid who travels?", "Their own backpack. The Kånken Mini ($85) is small enough for any airline's free under-seat bag, and carrying their own snacks and toys gives kids a job on travel day."),
   GIFT_COMMON_FAQ, GIFT_AFF_FAQ],
