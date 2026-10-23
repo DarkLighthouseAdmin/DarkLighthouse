@@ -47,6 +47,17 @@ TCSS = """
     .related { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:.6rem; } .related a { background:var(--card); border:1px solid var(--line); border-radius:999px; padding:.4rem .9rem; text-decoration:none; font-weight:500; }
     .pcard ul { margin:.2rem 0 0 1.1rem; font-size:.92rem; color:var(--muted); }
 """
+# Travelpayouts "Drive" snippet (the owner's Travelpayouts account, id 589522). Emitted on /travel/ pages ONLY, never other sections.
+TP_DRIVE = """  <script nowprocket data-noptimize="1" data-cfasync="false" data-wpfc-render="false" seraph-accel-crit="1" data-no-defer="1" data-cmp-ab="2">
+    (function () {
+        var script = document.createElement("script");
+        script.async = 1;
+        script.setAttribute("data-cmp-ab","2");
+        script.src = 'https://emrldtp.cc/NTg5NTIy.js?t=589522';
+        document.head.appendChild(script);
+    })();
+  </script>
+"""
 NAV = [("/travel/", "Travel home"), ("/travel/scotland/", "Scotland guide"), ("/travel/planners/", "Planners"), ("/travel/tools/", "Travel tools")]
 
 def crumbs(trail):
@@ -67,7 +78,7 @@ def head(path, title, desc, og, ld, section):
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{e(title)}</title>
+{TP_DRIVE if path.startswith("/travel/") else ""}  <title>{e(title)}</title>
   <meta name="description" content="{e(desc)}" />
   <meta name="author" content="Dark Lighthouse Solutions" />
   <meta name="robots" content="index,follow" />
@@ -93,7 +104,7 @@ def head(path, title, desc, og, ld, section):
 '''
 
 def foot(aff=False):
-    d = ('    <p style="margin-top:.4rem">Some links on this page go to booking sites we may earn a commission from in future, at no extra cost to you. '
+    d = ('    <p style="margin-top:.4rem">Some links on this page may be affiliate links (via Travelpayouts): if you book, we may earn a small commission at no extra cost to you. '
          'We only link to things we\'d use ourselves. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>\n') if aff else ""
     return f'''
   <footer class="wrap">
@@ -421,7 +432,7 @@ def build_scotland():
     <p class="lede">The practical bits we wish someone had told us: how long the drives really take, which costs people forget, and what to book first. Facts checked October 2026, with sources at the end.</p>
   </header>
   <main class="wrap copy">
-    <p class="disclose">A few links below go to booking sites. They're plain links today; if we join a partner program later we may earn a small commission, at no cost to you. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>
+    <p class="disclose">A few links below go to booking sites. Our travel pages use Travelpayouts, which may turn some of them into affiliate links: if you book, we may earn a small commission at no extra cost to you. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>
 
     <h2 id="before">1. Before you book anything: the UK ETA</h2>
     <p>If you're visiting from the US, Canada or most other countries that don't need a visa, every person in your group needs a UK Electronic Travel Authorisation (ETA) before flying. That includes babies and children.</p>
@@ -589,7 +600,8 @@ def build_privacy():
     <h2 id="checkout">Checkout</h2>
     <p>Templates and planners are sold through <a href="https://polar.sh">Polar</a>, which acts as the merchant of record and handles payment, tax and your receipt. We receive your name, email and order details from Polar so we can deliver your purchase and answer questions.</p>
     <h2 id="affiliate-links">Partner (affiliate) links</h2>
-    <p>Some travel pages link to booking sites such as tour, car hire, eSIM and hotel sites. Those links are marked as sponsored in the page code. Today they are plain links and we earn nothing from them. If we join a partner program later, the same links may earn us a small commission when you book, at no extra cost to you. It never changes the price you pay, and we don't accept payment to recommend anything.</p>
+    <p>Our travel pages (everything under <a href="/travel/">/travel/</a>) link to booking sites for tours, car hire, eSIMs and hotels. Those pages load a small script from Travelpayouts, an affiliate network, which may turn links to travel partners into affiliate links and set partner cookies so a booking can be credited to us. If you book through one, we may earn a small commission. It costs you nothing extra, it never changes the price you pay, and we only link to things we'd use ourselves.</p>
+    <p>The script only runs on travel pages, not on the money templates, calculators or data kits.</p>
     <p>Official information (like GOV.UK and VisitScotland) is never a partner link.</p>
     <h2 id="extension">Renewal Radar</h2>
     <p>The Renewal Radar browser extension has its own <a href="/renewal-radar/privacy/">privacy policy</a>.</p>

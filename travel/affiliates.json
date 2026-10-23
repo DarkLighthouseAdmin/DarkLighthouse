@@ -7,6 +7,6 @@
   "viator-edinburgh":   {"program": "Viator Partner Program", "plain_url": "https://www.viator.com/Edinburgh/d739-ttd", "tracked_url": "", "status": "not-joined"},
   "discovercars-edinburgh": {"program": "Discover Cars affiliate (direct or via Travelpayouts)", "plain_url": "https://www.discovercars.com/united-kingdom/edinburgh", "tracked_url": "", "status": "not-joined"},
   "airalo-uk":          {"program": "Airalo affiliate (direct or via Travelpayouts)", "plain_url": "https://www.airalo.com/united-kingdom-esim", "tracked_url": "", "status": "not-joined"},
-  "booking-edinburgh":  {"program": "Booking.com via Awin", "plain_url": "https://www.booking.com/city/gb/edinburgh.html", "tracked_url": "", "status": "not-joined"}
+  "booking-edinburgh":  {"program": "Booking.com via CJ or Travelpayouts", "note": "Booking.com's Awin program ended June 30 2026; join via CJ or Travelpayouts instead", "plain_url": "https://www.booking.com/city/gb/edinburgh.html", "tracked_url": "", "status": "not-joined"}
  }
 }
