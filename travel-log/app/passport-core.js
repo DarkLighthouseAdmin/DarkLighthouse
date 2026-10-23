@@ -2,9 +2,9 @@
    No browser parts, so it runs in Node tests. Stamps from trips are worked out on the fly (never stored), so editing a
    trip moves its stamps; stamps someone adds by hand live on the person as person.stamps (see trips-data-model.md). */
 (function (root, factory) {
-  if (typeof module === "object" && module.exports) module.exports = factory(require("./trips-core.js"));
-  else root.WK_PASSPORT = factory(root.WK_TRIPS);
-})(typeof self !== "undefined" ? self : this, function (T) {
+  if (typeof module === "object" && module.exports) module.exports = factory(require("./trips-core.js"), require("./state-signs.js"));
+  else root.WK_PASSPORT = factory(root.WK_TRIPS, root.WK_SIGNS);
+})(typeof self !== "undefined" ? self : this, function (T, SG) {
   "use strict";
   var MAX_STAMPS = 60, STAMP_BUDGET = 6000;   // hand-added only (trip stamps are worked out, not stored); keeps a person under sync's 8 KB
   var ISO32 = {}; "ABWAWAFGAFAGOAOAIAAIALBALALDAXANDADAREAEARGARARMAMASMASATAAQATFTFATGAGAUSAUAUTATAZEAZBDIBIBELBEBENBJBESBQBFABFBGDBDBGRBGBHRBHBHSBSBIHBABLMBLBLRBYBLZBZBMUBMBOLBOBRABRBRBBBBRNBNBTNBTBVTBVBWABWCAFCFCANCACCKCCCHECHCHLCLCHNCNCIVCICMRCMCODCDCOGCGCOKCKCOLCOCOMKMCPVCVCRICRCUBCUCUWCWCXRCXCYMKYCYPCYCZECZDEUDEDJIDJDMADMDNKDKDOMDODZADZECUECEGYEGERIERESPESESTEEETHETFINFIFJIFJFLKFKFRAFRFROFOFSMFMGABGAGBRGBGEOGEGGYGGGHAGHGIBGIGINGNGLPGPGMBGMGNBGWGNQGQGRCGRGRDGDGRLGLGTMGTGUFGFGUMGUGUYGYHKGHKHMDHMHNDHNHRVHRHTIHTHUNHUIDNIDIMNIMINDINIOTIOIRLIEIRNIRIRQIQISLISISRILITAITJAMJMJEYJEJORJOJPNJPKAZKZKENKEKGZKGKHMKHKIRKIKNAKNKORKRKOSXKKWTKWLAOLALBNLBLBRLRLBYLYLCALCLIELILKALKLSOLSLTULTLUXLULVALVMACMOMAFMFMARMAMCOMCMDAMDMDGMGMDVMVMEXMXMHLMHMKDMKMLIMLMLTMTMMRMMMNEMEMNGMNMNPMPMOZMZMRTMRMSRMSMTQMQMUSMUMWIMWMYSMYMYTYTNAMNANCLNCNERNENFKNFNGANGNICNINIUNUNLDNLNORNONPLNPNRUNRNZLNZOMNOMPAKPKPANPAPCNPNPERPEPHLPHPLWPWPNGPGPOLPLPRIPRPRKKPPRTPTPRYPYPSXPSPYFPFQATQAREUREROURORUSRURWARWSAHEHSAUSASDNSDSDSSSSENSNSGPSGSGSGSSHNSHSJMSJSLBSBSLESLSLVSVSMRSMSOMSOSPMPMSRBRSSTPSTSURSRSVKSKSVNSISWESESWZSZSXMSXSYCSCSYRSYTCATCTCDTDTGOTGTHATHTJKTJTKLTKTKMTMTLSTLTONTOTTOTTTUNTNTURTRTUVTVTWNTWTZATZUGAUGUKRUAUMIUMURYUYUSAUSUZBUZVATVAVCTVCVENVEVGBVGVIRVIVNMVNVUTVUWLFWFWSMWSYEMYEZAFZAZMBZMZWEZW".replace(/([A-Z]{3})([A-Z]{2})/g, function (_, a, b) { ISO32[a] = b; return ""; });
@@ -200,23 +200,9 @@
   }
 
   // ---------- State Signs: a "Welcome to ..." roadside sign for every state someone has been to ----------
-  // Our own simple design (a colored sign on two posts with a little motif). Not any real state's sign artwork.
+  // Our own designs, drawn by state-signs.js from a compact table. Not any real state's sign artwork.
   var STATES50 = "AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY".split(" ");
-  var MOTIF_OF = {};
-  (function (m) { Object.keys(m).forEach(function (k) { m[k].split(" ").forEach(function (id) { MOTIF_OF[id] = k; }); }); })({ mountain: "CO MT WY ID UT WV NH VT TN NC", palm: "FL HI", sun: "AZ NM NV CA",
-    pine: "ME OR WA MI MN WI AK", wave: "MA RI CT NJ DE MD SC NY", wheat: "KS NE IA ND SD OK IL IN OH MO", star: "TX PA VA DC", leaf: "KY AR LA MS AL GA" });
-  var SIGN_THEMES = [["#1f6f4a", "#f4efe1"], ["#1d4f8c", "#fdf6e3"], ["#8a2f3c", "#fff4e4"], ["#c8792a", "#fffaf0"], ["#4a3a7a", "#f6f0ff"], ["#0f6e7a", "#effafa"], ["#3d5a2a", "#f7f3e3"], ["#7a4b1e", "#fff6e8"]];
-  var MOTIFS = {
-    mountain: '<path d="M0,22 L12,6 L18,13 L24,4 L36,22 Z"/><path d="M21,8 L24,4 L27,8 Z" fill="#fff" opacity=".85"/>',
-    palm: '<path d="M17,22 Q19,13 18,7" fill="none" stroke-width="2.2"/><path d="M18,7 Q10,3 4,8 Q11,6 18,8 Q24,2 32,6 Q25,5 18,8 Q14,12 9,15 Q15,10 18,8 Q23,10 27,15 Q22,9 18,8Z"/>',
-    sun: '<circle cx="18" cy="14" r="6"/><path d="M18,2v4M18,22v4M6,14h4M26,14h4M9.5,5.5l2.8,2.8M23.7,19.7l2.8,2.8M26.5,5.5l-2.8,2.8M12.3,19.7l-2.8,2.8" fill="none" stroke-width="2"/>',
-    pine: '<path d="M10,23 L10,20 L3,20 L8,14 L5,14 L10,7 L8,7 L12,1 L16,7 L14,7 L19,14 L16,14 L21,20 L14,20 L14,23Z"/><path d="M25,23 L25,21 L20,21 L24,16 L22,16 L27,9 L32,16 L30,16 L34,21 L29,21 L29,23Z"/>',
-    wave: '<path d="M0,16 Q5,8 10,14 T20,14 T30,14 T36,12 L36,22 L0,22Z"/><path d="M0,10 Q5,4 10,9 T20,9 T30,9" fill="none" stroke-width="1.6"/>',
-    wheat: '<path d="M18,24 L18,4" fill="none" stroke-width="1.8"/>' + [6, 11, 16].map(function (y) { return '<ellipse cx="14.5" cy="' + y + '" rx="3.6" ry="1.8" transform="rotate(-35 14.5 ' + y + ')"/><ellipse cx="21.5" cy="' + y + '" rx="3.6" ry="1.8" transform="rotate(35 21.5 ' + y + ')"/>'; }).join("") + '<ellipse cx="18" cy="2.5" rx="1.6" ry="2.6"/>',
-    star: '<path d="M18,1 L21.5,9.5 L30.5,10 L23.5,15.8 L26,24.5 L18,19.6 L10,24.5 L12.5,15.8 L5.5,10 L14.5,9.5Z"/>',
-    leaf: '<path d="M6,22 Q4,6 28,3 Q30,22 6,22Z"/><path d="M7,21 Q15,13 24,7" fill="none" stroke="#fff" stroke-width="1.3" opacity=".8"/>'
-  };
-  function signLook(id) { var h = hash("sign:" + id); return { theme: SIGN_THEMES[h % SIGN_THEMES.length], motif: MOTIF_OF[id] || "leaf", shape: ["rect", "arch", "shield"][(h >>> 4) % 3] }; }
+  function signLook(id) { return SG.look(id); }
   /** Which states someone (or a group) has, with the first dated visit. Same sources as the passport's state stamps:
       trip stops in the US, stamps added by hand, and states colored in on the map. DC is a bonus, not one of the 50. */
   function signsFor(people, trips, ctx) {
@@ -224,37 +210,26 @@
     (people || []).forEach(function (p) {
       stampsFor(p, trips, ctx).forEach(function (s) {
         if (s.kind !== "state") return;
-        var o = out[s.area] || (out[s.area] = { id: s.area, first: "", who: [], trips: [], hand: false });
+        var o = out[s.area] || (out[s.area] = { id: s.area, first: "", who: [], trips: [], hand: false, visits: 0, list: [] });
         if (s.date && (!o.first || s.date < o.first)) o.first = s.date;
+        // one visit per trip, per dated hand stamp, or one for "colored in on the map"; a trip together counts once
+        var key = s.tripId ? "t:" + s.tripId : s.source === "hand" ? "h:" + (s.date || s.id) : "m", v = o.list.filter(function (x) { return x.key === key; })[0];
+        if (!v) { v = { key: key, date: s.date || "", end: s.end || "", tripId: s.tripId || "", source: s.source, stampId: s.id, who: [] }; o.list.push(v); }
+        if (v.who.indexOf(p.id) < 0) v.who.push(p.id);
         if (o.who.indexOf(p.id) < 0) o.who.push(p.id);
         if (s.tripId && o.trips.indexOf(s.tripId) < 0) o.trips.push(s.tripId);
         if (s.source === "hand") o.hand = true;
       });
     });
+    Object.keys(out).forEach(function (id) { var o = out[id]; o.list.sort(function (a, b) { return (a.date || "9999") < (b.date || "9999") ? -1 : 1; }); o.visits = o.list.length; });
     return out;
   }
   function signCount(signs) { var n = 0; STATES50.forEach(function (id) { if (signs[id]) n++; }); return { have: n, of: 50, dc: !!signs.DC }; }
-  /** The sign card: a 200x150 SVG. info = the signsFor entry, or null for a faded one still to collect. */
-  function signSVG(id, name, info) {
-    var L = signLook(id), on = !!info, bg = on ? L.theme[0] : "#d9d4c8", fg = on ? L.theme[1] : "#f3f0e8", NAME = esc(String(name || id).toUpperCase());
-    var fs = NAME.length > 13 ? 13 : NAME.length > 10 ? 16 : NAME.length > 7 ? 19 : 22;
-    var board = L.shape === "arch" ? '<path d="M12,48 Q100,6 188,48 L188,118 Q188,124 182,124 L18,124 Q12,124 12,118Z"/>'
-      : L.shape === "shield" ? '<path d="M12,22 L188,22 L188,104 Q188,112 180,114 L100,128 L20,114 Q12,112 12,104Z"/>'
-      : '<rect x="12" y="22" width="176" height="102" rx="12"/>';
-    var inner = L.shape === "arch" ? '<path d="M20,52 Q100,14 180,52 L180,114 Q180,117 177,117 L23,117 Q20,117 20,114Z" fill="none" stroke="' + fg + '" stroke-width="2"/>'
-      : L.shape === "shield" ? '<path d="M19,29 L181,29 L181,102 Q181,107 176,108 L100,121 L24,108 Q19,107 19,102Z" fill="none" stroke="' + fg + '" stroke-width="2"/>'
-      : '<rect x="19" y="29" width="162" height="88" rx="8" fill="none" stroke="' + fg + '" stroke-width="2"/>';
-    var d = on ? (info.first ? "FIRST VISIT " + fmtDate(info.first) : "DATE? TAP TO ADD") : "NOT YET";
-    return '<svg class="signsvg' + (on ? "" : " faded") + '" viewBox="0 0 200 150" role="img" aria-label="' + esc((name || id) + (on ? ", " + (info.first ? "first visit " + fmtDate(info.first) : "visited") : ", not visited yet")) + '">' +
-      '<rect x="50" y="118" width="9" height="32" fill="' + (on ? "#6b5a45" : "#cfc9bc") + '"/><rect x="141" y="118" width="9" height="32" fill="' + (on ? "#6b5a45" : "#cfc9bc") + '"/>' +
-      '<g fill="' + bg + '">' + board + '</g>' + inner +
-      '<text x="100" y="' + (L.shape === "arch" ? 50 : 44) + '" text-anchor="middle" font-family="IBM Plex Sans,Arial,sans-serif" font-weight="700" font-size="9" letter-spacing="2.5" fill="' + fg + '">WELCOME TO</text>' +
-      '<g transform="translate(82,' + (L.shape === "arch" ? 54 : 49) + ')" fill="' + fg + '" stroke="' + fg + '" opacity="' + (on ? 1 : .7) + '">' + MOTIFS[L.motif] + '</g>' +
-      '<text x="100" y="' + (L.shape === "shield" ? 96 : 98) + '" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-weight="700" font-size="' + fs + '" fill="' + fg + '">' + NAME + '</text>' +
-      '<text x="100" y="' + (L.shape === "shield" ? 108 : 112) + '" text-anchor="middle" font-family="IBM Plex Sans,Arial,sans-serif" font-weight="600" font-size="7" letter-spacing="1.2" fill="' + fg + '" opacity=".9">' + esc(d) + '</text></svg>';
-  }
+  /** The sign card (drawn by state-signs.js). info = the signsFor entry, or null for a mystery sign still to collect. */
+  function signSVG(id, name, info) { return SG.signSVG(id, name, info, { fmtDate: fmtDate }); }
+  function signTier(info) { return info ? SG.tier(info.visits || 1) : ""; }
 
   return { newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits,
            stampsFor: stampsFor, familyStamps: familyStamps, pages: pages, look: look, flag: flag, stampSVG: stampSVG, ISO32: ISO32, NATIONS: NATIONS, MAX_STAMPS: MAX_STAMPS, SHAPES: SHAPES,
-           STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook };
+           STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook, signTier: signTier, signInfo: SG.look };
 });

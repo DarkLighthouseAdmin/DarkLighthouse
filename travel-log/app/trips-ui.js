@@ -870,7 +870,7 @@
     var s = list.filter(function (x) { return x.newSign; })[0] || list[0], el = document.createElement("div"), more = list.length - 1;
     el.className = "stampfx" + (s.newSign ? " signfx" : "") + (reduced() ? " calm" : ""); el.setAttribute("role", "status");
     el.innerHTML = s.newSign
-      ? '<div class="fxbox"><div class="fxsign">' + P.signSVG(s.area, areaName("state", s.area), { first: s.date }) + '</div><b>Sign collected: ' + esc(areaName("state", s.area)) + '!</b><span>' +
+      ? '<div class="fxbox"><div class="fxsign">' + P.signSVG(s.area, areaName("state", s.area), { first: s.date, visits: 1 }) + '</div><b>Sign collected: ' + esc(areaName("state", s.area)) + '!</b><span>' +
         (s.signOnly ? "It's in your State Signs." : "Plus a new passport stamp" + (more ? " and " + more + " more" : "") + ".") + '</span></div>'
       : '<div class="fxbox"><div class="fxstamp">' + stampSVG(s) + '</div><b>New stamp: ' + esc(stampName(s)) + '</b>' + (more ? '<span>+ ' + more + ' more in the passport</span>' : "") + '</div>';
     document.body.appendChild(el);
@@ -937,48 +937,78 @@
   // ---------- State Signs ----------
   // A separate collection from the passport: one "Welcome to" sign per state. Same sources as the state stamps
   // (US trip stops, hand-added state stamps, states colored on the map), so there is nothing extra to store.
-  function collectBar(personId, base) {
+  // Each sign's art comes from state-signs.js; its frame is bronze (1 visit), silver (2-3) or gold (4+).
+  var TIER_NAME = { bronze: "Bronze", silver: "Silver", gold: "Gold" };
+  function collectBar(personId) {
     if (S().kids.length < 2) return "";
     return '<div class="chips signwho" role="group" aria-label="Whose signs">' + '<a class="chip" href="#/family/signs"' + (personId ? "" : ' aria-current="true"') + '>Everyone</a>' +
       S().kids.map(function (p) { return '<a class="chip" style="' + A().kidStyle(p) + '" href="#/p/' + esc(p.id) + '/signs"' + (p.id === personId ? ' aria-current="true"' : "") + '><span class="dotp" aria-hidden="true">' + A().initial(p.name) + '</span> ' + esc(p.name) + '</a>'; }).join("") + '</div>';
   }
-  function signsHTML(personId) {
+  // Which signs this screen has already shown, so a newly collected one flips in once (kept on this device only).
+  function seenKey(personId) { var log = "mltl"; try { log = window.MLTL_SYNCCORE.readLogs(localStorage).active || log; } catch (e) {} return "famstamp-signs-seen:" + log + ":" + (personId || "all"); }
+  function readSeen(personId) { try { var v = localStorage.getItem(seenKey(personId)); return v == null ? null : v.split(",").filter(Boolean); } catch (e) { return null; } }
+  function writeSeen(personId, ids) { try { localStorage.setItem(seenKey(personId), ids.join(",")); } catch (e) {} }
+  function signsHTML(personId, fresh) {
     var who = personId ? [A().kidById(personId)] : S().kids, signs = P.signsFor(who, S().trips, CTX), c = P.signCount(signs);
     var list = P.STATES50.slice().sort(function (a, b) { return areaName("state", a).localeCompare(areaName("state", b)); });
+    var tiers = { bronze: 0, silver: 0, gold: 0 }, n = 0;
+    Object.keys(signs).forEach(function (id) { tiers[P.signTier(signs[id])]++; });
     var card = function (id, bonus) {
-      var info = signs[id];
-      return '<button type="button" class="signcard' + (info ? " got" : "") + (bonus ? " bonus" : "") + '" data-sign="' + id + '">' + P.signSVG(id, areaName("state", id), info || null) +
-        (!personId && info ? '<span class="dots">' + A().avatars(info.who) + '</span>' : "") + (bonus ? '<span class="bonustag">Bonus</span>' : "") + '</button>';
+      var info = signs[id], t = P.signTier(info), isNew = info && fresh && fresh.indexOf(id) >= 0;
+      return '<button type="button" class="signcard' + (info ? " got t-" + t : " todo") + (bonus ? " bonus" : "") + (isNew ? " fresh" : "") + '" data-sign="' + id + '"' + (isNew ? ' style="--d:' + (n++ * 140) + 'ms"' : "") + '>' +
+        P.signSVG(id, areaName("state", id), info || null) +
+        (!personId && info ? '<span class="dots">' + A().avatars(info.who) + '</span>' : "") + (bonus ? '<span class="bonustag">Bonus</span>' : "") + (isNew ? '<span class="newtag">New!</span>' : "") + '</button>';
     };
     var got = list.filter(function (id) { return signs[id]; }), todo = list.filter(function (id) { return !signs[id]; });
-    return '<div class="signhead"><div class="signcount"><b>' + c.have + '</b> of 50 states' + (c.dc ? ' <span class="bonusnote">+ DC</span>' : "") + '</div><div class="signbar" aria-hidden="true"><span style="width:' + (c.have * 2) + '%"></span></div></div>' +
-      '<div class="signgrid">' + got.map(function (id) { return card(id); }).join("") + todo.map(function (id) { return card(id); }).join("") + '</div>' +
-      '<h3 class="sec">Bonus</h3><div class="signgrid">' + card("DC", true) + '</div>' +
-      '<p class="small muted">Signs fill in from trip stops in the US and states colored on the map. Tap a faded one to add it by hand. Our own sign designs, not the real roadside ones.</p>';
+    var key = '<ul class="tierkey" aria-label="Sign frames">' + ["bronze", "silver", "gold"].map(function (t) {
+      return '<li class="t-' + t + '"><i aria-hidden="true"></i><b>' + TIER_NAME[t] + '</b> <span>' + (t === "bronze" ? "1 visit" : t === "silver" ? "2–3 visits" : "4+ visits") + '</span> <em>' + tiers[t] + '</em></li>'; }).join("") + '</ul>';
+    return '<div class="signhead"><div class="signcount"><b>' + c.have + '</b> of 50 states' + (c.dc ? ' <span class="bonusnote">+ DC</span>' : "") + '</div><div class="signbar" aria-hidden="true"><span style="width:' + (c.have * 2) + '%"></span></div></div>' + key +
+      '<div class="signbook">' + (got.length ? '<h3 class="sec">Collected</h3><div class="signgrid">' + got.map(function (id) { return card(id); }).join("") + '</div>' : "") +
+      (todo.length ? '<h3 class="sec">Still to find <span class="muted small">' + todo.length + ' to go</span></h3><div class="signgrid">' + todo.map(function (id) { return card(id); }).join("") + '</div>' : '<p class="allfifty">All 50! What a road trip family. 🎉</p>') +
+      '<h3 class="sec">Bonus</h3><div class="signgrid">' + card("DC", true) + '</div></div>' +
+      '<p class="small muted">Signs fill in from trips, passport stamps and the states you color in on the map. Tap one to see its trips and dates. The designs are Famstamp originals, not real state signs.</p>';
   }
   function signs(k) {
-    var A_ = A(); document.title = (k ? k.name + "'s state signs" : "State signs") + " · Famstamp";
+    var A_ = A(), pid = k ? k.id : null; document.title = (k ? k.name + "'s state signs" : "State signs") + " · Famstamp";
+    var have = Object.keys(P.signsFor(k ? [k] : S().kids, S().trips, CTX)), seen = readSeen(pid);
+    // First visit to this screen: nothing flips. After that, signs collected since last time get a flip-in and a shine.
+    var fresh = seen ? have.filter(function (id) { return seen.indexOf(id) < 0; }) : [];
+    writeSeen(pid, have);
     var body = '<div class="seg pswitch" role="group" aria-label="Passport or State Signs">' + (k ? '<a class="btn" href="#/p/' + esc(k.id) + '/passport">🛂 Passport</a>' : '<a class="btn" href="#/family/passport">🛂 Passport</a>') +
-      '<a class="btn" aria-current="page">🪧 State Signs</a></div>' + collectBar(k ? k.id : null) + signsHTML(k ? k.id : null);
+      '<a class="btn" aria-current="page">🪧 State Signs</a></div>' + collectBar(pid) + signsHTML(pid, fresh);
     A_.main.innerHTML = k ? A_.shell(k, "passport", body) : '<a class="back" href="#/family">← Family map</a><h1>State signs</h1>' + body;
     $$("[data-sign]").forEach(function (b) { b.onclick = function () { signSheet(k, b.dataset.sign); }; });
   }
+  function visitRow(v, k, i) {
+    var A_ = A(), t = v.tripId ? tripById(v.tripId) : null, d = t ? dateRange(t) : (P.fmtDate(v.date) ? P.fmtDate(v.date) + (v.end ? " to " + P.fmtDate(v.end) : "") : "");
+    var how = t ? '<a href="#/p/' + esc((k || A_.kidById(v.who[0]) || { id: t.kidIds[0] }).id) + '/trip/' + esc(t.id) + '">' + esc(t.place) + ' →</a>' : v.source === "hand" ? "Added by hand" : "Colored in on the map";
+    var owner = k || (v.who.length === 1 ? A_.kidById(v.who[0]) : null);
+    return '<li><span class="vnum" aria-hidden="true">' + (i + 1) + '</span><div><b>' + esc(d || "Date not set") + '</b><span class="small">' + how + '</span>' + (!k && v.who.length ? '<span class="dots">' + A_.avatars(v.who) + '</span>' : "") + '</div>' +
+      (!t && owner ? '<button type="button" class="btn btn-ghost btn-sm" data-vdate="' + i + '">' + (d ? "Change date" : "Add date") + '</button>' : "") + '</li>';
+  }
   function signSheet(k, id) {
     var A_ = A(), name = areaName("state", id), who = k ? [k] : S().kids, info = P.signsFor(who, S().trips, CTX)[id], again = function () { signs(k ? A_.kidById(k.id) : null); };
-    if (info && k) {
-      var st = stampsOf(k).filter(function (s) { return s.kind === "state" && s.area === id; });
-      var pick = st.filter(function (s) { return s.date === info.first; })[0] || st[0];
-      if (pick) return stampSheet(pick, k, again);
-    }
-    var missing = S().kids.filter(function (p) { return !P.signsFor([p], S().trips, CTX)[id]; });
-    var html = '<div class="bigsign">' + P.signSVG(id, name, info || null) + '</div><h3>' + esc(name) + (id === "DC" ? ' <span class="tag">bonus</span>' : "") + '</h3>';
-    if (info) html += '<p class="muted">' + (info.first ? "First visit " + esc(P.fmtDate(info.first)) : "Date not set yet") + '</p><p class="small"><span class="dots">' + A_.avatars(info.who) + '</span> ' + esc(A_.travelerNames(info.who)) + '</p>' +
-      (info.trips.length ? '<p class="small">Trips: ' + info.trips.map(tripById).filter(Boolean).map(function (t) { return '<a href="#/p/' + esc(info.who[0]) + '/trip/' + esc(t.id) + '">' + esc(t.place) + '</a>'; }).join(", ") + '</p>' : "");
+    var look = P.signInfo(id), t = P.signTier(info), missing = S().kids.filter(function (p) { return !P.signsFor([p], S().trips, CTX)[id]; });
+    var html = '<div class="signdetail"><div class="bigsign' + (info ? " t-" + t : "") + '">' + P.signSVG(id, name, info || null) + '</div><h3>' + esc(name) + (id === "DC" ? ' <span class="tag">bonus</span>' : "") + '</h3>' +
+      (look ? '<p class="signnick">' + esc(look.nick) + '</p>' : "");
+    if (info) {
+      var next = t === "gold" ? "Top frame. Gold!" : (t === "silver" ? 4 - info.visits : 1) + (t === "silver" && 4 - info.visits > 1 ? " more visits" : " more visit") + " for " + (t === "silver" ? "Gold" : "Silver");
+      html += '<div class="signmeta"><span class="tierpill t-' + t + '"><i aria-hidden="true"></i>' + TIER_NAME[t] + ' sign</span><span><b>' + info.visits + '</b> ' + (info.visits === 1 ? "visit" : "visits") + '</span><span>' + (info.first ? "First visit <b>" + esc(P.fmtDate(info.first)) + "</b>" : "Date not set yet") + '</span></div>' +
+        '<p class="small muted">' + esc(next) + '</p>' +
+        '<p class="small"><span class="dots">' + A_.avatars(info.who) + '</span> ' + esc(A_.travelerNames(info.who)) + '</p>' +
+        '<h4 class="sec">Visits</h4><ol class="visitlist">' + info.list.map(function (v, i) { return visitRow(v, k, i); }).join("") + '</ol>';
+    } else html += '<p class="muted">Not collected yet. Visit ' + esc(name) + ' on a trip and this sign fills in by itself.</p>';
     var canAdd = k ? !info : missing.length;
     if (canAdd) html += '<p class="small muted">Been to ' + esc(name) + '? Add the sign by hand.</p>' + (k ? "" : '<div class="field"><label for="swho">Who?</label><select id="swho">' + missing.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join("") + '</select></div>') + dateFields("") +
       '<div class="actions"><button type="button" class="btn btn-primary" id="sok">Collect this sign</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>';
     else html += '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Close</button></div>';
-    sheet(html);
+    sheet(html + '</div>');
+    $$("[data-vdate]").forEach(function (b) {
+      b.onclick = function () {
+        var v = info.list[+b.dataset.vdate], owner = k || A_.kidById(v.who[0]), st = owner && stampsOf(owner).filter(function (x) { return x.id === v.stampId; })[0];
+        if (st) stampSheet(st, owner, again);
+      };
+    });
     var ok = $("#sok");
     if (ok) ok.onclick = function () {
       var p = k || A_.kidById($("#swho").value), date = readDate(), stamp = P.newStamp({ kind: "state", area: id, date: date });

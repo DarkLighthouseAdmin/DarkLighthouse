@@ -326,24 +326,53 @@ h2 .units { margin-left:.4rem; }
 .pswitch .btn[aria-current] { background:var(--navy); color:#fff; border-color:var(--navy); }
 .signwho { margin-bottom:.7rem; } .signwho .chip { text-decoration:none; display:inline-flex; align-items:center; gap:.3rem; } .signwho .chip[aria-current] { background:var(--navy); color:#fff; border-color:var(--navy); }
 .signwho .dotp { width:20px; height:20px; font-size:.62rem; }
-.signhead { display:flex; align-items:center; gap:.8rem; margin:.2rem 0 .8rem; flex-wrap:wrap; }
+.signhead { display:flex; align-items:center; gap:.8rem; margin:.2rem 0 .5rem; flex-wrap:wrap; }
 .signcount { font-size:1.05rem; color:var(--navy); } .signcount b { font-family:var(--serif); font-size:1.9rem; color:var(--sage-deep); }
 .bonusnote { font-size:.8rem; background:#f3e2bd; color:#7a5310; border-radius:999px; padding:.05rem .5rem; }
-.signbar { flex:1; min-width:120px; height:10px; background:#e7e1d3; border-radius:999px; overflow:hidden; } .signbar span { display:block; height:100%; background:var(--sage-deep); border-radius:999px; }
-.signgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.4rem .6rem; }
-@media (max-width:420px) { .signgrid { grid-template-columns:1fr 1fr; } }
-.signcard { position:relative; background:none; border:0; padding:.2rem; cursor:pointer; border-radius:12px; }
-.signcard:focus-visible { outline:3px solid var(--beacon); }
-.signcard.got .signsvg { filter:drop-shadow(0 3px 4px rgba(22,40,58,.22)); }
-.signcard:not(.got) .signsvg { opacity:.55; }
-.signcard .dots { position:absolute; top:2px; right:6px; } .signcard .dotp { width:18px; height:18px; font-size:.58rem; }
-.signcard .bonustag { position:absolute; top:0; left:4px; font-size:.62rem; font-weight:700; text-transform:uppercase; background:#f3e2bd; color:#7a5310; border-radius:999px; padding:.05rem .4rem; }
+.signbar { flex:1; min-width:120px; height:12px; background:#e7e1d3; border-radius:999px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.12); }
+.signbar span { display:block; height:100%; background:linear-gradient(90deg,var(--sage-deep),#3f9a72); border-radius:999px; }
+/* frames: bronze 1 visit, silver 2-3, gold 4+ */
+.t-bronze { --tier:#9a5f2a; --tier2:#e6ae72; } .t-silver { --tier:#7d8996; --tier2:#eef2f6; } .t-gold { --tier:#a87808; --tier2:#ffe07a; }
+.tierkey { list-style:none; display:flex; flex-wrap:wrap; gap:.35rem .5rem; margin:0 0 .8rem; padding:0; font-size:.82rem; color:var(--ink); }
+.tierkey li { display:inline-flex; align-items:center; gap:.3rem; background:#fff; border:1px solid var(--line); border-radius:999px; padding:.15rem .6rem .15rem .3rem; }
+.tierkey i, .tierpill i { width:14px; height:14px; border-radius:50%; background:radial-gradient(circle at 35% 30%,var(--tier2),var(--tier)); box-shadow:0 0 0 1.5px #fff,0 0 0 2.5px var(--tier); }
+.tierkey span { color:#5b6670; } .tierkey em { font-style:normal; font-weight:700; color:var(--navy); margin-left:.15rem; }
+.signbook { background:#fbf7ee; background-image:radial-gradient(rgba(22,40,58,.05) 1px,transparent 1px); background-size:14px 14px; border:1px solid var(--line); border-radius:16px; padding:.4rem .7rem .8rem; margin-bottom:.8rem; }
+.signbook .sec { margin-top:.8rem; } .signbook .sec .small { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:400; }
+.allfifty { font-family:var(--serif); font-size:1.2rem; color:var(--sage-deep); text-align:center; }
+.signgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.6rem; }
+@media (max-width:420px) { .signgrid { grid-template-columns:1fr 1fr; gap:.45rem; } }
+.signcard { position:relative; min-width:0; background:none; border:0; padding:.35rem .3rem .1rem; cursor:pointer; border-radius:14px; content-visibility:auto; contain-intrinsic-size:auto 150px; transition:transform .15s ease, box-shadow .15s ease; overflow:hidden; }
+.signcard.got { background:#fff; box-shadow:0 1px 0 rgba(22,40,58,.06),0 3px 10px rgba(22,40,58,.08); border:1px solid #ece4d3; }
+.signcard.got::before { content:""; position:absolute; inset:0; border-radius:inherit; border-top:3px solid var(--tier); pointer-events:none; }
+.signcard.todo { border:1.5px dashed #cfc6b2; background:rgba(255,255,255,.35); }
+.signcard:hover { transform:translateY(-2px); } .signcard.got:hover { box-shadow:0 6px 16px rgba(22,40,58,.14); }
+.signcard:focus-visible { outline:3px solid var(--beacon); outline-offset:2px; }
+.signcard .dots { position:absolute; bottom:4px; left:6px; } .signcard .dotp { width:18px; height:18px; font-size:.58rem; }
+.signcard .bonustag { position:absolute; top:4px; left:6px; font-size:.62rem; font-weight:700; text-transform:uppercase; background:#f3e2bd; color:#7a5310; border-radius:999px; padding:.05rem .4rem; }
+.signcard .newtag { position:absolute; top:4px; right:6px; font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; background:var(--beacon); color:var(--navy); border-radius:999px; padding:.05rem .45rem; box-shadow:0 1px 3px rgba(0,0,0,.2); }
 .signsvg { display:block; width:100%; height:auto; }
-.bigsign { width:240px; margin:0 auto .4rem; }
-.stampfx .fxsign { width:260px; animation:signup .7s cubic-bezier(.2,1.3,.4,1) both; transform-origin:50% 100%; }
-.stampfx.calm .fxsign { animation:inkfade .4s ease both; }
+/* a newly collected sign flips in with a shine (not with reduced motion) */
+.signcard.fresh .signsvg { animation:signflip .85s cubic-bezier(.2,1.25,.4,1) both; animation-delay:var(--d,0ms); transform-origin:50% 60%; }
+.signcard.fresh::after, .stampfx .fxsign::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.75) 50%,transparent 65%); transform:translateX(-130%); animation:signshine 1.1s ease-out both; animation-delay:calc(var(--d,0ms) + .55s); }
+@keyframes signflip { 0% { transform:perspective(700px) rotateY(-95deg) scale(.85); opacity:0; } 55% { transform:perspective(700px) rotateY(14deg) scale(1.04); opacity:1; } 100% { transform:none; opacity:1; } }
+@keyframes signshine { from { transform:translateX(-130%); } to { transform:translateX(130%); } }
+/* detail sheet */
+.signdetail { text-align:center; } .signdetail .visitlist, .signdetail .actions, .signdetail .field, .signdetail .fields, .signdetail .orline { text-align:left; }
+.bigsign { width:min(300px,100%); margin:0 auto .3rem; filter:drop-shadow(0 6px 10px rgba(22,40,58,.18)); }
+.signnick { margin:-.2rem 0 .5rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; font-size:.78rem; color:#5b6670; }
+.signmeta { display:flex; flex-wrap:wrap; justify-content:center; gap:.4rem; margin:.3rem 0; }
+.signmeta > span { background:#f5efe2; border-radius:999px; padding:.2rem .7rem; font-size:.88rem; color:var(--ink); }
+.tierpill { display:inline-flex; align-items:center; gap:.35rem; font-weight:700; background:#fff !important; border:1.5px solid var(--tier); }
+.visitlist { list-style:none; padding:0; margin:.3rem 0 .6rem; display:grid; gap:.4rem; }
+.visitlist li { display:flex; align-items:center; gap:.6rem; background:#fff; border:1px solid var(--line); border-radius:12px; padding:.45rem .6rem; }
+.visitlist li > div { flex:1; min-width:0; display:flex; flex-direction:column; } .visitlist li > div a { overflow-wrap:anywhere; }
+.visitlist .vnum { flex:none; width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:var(--navy); color:#fff; font-weight:700; font-size:.8rem; }
+.btn-sm { min-height:36px; padding:.3rem .7rem; font-size:.85rem; flex:none; }
+.stampfx .fxsign { position:relative; overflow:hidden; width:min(280px,82vw); animation:signflip .85s cubic-bezier(.2,1.25,.4,1) both; transform-origin:50% 60%; }
+.stampfx.calm .fxsign { animation:inkfade .4s ease both; } .stampfx.calm .fxsign::after { display:none; }
 @keyframes signup { 0% { transform:translateY(40px) scaleY(.2); opacity:0; } 60% { transform:translateY(-6px) scaleY(1.05); opacity:1; } 100% { transform:none; opacity:1; } }
-@media (prefers-reduced-motion: reduce) { .stampfx .fxsign { animation:inkfade .2s ease both; } }
+@media (prefers-reduced-motion: reduce) { .stampfx .fxsign { animation:inkfade .2s ease both; } .stampfx .fxsign::after, .signcard.fresh::after { display:none; animation:none; } .signcard.fresh .signsvg { animation:none; } .signcard { transition:none; } .signcard:hover { transform:none; } }
 
 /* Famstamp logo: an ink-stamp mark that links Home and "thunks" when tapped */
 /* sits above sheets (z 40) and the family menu (45) so it always works as a way Home */
