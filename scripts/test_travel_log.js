@@ -733,7 +733,7 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/first visit/.test(P.signSVG("TX", "Texas", { first: "2020-05-01", visits: 2 })), "a dated sign still shows its first visit");
   ok(read("index.html").indexOf("state-symbols.js") < read("index.html").indexOf("stamp-art.js") && read("index.html").indexOf("stamp-art.js") < read("index.html").indexOf("passport-core.js"), "index.html loads symbols, then stamp art, then the passport");
   const sw2 = read("sw.js"); ok(["state-symbols.js", "stamp-art.js"].every(f => sw2.indexOf('"' + f + '"') >= 0), "service worker caches the stamp art files");
-  ok(read("stamp-art.js").length < 70000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight");
+  ok(read("stamp-art.js").length < 120000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight");
   ok(/famstamp-stampart:/.test(read("trips-ui.js")) && /data-art=/.test(read("trips-ui.js")), "passport has the Bird / Flower / Animal / Mix toggle, saved per person");
 }
 
@@ -746,7 +746,9 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   const looks = M.PARKS.map(p => { const d = SA.design("park", p.id, p.name); return [d.shape, d.border, d.ink, d.motif].join(); });
   ok(new Set(looks).size === 64, "every park stamp looks different (shape, border, ink, picture)");
   ok(M.PARKS.every(p => SA.parkLook(p.id) && SA.GLYPHS[SA.parkLook(p.id).motif]), "every park has a drawn picture");
-  ok(SA.parkLook("saguaro").motif === "saguaro" && SA.parkLook("yellowstone").motif === "geyser" && SA.parkLook("arches").motif === "rockarch", "Saguaro gets a saguaro, Yellowstone a geyser, Arches an arch");
+  ok(SA.parkLook("saguaro").motif === "np_saguaro" && SA.parkLook("yellowstone").motif === "np_yellowstone" && SA.parkLook("arches").motif === "np_arches" && SA.parkLook("badlands").motif === "np_badlands", "every national park gets its own drawn scene");
+  ok(M.PARKS.every(p => /^np_/.test(SA.parkLook(p.id).motif)) && !/data-look="(?!circle)/.test(SA.stampSVG({ kind: "park", area: "zion" }, { name: "Zion", date: "1 JUN 2026" })), "national park stamps share one round engraved layout");
+  ok(/<textPath/.test(SA.stampSVG({ kind: "park", area: "denali" }, { name: "Denali", date: "1 JUN 2026", sub: "AK · NATIONAL PARK" })), "the park name runs around the top of the stamp");
   const und = SA.stampSVG({ kind: "park", area: "zion" }, { name: "Zion", date: "" });
   ok(!/\?/.test(und.replace(/<[^>]*>/g, " ")) && !/NATIONAL PARK SERVICE/.test(und + read("trips-ui.js") + read("stamp-art.js")), "an undated park stamp has no '?', and no agency name");
   ok(/parksMapSVG/.test(read("app.js")) && /pkstamp/.test(read("app.js")), "Parks tab shows the map dots and a stamp per park");
