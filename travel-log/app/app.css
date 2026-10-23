@@ -224,7 +224,7 @@ body.kidview .foot { display:none; }
 .btotal { display:flex; align-items:center; justify-content:space-between; gap:.6rem; flex-wrap:wrap; margin-top:.8rem; background:#16283a; color:#fff; border-radius:14px; padding:.6rem .9rem; font-size:1.05rem; }
 .btotal:empty { display:none; } .btotal b { font-family:var(--serif); font-size:1.3rem; color:var(--beacon); }
 .units.seg { display:inline-flex; margin:0; gap:0; vertical-align:middle; }
-.units.seg button { min-height:30px; padding:.1rem .6rem; font-size:.78rem; border-radius:0; }
+.units.seg button { min-height:40px; min-width:44px; padding:.1rem .6rem; font-size:.78rem; border-radius:0; }
 .units.seg button:first-child { border-radius:999px 0 0 999px; } .units.seg button:last-child { border-radius:0 999px 999px 0; }
 .builder .item { border:1px solid var(--line); border-radius:14px; padding:.2rem .8rem .5rem; margin-top:.6rem; background:#fff; }
 .builder .item.adult, .adultbox { border-color:#d9b36c; background:#fffaf0; }
@@ -551,3 +551,45 @@ body.bookpdf .bookpages { margin:0; gap:0; }
 body.bookpdf .bpage { max-width:none; width:8in; height:8in; border-radius:0; box-shadow:none; page:book; break-after:page; }
 @page book { size:8in 8in; margin:0; }
 @media print { body.bookpdf .bpage, body.bookpdf .bpage * { -webkit-print-color-adjust:exact; print-color-adjust:exact; } body.bookpdf .bpage:last-child { break-after:auto; } }
+/* Grandparent follow-along (#/follow, #/follow/<token>) */
+body.followview .topright { display:none; }
+.fhello { display:flex; gap:.8rem; align-items:flex-start; margin-top:.4rem; }
+.fhello .dots { display:flex; flex-wrap:wrap; gap:.2rem; max-width:5.5rem; padding-top:.5rem; flex:none; }
+.fhello h1 { margin:.2rem 0 .3rem; }
+.fupds { display:grid; gap:.8rem; margin-top:1rem; }
+.fupd { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:.9rem 1rem; box-shadow:0 2px 10px rgba(22,40,58,.05); overflow-wrap:anywhere; }
+.fupd h3 { margin:.15rem 0 .35rem; font-size:1.12rem; line-height:1.3; }
+.fwhen { font-size:.8rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+.fsub { margin:.5rem 0 .2rem; font-size:.85rem; font-weight:700; color:var(--muted); }
+.fstamps { list-style:none; margin:.2rem 0 0; padding:0; display:flex; flex-wrap:wrap; gap:.35rem; }
+.fstamps li { background:#f3efe4; border-radius:999px; padding:.3rem .7rem; font-size:.92rem; }
+.fjr { display:inline-block; margin-left:.2rem; padding:0 .45rem; border-radius:999px; background:var(--sage-deep); color:#fff; font-size:.75rem; font-weight:700; }
+.fmem { margin:.6rem 0 0; display:grid; gap:.45rem; }
+.fmem dt { font-size:.82rem; font-weight:700; color:var(--muted); }
+.fmem dd { margin:.1rem 0 0; font-size:1rem; }
+.fmoments { list-style:none; padding:0; margin:.6rem 0 0; display:grid; gap:.4rem; }
+.fmoments li { display:flex; gap:.5rem; align-items:flex-start; }
+.fnote { margin:.6rem 0 0; font-style:italic; }
+.ffoot, .fnoteline { margin-top:1rem; }
+.ffoot a { display:inline-block; min-height:44px; line-height:44px; }
+.fpreview { border:2px dashed var(--line); border-radius:18px; padding:.8rem; margin-top:.6rem; background:rgba(255,255,255,.4); }
+.fwho { border:0; padding:0; margin-left:0; margin-right:0; }
+.fwho legend { font-size:.85rem; font-weight:600; color:var(--muted); padding:0; margin-bottom:.25rem; }
+.fform select, .fform input:not([type=checkbox]) { width:100%; min-height:44px; }
+.fmade { margin-top:.8rem; padding:.8rem; border-radius:12px; background:#eef6f0; }
+.fmade input { width:100%; min-height:44px; font-size:.9rem; }
+.flink { flex-wrap:wrap; gap:.5rem; }
+.flink .nm { flex:1 1 12rem; min-width:0; }
+.flbtns { display:flex; gap:.4rem; margin-left:auto; }
+.flbtns .pill { min-height:44px; min-width:44px; }
+.flbtns .fx { color:#9a3b2f; }
+.fwho { color:var(--muted); font-size:.8rem; }
+/* Tap targets: at least 40px (44 where there's room) without changing how the page looks.
+   Back links and the small trip-card links get a taller hit area; negative margins keep the spacing the same. */
+.back { display:inline-flex; align-items:center; min-height:44px; padding:0 .6rem 0 0; margin-bottom:-10px; margin-top:calc(.9rem - 10px); box-sizing:border-box; }
+.trip .tactions { align-items:center; flex-wrap:wrap; gap:.2rem 1rem; }
+.trip .tactions a { display:inline-flex; align-items:center; min-height:44px; margin:-8px 0; }
+.trip .tactions .edit { padding:0 .5rem; min-width:44px; justify-content:center; }
+.trip h3 .tlink { display:inline-block; padding:.55rem 0; margin:-.55rem 0; }
+input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
+.tapline { display:inline-block; padding:.7rem 0; margin:-.7rem 0; }

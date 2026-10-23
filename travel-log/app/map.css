@@ -30,7 +30,7 @@ mark { background:#f6d98e; color:inherit; border-radius:3px; padding:0 1px; }
 /* collapsible groups */
 .plist-tools .field { margin-top:0; }
 .plist-btns { display:flex; gap:1rem; justify-content:flex-end; margin:.4rem 0 .2rem; flex-wrap:wrap; }
-.linkbtn { background:none; border:0; padding:.35rem 0; min-height:36px; font:inherit; font-size:.9rem; font-weight:600; color:var(--sage-deep); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.linkbtn { background:none; border:0; padding:.35rem 0; min-height:44px; font:inherit; font-size:.9rem; font-weight:600; color:var(--sage-deep); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
 .plist-none { margin:.6rem 0; }
 .pgrp { border-top:1px solid var(--line); }
 .pgrp .pgt { margin:0; font-size:1rem; }
@@ -84,7 +84,7 @@ select.ppk-native { position:absolute !important; width:1px !important; height:1
 @media (max-width:640px) {
   .pzctl { right:6px; bottom:6px; gap:0; background:rgba(255,255,255,.7); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); border:1px solid rgba(31,42,51,.18);
     border-radius:17px; overflow:hidden; box-shadow:0 1px 3px rgba(22,40,58,.12); }
-  .pzctl button { width:34px; height:36px; border:0; border-radius:0; background:transparent; box-shadow:none; font-size:1.15rem; }
+  .pzctl button { width:40px; height:40px; border:0; border-radius:0; background:transparent; box-shadow:none; font-size:1.15rem; }
   .pzctl button + button { border-top:1px solid rgba(31,42,51,.12); }
   .pzctl button svg { width:14px; height:14px; }
   .pzctl button:active { background:rgba(255,255,255,.95); }
