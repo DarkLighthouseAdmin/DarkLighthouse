@@ -1,12 +1,14 @@
 {
- "_readme": "Central list of partner links used on /travel/ pages. Each link on a page has data-affiliate=\"<key>\" and a plain href to the real page. When a program approves you, paste your tracked link into tracked_url and set status to \"active\"; /travel/affiliates.js swaps it in on page load. Leave tracked_url empty until then. No IDs here are real yet.",
+ "_readme": "Central list of partner links used on /travel/ pages. Each link on a page has data-affiliate=\"<key>\" and a plain href to the real page. When a program approves you, paste your tracked link into tracked_url and set status to \"active\"; /travel/affiliates.js swaps it in on page load. Leave tracked_url empty until then. No IDs here are real yet. Status \"active-via-travelpayouts-drive\" means the Travelpayouts Drive script on /travel/ pages converts the plain link itself, so tracked_url stays empty. Go City has no Edinburgh/Scotland pass (checked Oct 22 2026), so it isn't used on the Scotland guide.",
  "updated": "2026-10-22",
  "links": {
-  "gyg-edinburgh":      {"program": "GetYourGuide Partner Program", "plain_url": "https://www.getyourguide.com/edinburgh-l44/", "tracked_url": "", "status": "not-joined"},
+  "gyg-edinburgh": {"program": "GetYourGuide Partner Program", "plain_url": "https://www.getyourguide.com/edinburgh-l44/", "tracked_url": "", "status": "not-joined"},
   "gyg-edinburgh-day-trips": {"program": "GetYourGuide Partner Program", "plain_url": "https://www.getyourguide.com/edinburgh-l44/day-trips-tc172/", "tracked_url": "", "status": "not-joined"},
-  "viator-edinburgh":   {"program": "Viator Partner Program", "plain_url": "https://www.viator.com/Edinburgh/d739-ttd", "tracked_url": "", "status": "not-joined"},
+  "viator-edinburgh": {"program": "Viator Partner Program", "plain_url": "https://www.viator.com/Edinburgh/d739-ttd", "tracked_url": "", "status": "not-joined"},
   "discovercars-edinburgh": {"program": "Discover Cars affiliate (direct or via Travelpayouts)", "plain_url": "https://www.discovercars.com/united-kingdom/edinburgh", "tracked_url": "", "status": "not-joined"},
-  "airalo-uk":          {"program": "Airalo affiliate (direct or via Travelpayouts)", "plain_url": "https://www.airalo.com/united-kingdom-esim", "tracked_url": "", "status": "not-joined"},
-  "booking-edinburgh":  {"program": "Booking.com via CJ or Travelpayouts", "note": "Booking.com's Awin program ended June 30 2026; join via CJ or Travelpayouts instead", "plain_url": "https://www.booking.com/city/gb/edinburgh.html", "tracked_url": "", "status": "not-joined"}
+  "airalo-uk": {"program": "Airalo via Travelpayouts (connected Oct 22 2026)", "plain_url": "https://www.airalo.com/united-kingdom-esim", "tracked_url": "", "status": "active-via-travelpayouts-drive"},
+  "booking-edinburgh": {"program": "Booking.com via CJ or Travelpayouts", "note": "Booking.com's Awin program ended June 30 2026; join via CJ or Travelpayouts instead", "plain_url": "https://www.booking.com/city/gb/edinburgh.html", "tracked_url": "", "status": "not-joined"},
+  "tiqets-edinburgh-castle": {"program": "Tiqets via Travelpayouts (connected Oct 22 2026)", "plain_url": "https://www.tiqets.com/en/edinburgh-castle-tickets-l145936/", "tracked_url": "", "status": "active-via-travelpayouts-drive"},
+  "klook-edinburgh": {"program": "Klook via Travelpayouts (connected Oct 22 2026)", "plain_url": "https://www.klook.com/en-US/destination/c200-edinburgh/1-things-to-do/", "tracked_url": "", "status": "active-via-travelpayouts-drive"}
  }
 }

@@ -115,7 +115,8 @@ def foot(aff=False):
 ''' + ('  <script src="/travel/affiliates.js" defer></script>\n' if aff else "")
 
 AFF_SLOT = {"gyg-edinburgh": "tour", "gyg-edinburgh-day-trips": "tour", "viator-edinburgh": "tour",
-            "discovercars-edinburgh": "car", "airalo-uk": "esim", "booking-edinburgh": "stay"}
+            "discovercars-edinburgh": "car", "airalo-uk": "esim", "booking-edinburgh": "stay",
+            "tiqets-edinburgh-castle": "tickets", "klook-edinburgh": "tour"}
 
 def slot(kind, where=""):
     """Marks a natural spot for a partner link. Invisible on the page; grep 'AFFILIATE:' to find them all."""
@@ -469,7 +470,7 @@ def build_scotland():
     <h3>14 nights: a slice of the North Coast 500</h3>
     <p>Edinburgh (3) → Pitlochry (1) → Inverness (1) → Wick (1) → Durness (1) → Ullapool (1) → Applecross (1) → Skye (2) → Fort William (1) → Oban (1) → Glasgow (1). The full North Coast 500 is 516 miles from Inverness and VisitScotland suggests 5 to 7 days for it, so this route only does the northern half before cutting across to Skye.</p>
     {slot("stay", "14-night route: NC500 towns, Applecross, Skye, Oban")}
-    <p>Prefer to leave the driving to someone else for a day? Highland day tours from Edinburgh are listed on {aff("gyg-edinburgh-day-trips", "GetYourGuide")} and {aff("viator-edinburgh", "Viator")}.</p>
+    <p>Prefer to leave the driving to someone else for a day? Highland day tours from Edinburgh (Loch Ness, Glencoe, St Andrews) are listed on {aff("gyg-edinburgh-day-trips", "GetYourGuide")}, {aff("viator-edinburgh", "Viator")} and {aff("klook-edinburgh", "Klook")}. Compare the pickup point and how long you're actually on the coach before you book with kids.</p>
 
     <h2 id="costs">5. The costs people forget</h2>
     <p>Flights, rooms and the car will be most of your budget, and they depend so much on dates that we won't guess at them. Get real quotes. These are the smaller things that catch people out:</p>
@@ -480,7 +481,7 @@ def build_scotland():
       <li><strong>Ferries</strong> if you head to islands other than Skye (Skye has a bridge). Book summer car spaces early.</li>
       <li><strong>Travel insurance:</strong> check the policy covers everyone, including medical cover outside your home country and the rental car's damage excess, which is often £1,000 or more.{slot("insurance", "costs list")}</li>
       <li><strong>Phone data:</strong> check your plan's roaming charges, or use a travel eSIM such as {aff("airalo-uk", "Airalo")}.</li>
-      <li><strong>Castle and attraction tickets:</strong> many big sites sell timed tickets online, and summer slots sell out. Edinburgh tours and tickets are on {aff("gyg-edinburgh", "GetYourGuide")}.</li>
+      <li><strong>Castle and attraction tickets:</strong> many big sites sell timed tickets online, and summer slots sell out. Edinburgh tours and tickets are on {aff("gyg-edinburgh", "GetYourGuide")}, and {aff("tiqets-edinburgh-castle", "Tiqets has Edinburgh Castle tickets")}, including entry with a guided tour. The castle's own website sells plain entry too, so compare.</li>
     </ul>
     <p>Want to turn it into a number? The <a href="/travel/tools/travel-budget-calculator/">travel budget calculator</a> adds it up and tells you what to save per paycheck, and the <a href="/travel/tools/daily-travel-budget-calculator/">daily budget calculator</a> works out spending money per day in pounds and dollars.</p>
 
@@ -600,7 +601,7 @@ def build_privacy():
     <h2 id="checkout">Checkout</h2>
     <p>Templates and planners are sold through <a href="https://polar.sh">Polar</a>, which acts as the merchant of record and handles payment, tax and your receipt. We receive your name, email and order details from Polar so we can deliver your purchase and answer questions.</p>
     <h2 id="affiliate-links">Partner (affiliate) links</h2>
-    <p>Our travel pages (everything under <a href="/travel/">/travel/</a>) link to booking sites for tours, car hire, eSIMs and hotels. Those pages, and the homepage, load a small script from Travelpayouts, an affiliate network, which may turn links to travel partners into affiliate links and set partner cookies so a booking can be credited to us. If you book through one, we may earn a small commission. It costs you nothing extra, it never changes the price you pay, and we only link to things we'd use ourselves.</p>
+    <p>Our travel pages (everything under <a href="/travel/">/travel/</a>) link to booking sites for tours, attraction tickets, car hire, eSIMs and hotels. Those pages, and the homepage, load a small script from Travelpayouts, an affiliate network, which may turn links to travel partners into affiliate links and set partner cookies so a booking can be credited to us. If you book through one, we may earn a small commission. It costs you nothing extra, it never changes the price you pay, and we only link to things we'd use ourselves.</p>
     <p>The script only runs on travel pages, not on the money templates, calculators or data kits.</p>
     <p>Official information (like GOV.UK and VisitScotland) is never a partner link.</p>
     <h2 id="extension">Renewal Radar</h2>
