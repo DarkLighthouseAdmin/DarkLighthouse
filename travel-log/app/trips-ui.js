@@ -1113,11 +1113,13 @@
     var A_ = A(); document.title = k.name + "'s passport · Famstamp";
     var stamps = stampsOf(k);
     A_.main.innerHTML = A_.shell(k, "passport", '<div class="seg pswitch" role="group" aria-label="Passport or State Signs"><a class="btn" aria-current="page">🛂 Passport</a><a class="btn" href="#/p/' + esc(k.id) + '/signs">🪧 State Signs</a></div>' +
+      (A_.badgeStrip ? A_.badgeStrip(k) : "") +
       '<p class="lede small">Every place ' + esc(k.name) + ' has been gets a stamp, with the date. Trips add them on their own; tap a stamp to see it.</p>' +
       bookHTML(k.name + "'s Famstamp Passport", k.color, stamps, false, k.id) +
       '<div class="actions"><button type="button" class="btn btn-beacon" id="addstamp">+ Add a stamp</button>' + (S().kids.length > 1 ? '<a class="btn btn-ghost" href="#/family/passport">👨‍👩‍👧 Family passport</a>' : "") + '</div>');
     var bk = bindBook(function (pg) { passport(k, pg); }, stamps, k);
     if (openAt) bk.open(openAt);
+    if (A_.bindBadgeStrip) A_.bindBadgeStrip(k);
     $("#addstamp").onclick = function () { addStampSheet(k); };
   }
   function passportFamily(openAt) {
@@ -1154,17 +1156,25 @@
   }
   function closeSheet() { $$(".sheetbg").forEach(function (x) { x.remove(); }); }
   window.addEventListener("hashchange", closeSheet);
+  /** "With Mom & Dad" on a stamp from a shared visit (nicknames when set). Old stamps have no list and show nothing. */
+  function withLine(s, owner) {
+    var others = (s.with || []).filter(function (id) { return !owner || id !== owner.id; }).map(function (id) { return A().kidById(id); }).filter(Boolean);
+    if (!others.length || !owner) return "";
+    return '<p class="small withline"><span class="dots">' + A().avatars(others.map(function (p) { return p.id; })) + '</span> With ' + esc(window.FS_WHO ? window.FS_WHO.names(others.map(function (p) { return p.id; })) : others.map(M.who).join(", ")) + '</p>';
+  }
   function stampSheet(s, owner, again) {
     var A_ = A(), name = stampName(s), dates = P.fmtDate(s.date) ? P.fmtDate(s.date) + (s.end ? " to " + P.fmtDate(s.end) : "") : "";
     var t = s.tripId ? tripById(s.tripId) : null, holder = owner || (s.who.length === 1 ? A_.kidById(s.who[0]) : null);
     var html = '<div class="bigstamp">' + stampSVG(s, owner ? owner.id : null) + '</div><h3>' + esc(name) + '</h3>' + symLine(s, owner ? owner.id : null) + (dates || s.via ? '<p class="muted">' + esc(dates) + (s.via ? (dates ? " · " : "") + "via " + esc(s.via) : "") + '</p>' : "") + '' +
-      (s.who.length > 1 || !owner ? '<p class="small"><span class="dots">' + A_.avatars(s.who) + '</span> ' + esc(A_.travelerNames(s.who)) + '</p>' : "");
+      (s.who.length > 1 || !owner ? '<p class="small"><span class="dots">' + A_.avatars(s.who) + '</span> ' + esc(A_.travelerNames(s.who)) + '</p>' : "") + withLine(s, owner);
     if (t) html += '<p class="small">From the trip <a href="#/p/' + esc((holder || A_.kidById(t.kidIds[0])).id) + '/trip/' + esc(t.id) + '">' + esc(t.place) + ' →</a></p><p class="small muted">Its dates come from the trip, so edit the trip to change them.</p><div class="actions"><button type="button" class="btn btn-ghost" data-close>Close</button></div>';
     else if (holder) {
       html += (s.note ? '<p class="small">' + esc(s.note) + '</p>' : "") + '<p class="small muted">' + (s.source === "map" ? "Colored in on the map. When were you there?" : "Change the date:") + '</p>' + dateFields(s.date) +
-        '<div class="actions"><button type="button" class="btn btn-primary" id="sok">Save date</button>' + (s.source === "hand" ? '<button type="button" class="btn btn-danger" id="sdel">Remove stamp</button>' : "") + '<button type="button" class="btn btn-ghost" data-close>Close</button></div>';
-    } else html += '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Close</button></div>';
+        '<div class="actions"><button type="button" class="btn btn-primary" id="sok">Save date</button><button type="button" class="btn btn-ghost" id="swho2">👥 Change who has it</button><button type="button" class="btn btn-danger" id="sdel">Remove from ' + esc(M.who(holder)) + '\'s passport</button><button type="button" class="btn btn-ghost" data-close>Close</button></div>';
+    } else html += '<div class="actions"><button type="button" class="btn btn-ghost" id="swho2">👥 Change who has it</button><button type="button" class="btn btn-ghost" data-close>Close</button></div>';
     sheet(html);
+    var sw = $("#swho2");
+    if (sw && window.FS_WHO) sw.onclick = function () { window.FS_WHO.open({ kind: s.kind, area: s.area, page: owner, mode: "edit", date: s.date || "", visitDate: s.source === "hand" ? s.date || "" : null, after: function () { again(); } }); };
     var ok = $("#sok");
     if (ok) ok.onclick = function () {
       var date = readDate(); if (!date) return A_.toast("Pick a day, or a month and year");
@@ -1174,7 +1184,7 @@
       A_.saveKid(holder).then(function () { closeSheet(); again(); A_.toast("Stamp dated"); });
     };
     var dl = $("#sdel");
-    if (dl) dl.onclick = function () { holder.stamps = (holder.stamps || []).filter(function (x) { return x.id !== s.id; }); holder.updatedAt = new Date().toISOString(); A_.saveKid(holder).then(function () { closeSheet(); again(); A_.toast("Stamp removed"); }); };
+    if (dl) dl.onclick = function () { window.FS_WHO.removeStamp(holder, s, function () { closeSheet(); again(); }); };
   }
   function areaOptions(sec) {
     if (sec === "parks") return M.PARK_SETS.map(function (set) { return '<optgroup label="' + esc(set.name) + '">' + M.parksIn(set.id).map(function (p) { return '<option value="park:' + p.id + '">' + esc(set.id === "np" ? p.name : p.full) + '</option>'; }).join("") + '</optgroup>'; }).join("");
@@ -1183,14 +1193,16 @@
       MAPS.world.countries.filter(function (c) { return c.id !== "GBR"; }).slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).map(function (c) { return '<option value="place:' + c.id + '">' + esc(c.name) + '</option>'; }).join("") + '</optgroup>';
   }
   function addStampSheet(k) {
-    var A_ = A();
-    sheet('<h3>Add a stamp to ' + esc(k.name) + '\'s passport</h3><div class="field"><label for="sarea">Where?</label><select id="sarea">' + areaOptions(psec) + '</select></div>' + dateFields("") +
+    var A_ = A(), W = window.FS_WHO, list = W.people(), on = W.startIds(k), me = W.whoAmI().me;
+    sheet('<div class="sheethead"><h3>Add a stamp</h3><button type="button" class="sheetx" data-close aria-label="Close">✕</button></div><div class="field"><label for="sarea">Where?</label><select id="sarea">' + areaOptions(psec) + '</select></div>' +
+      '<div class="field"><label>Who\'s been there?</label>' + W.askLine() + W.chipsHTML(list, on, {}, me) + '</div>' + dateFields("") +
       '<div class="field"><label for="svia">Came in through <span class="muted small">(optional)</span></label><input id="svia" type="text" maxlength="40" placeholder="e.g. EDI, Dover, the ferry"></div>' +
-      '<div class="actions"><button type="button" class="btn btn-primary" id="sok">Stamp it</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
+      '<p class="err" id="werr" hidden></p><div class="actions"><button type="button" class="btn btn-primary" id="sok">Stamp it</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
     $("#sok").onclick = function () {
-      var v = $("#sarea").value.split(":"), stamp = P.newStamp({ kind: v[0], area: v[1], date: readDate(), via: $("#svia").value });
-      var fresh = v[0] === "state" && !stampsOf(k).some(function (x) { return x.kind === "state" && x.area === v[1]; });
-      addStamp(k, stamp, true).then(function () { closeSheet(); passport(k); celebrate([Object.assign({}, stamp, { newSign: fresh })]); });
+      var box = $(".sheetbox"), want = W.picked(box), v = $("#sarea").value.split(":"), date = readDate();
+      if (!want.length) { var e = $("#werr"); e.hidden = false; e.textContent = "Tick who's been there."; return; }
+      var r = window.FS_WHO_CORE.addFor(S().kids, S().trips, v[0], v[1], want, { date: date, via: $("#svia").value, ctx: CTX });
+      W.finish(r, v[0], v[1], date, function () { passport(A_.kidById(k.id) || k); });
     };
   }
   function addStamp(k, stamp, colorIn) {
@@ -1362,9 +1374,9 @@
         '<p class="small"><span class="dots">' + A_.avatars(info.who) + '</span> ' + esc(A_.travelerNames(info.who)) + '</p>' +
         '<h4 class="sec">Visits</h4><ol class="visitlist">' + info.list.map(function (v, i) { return visitRow(v, k, i); }).join("") + '</ol>';
     } else html += '<p class="muted">Not collected yet. Visit ' + esc(name) + ' on a trip and this sign fills in by itself.</p>';
-    var canAdd = k ? !info : missing.length;
-    if (canAdd) html += '<p class="small muted">Been to ' + esc(name) + '? Add the sign by hand.</p>' + (k ? "" : '<div class="field"><label for="swho">Who?</label><select id="swho">' + missing.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join("") + '</select></div>') + dateFields("") +
-      '<div class="actions"><button type="button" class="btn btn-primary" id="sok">Collect this sign</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>';
+    var canAdd = true;
+    if (canAdd) html += '<p class="small muted">' + (info ? "Another visit to " + esc(name) + "? Add it here." : "Been to " + esc(name) + "? Add the sign by hand.") + '</p>' + ('<div class="field"><label>Who\'s been there?</label>' + window.FS_WHO.askLine() + window.FS_WHO.chipsHTML(window.FS_WHO.people(), window.FS_WHO.startIds(k), {}, window.FS_WHO.whoAmI().me) + '</div><p class="err" id="werr" hidden></p>') + dateFields("") +
+      '<div class="actions"><button type="button" class="btn btn-primary" id="sok">' + (info ? "Add this visit" : "Collect this sign") + '</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>';
     else html += '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Close</button></div>';
     sheet(html + '</div>');
     $$("[data-vdate]").forEach(function (b) {
@@ -1375,10 +1387,10 @@
     });
     var ok = $("#sok");
     if (ok) ok.onclick = function () {
-      var p = k || A_.kidById($("#swho").value), date = readDate(), stamp = P.newStamp({ kind: "state", area: id, date: date });
-      // No date? Color in the state only; with a date it's also a passport stamp.
-      var job = date ? addStamp(p, stamp, true) : (M.toggleArea(p, "state", id, true), p.updatedAt = new Date().toISOString(), A_.saveKid(p));
-      job.then(function () { closeSheet(); again(); celebrate([Object.assign({}, stamp, { newSign: true, signOnly: !date })]); });
+      var want = window.FS_WHO.picked($(".sheetbox")), date = readDate();
+      if (!want.length) { var e = $("#werr"); e.hidden = false; e.textContent = "Tick who's been there."; return; }
+      // No date? Color in the state only (a shared visit still keeps who was together); with a date it's also a passport stamp.
+      window.FS_WHO.finish(window.FS_WHO_CORE.addFor(S().kids, S().trips, "state", id, want, { date: date, ctx: CTX }), "state", id, date, again);
     };
   }
 
@@ -1397,5 +1409,6 @@
 
   window.FS_UI = { findPlaces: findPlaces, builder: builder, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
                    lifetimeHTML: lifetimeHTML, bindLifetime: bindLifetime, printExtra: printExtra, loadPlaces: loadPlaces, loadAirports: loadAirports, routeSVG: routeSVG,
-                   searchPlaces: searchPlaces, searchAirports: searchAirports, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs };
+                   searchPlaces: searchPlaces, searchAirports: searchAirports, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs,
+                   sheet: sheet, closeSheet: closeSheet, dateFields: dateFields, readDate: readDate, shortArea: shortArea, stampName: stampName, CTX: CTX };
 })();

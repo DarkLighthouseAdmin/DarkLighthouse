@@ -247,6 +247,10 @@
       if (!fam) return dropped();
       c.familyName = fam.name; c.plan = { plan: fam.plan, keeper_until: fam.keeper_until, trial_ends_at: fam.trial_ends_at, founder: !!fam.founder, max_people: fam.max_people || null }; c.home = fam.home || "";
       var me = members.filter(function (m) { return m.user_id === c.userId; })[0]; if (me) c.role = me.role;
+      // Which person is this login? The family's member row is the source of truth (it's set when you join or pick "This is me"):
+      // a phone that doesn't know yet (signed in again, an older join) picks it up, and a link only this phone knew goes up.
+      if (me && me.person_id && me.person_id !== c.myPerson && A.kidById(me.person_id)) { c.myPerson = me.person_id; c.myName = M.who(A.kidById(me.person_id)) || c.myName; }
+      else if (me && !me.person_id && c.myPerson && A.kidById(c.myPerson) && r.updateMe) r.updateMe(fid, c.userId, { person_id: c.myPerson }).catch(function () {});
       if (!opts.quiet) S.newMembers(members, c.seen, c.userId).forEach(function (m) { if (c.lastSync) celebrate.push(m); });
       members.forEach(function (m) { c.seen[m.user_id] = 1; });
       c.members = members.map(function (m) { return { user_id: m.user_id, role: m.role, display_name: m.display_name, person_id: m.person_id, joined_at: m.joined_at }; });
@@ -949,7 +953,7 @@
   function mePanel(c) {
     var p = c.myPerson ? A.kidById(c.myPerson) : null;
     return '<div class="panel mepanel"><h3>This is you</h3>' + (p ? '<p class="row">' + dot(p) + ' <span><b>' + esc(M.who(p)) + '</b> <span class="muted small">in ' + esc(c.familyName || "this log") + '</span></span></p>'
-      : '<p class="small muted">Pick which person on the log is you, so trips you add can also go to your other family logs.</p>') +
+      : '<p class="small muted">Pick which person on the log is you, so stamps you mark go on your own passport, and trips you add can also go to your other family logs.</p>') +
       '<div class="actions"><a class="btn btn-ghost" href="#/sync/me">' + (p ? "Change" : "Choose which one is me") + '</a></div></div>';
   }
   function logsPanel() {
@@ -1068,7 +1072,7 @@
     if (now && !ovlOpen) { ovlOpen = true; if (!(history.state && history.state.fsovl === 1)) history.pushState({ fsovl: 1 }, ""); }
     else if (!now && ovlOpen) {
       ovlOpen = false;
-      if (history.state && history.state.fsovl === 1) { if (dismissed) history.back(); else history.replaceState({ fsovl: 2 }, ""); }
+      if (history.state && history.state.fsovl === 1) history.back();   // still on the same screen (a Save, ✕, Esc): take the entry off so the next Back leaves the screen
     }
     if (!now) dismissed = false;
   }
@@ -1171,6 +1175,7 @@
   function homeTop0() {
     if (on()) {
       var c = cfg();
+      if (!(c.myPerson && A.kidById(c.myPerson)) && A.state.kids.length) return '<a class="panel familycard menudge" href="#/sync/me"><span class="fam-ic" aria-hidden="true">🙋</span><span><h3>Which one is you?</h3><span class="small">Pick yourself once, so stamps you mark go on your own passport →</span></span></a>';
       return FLAGS.google && c.anonymous !== false && !c.googleNudgeOff ? '<div class="panel gnudge"><p class="small"><b>Link Google so you can sign in on the web.</b> Your phone and computer become the same you, in every family.</p><div class="actions">' + googleBtn("link", "Link Google") + '<a class="btn btn-ghost small" href="#/sync">Later</a></div></div>' : "";
     }
     if (!CFG.showEntry) return "";

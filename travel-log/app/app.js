@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v36" -> "v36").
-  var VERSION = "v39";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v41" -> "v41").
+  var VERSION = "v41";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -192,7 +192,7 @@
     html += '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div>' +
             '<h3>Like paper too?</h3><p class="small muted">The matching paperback, My Lifetime Travel Log, has the same maps to color, all 64 parks and 40 trip pages, for the shelf. ' +
             '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" class="tapline" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>';
-    main.innerHTML = html;
+    main.innerHTML = html + homeTabs();
     // a tap that's only closing the family menu (dropdown on wide screens) shouldn't also start a trip
     var ha = document.getElementById("homeadd"); if (ha) ha.onclick = function (e) { if (document.getElementById("fammenu")) { e.preventDefault(); return; } if (ha.tagName === "BUTTON") UI().whoWentSheet(); };
     document.title = "Famstamp: stamp every trip";
@@ -258,10 +258,29 @@
   var worldZoom = "world";
   function shell(k, tab, inner) {
     var cur = tab === "trip" ? "trips" : tab;
-    return (tab === "trips" ? backupBanner() : "") + '<div style="' + kidStyle(k) + '"><a class="back" href="#/">← Everyone</a><div class="kidhead"><span class="avatar">' + initial(M.who(k)) + '</span><h1>' + esc(M.who(k)) + ' <span class="role">' + esc(roleLabel(k)) + '</span>' + (M.realName(k) ? ' <span class="muted small realname">' + esc(M.realName(k)) + '</span>' : "") + '</h1></div>' +
+    return (tab === "trips" ? backupBanner() : "") + '<div style="' + kidStyle(k) + '"><a class="back" href="#/">← Everyone</a><div class="kidhead"><span class="avatar">' + initial(M.who(k)) + '</span><h1>' + esc(M.who(k)) + ' <span class="role">' + esc(roleLabel(k)) + '</span>' + (M.realName(k) ? ' <span class="muted small realname">' + esc(M.realName(k)) + '</span>' : "") + '</h1></div>' + whoBar(k, cur) +
       '<nav class="tabs" aria-label="Sections" style="' + kidStyle(k) + '"><div class="wrap">' + TABS.map(function (t) {
         return '<a href="#/p/' + esc(k.id) + '/' + t[0] + '"' + (t[0] === cur ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">' + t[2] + '</span>' + t[1] + '</a>';
       }).join("") + '</div></nav>' + inner + '</div>';
+  }
+  // Whose page is this? A strip of everyone to switch between, so it's always clear (and one tap to change).
+  var TAB_WORD = { us: "USA map", world: "World map", parks: "parks", trips: "trips", passport: "passport", stats: "badges" };
+  function myPersonId() { var c = state.meta.sync; return c && c.familyId && c.myPerson && kidById(c.myPerson) ? c.myPerson : ""; }
+  function whoBar(k, tab) {
+    if (state.kids.length < 2) return "";
+    var me = myPersonId(), tabPath = tab === "us" ? "" : "/" + tab;
+    return '<div class="whobar"><p class="whose">' + (k.id === me ? "Your " + esc(TAB_WORD[tab] || "page") : "You're viewing <b>" + esc(M.who(k)) + "'s " + esc(TAB_WORD[tab] || "page") + "</b>") + '</p>' +
+      '<nav class="whoswitch" aria-label="Switch person">' + state.kids.map(function (p) {
+        return '<a href="#/p/' + esc(p.id) + tabPath + '" style="' + kidStyle(p) + '"' + (p.id === k.id ? ' aria-current="page"' : "") + '><span class="dotp" aria-hidden="true">' + initial(M.who(p)) + '</span>' + esc(M.who(p)) + (p.id === me ? ' <small>(you)</small>' : "") + '</a>';
+      }).join("") + '</nav></div>';
+  }
+  /** The bottom tabs on the home screen go to your own pages (or the first person's when this phone isn't linked to anyone). */
+  function homeTabs() {
+    if (!state.kids.length) return "";
+    var p = kidById(myPersonId()) || state.kids[0];
+    return '<nav class="tabs hometabs" aria-label="' + esc(M.who(p)) + '\'s sections"><div class="wrap">' + TABS.map(function (t) {
+      return '<a href="#/p/' + esc(p.id) + '/' + t[0] + '"><span class="ic" aria-hidden="true">' + t[2] + '</span>' + t[1] + '</a>';
+    }).join("") + '</div></nav>';
   }
   function viewKid(k, tab, sub) {
     document.title = k.name + " · Famstamp";
@@ -308,18 +327,20 @@
       el.addEventListener("click", function () {
         var kind = el.dataset.kind, id = el.dataset.id;
         if (kind === "place" && id === "USA" && Object.keys(k.states).length) { toast("Color states on the USA map"); return; }
-        var on = M.toggleArea(k, kind, id, null);
-        saveKid(k); toast(on ? placeName(kind, id) + ": colored in!" : placeName(kind, id) + ": color removed"); rerender();
-        if (on) UI().askDate(k, kind, id, rerender);
+        whoBeen(k, kind, id, function () { rerender(); });
       });
     });
     main.querySelectorAll("input[data-kind]").forEach(function (cb) {
       cb.addEventListener("change", function () {
-        M.toggleArea(k, cb.dataset.kind, cb.dataset.id, cb.checked); saveKid(k);
-        toast(placeName(cb.dataset.kind, cb.dataset.id) + (cb.checked ? ": colored in!" : ": color removed")); rerender(true);
-        if (cb.checked) UI().askDate(k, cb.dataset.kind, cb.dataset.id, function () { rerender(true); });
+        cb.checked = !cb.checked;   // nothing changes until "Who's been there?" is saved
+        whoBeen(k, cb.dataset.kind, cb.dataset.id, function () { rerender(true); });
       });
     });
+  }
+  // Marking a place by hand always asks who's been there (starting with whoever is signed in, not whose page this is).
+  function whoBeen(k, kind, id, after) {
+    var bag = kind === "state" ? k.states : kind === "park" ? k.parks : k.places;
+    window.FS_WHO.open({ kind: kind, area: id, page: k, mode: bag[id] ? "edit" : "add", after: after });
   }
   function keepOpen(fn) {
     var d = main.querySelector("details.list"), open = d && d.open, y = window.scrollY, q = main.querySelector("#find"), qv = q ? q.value : "";
@@ -383,10 +404,13 @@
     bindMap(k, function () { keepOpen(function () { viewWorld(k); }); });
   }
   // ---------- national parks: a stamp per park, dots on the US map ----------
-  function niceDate(at) { var d = new Date(String(at).slice(0, 10) + "T12:00:00"); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+  // toLocaleDateString and the stamp art are slow-ish and the same every time: remember them (a few hundred small strings at most)
+  var NICE = {}, PKSTAMP = {};
+  function niceDate(at) { var key = String(at).slice(0, 10); if (key in NICE) return NICE[key]; var d = new Date(key + "T12:00:00"); return (NICE[key] = isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })); }
   function parkStamp(p, v) {
     var PP = window.WK_PASSPORT; if (!PP) return "";
-    return PP.stampSVG({ id: "pk-" + p.id, kind: "park", area: p.id, date: v && v.at ? v.at : "" }, p.name, { sub: M.parkSub(p) });
+    var key = p.id + "|" + (v && v.at ? v.at : ""); if (PKSTAMP[key]) return PKSTAMP[key];
+    return PKSTAMP[key] = PP.stampSVG({ id: "pk-" + p.id, kind: "park", area: p.id, date: v && v.at ? v.at : "" }, p.name, { sub: M.parkSub(p) });
   }
   var PARK_SETS_TXT = {
     np: { what: "national parks", find: "Find a park or state", ph: "e.g. Zion, Utah or UT", hint: "Every park has its own stamp below. American Samoa and the Virgin Islands are off the map." },
@@ -406,7 +430,7 @@
   }
   function viewParks(k, set) {
     if (!PARK_SETS_TXT[set]) set = "np";
-    var s = M.stats(k, state.trips, MAPS.world), kidMode = M.isKid(k), FF = window.FS_FIND, byReg = {}, list = M.parksIn(set), tx = PARK_SETS_TXT[set], jrOk = set !== "sp";
+    var s = M.stats(k, state.trips, MAPS.world), FF = window.FS_FIND, byReg = {}, list = M.parksIn(set), tx = PARK_SETS_TXT[set], jrOk = set !== "sp";
     var been = list.filter(function (p) { return k.parks[p.id]; }).length;
     list.forEach(function (p) { var r = FF.REGION[p.states.split(/,\s*/)[0]] || "West"; (byReg[r] = byReg[r] || []).push(p); });
     var groups = FF.REGIONS.filter(function (r) { return byReg[r]; }).map(function (r) {
@@ -415,19 +439,19 @@
         var v = k.parks[p.id];
         return '<div class="row" data-name="' + esc(p.full + " " + p.states + " " + p.states.split(/,\s*/).map(function (x) { return STATE_NAME[x] || ""; }).join(" ")) + '"><span class="pkstamp' + (v ? " on" : "") + '" aria-hidden="true">' + parkStamp(p, v) + '</span><div class="nm"><b data-hl>' + esc(p.name) + '</b><span>' + esc(p.states + (set === "np" ? "" : " · " + p.label.charAt(0) + p.label.slice(1).toLowerCase())) + (v && v.at ? " · " + esc(niceDate(v.at)) : "") + '</span></div>' +
           '<button type="button" class="pill" data-park="' + p.id + '" aria-pressed="' + !!v + '">' + (v ? "✓ Been here" : "Been here?") + '</button>' +
-          (kidMode && jrOk ? '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button>' : "") + '</div>';
+          (jrOk && v ? '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button>' : "") + '</div>';
       }).join(""));
     }).join("");
     var seg = '<div class="seg parkset" role="group" aria-label="Which parks">' + M.PARK_SETS.map(function (x) {
       return '<a href="#/p/' + esc(k.id) + '/parks' + (x.id === "np" ? "" : "/" + x.id) + '"' + (x.id === set ? ' class="on" aria-current="page"' : "") + '><span class="lg">' + esc(x.name) + '</span><span class="sh">' + esc(x.short) + '</span></a>'; }).join("") + '</div>';
-    main.innerHTML = shell(k, "parks", seg + counter(been, list.length, tx.what, kidMode && set === "np" ? '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>' : "") +
+    main.innerHTML = shell(k, "parks", seg + counter(been, list.length, tx.what, jrOk ? '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>' : "") +
       '<div class="mapbox us parksmap">' + parksMapSVG(k, list, tx.what) + '</div><p class="hint">Green dots are places ' + esc(M.who(k)) + ' has been to. ' + esc(tx.hint) + '</p>' +
       '<div class="panel parks plist" data-plist="parks-' + set + ':' + esc(k.id) + '">' + FF.tools('<div class="field" style="margin-top:0"><label for="pfind">' + esc(tx.find) + '</label><input id="pfind" type="search" placeholder="' + esc(tx.ph) + '" autocomplete="off"></div>') + groups + '</div>' +
-      (kidMode && jrOk ? '<p class="hint">Earned a Junior Ranger badge? Tap "Ranger?" too. Ask at the visitor center; most National Park Service sites have a free booklet.</p>' : ""));
+      (jrOk ? '<p class="hint">Earned a Junior Ranger badge? Grown-ups can too. Mark the park, then tap "Ranger?". Ask at the visitor center; most National Park Service sites have a free booklet.</p>' : ""));
     var f = main.querySelector("#pfind");
     FF.bind(main.querySelector("[data-plist]"), f, true);
     function again() { var q = f.value, y = window.scrollY, foc = document.activeElement === f; viewParks(k, set); var f2 = main.querySelector("#pfind"); f2.value = q; f2.dispatchEvent(new Event("input")); if (foc) f2.focus({ preventScroll: true }); window.scrollTo(0, y); f = f2; }
-    main.querySelectorAll("[data-park]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.park, "visit"); saveKid(k); toast(on ? placeName("park", b.dataset.park) + ": visited!" : "Removed"); again(); if (on) UI().askDate(k, "park", b.dataset.park, again); }; });
+    main.querySelectorAll("[data-park]").forEach(function (b) { b.onclick = function () { whoBeen(k, "park", b.dataset.park, again); }; });
     main.querySelectorAll("[data-jr]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.jr, "jr"); saveKid(k); if (on) toast("Junior Ranger! ★"); again(); }; });
   }
 
@@ -502,11 +526,31 @@
     return '<a class="familycard qentry" href="#/p/' + esc(k.id) + '/quests"><span class="qemo" aria-hidden="true"><i>🧭</i></span><span><b>Travel quests</b><span class="small muted">' +
       (got.length ? got.length + " quest badge" + (got.length === 1 ? "" : "s") + " earned" + (going ? " · " + going + " on the go" : "") : going ? going + " on the go" : "Scavenger hunts for your trips") + '</span></span><span class="qgo" aria-hidden="true">›</span></a>';
   }
+  /** Earned badges at the top of a passport: achievements, Junior Ranger parks, finished quests, recent firsts. Tap one for what it's for. */
+  function badgeStrip(k) {
+    var s = M.stats(k, state.trips, MAPS.world), out = [];
+    M.badges(s).forEach(function (x) { if (x.earned) out.push({ ic: MEDALS[x.id] || "★", name: x.name, desc: x.desc }); });
+    Object.keys(k.parks || {}).forEach(function (id) { var v = k.parks[id], p = M.parkById && M.parkById(id); if (v && v.jr && p) out.push({ ic: "🎖️", name: "Junior Ranger", desc: p.name + (v.at ? " · " + v.at : ""), cls: " jr" }); });
+    if (window.FS_QUESTS) window.FS_QUESTS.earned(k).forEach(function (e) { out.push({ ic: e.q.emoji || "🧭", name: e.q.badge || e.q.name, desc: e.q.name + " done" + (e.at ? " · " + e.at : "") }); });
+    if (window.FS_FIRSTS) { try { window.FS_FIRSTS.list(k).slice(-3).reverse().forEach(function (r) { out.push({ ic: r.emoji || "⭐", name: r.title, desc: "A first" + (r.at ? " · " + r.at : "") }); }); } catch (e) {} }
+    var all = '<a class="pbadges-all" href="#/p/' + esc(k.id) + '/stats">See all badges ›</a>';
+    if (!out.length) return '<section class="pbadges empty"><p class="small muted">No badges yet. They show up here as ' + esc(M.who(k)) + ' travels.</p>' + all + '</section>';
+    return '<section class="pbadges" aria-label="' + esc(M.who(k)) + '\'s badges"><div class="pbh"><h3>Badges <span class="muted small">' + out.length + '</span></h3>' + all + '</div><div class="pbrow">' +
+      out.map(function (b, i) { return '<button type="button" class="pbadge' + (b.cls || "") + '" data-pb="' + i + '" data-name="' + esc(b.name) + '" data-desc="' + esc(b.desc) + '"><span class="pbm" aria-hidden="true">' + b.ic + '</span><span class="pbn">' + esc(b.name) + '</span></button>'; }).join("") + '</div></section>';
+  }
+  function bindBadgeStrip(k) {
+    Array.prototype.forEach.call(main.querySelectorAll(".pbadge"), function (b) {
+      b.onclick = function () {
+        UI().sheet('<div class="sheethead"><h3>' + esc(b.dataset.name) + '</h3><button type="button" class="sheetx" data-close aria-label="Close">✕</button></div><div class="pbig" aria-hidden="true">' + b.querySelector(".pbm").innerHTML + '</div><p>' + esc(b.dataset.desc) + '</p><div class="actions"><a class="btn btn-ghost" href="#/p/' + esc(k.id) + '/stats">See all badges</a><button type="button" class="btn btn-primary" data-close>Close</button></div>');
+        Array.prototype.forEach.call(document.querySelectorAll(".sheetbox .sheetx, .sheetbox [data-close]"), function (x) { x.onclick = UI().closeSheet; });
+      };
+    });
+  }
   function viewStats(k) {
     var s = M.stats(k, state.trips, MAPS.world), b = M.badges(s), earned = b.filter(function (x) { return x.earned; }).length;
     main.innerHTML = shell(k, "stats", '<h2>' + esc(M.who(k)) + '\'s travel stats</h2><div class="stats">' +
       statBox(s.states, 50, "States") + statBox(s.countries, 195, "Countries") + statBox(s.ukNations, 4, "UK nations") + statBox(s.parks, 64, "National parks") +
-      (s.kid ? statBox(s.juniorRanger, 0, "Junior Ranger") : "") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
+      statBox(s.juniorRanger, 0, "Junior Ranger") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
       (s.years ? statBox(s.years, 0, s.years === 1 ? "Year of trips" : "Years of trips") : "") + (s.firstTripAge != null ? statBox(s.firstTripAge, 0, "Age on first trip") : "") + '</div>' +
       UI().lifetimeHTML(k.id) + questsCard(k) + (window.FS_FIRSTS ? window.FS_FIRSTS.card(k) : "") + (window.FS_BOOK ? window.FS_BOOK.card(k) : "") +
       '<h2>Badges <span class="muted small">' + earned + ' of ' + b.length + '</span></h2><div class="badges">' + b.map(function (x) {
@@ -721,7 +765,7 @@
                       kidById: kidById, doBackup: doBackup, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
                       dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
                       // for trips-ui.js
-                      main: main, shell: shell, placeName: placeName, saveKid: saveKid, kidStyle: kidStyle, initial: initial, avatars: avatars, travelerNames: travelerNames,
+                      main: main, badgeStrip: badgeStrip, bindBadgeStrip: bindBadgeStrip, shell: shell, placeName: placeName, saveKid: saveKid, kidStyle: kidStyle, initial: initial, avatars: avatars, travelerNames: travelerNames,
                       photoURL: photoURL, shrinkPhoto: shrinkPhoto, usSVG: usSVG, worldSVG: worldSVG, markOptions: markOptions, parkStamp: parkStamp };
   load().then(function () { readyRes(); route(); }).catch(function () {
     main.innerHTML = '<div class="panel"><h3>Storage isn\'t available</h3><p class="muted">This browser is blocking on-device storage (private browsing can do this). Try a normal window so your maps can be saved.</p></div>';
