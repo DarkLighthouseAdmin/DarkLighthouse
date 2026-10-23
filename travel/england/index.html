@@ -256,6 +256,11 @@
     .src li { font-size:.9rem; color:var(--muted); }
     .related { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:.6rem; } .related a { background:var(--card); border:1px solid var(--line); border-radius:999px; padding:.4rem .9rem; text-decoration:none; font-weight:500; }
     .pcard ul { margin:.2rem 0 0 1.1rem; font-size:.92rem; color:var(--muted); }
+    .packbox { background:var(--card); border:1px solid var(--line); border-left:4px solid var(--heather); border-radius:12px; padding:1rem 1.2rem; margin:1.2rem 0; }
+    .packbox h3 { margin-top:0; } .packbox ul { margin-top:.4rem; }
+    .prod { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.9rem 1.1rem; margin:.8rem 0; }
+    .prod h3 { margin:0 0 .3rem; font-size:1.1rem; } .prod .facts { font-size:.9rem; color:var(--muted); margin:.1rem 0 .4rem; }
+    .hero .disclose { margin:0 0 .8rem; }
   </style>
 </head>
 <body>
@@ -263,7 +268,7 @@
     <a class="brand" href="/">Dark Lighthouse <span>Solutions</span></a>
     <nav aria-label="Sections"><a href="/money/">Money</a><a href="/travel/" aria-current="true">Travel</a><a href="/data/">Data</a></nav>
   </div></div>
-  <nav class="tnav" aria-label="Travel"><div class="wrap"><span class="sec">Travel</span><a href="/travel/">Travel home</a><a href="/travel/scotland/">Scotland guide</a><a href="/travel/ireland/">Ireland guide</a><a href="/travel/england/" aria-current="page">England guide</a><a href="/travel/wales/">Wales guide</a><a href="/travel/planners/">Planners</a><a href="/travel/tools/">Travel tools</a></div></nav>
+  <nav class="tnav" aria-label="Travel"><div class="wrap"><span class="sec">Travel</span><a href="/travel/">Travel home</a><a href="/travel/scotland/">Scotland guide</a><a href="/travel/ireland/">Ireland guide</a><a href="/travel/england/" aria-current="page">England guide</a><a href="/travel/wales/">Wales guide</a><a href="/travel/gear/">Packing & gear</a><a href="/travel/planners/">Planners</a><a href="/travel/tools/">Travel tools</a></div></nav>
 
   <header class="wrap hero">
     <p class="crumb"><a href="/">Home</a> › <a href="/travel/">Travel</a> › England &amp; London with kids guide</p>
@@ -271,7 +276,7 @@
     <p class="lede">A family trip built around London, with easy ways to add Bath, the Cotswolds, York or the Lake District. What the Tube costs with kids (often nothing), which passes are worth it, and what to book first. Facts checked October 2026, with sources at the end.</p>
   </header>
   <main class="wrap copy">
-    <p class="disclose">A few links below go to booking sites. Our travel pages use Travelpayouts, which may turn some of them into affiliate links: if you book, we may earn a small commission at no extra cost to you. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>
+    <p class="disclose">Some links on this page are affiliate links. If you book or buy through them we may earn a commission at no extra cost to you. Booking links may be converted by Travelpayouts, an affiliate network, and product links go straight to the retailer. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>
 
     <h2 id="before">1. Before you book anything: the UK ETA</h2>
     <p>If you're visiting from the US, Canada, Australia or most other countries that don't need a visa, every person in your group needs a UK Electronic Travel Authorisation (ETA) before you travel. That includes babies and children. British and Irish citizens don't need one.</p>
@@ -337,6 +342,12 @@
       <li><strong>A contactless card or phone</strong> with no foreign transaction fees, for the Tube and buses.</li>
       <li><strong>Plug adapters:</strong> the UK uses the three-pin plug (type G).</li>
     </ul>
+    <aside class="packbox" id="what-to-pack">
+      <h3>What to pack for London and England</h3>
+      <p>London means lots of walking, stairs and public transport, so pack light. Our packing guides go deeper: <a href="/travel/gear/what-to-wear-in-scotland/">what to wear, month by month</a>, <a href="/travel/gear/best-travel-stroller-europe/">travel strollers for cobbles and trains</a> and <a href="/travel/gear/best-carry-on-luggage-family-travel/">carry-on bags that fit the airlines' limits</a>.</p>
+      <ul><li><!-- AFFILIATE: gear | babylist-stokke-yoyo3 --><a href="https://www.babylist.com/gp/stokke-yoyo-stroller-from-6-months/55557/2073006" data-affiliate="babylist-stokke-yoyo3" rel="sponsored nofollow noopener" target="_blank">Stokke YOYO³ stroller</a>: a small fold for the Tube, buses and plane cabins</li><li><!-- AFFILIATE: gear | target-trunki --><a href="https://www.target.com/p/trunki-kids-ride-on-hardside-carry-on-suitcase/-/A-90905859" data-affiliate="target-trunki" rel="sponsored nofollow noopener" target="_blank">Trunki Ride-On Suitcase</a>: kids ride it through the airport</li><li><!-- AFFILIATE: gear | peakdesign-packing-cube --><a href="https://www.peakdesign.com/products/packing-cube" data-affiliate="peakdesign-packing-cube" rel="sponsored nofollow noopener" target="_blank">Peak Design Packing Cubes</a>: one per person keeps a shared case sane</li><li><!-- AFFILIATE: gear | bellroy-travel-wallet --><a href="https://bellroy.com/products/travel-wallet-rfid" data-affiliate="bellroy-travel-wallet" rel="sponsored nofollow noopener" target="_blank">Bellroy Travel Wallet</a>: all the family's passports in one place</li></ul>
+      <p class="muted">Product links are affiliate links (see the note at the top of the page). Prices change, so check the retailer.</p>
+    </aside>
 
     <h2 id="kids">8. Tips for London and England with kids</h2>
     <ul>
@@ -416,8 +427,8 @@
   </main>
 
   <footer class="wrap">
-    <p><a href="/travel/">Travel</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/ireland/">Ireland with kids guide</a> · <a href="/travel/england/">London &amp; England with kids guide</a> · <a href="/travel/wales/">Wales with kids guide</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/travel-budget-calculator/">Travel budget calculator</a> · <a href="/travel/tools/daily-travel-budget-calculator/">Daily travel budget calculator</a> · <a href="/templates/">Money templates</a> · <a href="/tools/">Money calculators</a></p>
-    <p style="margin-top:.4rem">Some links on this page may be affiliate links (via Travelpayouts): if you book, we may earn a small commission at no extra cost to you. We only link to things we'd use ourselves. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>
+    <p><a href="/travel/">Travel</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/ireland/">Ireland with kids guide</a> · <a href="/travel/england/">London &amp; England with kids guide</a> · <a href="/travel/wales/">Wales with kids guide</a> · <a href="/travel/gear/">Packing &amp; gear guides</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/travel-budget-calculator/">Travel budget calculator</a> · <a href="/travel/tools/daily-travel-budget-calculator/">Daily travel budget calculator</a> · <a href="/templates/">Money templates</a> · <a href="/tools/">Money calculators</a></p>
+    <p style="margin-top:.4rem">Some links on this page may be affiliate links (booking links via Travelpayouts, and links to retailers): if you book or buy, we may earn a small commission at no extra cost to you. We only link to things we'd use ourselves. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>
     <p style="margin-top:.4rem">Prices and rules change: check official sites before you book. Calculators are estimates for planning; nothing you type leaves your browser.</p>
     <p style="margin-top:.4rem"><strong>Dark Lighthouse Solutions</strong> · Planners sold via Polar (merchant of record). <a href="/privacy/">Privacy</a> · Questions? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
   </footer>

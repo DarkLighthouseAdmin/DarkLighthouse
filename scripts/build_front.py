@@ -61,6 +61,9 @@ FCSS = """
 
 from build_travel import TP_DRIVE  # homepage needs it for Travelpayouts verification
 
+# Impact.com site verification (homepage only; added in 9bc0a38). Keep it.
+IMPACT_META = "<meta name='impact-site-verification' value='9cb5c9bb-2e61-47c4-a07e-4f0c382b614d'>\n"
+
 def head(path, title, desc, ld, cur, extra_head=""):
     url = SITE + path
     lds = "".join(f'\n  <script type="application/ld+json">\n{json.dumps(x, indent=1, ensure_ascii=False)}\n  </script>' for x in ld)
@@ -68,7 +71,7 @@ def head(path, title, desc, ld, cur, extra_head=""):
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+{IMPACT_META if path == "/" else ""}  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{e(title)}</title>
   <meta name="description" content="{e(desc)}" />
@@ -99,7 +102,7 @@ def head(path, title, desc, ld, cur, extra_head=""):
 FOOT = '''
   <footer class="wrap">
     <p><strong>Money:</strong> <a href="/money/">Money home</a> · <a href="/templates/">Templates &amp; planners</a> · <a href="/tools/">Free calculators</a> · <a href="/renewal-radar/">Renewal Radar</a></p>
-    <p style="margin-top:.4rem"><strong>Travel:</strong> <a href="/travel/">Travel home</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/">Travel calculators</a></p>
+    <p style="margin-top:.4rem"><strong>Travel:</strong> <a href="/travel/">Travel home</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/gear/">Packing &amp; gear</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/">Travel calculators</a></p>
     <p style="margin-top:.4rem"><strong>Data:</strong> <a href="/data/">Data engineering kits</a> · <a href="/kits/">Kit guides</a></p>
     <p style="margin-top:.8rem">Made by <strong>Dark Lighthouse Solutions</strong> · Sold via Polar (merchant of record), which handles checkout and tax. <a href="/privacy/">Privacy</a> · Questions? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
   </footer>
