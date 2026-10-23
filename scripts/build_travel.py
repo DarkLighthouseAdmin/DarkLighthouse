@@ -48,6 +48,7 @@ TCSS = """
     .pcard ul { margin:.2rem 0 0 1.1rem; font-size:.92rem; color:var(--muted); }
     .packbox { background:var(--card); border:1px solid var(--line); border-left:4px solid var(--heather); border-radius:12px; padding:1rem 1.2rem; margin:1.2rem 0; }
     .packbox h3 { margin-top:0; } .packbox ul { margin-top:.4rem; }
+    .kidsclothes { background:var(--mist); border-radius:12px; padding:1rem 1.2rem; margin:1.2rem 0; } .kidsclothes h3 { margin-top:0; } .kidsclothes h4 { margin:1rem 0 .3rem; } .kidsclothes td:first-child { font-weight:600; }
     .prod { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.9rem 1.1rem; margin:.8rem 0; }
     .prod h3 { margin:0 0 .3rem; font-size:1.1rem; } .prod .facts { font-size:.9rem; color:var(--muted); margin:.1rem 0 .4rem; }
     .hero .disclose { margin:0 0 .8rem; }
@@ -497,6 +498,7 @@ def build_scotland():
     <h2 id="packing">Packing for Scotland's weather</h2>
     <p>It can rain in any month, and the Highlands are windier and colder than Edinburgh. Bring layers and a waterproof for everyone, kids included, and midge repellent from late May to September.</p>
 {packbox("Scotland", [("patagonia-torrentshell-kids", "Patagonia Kids' Torrentshell 3L Rain Jacket", "a packable, properly waterproof shell"), ("hunter-kids-first-classic", "Hunter Kids First Classic Rain Boots", "wellies for puddles and muddy paths"), ("smartwool-classic-thermal-crew", "Smartwool Classic Thermal Merino Base Layer", "for cold months, or anyone who feels the cold"), ("saxx-quest-boxer-brief", "SAXX Quest Quick-Dry Boxer Brief", "washes in the sink and dries overnight")], "Scotland's weather changes fast, so think layers, not one big coat.")}
+{kids_clothes("Scotland", "Plan for rain, wind and four seasons in a day, and colder, windier weather in the Highlands than in Edinburgh. From late May to September, long sleeves and long trousers for evenings in the west also help with midges.")}
     <h2 id="timeline">6. What to book when</h2>
     <p>Our rule of thumb for a summer trip, counting back from the day you land. Book earlier for July and August, and later is usually fine for the quieter months.</p>
     <ul>
@@ -637,6 +639,7 @@ def build_ireland():
       <li><strong>Plug adapters:</strong> Ireland and Northern Ireland both use the UK-style three-pin plug (type G).</li>
     </ul>
 {packbox("Ireland", [("llbean-discovery-rain-jacket", "L.L.Bean Infants' and Toddlers' Discovery Rain Jacket", "packable and reflective, sizes 2T–4T"), ("columbia-watertight-mens", "Columbia Watertight II Rain Jacket", "a good-value packable shell for adults"), ("darntough-kids-light-hiker", "Darn Tough Kids' Light Hiker Socks", "merino socks that stay warm when damp"), ("huckberry-proof-merino-tee", "Proof 72-Hour Merino T-Shirt (Huckberry)", "a travel tee you can wear for days")], "Ireland is mild but wet and windy, especially on the west coast.")}
+{kids_clothes("Ireland", "Ireland rarely gets very cold or very hot, but it rains a lot and the west coast is windy. Waterproofs and a warm layer matter more than a big coat. The Atlantic is cold, so beaches are more for rock pools and wellies than swimming.")}
     <h2 id="kids">8. Tips for traveling Ireland with kids</h2>
     <ul>
       <li><strong>Keep most driving days under two to three hours</strong> of mapped time, and don't stack long days back to back.</li>
@@ -794,6 +797,7 @@ def build_england():
       <li><strong>Plug adapters:</strong> the UK uses the three-pin plug (type G).</li>
     </ul>
 {packbox("London and England", [("babylist-stokke-yoyo3", "Stokke YOYO³ stroller", "a small fold for the Tube, buses and plane cabins"), ("target-trunki", "Trunki Ride-On Suitcase", "kids ride it through the airport"), ("peakdesign-packing-cube", "Peak Design Packing Cubes", "one per person keeps a shared case sane"), ("bellroy-travel-wallet", "Bellroy Travel Wallet", "all the family's passports in one place"), ("bespokepost-sidecar-toiletry-kit", "Halfday Sidecar Toiletry Kit (Bespoke Post)", "hangs up in small hotel bathrooms, with a liquids pouch for security")], "London means lots of walking, stairs and public transport, so pack light.")}
+{kids_clothes("London and England", "England is milder than Scotland but just as changeable. London days mean lots of walking, warm Tube trains and cool streets, so layers they can take off and stuff in a bag work best. Outside London, the countryside and coast are wetter and windier.")}
     <h2 id="kids">8. Tips for London and England with kids</h2>
     <ul>
       <li><strong>One big thing a day</strong> in London, plus a park or playground. The city wears little legs out fast.</li>
@@ -921,6 +925,7 @@ def build_wales():
       <li><strong>Plug adapters:</strong> the UK uses the three-pin plug (type G).</li>
     </ul>
 {packbox("Wales", [("patagonia-torrentshell-womens", "Patagonia Torrentshell 3L Rain Jacket", "packable waterproof with pit zips for mountain walks"), ("zappos-merrell-moab-3-wp", "Merrell Moab 3 Waterproof (Zappos)", "waterproof walking shoes for paths and castle steps"), ("llbean-discovery-rain-jacket", "L.L.Bean Infants' and Toddlers' Discovery Rain Jacket", "for the littlest walkers"), ("saxx-quest-boxer-brief", "SAXX Quest Quick-Dry Boxer Brief", "pack fewer pairs: it dries overnight")], "Wales can be wet in any month, and Eryri makes its own weather.")}
+{kids_clothes("Wales", "Wales is wet and windy, and the mountains in Eryri are colder than the valleys. Add water shoes or old trainers for rock pools, and a second swimsuit and towel if you're heading to Pembrokeshire beaches (a wetsuit helps, as the sea is cold).")}
     <h2 id="kids">8. Tips for Wales with kids</h2>
     <ul>
       <li><strong>Castles are the stars.</strong> Let kids climb the towers and walk the walls, but hold small hands on the battlements and spiral stairs.</li>
@@ -1010,6 +1015,44 @@ def packbox(where, keys_text, guide_note):
     </aside>
 '''
 
+# Kids' clothes by trip length (UK and Ireland: changeable, wet, cool). Shared by the country guides and gear pages.
+KIDS_CLOTHES = [  # item, weekend (2-3 nights), 1 week, 2 weeks (one wash), note
+ ("Tops", "3", "5", "6", "T-shirts or long-sleeve tops; quick-dry or merino beats cotton"),
+ ("Trousers or leggings", "2", "3", "4", "leggings and joggers dry faster than jeans"),
+ ("Base layers", "1 set", "2 sets", "2 sets", "thermal top and leggings, for cold days, evenings and hill walks"),
+ ("Fleece or warm mid layer", "1", "1", "2", "the thing they'll wear every day under the jacket"),
+ ("Waterproof jacket with a hood", "1", "1", "1", "a real waterproof, not a showerproof windbreaker"),
+ ("Rain trousers or a puddle suit", "1", "1", "1", "a puddle suit (all-in-one) for toddlers; over-trousers for older kids"),
+ ("Warm hat", "1", "1", "1", "plus gloves or mittens from October to April"),
+ ("Sun hat", "1", "1", "1", "yes, really: summer days are long, and a cool breeze hides how strong the sun is"),
+ ("Pyjamas", "1", "2", "2", "one warm pair: old houses and B&amp;Bs can be chilly at night"),
+ ("Socks", "4", "8", "8", "wool or merino; one spare pair a day, because feet get wet"),
+ ("Underwear", "4", "8", "8", "a couple of extra pairs for little ones"),
+ ("Waterproof shoes or wellies", "1 pair", "1 pair", "1 pair", "wellies for small kids, waterproof walking shoes for older ones"),
+ ("Comfy trainers", "1 pair", "1 pair", "1 pair", "for travel days, cities and when the wellies are soaked"),
+ ("Swimwear", "1", "1", "2", "hotel and leisure-centre pools are a lifesaver on a wet afternoon"),
+ ("A nicer outfit", "1", "1", "1", "for a special dinner, afternoon tea or family photos"),
+ ("Spare outfit in the carry-on", "1", "1", "1", "a full change per child (two for under-3s), in case the checked bag goes missing or someone spills"),
+]
+
+def kids_clothes(where, note):
+    """'Kids' clothes' list with counts by trip length. Clothes only, no product links."""
+    rows = "".join(f"<tr><td>{i}</td><td>{a}</td><td>{b}</td><td>{c}</td><td>{n}</td></tr>" for i, a, b, c, n in KIDS_CLOTHES)
+    return f'''    <section class="kidsclothes" id="kids-clothes">
+      <h3>Kids' clothes for {where}</h3>
+      <p>{note} Counts are per child. The two-week column assumes one load of laundry halfway (most self-catering places have a washer, and quick-dry things dry on a radiator overnight).</p>
+      <div class="tablewrap"><table><thead><tr><th>Clothes</th><th>Weekend</th><th>1 week</th><th>2 weeks</th><th>Why</th></tr></thead><tbody>{rows}</tbody></table></div>
+      <h4>Extra for babies and toddlers</h4>
+      <ul>
+        <li><strong>A sleep sack</strong> (or two for a baby, in case of leaks). Rooms vary a lot, so check the tog guide on the label against the room temperature.</li>
+        <li><strong>Extra changes:</strong> plan on two outfits a day for a baby and one spare a day for a toddler, plus extra vests or bodysuits.</li>
+        <li><strong>Bibs:</strong> two or three a day, or a few wipe-clean ones you can rinse in the sink.</li>
+        <li><strong>A warm all-in-one or fleece suit</strong> for the stroller or carrier on cold, windy days, and a puddle suit once they're walking.</li>
+      </ul>
+      <p class="muted">Pack each child's clothes in their own packing cube, with travel-day clothes and the spare outfit on top.</p>
+    </section>
+'''
+
 # Met Office 1991-2020 averages, Edinburgh Royal Botanic Garden No 2: (month, max °C, min °C, rain mm, days with >=1 mm rain, adults, kids)
 SCOT_CLIMATE = [
  ("Jan", 7.29, 1.67, 64.66, 12.43, "Warm waterproof coat or shell over a fleece, hat and gloves, waterproof boots.", "Insulated waterproof jacket, thermal base layer, hat, mittens, wellies with warm socks."),
@@ -1072,6 +1115,7 @@ def build_gear_wear():
       <li>{aff("bespokepost-barbour-transport", "Barbour Transport Wax Jacket (men's), at Bespoke Post")}: 6 oz waxed cotton with a cord collar, tartan lining and an inner storm skirt, in a roomier, more modern cut; $425 when we checked. Bespoke Post calls it water-resistant, not waterproof.</li>
     </ul>
 
+{kids_clothes("Scotland", "Here's how much to actually pack, using the layering system above. Kids get wetter and muddier than adults, so they need more socks and a spare set of everything.")}
     <h2 id="checklist">A quick Scotland packing checklist</h2>
     <ul>
       <li>Waterproof jacket for every person (and waterproof trousers for kids)</li>
@@ -1150,6 +1194,7 @@ def build_gear_stroller():
       <li><strong>Cobbles:</strong> tip the stroller back onto its rear wheels on rough stretches. It's much smoother.</li>
       <li><strong>Get a stroller travel bag</strong> if you'll gate-check it; baggage handling is rough on frames.</li>
     </ul>
+{kids_clothes("a UK or Ireland trip", "A stroller nap in the wind gets cold fast, even in summer, so little ones need more layers than you'd think. A rain cover and a warm all-in-one do more than a pile of blankets.")}
 {FREE}
 {faq_html(STROLLER_FAQ)}
 {gear_related(path)}
@@ -1218,6 +1263,7 @@ def build_gear_luggage():
       <li><strong>Wear the bulky stuff</strong> (boots and the waterproof jacket) on the plane.</li>
       <li><strong>Give each child a job:</strong> their own backpack with their own snacks and entertainment.</li>
     </ul>
+{kids_clothes("a UK or Ireland trip", "Here's roughly what fits in a carry-on for one child in changeable, wet, cool weather. Kids' clothes are small, so a week's worth rolls into one medium packing cube. Wear the jacket and wellies on the plane.")}
 {FREE}
 {faq_html(CARRY_FAQ)}
 {gear_related(path)}
