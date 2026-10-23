@@ -45,7 +45,8 @@ def inject(text, is_templates=False):
     if extra:
         i = text.lower().rfind("</body>")
         text = text[:i] + extra + text[i:] if i >= 0 else text + extra
-    return text
+    from add_head_meta import apply  # favicon/manifest/theme-color + missing social meta (idempotent)
+    return apply(text)
 
 def pages():
     for p in sorted(ROOT.rglob("*.html")):

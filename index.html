@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-TVG78TY2JC"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-TVG78TY2JC');</script>
+  <!-- dls-head-meta -->
+  <link rel="icon" href="/favicon.ico" sizes="48x48" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon-96x96.png" type="image/png" sizes="96x96" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#0e1c2a" />
+  <!-- /dls-head-meta -->
   <title>Dark Lighthouse Solutions | NetSuite to ADF, ClickHouse &amp; Data Engineering Kits</title>
   <meta name="description" content="One-time data engineering starter kits: NetSuite to Azure Data Factory (SuiteQL → Blob), ClickHouse log analytics, Salesforce middleware, FastAPI gateway, Terraform. Buy on Polar — you own the code." />
   <meta name="keywords" content="NetSuite to ADF, NetSuite SuiteQL, Azure Data Factory, ClickHouse starter kit, data engineering boilerplate, Salesforce middleware, FastAPI RBAC, Terraform data warehouse" />
@@ -19,13 +27,13 @@
   <meta property="og:description" content="Production-shaped kits: NetSuite→ADF bridge, ClickHouse medallion pipeline, Salesforce middleware, and more. One-time Polar downloads." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://darklighthousesolutions.com/" />
-  <meta property="og:image" content="https://darklighthousesolutions.com/og.png" />
+  <meta property="og:image" content="https://darklighthousesolutions.com/og-default.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Dark Lighthouse Solutions | Data Engineering Kits" />
   <meta name="twitter:description" content="NetSuite→ADF, ClickHouse, Salesforce, FastAPI kits. One-time download. You own the code." />
-  <meta name="twitter:image" content="https://darklighthousesolutions.com/og.png" />
+  <meta name="twitter:image" content="https://darklighthousesolutions.com/og-default.jpg" />
 
   <script type="application/ld+json">
   {
@@ -33,16 +41,26 @@
     "@graph": [
       {
         "@type": "Organization",
+        "@id": "https://darklighthousesolutions.com/#organization",
         "name": "Dark Lighthouse Solutions",
         "url": "https://darklighthousesolutions.com/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://darklighthousesolutions.com/icon-512.png",
+          "width": 512,
+          "height": 512
+        },
+        "image": "https://darklighthousesolutions.com/og-default.jpg",
         "email": "admin@darklighthousesolutions.com",
-        "description": "Data engineering starter kits sold as one-time downloads."
+        "description": "Spreadsheet templates, free money calculators and data engineering starter kits, sold as one-time downloads."
       },
       {
         "@type": "WebSite",
+        "@id": "https://darklighthousesolutions.com/#website",
         "name": "Dark Lighthouse Solutions",
+        "alternateName": ["Dark Lighthouse", "darklighthousesolutions.com"],
         "url": "https://darklighthousesolutions.com/",
-        "publisher": { "@type": "Organization", "name": "Dark Lighthouse Solutions" }
+        "publisher": { "@id": "https://darklighthousesolutions.com/#organization" }
       },
       {
         "@type": "ItemList",
