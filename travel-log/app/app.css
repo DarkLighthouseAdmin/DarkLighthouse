@@ -390,3 +390,16 @@ h2 .units { margin-left:.4rem; }
 .arthint { margin:.35rem 0 0; }
 .ppage .stamp { -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
 .symline { margin:.2rem 0; }
+/* national parks: a stamp per park, dots on the map */
+.parks .row .pkstamp { flex:0 0 52px; width:52px; height:52px; filter:grayscale(1); opacity:.35; }
+.parks .row .pkstamp.on { filter:none; opacity:1; }
+.parks .row .pkstamp svg { width:100%; height:100%; display:block; }
+.mapbox.parksmap path.a.pk { cursor:default; }
+.parksmap .pkdot { fill:#fff; stroke:#4b5320; stroke-width:2; vector-effect:non-scaling-stroke; }
+.parksmap .pkdot.on { fill:#2f7a3d; stroke:#fff; }
+/* year in stamps card */
+.yr-pick { display:flex; flex-wrap:wrap; gap:.4rem 1rem; } .yr-pick .field { flex:1 1 180px; margin-top:.4rem; }
+.yr-pick select { min-height:44px; width:100%; }
+.yr-card { margin-top:1rem; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:var(--card); }
+.yr-card img { display:block; width:100%; height:auto; } .yr-wait { padding:3rem 1rem; text-align:center; }
+.yr-actions .btn { min-height:44px; }

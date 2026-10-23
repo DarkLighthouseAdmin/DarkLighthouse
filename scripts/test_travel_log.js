@@ -733,8 +733,37 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/first visit/.test(P.signSVG("TX", "Texas", { first: "2020-05-01", visits: 2 })), "a dated sign still shows its first visit");
   ok(read("index.html").indexOf("state-symbols.js") < read("index.html").indexOf("stamp-art.js") && read("index.html").indexOf("stamp-art.js") < read("index.html").indexOf("passport-core.js"), "index.html loads symbols, then stamp art, then the passport");
   const sw2 = read("sw.js"); ok(["state-symbols.js", "stamp-art.js"].every(f => sw2.indexOf('"' + f + '"') >= 0), "service worker caches the stamp art files");
-  ok(read("stamp-art.js").length < 60000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight");
+  ok(read("stamp-art.js").length < 66000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight");
   ok(/famstamp-stampart:/.test(read("trips-ui.js")) && /data-art=/.test(read("trips-ui.js")), "passport has the Bird / Flower / Animal / Mix toggle, saved per person");
+}
+
+// ---- national parks passport: a stamp per park, map dots ----
+{
+  const SA = require("../travel-log/app/stamp-art.js");
+  ok(M.PARKS.length === 64 && M.PARKS.some(p => p.id === "chiricahua"), "64 national parks, Chiricahua included");
+  ok(M.PARKS.every(p => typeof p.lat === "number" && typeof p.lon === "number"), "every park has a location for the map");
+  ok(M.PARKS.every(p => p.set === "np") && M.PARK_SETS.some(x => x.id === "np"), "parks carry a set id so state parks can be added later");
+  const looks = M.PARKS.map(p => { const d = SA.design("park", p.id, p.name); return [d.shape, d.border, d.ink, d.motif].join(); });
+  ok(new Set(looks).size === 64, "every park stamp looks different (shape, border, ink, picture)");
+  ok(M.PARKS.every(p => SA.parkLook(p.id) && SA.GLYPHS[SA.parkLook(p.id).motif]), "every park has a drawn picture");
+  ok(SA.parkLook("saguaro").motif === "saguaro" && SA.parkLook("yellowstone").motif === "geyser" && SA.parkLook("arches").motif === "rockarch", "Saguaro gets a saguaro, Yellowstone a geyser, Arches an arch");
+  const und = SA.stampSVG({ kind: "park", area: "zion" }, { name: "Zion", date: "" });
+  ok(!/\?/.test(und.replace(/<[^>]*>/g, " ")) && !/NATIONAL PARK SERVICE/.test(und + read("trips-ui.js") + read("stamp-art.js")), "an undated park stamp has no '?', and no agency name");
+  ok(/parksMapSVG/.test(read("app.js")) && /pkstamp/.test(read("app.js")), "Parks tab shows the map dots and a stamp per park");
+}
+// ---- year in stamps ----
+{
+  const Y = require("../travel-log/app/year.js");
+  const a = M.newKid({ name: "A", birthYear: 2016 }), b = M.newKid({ name: "B", birthYear: 2018 });
+  a.parks = { zion: { at: "2026-06-02", jr: false }, acadia: { at: "2025-07-01", jr: false } };
+  const trips = [{ id: "t1", kidIds: [a.id, b.id], place: "Sample", date: "2026-03-10", route: [{ kind: "state", ref: "UT", name: "Utah", country: "USA", region: "UT" }] },
+                 { id: "t2", kidIds: [b.id], place: "Sample 2", date: "2025-08-01", route: [] }];
+  const ys = Y.years([a, b], trips); ok(ys[0] === "2026" && ys.indexOf("2025") > 0, "years with data, newest first: " + ys);
+  const s26 = Y.summary([a, b], trips, 2026);
+  ok(s26.parks === 1 && s26.trips === 1, "2026: one park, one trip (" + JSON.stringify([s26.parks, s26.trips, s26.states]) + ")");
+  ok(Y.summary([a, b], trips, 2025).parks === 1 && Y.summary([a], trips, 2025).trips === 0, "2025 counts its own park; a trip only counts for people on it");
+  ok(s26.pick.length <= 9, "at most nine stamps on the card");
+  ok(/year\.js/.test(read("index.html")) && /"year\.js"/.test(read("sw.js")) && /#\/year/.test(read("app.js")), "year card is loaded, cached offline and linked");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

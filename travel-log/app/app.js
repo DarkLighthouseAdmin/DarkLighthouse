@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v19" -> "v19").
-  var VERSION = "v19";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v20" -> "v20").
+  var VERSION = "v20";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -133,6 +133,7 @@
     if (h[0] === "family" && h[1] === "passport") return UI().passportFamily();
     if (h[0] === "family" && h[1] === "signs") return UI().signs(null);
     if (window.MLTL_IMPORT && window.MLTL_IMPORT.route(h)) return;
+    if (h[0] === "year" && window.FS_YEAR && window.FS_YEAR.view) return window.FS_YEAR.view(h[1] && kidById(h[1]) ? h[1] : "");
     if (h[0] === "family") return viewFamily();
     if (h[0] === "together") return viewTogether(h[1]);
     if ((h[0] === "p" || h[0] === "kid") && kidById(h[1])) {
@@ -177,6 +178,7 @@
         esc(top ? travelerNames(top.ids) + ": " + top.count + (top.count === 1 ? " trip" : " trips") + " together" : "Check who went on each trip to see who travels together") +
         '</span><br><span class="small">Pick two or more people to see the trips you shared →</span></span></a>';
     }
+    if (state.kids.length) html += '<a class="panel familycard" href="#/year"><span class="fam-ic" aria-hidden="true">🎉</span><span><h3>Our ' + new Date().getFullYear() + ' in stamps</h3><span class="small">Make a card of this year\'s trips and stamps to share →</span></span></a>';
     if (window.MLTL_SYNC) html += window.MLTL_SYNC.homeCard();
     html += '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div>' +
             '<h3>Like paper too?</h3><p class="small muted">The matching paperback, My Lifetime Travel Log, has the same maps to color, all 64 parks and 40 trip pages, for the shelf. ' +
@@ -359,6 +361,24 @@
     FF.bind(main.querySelector("[data-plist]"), main.querySelector("#find"), false);
     bindMap(k, function () { keepOpen(function () { viewWorld(k); }); });
   }
+  // ---------- national parks: a stamp per park, dots on the US map ----------
+  function niceDate(at) { var d = new Date(String(at).slice(0, 10) + "T12:00:00"); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+  function parkStamp(p, v) {
+    var PP = window.WK_PASSPORT; if (!PP) return "";
+    return PP.stampSVG({ id: "pk-" + p.id, kind: "park", area: p.id, date: v && v.at ? v.at : "" }, p.name, { sub: p.states.replace(/,\s*/g, " · ") + " · NATIONAL PARK" });
+  }
+  function parksMapSVG(k) {
+    var u = MAPS.us, T = window.WK_TRIPS, s = '<svg viewBox="0 0 ' + u.w + ' ' + u.h + '" role="img" aria-label="US map with national parks; visited ones are filled in">';
+    u.insets.forEach(function (b) { s += '<rect class="inset" x="' + (b[0] - 4) + '" y="' + (b[1] - 4) + '" width="' + (b[2] + 8) + '" height="' + (b[3] + 8) + '" rx="8"/>'; });
+    u.shapes.forEach(function (p) { s += '<path class="a pk" d="' + p.d + '"/>'; });
+    M.PARKS.forEach(function (p) {
+      if (p.lat == null || p.states === "AS" || p.states === "VI" || !T) return;
+      var xy = T.project({ lat: p.lat, lon: p.lon, region: p.states.split(/,\s*/)[0] }, "us"); if (!xy) return;
+      var on = !!k.parks[p.id];
+      s += '<circle class="pkdot' + (on ? " on" : "") + '" cx="' + xy[0].toFixed(1) + '" cy="' + xy[1].toFixed(1) + '" r="' + (on ? 7 : 5) + '"><title>' + esc(p.name) + (on ? " (visited)" : "") + '</title></circle>';
+    });
+    return s + '</svg>';
+  }
   function viewParks(k) {
     var s = M.stats(k, state.trips, MAPS.world), kidMode = M.isKid(k), FF = window.FS_FIND, byReg = {};
     M.PARKS.forEach(function (p) { var r = FF.REGION[p.states.split(/,\s*/)[0]] || "West"; (byReg[r] = byReg[r] || []).push(p); });
@@ -366,12 +386,13 @@
       var ps = byReg[r];
       return FF.group(r, r, ps.filter(function (p) { return k.parks[p.id]; }).length, ps.length, ps.map(function (p) {
         var v = k.parks[p.id];
-        return '<div class="row" data-name="' + esc(p.name + " " + p.states + " " + p.states.split(/,\s*/).map(function (x) { return STATE_NAME[x] || ""; }).join(" ")) + '"><div class="nm"><b data-hl>' + esc(p.name) + '</b><span>' + esc(p.states) + '</span></div>' +
+        return '<div class="row" data-name="' + esc(p.name + " " + p.states + " " + p.states.split(/,\s*/).map(function (x) { return STATE_NAME[x] || ""; }).join(" ")) + '"><span class="pkstamp' + (v ? " on" : "") + '" aria-hidden="true">' + parkStamp(p, v) + '</span><div class="nm"><b data-hl>' + esc(p.name) + '</b><span>' + esc(p.states) + (v && v.at ? " · " + esc(niceDate(v.at)) : "") + '</span></div>' +
           '<button type="button" class="pill" data-park="' + p.id + '" aria-pressed="' + !!v + '">' + (v ? "✓ Been here" : "Been here?") + '</button>' +
           (kidMode ? '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button>' : "") + '</div>';
       }).join(""));
     }).join("");
-    main.innerHTML = shell(k, "parks", counter(s.parks, 64, "national parks", kidMode ? '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>' : "") +
+    main.innerHTML = shell(k, "parks", counter(s.parks, M.PARKS.length, "national parks", kidMode ? '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>' : "") +
+      '<div class="mapbox us parksmap">' + parksMapSVG(k) + '</div><p class="hint">Green dots are parks ' + esc(k.name) + ' has been to. Every park has its own stamp below. American Samoa and the Virgin Islands are off the map.</p>' +
       '<div class="panel parks plist" data-plist="parks:' + esc(k.id) + '">' + FF.tools('<div class="field" style="margin-top:0"><label for="pfind">Find a park or state</label><input id="pfind" type="search" placeholder="e.g. Zion, Utah or UT" autocomplete="off"></div>') + groups + '</div>' +
       (kidMode ? '<p class="hint">Earned a Junior Ranger badge? Tap "Ranger?" too. Ask at any park visitor center; most parks have a free booklet.</p>' : ""));
     var f = main.querySelector("#pfind");
@@ -457,7 +478,7 @@
         return '<div class="badge' + (x.earned ? "" : " locked") + '"><div class="medal" aria-hidden="true">' + (MEDALS[x.id] || "★") + '</div><b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span>' +
           (x.earned ? "" : '<span>' + x.have + ' / ' + x.need + '</span>') + '</div>';
       }).join("") + '</div>' +
-      '<div class="actions"><a class="btn btn-primary" href="#/p/' + esc(k.id) + '/print">🖨 Print my map</a><a class="btn btn-ghost" href="#/p/' + esc(k.id) + '/edit">Edit name or color</a><a class="btn btn-ghost" href="#/backup">Back up</a></div>' +
+      '<div class="actions"><a class="btn btn-primary" href="#/p/' + esc(k.id) + '/print">🖨 Print my map</a><a class="btn btn-ghost" href="#/year/' + esc(k.id) + '">🎉 My year in stamps</a><a class="btn btn-ghost" href="#/p/' + esc(k.id) + '/edit">Edit name or color</a><a class="btn btn-ghost" href="#/backup">Back up</a></div>' +
       '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div><h3>' + (s.kid ? "Want this on paper?" : "A paper copy for the kids?") + '</h3><p class="small muted">The paperback has the same maps to color and 40 trip pages' + (s.kid ? "" : ", made for kids 3 to 18") + '. ' +
       '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>');
     UI().bindLifetime(function () { viewStats(k); });
@@ -531,6 +552,7 @@
       '<h2>' + (n > 1 ? "Together" : "Totals") + (n > 1 ? ' <span class="muted small">' + esc(n === state.kids.length ? "the whole family" : names(famSel).join(" & ")) + '</span>' : "") + '</h2><div class="stats">' +
       (n > 1 ? '<a class="stat person" href="#/together/fam" style="--kid:var(--sage-deep)"><div class="v">' + fs.togetherTrips + '</div><div class="k">Trips together · see them →</div></a>' + statBox(fs.togetherStates, 50, "States together") + statBox(fs.togetherCountries, 195, "Countries together") + statBox(fs.togetherParks, 64, "Parks together") : "") +
       statBox(fs.states, 50, "States, anyone") + statBox(fs.countries, 195, "Countries, anyone") + statBox(fs.parks, 64, "Parks, anyone") + statBox(fs.trips, 0, "Trips logged") + '</div>' +
+      '<a class="panel familycard" href="#/year"><span class="fam-ic" aria-hidden="true">🎉</span><span><h3>Year in stamps</h3><span class="small">A card of the year to share →</span></span></a>' +
       '<a class="panel familycard" href="#/family/passport"><span class="fam-ic" aria-hidden="true">🛂</span><span><h3>Family passport</h3><span class="small">Every stamp, with who was there →</span></span></a>' +
       UI().lifetimeHTML(null) +
       '<h2>Everyone</h2><div class="stats">' + people.map(function (p) {
