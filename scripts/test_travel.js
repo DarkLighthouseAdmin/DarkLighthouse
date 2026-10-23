@@ -250,5 +250,15 @@ const giftTr = fs.readFileSync(R("travel/gifts/gifts-for-travelers/index.html"),
 ok(/\/travel\/gifts\//.test(priv), "privacy: mentions gift guides");
 ok(fs.readFileSync(R("index.html"), "utf8").includes('href="/travel/gifts/"'), "homepage footer links to gift guides");
 
+// Kids' clothes lists (counts by trip length, no product links) on every family packing page
+const KC_RE = /<section class="kidsclothes" id="kids-clothes">[\s\S]*?<\/section>/;
+["travel/scotland/", "travel/ireland/", "travel/england/", "travel/wales/", "travel/gear/what-to-wear-in-scotland/", "travel/gear/best-travel-stroller-europe/", "travel/gear/best-carry-on-luggage-family-travel/"].forEach(p => {
+  const h = fs.readFileSync(R(p + "index.html"), "utf8"), m = h.match(KC_RE), kc = m ? m[0] : "";
+  ok(!!m, p + ": kids' clothes section");
+  ["Base layers", "Fleece", "Waterproof jacket", "puddle suit", "Warm hat", "Sun hat", "Pyjamas", "Socks", "Underwear", "wellies", "trainers", "Swimwear", "nicer outfit", "Spare outfit in the carry-on", "sleep sack", "Extra changes", "Bibs"].forEach(w => ok(kc.toLowerCase().includes(w.toLowerCase()), p + ": kids' clothes list has " + w));
+  ok(/<th>Weekend<\/th><th>1 week<\/th><th>2 weeks<\/th>/.test(kc), p + ": kids' clothes counts by trip length");
+  ok(!kc.includes("data-affiliate"), p + ": kids' clothes list has no partner links");
+});
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
