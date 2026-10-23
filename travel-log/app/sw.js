@@ -1,6 +1,6 @@
-/* Offline support for Wanderkin (/travel-log/app/). Caches the app's own files only; your data lives in IndexedDB, never here.
+/* Offline support for Famstamp (/travel-log/app/). Caches the app's own files only; your data lives in IndexedDB, never here.
    Family Sync talks to Supabase (another origin), which this worker never touches. vendor/*.js is cached the first time sync loads it. */
-var CACHE = "mltl-v5";
+var CACHE = "mltl-v6";
 var FILES = ["./", "index.html", "app.css", "app.js", "log-core.js", "maps.js", "sync-core.js", "sync-config.js", "sync.js", "sync.css", "manifest.webmanifest",
              "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png"];
 self.addEventListener("install", function (e) {

@@ -1,4 +1,4 @@
-// Tests for Wanderkin, the My Lifetime Travel Log app (/travel-log/app/). Run: node scripts/test_travel_log.js
+// Tests for Famstamp, the My Lifetime Travel Log app (/travel-log/app/). Run: node scripts/test_travel_log.js
 const fs = require("fs"), path = require("path");
 const APP = path.join(__dirname, "..", "travel-log", "app");
 const M = require("../travel-log/app/log-core.js");
@@ -151,6 +151,8 @@ const back = M.readBackup(JSON.parse(JSON.stringify(bk)));
 ok(back.kids.length === 2 && back.trips.length === 2 && back.photos.length === 1, "round trip keeps kids, trips and photos");
 ok(JSON.stringify(back.kids[0].places) === JSON.stringify(a.places) && back.kids[0].parks.zion, "maps survive the round trip");
 ok(back.photos[0].dataUrl === px && back.trips[0].photoId === "photo_0123456789abcdef", "photo survives the round trip");
+{ const wk = JSON.parse(JSON.stringify(bk)); wk.note = "Wanderkin backup. Keep this file somewhere safe.";
+  ok(M.readBackup(wk).kids.length === bk.kids.length, "a backup saved while the app was called Wanderkin still restores"); }
 throws(() => M.readBackup({ hello: 1 }), /backup/i, "random JSON is refused");
 throws(() => M.readBackup(null), /backup/i, "empty file is refused");
 throws(() => M.readBackup(Object.assign({}, bk, { version: 99 })), /newer|version/i, "future versions are refused politely");
@@ -267,16 +269,17 @@ ok(M.backupNudge("2999-01-01T00:00:00Z", [t1, t2, t1]) === 0, "no nudge right af
 // ---- Android download page + Digital Asset Links ----
 {
   const ROOT = path.join(__dirname, "..");
-  const apk = path.join(APP, "download", "wanderkin.apk"), oldApk = path.join(APP, "download", "my-lifetime-travel-log.apk");
-  ok(fs.existsSync(oldApk) && fs.readFileSync(oldApk).equals(fs.readFileSync(apk)), "old APK link still works and serves the same Wanderkin build");
+  const apk = path.join(APP, "download", "famstamp.apk"), oldApk = path.join(APP, "download", "my-lifetime-travel-log.apk");
+  ok(fs.existsSync(oldApk) && fs.readFileSync(oldApk).equals(fs.readFileSync(apk)), "old APK link still works and serves the same Famstamp build");
+  ok(fs.readFileSync(path.join(APP, "download", "wanderkin.apk")).equals(fs.readFileSync(apk)), "the short-lived wanderkin.apk link serves the newest Famstamp build too");
   ok(fs.existsSync(apk), "APK is in /travel-log/app/download/");
   const size = fs.statSync(apk).size, head = fs.readFileSync(apk).subarray(0, 4);
   ok(size > 100e3 && size < 25e6, "APK size is sane and well under GitHub limits: " + size);
   ok(head[0] === 0x50 && head[1] === 0x4b, "APK is a zip (PK header)");
   const dl = fs.readFileSync(path.join(APP, "download", "index.html"), "utf8");
   ok(/<meta name="robots" content="noindex/.test(dl), "download page is noindex");
-  ok(/href="wanderkin\.apk" download/.test(dl), "download button points at wanderkin.apk");
-  ok(/<title>Get Wanderkin on Android<\/title>/.test(dl) && /Version 1\.3\.0/.test(dl) && !/Lifetime Travel Log/.test(dl), "download page says Wanderkin 1.3.0");
+  ok(/href="famstamp\.apk" download/.test(dl), "download button points at famstamp.apk");
+  ok(/<title>Get Famstamp on Android<\/title>/.test(dl) && /Version 1\.3\.1/.test(dl) && !/Lifetime Travel Log/.test(dl), "download page says Famstamp 1.3.1");
   ok((dl.match(/<li>/g) || []).length === 3 && /Allow from this source/.test(dl), "3 install steps incl. allow from this source");
   ok(/iPhone/.test(dl) && /Add to Home Screen/.test(dl), "iPhone note");
   ok(!/https?:\/\//.test(dl) && !/<script/.test(dl), "download page loads nothing from other sites, no scripts");
@@ -291,15 +294,15 @@ ok(M.backupNudge("2999-01-01T00:00:00Z", [t1, t2, t1]) === 0, "no nudge right af
 const html = read("index.html"), js = read("app.js"), css = read("app.css"), sw = read("sw.js");
 const manifest = JSON.parse(read("manifest.webmanifest"));
 ok(/<meta name="robots" content="noindex/.test(html), "app stays noindex (hidden test link)");
-ok(/<title>Wanderkin: your family's travel story<\/title>/.test(html), "Wanderkin title with the tagline");
-ok(/>Wander<span>kin<\/span><\/a>/.test(html) && /content="Wanderkin"/.test(html), "header and iOS home-screen name say Wanderkin");
+ok(/<title>Famstamp: stamp every trip<\/title>/.test(html), "Famstamp title with the tagline");
+ok(/>Fam<span>stamp<\/span><\/a>/.test(html) && /content="Famstamp"/.test(html), "header and iOS home-screen name say Famstamp");
 ok(!/Lifetime Travel Log|Travel Log</.test(html), "index.html no longer shows the old app name");
-ok(/a\.download = "wanderkin-backup-"/.test(js) && /Wanderkin · Map data/.test(js) && /" · Wanderkin"/.test(js), "backup file name, print view and page titles say Wanderkin");
+ok(/a\.download = "famstamp-backup-"/.test(js) && /Famstamp · Map data/.test(js) && /" · Famstamp"/.test(js), "backup file name, print view and page titles say Famstamp");
 ok((js.match(/My Lifetime Travel Log/g) || []).length === 4 && /matching paperback, My Lifetime Travel Log/.test(js), "only the book keeps the My Lifetime Travel Log name");
 ok(M.APP_ID === "my-lifetime-travel-log", "backup id unchanged so old backups still restore");
 ok(/name="description" content="[^"]*family[^"]*kids/i.test(html), "meta description is family-wide and mentions kids");
 ok(/"description": "[^"]*family/.test(read("manifest.webmanifest")), "manifest description is family-wide");
-ok(/var CACHE = "mltl-v5"/.test(sw), "service worker cache bumped to v5 (Family Sync) so phones update");
+ok(/var CACHE = "mltl-v6"/.test(sw), "service worker cache bumped to v5 (Family Sync) so phones update");
 ok(/Color in every place your family goes, from the first road trip on\./.test(js), "onboarding leads with family, from the first road trip");
 ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.test(js) && /places you\\'ve been together/.test(js), "family map with a together view");
 ok(/Parent\/Adult/.test(read("log-core.js")) && /data-role/.test(js), "add-someone form has roles");
@@ -320,8 +323,8 @@ ok(list.length >= 8, "service worker pre-caches the app files");
 list.forEach(f => ok(f === "./" || fs.existsSync(path.join(APP, f)), "pre-cached file exists: " + f));
 ["index.html", "app.js", "app.css", "log-core.js", "maps.js", "manifest.webmanifest"].forEach(f => ok(list.includes(f), "sw caches " + f));
 ok(/self\.location\.origin|url\.origin\s*!==?\s*location\.origin|origin/.test(sw), "service worker only handles this site's requests");
-ok(manifest.short_name === "Wanderkin" && /^Your family's travel story/.test(manifest.description), "manifest short name and tagline");
-ok(manifest.name === "Wanderkin" && manifest.start_url === "/travel-log/app/" && manifest.scope === "/travel-log/app/" && manifest.display === "standalone", "manifest basics");
+ok(manifest.short_name === "Famstamp" && /^Stamp every trip\./.test(manifest.description), "manifest short name and tagline");
+ok(manifest.name === "Famstamp" && manifest.start_url === "/travel-log/app/" && manifest.scope === "/travel-log/app/" && manifest.display === "standalone", "manifest basics");
 manifest.icons.forEach(i => ok(fs.existsSync(path.join(APP, i.src.replace(/^\/travel-log\/app\//, ""))), "icon exists: " + i.src));
 ok(manifest.icons.some(i => i.sizes === "512x512" && /maskable/.test(i.purpose || "")), "has a maskable icon");
 ok(/indexedDB\.open/.test(js) && /toDataURL\("image\/jpeg"/.test(js) && /fitDims/.test(js), "photos are shrunk and kept in IndexedDB");

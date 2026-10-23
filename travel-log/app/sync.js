@@ -1,4 +1,4 @@
-/* Wanderkin: Family Sync (optional). The app works fully without it. When it's on, this phone keeps its own
+/* Famstamp: Family Sync (optional). The app works fully without it. When it's on, this phone keeps its own
    full copy in IndexedDB and trades changes with the family's shared copy in Supabase in the background.
    Supabase's library is only loaded once someone turns sync on or opens an invite. */
 (function () {
@@ -296,7 +296,7 @@
 
   // ---------- screens ----------
   function viewSync(sub) {
-    document.title = "Family Sync · Wanderkin";
+    document.title = "Family Sync · Famstamp";
     if (sub === "invite") return viewInvite();
     if (sub === "email") return viewEmail();
     if (sub === "create") return viewCreate();
@@ -307,7 +307,7 @@
 
   function viewTurnOn() {
     main.innerHTML = back("#/", "Home") + '<div class="synchero"><div class="beam" aria-hidden="true">👨‍👩‍👧‍👦</div><h1>Turn on Family Sync</h1>' +
-      '<p class="lede">Your family\'s travel story, on everyone\'s phone. Add a trip on yours and it shows up in Grandma\'s Wanderkin too.</p></div>' +
+      '<p class="lede">Your family\'s travel story, on everyone\'s phone. Add a trip on yours and it shows up in Grandma\'s Famstamp too.</p></div>' +
       '<div class="panel perks"><div><b>🗺️ Everyone\'s maps, everywhere</b><span>Each phone keeps its own full copy, so it still works with no signal.</span></div>' +
       '<div><b>🔑 Invite with a code</b><span>Kids and grandparents join with a code or a QR scan. No email or password needed.</span></div>' +
       '<div><b>📸 Photos, kindly sized</b><span>A small copy of each trip photo is shared. The full-size photo stays on the phone that took it.</span></div>' +
@@ -383,7 +383,7 @@
   var lastInvite = null;
   function viewInvite() {
     var c = cfg(); if (!c) { location.hash = "#/sync"; return; }
-    document.title = "Invite · Wanderkin";
+    document.title = "Invite · Famstamp";
     main.innerHTML = back("#/sync", "Family") + '<h1>Invite the crew</h1><p class="lede small">Send the link, or let them scan the code. It works for 7 days, up to 10 people.</p>' +
       '<div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" data-irole="adult" aria-pressed="true">A grown-up</button><button type="button" data-irole="kid" aria-pressed="false">A kid with their own phone</button></div>' +
       '<div class="panel invite" id="invbox"><p class="muted">Making a code…</p></div><p class="err" id="ierr" hidden></p>' +
@@ -401,7 +401,7 @@
         '<p class="small muted">Scan with a phone camera, or open the link. ' + (inv.role === "kid" ? "They'll join as a kid." : "They'll join as a grown-up.") + '</p>' +
         '<div class="actions center"><button class="btn btn-beacon" id="ishare">Share invite</button><button class="btn btn-ghost" id="icopy">Copy link</button></div>' +
         '<p class="small muted linkline">' + esc(link) + '</p>';
-      var text = "Join " + title + " on Wanderkin! Tap the link, or open the app and enter " + inv.code + ".";
+      var text = "Join " + title + " on Famstamp! Tap the link, or open the app and enter " + inv.code + ".";
       document.getElementById("ishare").onclick = function () {
         if (navigator.share) navigator.share({ title: "Join " + title, text: text, url: link }).catch(function () {});
         else copy(text + " " + link);
@@ -431,7 +431,7 @@
 
   // ---------- join ----------
   function viewJoin(code) {
-    document.title = "Join a family log · Wanderkin";
+    document.title = "Join a family log · Famstamp";
     code = S.codeFromLink(code || "");
     if (!code) {
       main.innerHTML = back("#/sync") + '<h1>Join your family</h1><div class="panel"><div class="field" style="margin-top:0"><label for="jcode">Invite code</label>' +
@@ -585,7 +585,7 @@
 
   // ---------- family feed ----------
   function viewFeed() {
-    document.title = "Family feed · Wanderkin";
+    document.title = "Family feed · Famstamp";
     var c = cfg(), items = S.feed(A.state.trips, c ? c.authors : {}, 30);
     main.innerHTML = back(on() ? "#/sync" : "#/", on() ? "Family" : "Home") + '<h1>Family feed</h1><p class="lede small">The newest trips from everyone' + (c ? " in " + esc(c.familyName) : "") + '.</p>' +
       (items.length ? '<div class="feed">' + items.map(feedItem).join("") + '</div>' : '<div class="panel"><p class="muted">No trips yet. Add one and it shows up here for the whole family.</p></div>');
