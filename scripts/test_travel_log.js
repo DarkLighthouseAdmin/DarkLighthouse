@@ -299,13 +299,13 @@ ok((js.match(/My Lifetime Travel Log/g) || []).length === 4 && /matching paperba
 ok(M.APP_ID === "my-lifetime-travel-log", "backup id unchanged so old backups still restore");
 ok(/name="description" content="[^"]*family[^"]*kids/i.test(html), "meta description is family-wide and mentions kids");
 ok(/"description": "[^"]*family/.test(read("manifest.webmanifest")), "manifest description is family-wide");
-ok(/var CACHE = "mltl-v4"/.test(sw), "service worker cache bumped to v4 (Wanderkin) so phones update");
+ok(/var CACHE = "mltl-v5"/.test(sw), "service worker cache bumped to v5 (Family Sync) so phones update");
 ok(/Color in every place your family goes, from the first road trip on\./.test(js), "onboarding leads with family, from the first road trip");
 ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.test(js) && /places you\\'ve been together/.test(js), "family map with a together view");
 ok(/Parent\/Adult/.test(read("log-core.js")) && /data-role/.test(js), "add-someone form has roles");
 ok(!/Add a kid|All kids|Which kids went/.test(js), "no kids-only wording in the people flow");
 ok(/Content-Security-Policy[^>]*default-src 'self'[^>]*script-src 'self'/.test(html), "CSP locks scripts to this site");
-ok(!/https?:\/\//.test(html.replace(/<!--[\s\S]*?-->/g, "")), "index.html loads nothing from other sites");
+ok(!/https?:\/\//.test(html.replace(/<!--[\s\S]*?-->/g, "").replace(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co wss:\/\/ercowufdbmvqagshduxh\.supabase\.co;/, "")), "index.html loads nothing from other sites (only Family Sync may connect to the family database)");
 ok(!/googletagmanager|gtag\(|google-analytics|emrldtp|fonts\.googleapis|<script[^>]+src="(?!\.?\/?[\w-]+\.js")/.test(html), "no analytics, fonts or outside scripts in index.html");
 (html.match(/<script[^>]*src="([^"]+)"/g) || []).forEach(t => { const f = t.match(/src="([^"]+)"/)[1]; ok(fs.existsSync(path.join(APP, f)), "script exists: " + f); });
 ok(!/fetch\(|XMLHttpRequest|sendBeacon|WebSocket|localStorage\.setItem\(["']_ga/.test(js), "app.js makes no network calls");
@@ -327,6 +327,166 @@ ok(manifest.icons.some(i => i.sizes === "512x512" && /maskable/.test(i.purpose |
 ok(/indexedDB\.open/.test(js) && /toDataURL\("image\/jpeg"/.test(js) && /fitDims/.test(js), "photos are shrunk and kept in IndexedDB");
 ok(/makeBackup/.test(js) && /readBackup/.test(js), "back up / restore wired up");
 ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view");
+
+
+// ---- Family Sync (sync-core.js: invite codes, push/pull, conflicts, merge, plan) ----
+{
+  const S = require("../travel-log/app/sync-core.js");
+  const ssrc = read("sync.js"), score = read("sync-core.js"), scfg = read("sync-config.js"), scss = read("sync.css");
+  ok(S.WORDS.length === 64 && new Set(S.WORDS).size === 64 && S.WORDS.every(w => /^[A-Z]+$/.test(w)), "64 unique invite words");
+  const sqlPath = "/workspace/new-streams/travel-app/supabase/migrations/20261023120000_family_sync.sql";
+  if (fs.existsSync(sqlPath)) {
+    const sql = fs.readFileSync(sqlPath, "utf8"), m = /invite_words\(\)[\s\S]*?array\[([\s\S]*?)\];/.exec(sql);
+    ok(m && m[1].match(/'([A-Z]+)'/g).map(x => x.slice(1, -1)).join() === S.WORDS.join(), "app and database use the same invite words");
+    ok(/enable row level security/.test(sql) && (sql.match(/enable row level security/g) || []).length >= 8, "every sync table has row level security");
+    ok(/security definer/.test(sql) && /function public\.redeem_invite/.test(sql), "redeem_invite is a security definer RPC");
+    ok(/grant update \(name, home\) on public\.families/.test(sql) && !/grant update on public\.families/.test(sql), "clients can't change the plan column");
+    ok(/'trip-photos', 'trip-photos', false/.test(sql), "photo bucket is private");
+    ok(/function public\.ping\(\)/.test(sql) && /grant execute on function public\.ping\(\) to anon/.test(sql), "keep-alive ping is callable with the publishable key");
+  }
+  // codes
+  ok(S.normCode("  maple compass 4821 ") === "MAPLE-COMPASS-4821", "codes tidy up spaces and case");
+  ok(S.normCode("maple_compass4821") === "MAPLE-COMPASS-4821", "codes tidy up underscores and a missing dash");
+  ok(S.isCode("Maple-Compass-4821") && !S.isCode("MAPLE-NOPE-4821") && !S.isCode("MAPLE-COMPASS-482") && !S.isCode(""), "code check");
+  for (let i = 0; i < 300; i++) { const b = [0, 0, 0, 0].map(() => Math.floor(Math.random() * 256)); ok(S.isCode(S.makeCode(b)), "random code is valid: " + S.makeCode(b)); }
+  ok(S.makeCode([0, 0, 0, 0]) === "ACORN-ACORN-1000" && S.makeCode([63, 63, 255, 255]) === "ZEPHYR-ZEPHYR-" + (1000 + 65535 % 9000), "code edges");
+  ok(S.codeFromLink("https://darklighthousesolutions.com/travel-log/app/?join=wave-tide-1234#/") === "WAVE-TIDE-1234", "code from an invite link");
+  ok(S.codeFromLink("wave tide 1234") === "WAVE-TIDE-1234" && S.codeFromLink("hello") === "", "bare codes work, junk doesn't");
+  ok(S.inviteLink("https://x.test/travel-log/app/#/sync/invite", "wave tide 1234") === "https://x.test/travel-log/app/?join=WAVE-TIDE-1234", "invite link format");
+  ok(S.familyTitle("Hill") === "the Hill family log" && S.familyTitle("The Hill family") === "The Hill family log" && S.familyTitle("The Hills") === "The Hills' log" && S.familyTitle("") === "your family's log", "family titles read naturally");
+  // push plan from nothing
+  const FID = "fam-1";
+  const lily = M.newPerson({ name: "Lily", role: "kid", now: "2026-10-01T10:00:00.000Z" }), mom = M.newPerson({ name: "Mom", role: "adult", now: "2026-10-01T10:00:00.000Z" });
+  M.toggleArea(lily, "state", "FL", true, "2026-06-14"); M.toggleArea(lily, "place", "SCT", true, "2026-07-10"); M.togglePark(lily, "zion", "visit", true); M.togglePark(lily, "zion", "jr", true);
+  lily.updatedAt = "2026-10-02T10:00:00.000Z";
+  const t1 = M.newTrip({ kidIds: [lily.id, mom.id], place: "Edinburgh", from: "Orlando", stops: ["London"], date: "2026-07-10", photoId: "photo_aaaa1111", now: "2026-10-02T11:00:00.000Z" });
+  let local = { people: [lily, mom], trips: [t1], photoIds: ["photo_aaaa1111"] };
+  let sh = S.emptyShadow(), plan = S.planPush(local, sh, FID, "2026-10-03T00:00:00Z");
+  ok(plan.people.length === 2 && plan.trips.length === 1 && plan.visits.length === 3, "first push sends everyone, every trip and every colored place: " + plan.visits.length);
+  ok(plan.uploads.length === 1 && plan.uploads[0].id === "photo_aaaa1111", "first push uploads the trip photo");
+  ok(!("states" in plan.people[0].data) && plan.people[0].data.name === "Lily", "person rows carry the profile, not the map");
+  const tr = plan.trips[0];
+  ok(tr.traveler_ids.join() === [lily.id, mom.id].join() && tr.from_place === "Orlando" && tr.to_place === "Edinburgh" && tr.trip_date === "2026-07-10", "trip rows carry travelers, from and to");
+  ok(plan.visits.some(v => v.kind === "park" && v.place_id === "zion" && v.jr), "Junior Ranger syncs with the park");
+  S.afterPush(sh, plan); sh.photos.photo_aaaa1111 = "image/webp";   // sync.js records the upload
+  ok(S.planPush(local, sh, FID).people.length === 0 && S.planPush(local, sh, FID).visits.length === 0 && S.planPush(local, sh, FID).trips.length === 0, "nothing to send after a clean push");
+  // local edits -> only the change goes up
+  M.toggleArea(lily, "state", "NC", true, "2026-08-01"); lily.updatedAt = "2026-10-04T09:00:00.000Z";
+  M.toggleArea(lily, "state", "FL", false);  lily.updatedAt = "2026-10-04T09:01:00.000Z";
+  plan = S.planPush(local, sh, FID, "2026-10-04T10:00:00Z");
+  ok(plan.visits.length === 2 && plan.visits.some(v => v.place_id === "NC" && !v.deleted) && plan.visits.some(v => v.place_id === "FL" && v.deleted), "coloring and un-coloring send one row each (un-color is a soft delete)");
+  ok(plan.people.length === 1, "the person's timestamp changed so their profile goes too");
+  S.afterPush(sh, plan);
+  // deleting a trip / person = tombstones
+  local.trips = []; plan = S.planPush(local, sh, FID, "2026-10-05T00:00:00Z");
+  ok(plan.trips.length === 1 && plan.trips[0].deleted && plan.photos.length === 1 && plan.photos[0].deleted && plan.removes.length === 1, "deleted trip sends a soft delete and removes its shared photo");
+  S.afterPush(sh, plan); ok(!sh.trips[t1.id] && !sh.photos.photo_aaaa1111, "tombstones clear the shadow");
+  local.trips = [t1]; S.afterPush(sh, S.planPush(local, sh, FID)); sh.photos.photo_aaaa1111 = "image/webp";
+  // pull: a new trip from Grandma's phone, a new person, visits
+  const nana = { family_id: FID, id: "person_nana0001", data: { name: "Nana", role: "grand", color: M.COLORS[4], createdAt: "2026-10-05T00:00:00.000Z" }, updated_at: "2026-10-05T12:00:00+00:00", deleted: false, server_at: "2026-10-05T12:00:01+00:00" };
+  const gt = M.newTrip({ id: "trip_gatl0001", kidIds: [lily.id, "person_nana0001"], place: "Gatlinburg", stops: ["Asheville"], date: "2023-10-01", now: "2026-10-05T12:00:00.000Z" });
+  let ch = S.applyPull(local, sh, {
+    people: [nana],
+    visits: [{ person_id: "person_nana0001", kind: "park", place_id: "great-smoky-mountains", at: "2023-10-01", jr: false, updated_at: "2026-10-05T12:00:00+00:00", deleted: false, server_at: "2026-10-05T12:00:02+00:00" },
+             { person_id: lily.id, kind: "state", place_id: "TN", at: "2023-10-01", jr: false, updated_at: "2026-10-05T12:00:00+00:00", deleted: false, server_at: "2026-10-05T12:00:02+00:00" }],
+    trips: [Object.assign(S.tripRow(gt, FID), { server_at: "2026-10-05T12:00:03+00:00", updated_by: "user-nana" })],
+    photos: [{ id: "photo_gatl0001", path: FID + "/photo_gatl0001.webp", mime: "image/webp", deleted: false }]
+  });
+  ok(local.people.length === 3 && local.people.find(p => p.id === "person_nana0001").name === "Nana", "pulled a new person");
+  ok(local.people.find(p => p.id === "person_nana0001").parks["great-smoky-mountains"], "pulled their park");
+  ok(lily.states.TN && lily.states.NC && !lily.states.FL, "pulled a state onto Lily's map without losing her own edits");
+  ok(local.trips.some(t => t.id === "trip_gatl0001" && t.kidIds.length === 2 && t.stops[0] === "Asheville") && ch.newTrips[0] === "trip_gatl0001", "pulled a shared trip with travelers and stops");
+  ok(ch.downloads.length === 1 && ch.downloads[0].path.endsWith(".webp"), "missing shared photo is queued to download");
+  ok(S.planPush(local, sh, FID).trips.length === 0 && S.planPush(local, sh, FID).people.length === 0, "pulled rows don't echo back up");
+  ok(S.planPush(local, sh, FID).visits.length === 0, "pulled visits don't echo back up");
+  // conflicts: last write wins per record
+  const gl = local.trips.find(t => t.id === "trip_gatl0001");
+  gl.memory = "Matching hats (edited on this phone)"; gl.updatedAt = "2026-10-06T09:00:00.000Z";
+  S.applyPull(local, sh, { trips: [Object.assign(S.tripRow(Object.assign({}, gt, { memory: "older remote edit" }), FID), { updated_at: "2026-10-06T08:00:00+00:00" })] });
+  ok(local.trips.find(t => t.id === "trip_gatl0001").memory === "Matching hats (edited on this phone)", "newer local edit beats an older remote one");
+  ok(S.planPush(local, sh, FID).trips.length === 1, "...and still gets pushed");
+  S.applyPull(local, sh, { trips: [Object.assign(S.tripRow(Object.assign({}, gt, { memory: "newest remote edit" }), FID), { updated_at: "2026-10-06T10:00:00+00:00" })] });
+  ok(local.trips.find(t => t.id === "trip_gatl0001").memory === "newest remote edit", "newer remote edit beats an older local one");
+  ok(S.planPush(local, sh, FID).trips.length === 0, "...and the phone agrees with the cloud afterwards");
+  // remote soft deletes
+  S.applyPull(local, sh, { trips: [{ id: "trip_gatl0001", deleted: true, updated_at: "2026-10-07T00:00:00Z" }] });
+  ok(!local.trips.some(t => t.id === "trip_gatl0001"), "a trip deleted on another phone goes away here");
+  S.applyPull(local, sh, { visits: [{ person_id: lily.id, kind: "state", place_id: "TN", deleted: true, updated_at: "2026-10-07T00:00:00Z" }] });
+  ok(!lily.states.TN && lily.states.NC, "a state un-colored on another phone is un-colored here, others stay");
+  // a local un-synced color beats an older remote delete
+  M.toggleArea(lily, "state", "GA", true, "2026-10-08"); lily.updatedAt = "2026-10-08T00:00:00.000Z";
+  S.applyPull(local, sh, { visits: [{ person_id: lily.id, kind: "state", place_id: "GA", deleted: true, updated_at: "2026-10-07T00:00:00Z" }] });
+  ok(lily.states.GA, "newer local color survives an older remote un-color");
+  S.applyPull(local, sh, { people: [{ id: "person_nana0001", deleted: true, updated_at: "2026-10-09T00:00:00Z" }] });
+  ok(!local.people.some(p => p.id === "person_nana0001") && !Object.keys(sh.visits).some(k => k.startsWith("person_nana0001|")), "a person removed elsewhere is removed here with their map");
+  // cursor
+  ok(S.nextCursor("", [{ server_at: "2026-10-05T12:00:03+00:00" }, { server_at: "2026-10-05T12:00:01+00:00" }], 10000) === "2026-10-05T11:59:53.000Z", "pull cursor = newest row minus a 10 second overlap");
+  ok(S.nextCursor("2026-10-05T12:00:00.000Z", [], 0) === "2026-10-05T12:00:00.000Z" && S.nextCursor("", []) === "", "cursor holds when nothing new");
+  // joining a family that already has data
+  const famPeople = [{ id: "person_fam00001", name: "Lily" }, { id: "person_fam00002", name: "Dad" }];
+  const l2 = M.newPerson({ name: "lily " }), l3 = M.newPerson({ name: "Sam" });
+  l2.states.UT = { at: "2026-01-01" };
+  const tripJ = M.newTrip({ kidIds: [l2.id, l3.id], place: "Zion" });
+  const loc2 = { people: [l2, l3], trips: [tripJ] }, map2 = S.matchPeople(loc2.people, famPeople);
+  ok(map2[l2.id] === "person_fam00001" && !map2[l3.id], "same name (any case/spacing) is matched to the family's person");
+  S.remapPeople(loc2, map2);
+  ok(l2.id === "person_fam00001" && tripJ.kidIds[0] === "person_fam00001" && tripJ.kidIds[1] === l3.id, "matched person takes the family's id, trips follow");
+  ok(Date.parse(l2.updatedAt) < Date.parse("2000-01-01"), "a person matched to the family keeps the family's name and color (local profile marked oldest)");
+  const pp = S.planPush({ people: [l2], trips: [], photoIds: [] }, S.emptyShadow(), FID, "2026-10-23T00:00:00Z");
+  ok(pp.visits.some(v => v.place_id === "UT"), "...but their map colors still go up");
+  const dupA = M.newPerson({ name: "Mo" }), dupB = M.newPerson({ name: "Mo" }); dupA.states.FL = { at: "" }; dupB.states.GA = { at: "" }; dupB.parks.zion = { at: "", jr: true };
+  const tripD = M.newTrip({ kidIds: [dupA.id, dupB.id], place: "Beach" });
+  const loc3 = { people: [dupA, dupB], trips: [tripD] }; S.remapPeople(loc3, { [dupB.id]: dupA.id });
+  ok(loc3.people.length === 1 && dupA.states.FL && dupA.states.GA && dupA.parks.zion.jr && tripD.kidIds.length === 1, "merging two of the same person adds their maps together and de-dupes trips");
+  // flexible JSONB: fields this version doesn't know about (from the Trips worker or later versions) still sync
+  {
+    const pa = M.newPerson({ name: "Pat", role: "adult", now: "2026-10-10T00:00:00.000Z" }); pa.badges = ["first-flight"]; pa.favorites = { pub: "The Sheep Heid Inn", pint: "Tennent's" };
+    const ta = M.newTrip({ kidIds: [pa.id], place: "Edinburgh", date: "2026-07-10", now: "2026-10-10T00:00:00.000Z" });
+    ta.stops2 = [{ place: "London", nights: 2, stayedAt: "Hotel" }]; ta.legs = [{ mode: "plane", miles: 4100, from: "MCO", to: "LHR" }];
+    const pushA = S.planPush({ people: [pa], trips: [ta], photoIds: [] }, S.emptyShadow(), FID, "2026-10-10T01:00:00Z");
+    ok(pushA.people[0].data.badges[0] === "first-flight" && pushA.people[0].data.favorites.pub === "The Sheep Heid Inn" && !("states" in pushA.people[0].data), "new person fields go into the data blob");
+    ok(pushA.trips[0].data.legs[0].miles === 4100 && pushA.trips[0].data.stops2[0].nights === 2, "new trip fields go into the data blob");
+    const other = { people: [], trips: [], photoIds: [] }, shB = S.emptyShadow();
+    S.applyPull(other, shB, { people: pushA.people, trips: pushA.trips });
+    ok(other.people[0].favorites.pint === "Tennent's" && other.people[0].badges.length === 1, "unknown person fields arrive on the other phone");
+    ok(other.trips[0].legs[0].to === "LHR" && other.trips[0].stops2[0].stayedAt === "Hotel", "unknown trip fields arrive on the other phone");
+    ok(S.planPush(other, shB, FID).people.length === 0 && S.planPush(other, shB, FID).trips.length === 0, "...without echoing back");
+  }
+  // plan / entitlement
+  ok(S.access(null, { testing: true }).unlocked && S.access(null, { testing: true }).tier === "testing", "family testing flag unlocks everything");
+  const now = "2026-10-23T12:00:00Z";
+  ok(S.access({ plan: "free", trial_ends_at: "2026-11-01T00:00:00Z" }, {}, now).tier === "trial" && /9 days left/.test(S.access({ plan: "free", trial_ends_at: "2026-11-01T00:00:00Z" }, {}, now).label), "trial shows days left");
+  ok(S.access({ plan: "keeper", keeper_until: "2027-10-23T00:00:00Z", trial_ends_at: "2026-01-01T00:00:00Z" }, {}, now).tier === "keeper", "Family Keeper unlocks");
+  ok(S.access({ plan: "keeper", keeper_until: "2026-10-01T00:00:00Z", trial_ends_at: "2026-01-01T00:00:00Z" }, {}, now).tier === "free", "lapsed Family Keeper falls back to free");
+  const free = S.access({ plan: "free", trial_ends_at: "2026-01-01T00:00:00Z" }, {}, now);
+  ok(!S.allows(free, "photos") && S.allows(free, "members", 1) && !S.allows(free, "members", 2), "free plan: no photo sync, 2 members");
+  // fun + feed
+  ok(S.joinLine("Grandma", "u1") === S.joinLine("Grandma", "u1") && /Grandma/.test(S.joinLine("Grandma", "u1")), "join cheer is stable and names the person");
+  ok(S.newMembers([{ user_id: "me" }, { user_id: "a" }, { user_id: "b" }], { a: 1 }, "me").map(m => m.user_id).join() === "b", "only brand-new members get cheered");
+  ok(S.ago("2026-10-23T11:59:30Z", now) === "just now" && S.ago("2026-10-23T11:00:00Z", now) === "1 hour ago" && S.ago("2026-10-22T10:00:00Z", now) === "yesterday" && S.ago("2026-10-19T12:00:00Z", now) === "4 days ago", "friendly times");
+  const fd = S.feed([{ id: "a", createdAt: "2026-10-01T00:00:00Z", kidIds: [] }, { id: "b", createdAt: "2026-10-05T00:00:00Z", kidIds: [] }], { b: "Nana" }, 5);
+  ok(fd[0].trip.id === "b" && fd[0].by === "Nana" && fd[1].by === "", "feed is newest first with who added it");
+  ok(S.thumbDims(4032, 3024).w === 1024 && S.thumbDims(3024, 4032).h === 1024 && S.thumbDims(800, 600).w === 800, "shared photo copies are 1024px on the long edge, never upscaled");
+  // wiring + privacy
+  ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
+  ok(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co/.test(html), "CSP allows only the family database");
+  ok(!/service_role|sb_secret_/.test(scfg + ssrc + score), "no secret keys in the app");
+  ok(/key: "sb_publishable_[A-Za-z0-9_-]+"/.test(scfg), "sync uses the publishable key");
+  ok(/showEntry: false/.test(scfg) || /showEntry: true/.test(scfg), "sync entry has an on/off flag");
+  ok(/testing: true/.test(scfg), "family testing unlocks everything for now");
+  ok(/loadScript\("vendor\/supabase\.js"\)/.test(ssrc) && !/<script src="vendor/.test(html), "Supabase's library is only loaded once sync is used");
+  ok(fs.existsSync(path.join(APP, "vendor", "supabase.js")) && fs.existsSync(path.join(APP, "vendor", "qrcode.js")), "vendored libraries are here (no CDN)");
+  ok(/MIT/.test(read("vendor/supabase.js").slice(0, 300)) && /MIT/.test(read("vendor/qrcode.js").slice(0, 600)), "vendored libraries keep their licenses");
+  ok(/navigator\.share/.test(ssrc) && /clipboard/.test(ssrc), "Share invite with a copy fallback");
+  ok(/function qrSVG/.test(ssrc) && !/api\.qrserver|chart\.googleapis|quickchart/.test(ssrc), "QR code is drawn on the phone");
+  ok(/You\\'re joining /.test(ssrc), "friendly join screen");
+  ok(/leave_family/.test(ssrc) && /delete_my_account/.test(ssrc) && /Delete my cloud account/.test(ssrc), "leave family and delete my cloud data");
+  ok(/prefers-reduced-motion/.test(ssrc) && /prefers-reduced-motion/.test(scss), "confetti and spinners respect reduced motion");
+  ok(/unless you turn on Family Sync/.test(html) && !/No accounts, no ads/.test(html), "footer describes sync honestly");
+  ok(/Supabase, in the US/.test(ssrc) && /Full-size photos never leave/.test(ssrc), "in-app privacy note explains what's shared");
+  ok(/window\.MLTL_onChange/.test(js) && /window\.MLTL_SYNC\.route\(h\)/.test(js), "app tells sync about saves and lets it add screens");
+  ["sync-core.js", "sync-config.js", "sync.js", "sync.css"].forEach(f => ok(list.includes(f), "sw caches " + f));
+}
 
 // ---- site scripts leave the app alone (no analytics, nav or meta injected) ----
 ["add_analytics.py", "add_global_nav.py", "add_head_meta.py"].forEach(f => {

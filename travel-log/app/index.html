@@ -12,14 +12,15 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Wanderkin" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://ercowufdbmvqagshduxh.supabase.co wss://ercowufdbmvqagshduxh.supabase.co; object-src 'none'; base-uri 'self'; form-action 'none'" />
   <link rel="stylesheet" href="app.css" />
+  <link rel="stylesheet" href="sync.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="wrap">
       <a class="brand" href="#/" aria-label="Wanderkin home">Wander<span>kin</span></a>
-      <a class="toplink" href="#/backup">Back up</a>
+      <span class="topright"><a class="syncpill" id="syncpill" href="#/sync" hidden></a><a class="toplink" href="#/backup">Back up</a></span>
     </div>
   </header>
   <main id="main" class="wrap" tabindex="-1">
@@ -27,11 +28,14 @@
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <footer class="foot wrap">
-    <p>Wanderkin keeps everything you add on this device. No accounts, no ads, no tracking.</p>
+    <p>Wanderkin keeps everything you add on this device, unless you turn on Family Sync. No ads, no tracking.</p>
     <p class="credit">Made by Dark Lighthouse Solutions · Map data: Natural Earth (public domain)</p>
   </footer>
   <script src="maps.js"></script>
   <script src="log-core.js"></script>
+  <script src="sync-core.js"></script>
+  <script src="sync-config.js"></script>
   <script src="app.js"></script>
+  <script src="sync.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* Wanderkin (the My Lifetime Travel Log app): the app. Plain JavaScript, no libraries, no network calls.
+/* Wanderkin (the My Lifetime Travel Log app): the app. Plain JavaScript, no libraries, and no network calls unless Family Sync (sync.js) is turned on.
    Data lives in this browser's IndexedDB ("mltl"); photos are shrunk and re-saved as JPEG, which also drops GPS/EXIF data. */
 (function () {
   "use strict";
@@ -34,8 +34,10 @@
     });
   }
   function all(store) { return tx(store, "readonly", function (s) { return s.getAll(); }); }
-  function put(store, v) { return tx(store, "readwrite", function (s) { s.put(v); }); }
-  function del(store, id) { return tx(store, "readwrite", function (s) { s.delete(id); }); }
+  // Family Sync (sync.js) listens for saves so it can share them in the background. silent = a change that came from sync itself.
+  function changed(store, silent) { if (!silent && window.MLTL_onChange) try { window.MLTL_onChange(store); } catch (e) {} }
+  function put(store, v, silent) { return tx(store, "readwrite", function (s) { s.put(v); }).then(function (x) { changed(store, silent); return x; }); }
+  function del(store, id, silent) { return tx(store, "readwrite", function (s) { s.delete(id); }).then(function (x) { changed(store, silent); return x; }); }
   function getOne(store, id) { return tx(store, "readonly", function (s) { return s.get(id); }); }
 
   var state = { kids: [], trips: [], meta: {} };
@@ -105,6 +107,7 @@
   function route() {
     var h = location.hash.replace(/^#\/?/, "").split("/");
     document.body.classList.remove("kidview");
+    if (window.MLTL_SYNC && window.MLTL_SYNC.route(h)) return;
     if (h[0] === "family") return viewFamily();
     if (h[0] === "together") return viewTogether(h[1]);
     if ((h[0] === "p" || h[0] === "kid") && kidById(h[1])) {
@@ -125,7 +128,8 @@
   // ---------- home ----------
   function viewHome() {
     var html = '<h1>Color in every place your family goes, from the first road trip on.</h1>' +
-      '<p class="lede">A travel map for each kid, and for the grown-ups too: states, countries and national parks, plus the little stories from every trip. It all stays right here on this device.</p>';
+      '<p class="lede">A travel map for each kid, and for the grown-ups too: states, countries and national parks, plus the little stories from every trip. ' +
+      (window.MLTL_SYNC && window.MLTL_SYNC.isOn() ? "It's saved on this device and shared with your family log." : "It all stays right here on this device.") + '</p>';
     html = backupBanner() + html;
     html += '<h2>Who\'s traveling?</h2><div class="kids">';
     state.kids.forEach(function (k) {
@@ -144,6 +148,7 @@
         esc(top ? travelerNames(top.ids) + ": " + top.count + (top.count === 1 ? " trip" : " trips") + " together" : "Check who went on each trip to see who travels together") +
         '</span><br><span class="small">Pick two or more people to see the trips you shared →</span></span></a>';
     }
+    if (window.MLTL_SYNC) html += window.MLTL_SYNC.homeCard();
     html += '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div>' +
             '<h3>Like paper too?</h3><p class="small muted">The matching paperback, My Lifetime Travel Log, has the same maps to color, all 64 parks and 40 trip pages, for the shelf. ' +
             '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>';
@@ -394,7 +399,7 @@
       '<div class="field"><label for="tmark">Color it in on the map?</label><select id="tmark">' + markOptions(t && t.mark) + '</select></div></div>' +
       '<div class="field"><label for="twho">Anyone else along?</label><input id="twho" type="text" maxlength="120" value="' + (t ? esc(t.who) : "") + '" placeholder="e.g. cousins, the Smiths, the dog"></div>' +
       '<div class="field"><label for="tmem">Favorite memory</label><textarea id="tmem" maxlength="1000" placeholder="The funny thing, the best food, the moment you want to remember">' + (t ? esc(t.memory) : "") + '</textarea></div>' +
-      '<div class="field"><label for="tphoto">Photo (optional)</label><input id="tphoto" type="file" accept="image/*"><p class="small muted">We shrink it and keep it only on this device. Location data in the photo is removed.</p>' +
+      '<div class="field"><label for="tphoto">Photo (optional)</label><input id="tphoto" type="file" accept="image/*"><p class="small muted">' + esc((window.MLTL_SYNC && window.MLTL_SYNC.photoNote()) || "We shrink it and keep it only on this device. Location data in the photo is removed.") + '</p>' +
       '<img id="tprev" class="photo-prev" alt="" hidden>' + (t && t.photoId ? '<button type="button" class="btn btn-ghost" id="trmphoto" style="margin-top:.5rem">Remove photo</button>' : "") + '</div>' +
       '<p class="err" id="terr" hidden></p><div class="actions"><button class="btn btn-primary" id="tsave">Save trip</button>' +
       '<a class="btn btn-ghost" href="#/p/' + esc(k.id) + '/trips">Cancel</a>' + (t ? '<button class="btn btn-danger" id="tdel">Delete trip</button>' : "") + '</div></div>');
@@ -623,7 +628,7 @@
   function viewBackup() {
     var last = state.meta.lastBackupAt;
     main.innerHTML = '<a class="back" href="#/">← Home</a><h1>Back up and restore</h1>' +
-      '<p class="lede">Your maps live only on this device. A backup file keeps them safe if the phone is lost, replaced or cleared.</p>' +
+      '<p class="lede">' + esc((window.MLTL_SYNC && window.MLTL_SYNC.storageNote()) || "Your maps live only on this device. A backup file keeps them safe if the phone is lost, replaced or cleared.") + '</p>' +
       '<div class="panel"><h3>Back up</h3><p class="muted small">Saves one file with everyone\'s maps, trips and photos. Email it to yourself or save it to your cloud drive.</p>' +
       '<p class="small">' + (last ? "Last backup: " + esc(M.prettyDate(last.slice(0, 10))) : "No backup yet.") + '</p>' +
       '<div class="actions"><button class="btn btn-primary" id="bdown">Save a backup file</button></div></div>' +
@@ -645,7 +650,8 @@
       }).catch(function (x) { err.textContent = x.message; err.hidden = false; });
     };
     document.getElementById("bwipe").onclick = function () {
-      if (!confirm("Delete everyone's maps, trips and photos on this device? This can't be undone.")) return;
+      var synced = window.MLTL_SYNC && window.MLTL_SYNC.isOn();
+      if (!confirm("Delete everyone's maps, trips and photos on this device? This can't be undone." + (synced ? " This phone also stops syncing; the family's shared copy stays in the family log." : ""))) return;
       tx(["kids", "trips", "photos", "meta"], "readwrite", function (s) { s.forEach(function (st) { st.clear(); }); })
         .then(load).then(function () { photoCache = {}; toast("All cleared"); location.hash = "#/"; });
     };
@@ -656,7 +662,11 @@
     var a = e.target.closest && e.target.closest("a[data-book]");
     if (a && !BOOK_URL) { e.preventDefault(); toast("The paperback is on its way to Amazon. Check back soon!"); }
   });
-  load().then(route).catch(function () {
+  // What sync.js needs from the app. Nothing here talks to the network.
+  var readyRes; var ready = new Promise(function (r) { readyRes = r; });
+  window.MLTL_APP = { state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, setMeta: setMeta,
+                      kidById: kidById, doBackup: doBackup, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready };
+  load().then(function () { readyRes(); route(); }).catch(function () {
     main.innerHTML = '<div class="panel"><h3>Storage isn\'t available</h3><p class="muted">This browser is blocking on-device storage (private browsing can do this). Try a normal window so your maps can be saved.</p></div>';
   });
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
