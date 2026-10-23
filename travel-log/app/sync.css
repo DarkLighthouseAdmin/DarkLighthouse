@@ -90,9 +90,9 @@
 /* family menu: fixed, clamped into the viewport by placeMenu(); a bottom sheet under 480px */
 .fammenu { position:fixed; max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); overflow-y:auto; overscroll-behavior:contain; box-sizing:border-box; }
 .fammenu.sheet { left:8px; right:8px; bottom:calc(8px + env(safe-area-inset-bottom)); top:auto; width:auto; border-radius:18px; padding:.5rem .5rem .7rem; animation:sheetup .18s ease-out; z-index:61; }
-.fmscrim { position:fixed; inset:0; background:rgba(22,40,58,.38); z-index:60; }
+.fmscrim { position:fixed; inset:0; background:rgba(22,40,58,.38); z-index:44; }   /* below the logo (46) so it stays a working Home link */
 .fmscrim[hidden] { display:none; }
-.fammenu { z-index:61; }
+.fammenu { z-index:45; }
 .fmsep { border-top:1px dashed var(--line); margin:.3rem .2rem; }
 .fmitem.add:first-of-type { border-top:0; }
 .fmitem.turnon { background:var(--beacon, #e8a54b); color:var(--navy, #16283a); font-weight:800; margin-bottom:.3rem; }
@@ -114,3 +114,22 @@
 .dotp.hasimg, .avatar.hasimg { overflow:hidden; padding:0; }
 .dotp.hasimg img, .avatar.hasimg img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
 .gnudge, .gjoin { border-left:4px solid var(--beacon, #e0a030); }
+/* header tap targets: at least 36px tall */
+.topright .toplink, .topright .syncpill { min-height:36px; display:inline-flex; align-items:center; box-sizing:border-box; }
+.fmitem { min-height:40px; }
+.gtop { margin-top:.6rem; margin-bottom:1rem; }
+.topright .toplink { white-space:nowrap; }
+/* narrow phones with the family button: smaller logo so Back up stays on screen */
+@media (max-width:430px) {
+  .topbar:has(.famchip:not([hidden])) .brand .logomark { width:104px; height:35px; }
+  .topright:has(.famchip:not([hidden])) .famchip { max-width:30vw; }
+}
+@media (max-width:370px) {
+  .topbar:has(.famchip:not([hidden])) .brand .logomark { width:96px; height:32px; }
+  .topbar:has(.famchip:not([hidden])) .brand { min-height:36px; }
+  .topright:has(.famchip:not([hidden])) .toplink { padding:.3rem .45rem; }
+}
+@media (max-width:370px) {
+  .topbar .brand .logomark { width:112px; height:37px; }
+  .topright .syncpill { padding:.3rem .55rem; }
+}

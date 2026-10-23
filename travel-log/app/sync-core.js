@@ -146,6 +146,7 @@
         delete shadow.people[r.id]; dropPersonVisits(shadow, r.id); return;
       }
       if (p && localDirty && !newer(r.updated_at, p.updatedAt)) return;   // our newer edit goes up on the next push
+      if (p && !localDirty && shadow.people[r.id] === iso(r.updated_at)) return;   // already have exactly this version (cursor overlap, our own push echoing back)
       var d = r.data || {};
       if (!p) { p = { id: r.id, states: {}, places: {}, parks: {} }; local.people.push(p); byId[r.id] = p; }
       Object.keys(d).forEach(function (k) { if (!PERSON_SKIP[k]) p[k] = d[k]; });
@@ -170,6 +171,7 @@
         delete shadow.trips[r.id]; return;
       }
       if (t && localDirty && !newer(r.updated_at, t.updatedAt)) return;
+      if (t && !localDirty && shadow.trips[r.id] === iso(r.updated_at)) return;   // same version we already have: not a change
       var d = JSON.parse(JSON.stringify(r.data || {})); d.id = r.id; d.updatedAt = iso(r.updated_at);
       if (!Array.isArray(d.kidIds)) d.kidIds = (r.traveler_ids || []).slice();
       if (!t) ch.newTrips.push(r.id);

@@ -41,7 +41,7 @@
   function switchTo(db, hash) {
     var r = reg(); if (!S.findLog(r, db)) return;
     r.active = db; regSave(r);
-    location.hash = hash || "#/"; location.reload();
+    history.replaceState(null, "", location.pathname + (hash || "#/")); location.reload();
   }
   /** A new, empty log for another family, then straight to creating or joining it there. */
   function newLogThen(hash, name) {
@@ -202,7 +202,7 @@
   function nameOf(members, uid) { var m = (members || []).filter(function (x) { return x.user_id === uid; })[0]; return m ? m.display_name || "" : ""; }
 
   function doSync(opts) {
-    var c = cfg(), fid = c.familyId, r, acc, changed = false, celebrate = [];
+    var c = cfg(), fid = c.familyId, r, acc, changed = false, photosIn = 0, celebrate = [];
     return remote().then(function (x) { r = x; return r.session(); }).then(function (sess) {
       if (!sess) throw new Error("Signed out. Open Family Sync to sign back in.");
       return Promise.all([r.family(fid), r.members(fid)]);
@@ -221,7 +221,9 @@
       return save(c);
     }).then(function () {
       celebrate.forEach(function (m) { cheer(S.joinLine(m.display_name || "Someone new", m.user_id), personFor(m)); });
-      if (changed) return A.load().then(rerender);
+      if (!changed) return;
+      var was = stateHash();
+      return A.load().then(function () { if (photosIn || stateHash() !== was) rerender(); });
     });
 
     function push() {
@@ -276,7 +278,7 @@
             return ch.downloads.reduce(function (p, d) {
               return p.then(function () { return r.download(d.path); }).then(blobToDataUrl).then(function (u) {
                 if (!/^data:image\/(jpeg|webp|png);base64,/.test(u)) return;
-                changed = true; return A.put("photos", { id: d.id, dataUrl: u, thumb: true }, true);
+                changed = true; photosIn++; return A.put("photos", { id: d.id, dataUrl: u, thumb: true }, true);
               }).catch(function () {});
             }, Promise.resolve());
           }).then(function () { return touched; });
@@ -290,10 +292,42 @@
       });
     }
   }
+  /** What the screen shows, as one string: re-render only when this changes. */
+  function stateHash() {
+    var st = A.state, h = 0, str = JSON.stringify([st.kids, st.trips]);
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+    return str.length + ":" + h;
+  }
+  var lastTouch = 0, rrTimer = null;
+  ["scroll", "touchstart", "touchmove", "wheel", "keydown"].forEach(function (ev) { window.addEventListener(ev, function () { lastTouch = Date.now(); }, { passive: true, capture: true }); });
+  function userBusy() {
+    var a = document.activeElement;
+    return Date.now() - lastTouch < 2000 || !!(a && a !== document.body && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && main.contains(a));
+  }
+  /** Background sync brought new data: redraw the screen in place, keeping scroll, open sections, typed text and focus.
+      Never while someone is scrolling or typing (it waits for a pause), never on a form. */
   function rerender() {
     var h = location.hash;
     if (/\/(new|edit)\b|^#\/add|^#\/join|^#\/sync\/(email|create)/.test(h)) return;   // don't yank a form out from under someone
+    clearTimeout(rrTimer);
+    if (userBusy()) { rrTimer = setTimeout(rerender, 1500); return; }
+    var y = window.scrollY, x = window.scrollX, open = [], vals = [];
+    main.querySelectorAll("details").forEach(function (d, i) { if (d.open) open.push(i); });
+    main.querySelectorAll("input, textarea, select").forEach(function (el, i) {
+      if (el.type === "radio" || el.type === "checkbox" || el.type === "file") return;
+      if (el.value) vals.push({ key: el.id || el.name || "#" + i, i: i, v: el.value });
+    });
+    window.MLTL_RENDERS = (window.MLTL_RENDERS || 0) + 1;
     A.clearPhotos(); A.route();
+    if (location.hash !== h) return;
+    var ds = main.querySelectorAll("details"); open.forEach(function (i) { if (ds[i]) ds[i].open = true; });
+    var els = main.querySelectorAll("input, textarea, select");
+    vals.forEach(function (o) {
+      var el = (o.key.charAt(0) !== "#" && (document.getElementById(o.key) || main.querySelector('[name="' + o.key.replace(/"/g, "") + '"]'))) || els[o.i];
+      if (el && main.contains(el) && el.value !== o.v) { el.value = o.v; el.dispatchEvent(new Event("input", { bubbles: true })); }
+    });
+    window.scrollTo(x, y);
+    requestAnimationFrame(function () { if (Math.abs(window.scrollY - y) > 2) window.scrollTo(x, y); });
   }
   function personFor(m) { return m && m.person_id ? A.kidById(m.person_id) : null; }
 
@@ -851,6 +885,9 @@
   window.addEventListener("scroll", placeMenu, { passive: true });
   if (window.visualViewport) window.visualViewport.addEventListener("resize", placeMenu);
   function closeMenu() { var sc = document.getElementById("fmscrim"); if (sc) sc.remove(); var m = document.getElementById("fammenu"); if (m) m.remove(); var c = document.getElementById("famchip"); if (c) c.setAttribute("aria-expanded", "false"); }
+  // the logo (logo.js) and any navigation close the menu, scrim included
+  window.addEventListener("hashchange", closeMenu);
+  document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".brand")) closeMenu(); }, true);
   function toggleMenu() {
     if (document.getElementById("fammenu")) return closeMenu();
     var r = reg(), m = document.createElement("div"), c = cfg(), grown = !c || c.role !== "kid";
@@ -858,7 +895,7 @@
     m.innerHTML = (on() ? "" : '<a role="menuitem" class="fmitem turnon" href="#/sync"><span aria-hidden="true">☁</span> <span class="nm">Turn on ' + esc(entryLabel()) + '</span></a>') +
       '<div class="fmhead small muted">Switch family log</div>' + r.logs.map(function (l) {
       var cur = l.db === HERE;
-      return '<button type="button" role="menuitem" class="fmitem' + (cur ? " cur" : "") + '"' + (cur ? "" : ' data-open-log="' + esc(l.db) + '"') + '><span aria-hidden="true">' + (l.familyId ? "🏡" : "📱") + '</span> <span class="nm">' + esc(S.logLabel(l)) + '</span>' + (cur ? ' <span aria-hidden="true">✓</span>' : "") + '</button>';
+      return '<button type="button" role="menuitem" class="fmitem' + (cur ? " cur" : "") + '"' + (cur ? ' data-current="1" aria-current="true"' : ' data-open-log="' + esc(l.db) + '"') + '><span aria-hidden="true">' + (l.familyId ? "🏡" : "📱") + '</span> <span class="nm">' + esc(S.logLabel(l)) + '</span>' + (cur ? ' <span aria-hidden="true">✓</span>' : "") + '</button>';
     }).join("") +
       '<div class="fmsep" role="separator"></div>' +
       (grown ? '<a role="menuitem" class="fmitem add" href="' + (on() ? "#/sync/invite" : "#/sync") + '">✉︎ Invite someone</a>' : "") +
@@ -871,7 +908,7 @@
     document.getElementById("famchip").setAttribute("aria-expanded", "true");
     var first = m.querySelector(".fmitem:not(.cur)"); if (first) first.focus();
   }
-  document.addEventListener("click", function (e) { if (!e.target.closest || !e.target.closest("#fammenu")) closeMenu(); else if (e.target.closest("a")) closeMenu(); });
+  document.addEventListener("click", function (e) { if (!e.target.closest || !e.target.closest("#fammenu")) closeMenu(); else if (e.target.closest("a, .fmitem.cur")) closeMenu(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeMenu(); });
 
   // ---------- "also add to my other family's log" ----------
@@ -960,6 +997,10 @@
     return "";   // while sync is off, homeTop() shows the invitation near the top instead
   }
   function homeTop() {
+    var t = homeTop0();
+    return t && !on() && FLAGS.google && !signedInNote() ? t + '<div class="actions gtop">' + googleBtn("signin", "Continue with Google") + '</div>' : t;
+  }
+  function homeTop0() {
     if (on()) {
       var c = cfg();
       return FLAGS.google && c.anonymous !== false && !c.googleNudgeOff ? '<div class="panel gnudge"><p class="small"><b>Link Google so you can sign in on the web.</b> Your phone and computer become the same you, in every family.</p><div class="actions">' + googleBtn("link", "Link Google") + '<a class="btn btn-ghost small" href="#/sync">Later</a></div></div>' : "";
