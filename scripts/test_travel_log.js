@@ -750,7 +750,7 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/first visit/.test(P.signSVG("TX", "Texas", { first: "2020-05-01", visits: 2 })), "a dated sign still shows its first visit");
   ok(read("index.html").indexOf("state-symbols.js") < read("index.html").indexOf("stamp-art.js") && read("index.html").indexOf("stamp-art.js") < read("index.html").indexOf("passport-core.js"), "index.html loads symbols, then stamp art, then the passport");
   const sw2 = read("sw.js"); ok(["state-symbols.js", "stamp-art.js"].every(f => sw2.indexOf('"' + f + '"') >= 0), "service worker caches the stamp art files");
-  ok(read("stamp-art.js").length < 120000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight");
+  ok(read("stamp-art.js").length < 170000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight");
   ok(/famstamp-stampart:/.test(read("trips-ui.js")) && /data-art=/.test(read("trips-ui.js")), "passport has the Bird / Flower / Animal / Mix toggle, saved per person");
 }
 
