@@ -160,3 +160,17 @@
 .gnote { border-left:4px solid #2e8b57; }
 .gnote.bad { border-left-color:#c0392b; background:#fff6f4; }
 .gnote h3 { margin:0 0 .3rem; }
+/* Google account row: Settings and the family menu (always shown, signed in or not) */
+.grow { display:flex; align-items:center; flex-wrap:wrap; gap:.6rem; margin-top:.8rem; padding:.7rem .8rem; border:1px solid var(--line); border-radius:12px; background:#fff; }
+.grow .gtxt { flex:1 1 10rem; min-width:0; display:flex; flex-direction:column; }
+.grow .gtxt .small { overflow-wrap:anywhere; }
+.grow .gok { color:var(--sage-deep); font-weight:700; }
+.grow .btn { min-height:44px; }
+.grow > .g, .fmg > .g { display:inline-grid; place-items:center; flex:0 0 auto; width:24px; height:24px; border-radius:50%; background:#fff; border:1px solid var(--line); font-weight:800; color:#4285f4; font-size:.85rem; }
+.grow > .g.gbig { width:2rem; height:2rem; font-size:1.05rem; }
+.fmitem.fmg { border-top:1px dashed var(--line); }
+.fmitem.fmg .nm { display:flex; flex-direction:column; }
+.fmitem.fmg .gsub { font-size:.78rem; white-space:nowrap; }
+.fmitem.fmg .btn { min-height:44px; flex:0 0 auto; }
+.appver { text-align:center; margin:1.2rem 0 .4rem; }
+@media (max-width: 479px) { .grow [data-google], .grow [data-gsignout] { flex:1 1 100%; } }

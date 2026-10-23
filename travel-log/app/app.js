@@ -6,6 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v19" -> "v19").
+  var VERSION = "v19";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -625,7 +627,8 @@
       '<div class="field"><label for="bfile">Backup file (.json)</label><input id="bfile" type="file" accept="application/json,.json"></div><p class="err" id="berr" hidden></p></div>' +
       (window.MLTL_SYNC && window.MLTL_SYNC.settingsPanel ? window.MLTL_SYNC.settingsPanel() : "") +
       '<div class="panel"><h3>Start over</h3><p class="muted small">Deletes everyone\'s maps, trips and photos from this device. Make a backup first if you might want them later.</p>' +
-      '<div class="actions"><button class="btn btn-danger" id="bwipe">Delete everything on this device</button></div></div>';
+      '<div class="actions"><button class="btn btn-danger" id="bwipe">Delete everything on this device</button></div></div>' +
+      '<p class="small muted appver" id="appver">Famstamp · Version ' + esc(VERSION) + '</p>';
     document.getElementById("bdown").onclick = function () { doBackup().then(function () { toast("Backup saved"); viewBackup(); }); };
     document.getElementById("bfile").onchange = function (e) {
       var f = e.target.files[0], err = document.getElementById("berr"); err.hidden = true; if (!f) return;
@@ -656,7 +659,7 @@
   });
   // What sync.js needs from the app. Nothing here talks to the network.
   var readyRes; var ready = new Promise(function (r) { readyRes = r; });
-  window.MLTL_APP = { state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, setMeta: setMeta,
+  window.MLTL_APP = { version: VERSION, state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, setMeta: setMeta,
                       kidById: kidById, doBackup: doBackup, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
                       dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
                       // for trips-ui.js
@@ -666,13 +669,40 @@
     main.innerHTML = '<div class="panel"><h3>Storage isn\'t available</h3><p class="muted">This browser is blocking on-device storage (private browsing can do this). Try a normal window so your maps can be saved.</p></div>';
   });
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
-  // Updates: check when the app comes back to the front (the Android app stays open for days), and offer a refresh once a new version takes over.
+  // Updates: a new version installs in the background (cache first), then takes over. When that happens as the app is opened
+  // or brought back to the front, reload once by ourselves (unless something is mid-edit) so phones get fixes on the next
+  // open; otherwise, and as a fallback, show the "Update available" toast.
   if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (reg) {
-    var had = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener("controllerchange", function () { if (had) updateToast(); had = true; });
-    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") reg.update().catch(function () {}); });
+    var had = !!navigator.serviceWorker.controller, fresh = Date.now(), pending = false;
+    function kick() { if (reg.waiting) reg.waiting.postMessage("skipWaiting"); }
+    function apply() {
+      if (!pending) return;
+      if (document.visibilityState === "visible" && Date.now() - fresh < 20000 && !editing() && autoReload()) return;
+      if (document.visibilityState === "visible") updateToast();
+    }
+    navigator.serviceWorker.addEventListener("controllerchange", function () { if (had) { pending = true; apply(); } had = true; });
+    reg.addEventListener("updatefound", function () { var w = reg.installing; if (w) w.addEventListener("statechange", function () { if (w.state === "installed") kick(); }); });
+    kick();
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState !== "visible") return;
+      fresh = Date.now(); apply(); reg.update().then(kick).catch(function () {});
+    });
     setInterval(function () { reg.update().catch(function () {}); }, 60 * 60 * 1000);
   }).catch(function () {});
+  /** Something typed but not saved (or a field in use)? Then don't reload under the user's fingers. */
+  function editing() {
+    var a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== "button" && a.type !== "file") return true;
+    return Array.prototype.some.call(document.querySelectorAll("#main input, #main textarea"), function (el) {
+      if (el.type === "checkbox" || el.type === "radio") return el.checked !== el.defaultChecked;
+      return el.type !== "file" && el.type !== "button" && el.type !== "hidden" && el.value !== el.defaultValue;
+    });
+  }
+  /** Reload at most once a minute for an update (never a loop if something keeps changing the worker). */
+  function autoReload() {
+    try { var last = +sessionStorage.getItem("mltl-autoreload") || 0; if (Date.now() - last < 60000) return false; sessionStorage.setItem("mltl-autoreload", String(Date.now())); } catch (e) { return false; }
+    location.reload(); return true;
+  }
   function updateToast() {
     if (document.getElementById("updtoast")) return;
     var b = document.createElement("button"); b.type = "button"; b.id = "updtoast"; b.className = "updtoast"; b.textContent = "Update available, tap to refresh";

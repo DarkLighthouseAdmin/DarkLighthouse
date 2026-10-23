@@ -72,8 +72,12 @@
     if (/flow.?state|code.?verifier|code challenge|invalid flow|bad_code_verifier/i.test(m)) return new Error("Google sign-in started in a different app or browser, or took too long. Tap \"Try Google again\" and finish it without switching apps.");
     if (/access_denied|access denied|cancel/i.test(m)) return new Error("Google sign-in was cancelled or blocked by Google. Tap \"Try Google again\". If Google said \"Access blocked\", tell us so we can fix it.");
     if (/manual linking|provider is not enabled|Unsupported provider/i.test(m)) return new Error("Google sign-in isn't switched on yet. Use an invite code or email for now.");
-    return new Error(m.replace(/^.*?:\s*/, "") || "Something went wrong. Try again.");
+    if (/exchange external code|server_error|unexpected_failure/i.test(m)) return new Error("Google said yes, but our sign-in server couldn't finish the hand-off with Google. That's a setup problem on our side, not your account. Nothing changed on this device; please try again a little later.");
+    var rest = scrub(m.replace(/^.*?:\s*/, ""));
+    return new Error(rest && /[a-z]{3,}\s+[a-z]{2,}/i.test(rest) ? rest : "Something went wrong. Try again.");
   }
+  // One-time codes and tokens from Google or Supabase never reach the screen.
+  function scrub(t) { return String(t || "").replace(/\b\d\/0[\w.\/-]*/g, "").replace(/[\w-]{24,}/g, "").replace(/[\w.-]+\.[\w-]+\.[\w-]{10,}/g, "").replace(/\s{2,}/g, " ").trim(); }
   function chk(r) { if (r && r.error) throw friendly(r.error); return r ? r.data : null; }
   function sbAdapter(sb) {
     var B = CFG.bucket || "trip-photos";
@@ -83,6 +87,20 @@
       return { userId: u.id, email: u.email || u.new_email || "", anon: !!u.is_anonymous, name: u.is_anonymous ? "" : String(m.full_name || m.name || ""), avatar: u.is_anonymous ? "" : String(m.avatar_url || m.picture || "") };
     }
     return {
+      // The account as Supabase really has it (getUser asks the server): anonymous or not, and whether Google is linked.
+      whoami: function () {
+        return sb.auth.getSession().then(function (r) {
+          if (!r.data || !r.data.session) return null;
+          return sb.auth.getUser().then(function (x) {
+            var u = x.data && x.data.user;
+            if (!u) { if (x.error && /fetch|network|offline|load failed/i.test(x.error.message || "")) throw x.error; return null; }
+            var o = user(u), gi = (u.identities || []).filter(function (i) { return i.provider === "google"; })[0];
+            o.google = !!gi && !u.is_anonymous;
+            if (o.google && !o.email) o.email = String((gi.identity_data || {}).email || "");
+            return o;
+          });
+        });
+      },
       session: function () { return sb.auth.getSession().then(function (r) { return r.data && r.data.session ? user(r.data.session.user) : null; }); },
       signInAnon: function () { return sb.auth.signInAnonymously().then(chk).then(function (d) { return user(d.user); }); },
       sendCode: function (email, create) { return sb.auth.signInWithOtp({ email: email, options: { shouldCreateUser: !!create, emailRedirectTo: location.origin + location.pathname } }).then(chk); },
@@ -515,7 +533,7 @@
           .catch(function (e) { A.toast(friendly(e).message); });
       };
     });
-    remote().then(function (r) { return r.session(); }).then(function (s) { if (s && !s.anon && c.anonymous !== false) { c.anonymous = false; c.email = s.email; save(c); viewHub(); } }).catch(function () {});
+    remote().then(function (r) { return r.session(); }).then(function (s) { if (s && !s.anon && s.email && c.anonymous !== false) { c.anonymous = false; c.email = s.email; save(c); viewHub(); } }).catch(function () {});
   }
 
   var lastInvite = null;
@@ -646,9 +664,9 @@
       var already = rows.some(function (f) { return f.family_id === fid; }), local = S.logForFamily(reg(), fid);
       if (local) { if (local.db === HERE) { location.hash = "#/"; A.route && A.route(); return; } return switchTo(local.db, "#/"); }
       if (already && !on()) return welcomeBack(r, sess, sess.email || "");
-      if (already) return addFamilyLogs(rows.filter(function (f) { return !S.logForFamily(reg(), f.family_id); }), sess.userId, { anonymous: false, email: sess.email || "" })
+      if (already) return addFamilyLogs(rows.filter(function (f) { return !S.logForFamily(reg(), f.family_id); }), sess.userId, { anonymous: !sess.email, email: sess.email || "" })
         .then(function () { var l = S.logForFamily(reg(), fid); if (l) switchTo(l.db, "#/"); else location.hash = "#/"; });
-      var extra = { familyName: inv.family_name, role: inv.role, myPerson: pid, myName: myName, anonymous: false, email: sess.email || "", seenAll: true };
+      var extra = { familyName: inv.family_name, role: inv.role, myPerson: pid, myName: myName, anonymous: !sess.email, email: sess.email || "", seenAll: true };
       if (!on()) {   // this log isn't in a family yet: it becomes this family's log (anything on it joins in)
         return (newP ? A.put("kids", newP) : Promise.resolve()).then(function () { return save(freshCfg(fid, sess.userId, extra)); })
           .then(A.load).then(function () { return syncNow({ throwErrors: true, quiet: true }); })
@@ -712,7 +730,7 @@
             local.people.forEach(function (p) { s[0].put(p); }); local.trips.forEach(function (t) { s[1].put(t); });
           }).then(function () { if (mapping[pid]) pid = mapping[pid]; });
         }).then(function () {
-          return save(freshCfg(fid, sess.userId, { familyName: inv.family_name, role: inv.role, myPerson: pid, myName: myName, seenAll: true, anonymous: !(sess && !sess.anon), email: sess && !sess.anon ? sess.email || "" : "" }));
+          return save(freshCfg(fid, sess.userId, { familyName: inv.family_name, role: inv.role, myPerson: pid, myName: myName, seenAll: true, anonymous: !(sess && !sess.anon && sess.email), email: sess && !sess.anon ? sess.email || "" : "" }));
         });
       }).then(A.load).then(function () { return syncNow({ throwErrors: true, quiet: true }); }).then(function () {
         cheer("Welcome to " + title.replace(/ log$/, "") + ", " + myName + "! 🎉", A.kidById(pid));
@@ -730,15 +748,15 @@
       (FLAGS.email ? '<p class="small"><a href="#/sync/email">Sign in with an email code instead</a></p>' : "");
   }
   function signedInNote() {
-    var g = null; try { g = JSON.parse(localStorage.getItem("mltl-signedin") || "null"); } catch (e) {}
+    var g = localSignedIn(); if (gAcct && !gAcct.linked) g = null;
     return g && g.email ? '<p class="small muted">Signed in with Google as ' + esc(g.email) + '. Start your family log or join with an invite.</p>' : "";
   }
   /** Settings (Backup page): sign in / Family Sync next to Backup. */
   function settingsPanel() {
-    if (!CFG.showEntry && !on()) return "";
     var c = cfg();
+    if (!CFG.showEntry && !on()) return '<div class="panel syncsettings">' + googleRow() + '</div>';
     return '<div class="panel syncsettings"><h3>' + esc(entryLabel()) + '</h3><p class="muted small">' + (on() ? "This log syncs with " + esc(c.familyName || "your family") + "." : "Share one log across everyone's phones, or sign in to get your family logs back on this device.") + '</p>' +
-      '<div class="actions"><a class="btn btn-ghost" href="#/sync">' + (on() ? "Family Sync settings" : "Turn on Family Sync") + '</a>' + (!on() || c.anonymous !== false ? googleBtn(on() ? "link" : "signin", on() ? "Link my Google account" : "Sign in with Google") : "") + '</div></div>';
+      '<div class="actions"><a class="btn btn-ghost" href="#/sync">' + (on() ? "Family Sync settings" : "Turn on Family Sync") + '</a></div>' + googleRow() + '</div>';
   }
 
   // ---------- email: sign in on a new phone, or keep your spot ----------
@@ -939,7 +957,7 @@
       (grown ? '<a role="menuitem" class="fmitem add" href="' + (on() ? "#/sync/invite" : "#/sync") + '">✉︎ Invite someone</a>' : "") +
       '<a role="menuitem" class="fmitem add" href="#/sync/addjoin">＋ Join another family</a><a role="menuitem" class="fmitem add" href="#/sync/new">＋ Start another family log</a>' +
       '<a role="menuitem" class="fmitem add" href="#/sync">⚙︎ ' + esc(entryLabel()) + ' settings</a>' +
-      (FLAGS.google && (!c || c.anonymous !== false) && !signedInNote() ? '<button type="button" role="menuitem" class="fmitem add" data-google="' + (on() ? "link" : "signin") + '"><span class="g" aria-hidden="true">G</span> Sign in with Google</button>' : "");
+      menuGoogle();
     var scrim = document.createElement("div"); scrim.id = "fmscrim"; scrim.className = "fmscrim";
     document.body.appendChild(scrim); document.body.appendChild(m);
     placeMenu();
@@ -1077,6 +1095,64 @@
   }
 
 
+  // ---------- Google account row: always on Settings and in the family menu, never hidden ----------
+  // gAcct is what Supabase says (checked on load); until then we go by what this device remembers.
+  var gAcct = null;
+  function localSignedIn() { try { var g = JSON.parse(localStorage.getItem("mltl-signedin") || "null"); return g && g.email ? g : null; } catch (e) { return null; } }
+  function googleState() {
+    if (gAcct) return gAcct;
+    var c = cfg();
+    if (on()) return { linked: c.anonymous === false && !!c.email, email: c.anonymous === false ? c.email || "" : "" };
+    var g = localSignedIn(); return { linked: !!g, email: g ? g.email : "" };
+  }
+  function gKind() { return on() ? "link" : "signin"; }
+  function googleRow() {
+    var g = googleState();
+    return '<div class="grow" data-grow="' + (g.linked ? "in" : "out") + '"><span class="g gbig" aria-hidden="true">G</span><span class="gtxt"><b>Google account</b><span class="small' + (g.linked ? "" : " muted") + '">' +
+      (g.linked ? esc(g.email || "Google") + ' · <span class="gok">Signed in</span>' : "Not signed in") + '</span></span>' +
+      (g.linked ? '<button type="button" class="btn btn-ghost small" data-gsignout>Sign out</button>' : googleBtn(gKind(), "Sign in with Google")) + '</div>';
+  }
+  function menuGoogle() {
+    var g = googleState();
+    if (g.linked) return '<div class="fmitem fmg" data-grow="in"><span class="g" aria-hidden="true">G</span> <span class="nm">' + esc(g.email || "Google") + '<span class="small muted gsub">Signed in with Google</span></span><button type="button" role="menuitem" class="btn btn-ghost small" data-gsignout>Sign out</button></div>';
+    return '<button type="button" role="menuitem" class="fmitem add fmg" data-grow="out" data-google="' + gKind() + '"><span class="g" aria-hidden="true">G</span> Sign in with Google</button>';
+  }
+  function redrawGoogle() {
+    if (/^#\/(sync|backup)/.test(location.hash)) A.route();
+    var m = document.getElementById("fammenu"), old = m && m.querySelector(".fmg");
+    if (old) { var t = document.createElement("div"); t.innerHTML = menuGoogle(); old.replaceWith(t.firstChild); }
+  }
+  /** Self-heal: a device that says "signed in" but whose account has no email and no Google is really anonymous, so the
+      Google buttons come back. (Before v18 a failed return from Google could leave anonymous:false with an empty email.) */
+  function checkGoogle() {
+    var c = cfg(), fixed = false;
+    if (c && c.familyId && c.anonymous === false && !c.email) { c.anonymous = true; c.email = ""; fixed = true; }
+    try { var raw = JSON.parse(localStorage.getItem("mltl-signedin") || "null"); if (raw && !raw.email) localStorage.removeItem("mltl-signedin"); } catch (e) { localStorage.removeItem("mltl-signedin"); }
+    var p = fixed ? save(c) : Promise.resolve();
+    if (!on() && !localSignedIn()) { gAcct = { linked: false, email: "" }; return p.then(redrawGoogle); }
+    return p.then(remote).then(function (r) {
+      return r.whoami ? r.whoami() : r.session().then(function (s) { return s && Object.assign({ google: !s.anon && !!s.email }, s); });
+    }).then(function (u) {
+      var linked = !!(u && !u.anon && (u.email || u.google)), c2 = cfg();
+      gAcct = { linked: linked, email: linked ? u.email || "" : "" };
+      if (!linked) {
+        try { localStorage.removeItem("mltl-signedin"); } catch (e) {}
+        if (c2 && c2.familyId && c2.anonymous === false) { c2.anonymous = true; c2.email = ""; return save(c2); }
+      } else if (c2 && c2.familyId && (c2.anonymous !== false || c2.email !== gAcct.email)) { c2.anonymous = false; c2.email = gAcct.email; return save(c2); }
+    }).then(redrawGoogle, function () { redrawGoogle(); });   // offline: keep what this device remembers
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-gsignout]"); if (!b) return;
+    var c = cfg();
+    if (!confirm(on() ? "Sign out of Google on this device? " + (c.familyName || "This family log") + " stops syncing here until you sign in with Google again. Everything stays on this device." : "Sign out of Google on this device? Everything stays on this device.")) return;
+    busy(b, true, "Signing out…");
+    remote().then(function (r) { return r.signOut(); }).catch(function () {}).then(function () {
+      try { localStorage.removeItem("mltl-signedin"); } catch (e) {}
+      gAcct = { linked: false, email: "" }; closeMenu();
+      return on() ? save(null).then(function () { setStatus("off"); }) : null;
+    }).then(function () { A.toast("Signed out of Google. Sign in again any time to get your family logs back."); redrawGoogle(); A.route(); });
+  });
+
   // ---------- Google (behind FLAGS.google until the provider is set up in Supabase) ----------
   function googleBtn(kind, label, code) {
     if (!FLAGS.google) return "";
@@ -1102,13 +1178,14 @@
     if (!intent || Date.now() - intent.at > 30 * 60 * 1000) intent = { kind: on() ? "link" : "signin", code: "", at: Date.now() };   // back without our note (older version, other tab): still finish
     var params = new URLSearchParams(q), bad = params.get("error_description") || params.get("error"), code = params.get("code");
     function tidy(hash) { history.replaceState(null, "", location.pathname + (hash || "#/sync")); A.route(); }
-    function fail(m) { oauthNote = { ok: false, msg: m }; tidy("#/sync"); A.toast(m); }
+    function fail(m) { oauthNote = { ok: false, msg: scrub(m) }; tidy("#/sync"); A.toast(oauthNote.msg); checkGoogle(); }
     if (bad) { fail(friendly(new Error(bad)).message); return; }
     var r;
     remote().then(function (x) { r = x; return r.finishOAuth ? r.finishOAuth(code) : r.session(); }).then(function (u) {
       if (!u || u.anon) throw new Error("Google sign-in didn't finish on this phone. Tap \"Try Google again\".");
       oauthNote = { ok: true, msg: "Signed in" + (u.email ? " as " + u.email : "") + ". Use the same Google account on the web or a new phone and you'll be the same you." };
-      try { localStorage.setItem("mltl-signedin", JSON.stringify({ email: u.email || "", at: Date.now() })); } catch (x) {}
+      try { if (u.email) localStorage.setItem("mltl-signedin", JSON.stringify({ email: u.email, at: Date.now() })); } catch (x) {}
+      gAcct = { linked: true, email: u.email || "" };
       if (intent.kind === "link" && on()) {
         var c = cfg(); c.anonymous = false; c.email = u.email || c.email || "";
         return save(c).then(function () { tidy("#/sync"); A.toast("Saved. Sign in with Google on any phone to get your family logs back."); });
@@ -1153,7 +1230,8 @@
   A.ready.then(function () {
     var c = cfg(), l = S.findLog(reg(), HERE);
     if (!l || (c && c.familyId ? l.familyId !== c.familyId || (c.familyName && l.name !== c.familyName) : l.familyId)) noteLog(c);   // keep the list in step with this log
-    if (!on()) setStatus("off"); renderChip(); emptyTrash(); oauthReturn();
+    if (!on()) setStatus("off"); renderChip(); emptyTrash();
+    if (/[?&#](code|error|error_description)=/.test(location.search + location.hash)) oauthReturn(); else checkGoogle();
     if (on()) { setStatus("syncing"); schedule(300); }
   });
 })();
