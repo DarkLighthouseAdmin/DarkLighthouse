@@ -516,7 +516,40 @@
     return since >= 3 ? since : 0;
   }
 
-  return { APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
+  // ---------- Recently deleted (soft delete, kept in the trip itself so no cloud change is needed) ----------
+  var BIN_DAYS = 30;
+  function tripLabel(t) { return String((t && (t.title || t.place)) || "this trip").trim(); }
+  /** Move a trip to Recently deleted: same trip, plus deletedAt. updatedAt moves on so the change syncs like any edit. */
+  function binTrip(t, now) { now = now || new Date().toISOString(); var c = JSON.parse(JSON.stringify(t)); c.deletedAt = now; c.updatedAt = now; return c; }
+  /** Bring a trip back. A fresh updatedAt means the cloud takes it, even over an older delete. */
+  function unbinTrip(t, now) { now = now || new Date().toISOString(); var c = JSON.parse(JSON.stringify(t)); delete c.deletedAt; c.updatedAt = now; return c; }
+  /** live = shown everywhere, bin = Recently deleted (newest first), purge = in the bin longer than 30 days. */
+  function splitTrips(trips, now) {
+    var cut = new Date(now || Date.now()).getTime() - BIN_DAYS * 864e5, out = { live: [], bin: [], purge: [] };
+    (trips || []).forEach(function (t) {
+      if (!t.deletedAt) out.live.push(t);
+      else if (new Date(t.deletedAt).getTime() < cut) out.purge.push(t);
+      else out.bin.push(t);
+    });
+    out.bin.sort(function (a, b) { return a.deletedAt < b.deletedAt ? 1 : -1; });
+    return out;
+  }
+  function binDaysLeft(t, now) { return Math.max(0, Math.ceil((new Date(t.deletedAt).getTime() + BIN_DAYS * 864e5 - new Date(now || Date.now()).getTime()) / 864e5)); }
+  /** Take one trip out of a backup (already read with readBackup) for this log: only its travelers who are here, fresh updatedAt,
+      never touches people. Returns { trip, photo } or throws a plain-words error. */
+  function tripFromBackup(data, tripId, peopleIds, now) {
+    var t = (data.trips || []).filter(function (x) { return x.id === tripId; })[0];
+    if (!t) throw new Error("That trip isn't in this backup.");
+    var ids = (t.kidIds || []).filter(function (id) { return peopleIds.indexOf(id) >= 0; });
+    if (!ids.length) throw new Error("No one on " + tripLabel(t) + " is in this log any more, so there's no one to give it back to.");
+    var c = unbinTrip(t, now); c.kidIds = ids;
+    var ph = c.photoId ? (data.photos || []).filter(function (p) { return p.id === c.photoId; })[0] || null : null;
+    if (c.photoId && !ph) c.photoId = null;
+    return { trip: c, photo: ph };
+  }
+
+  return { BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+           APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,
            slug: slug, uid: uid, newKid: newKid, toggleArea: toggleArea, togglePark: togglePark, newTrip: newTrip, applyTripMark: applyTripMark,

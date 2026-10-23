@@ -281,7 +281,11 @@
       '<div class="field"><label for="twho">Anyone else along?</label><input id="twho" type="text" maxlength="120" value="' + esc(d.who || "") + '" placeholder="e.g. cousins, the Smiths, the dog"></div>' +
       '<div class="field"><label for="tmark">Color in one more place on the map? <span class="muted small">Stops above color in on their own</span></label><select id="tmark">' + A_.markOptions(d.mark) + '</select></div></details>' +
       '<p class="err" id="terr" hidden></p><div class="actions sticky"><button class="btn btn-primary" id="tsave">Save trip</button>' +
-      '<a class="btn btn-ghost" href="' + (old ? "#/p/" + esc(k.id) + "/trip/" + esc(old.id) : "#/p/" + esc(k.id) + "/trips") + '">Cancel</a>' + (old ? '<button class="btn btn-danger" id="tdel">Delete trip</button>' : "") + '</div></div>';
+      '<a class="btn btn-ghost" href="' + (old ? "#/p/" + esc(k.id) + "/trip/" + esc(old.id) : "#/p/" + esc(k.id) + "/trips") + '">Cancel</a>' + '</div>' +
+      // Kept out of the pinned Save bar on purpose: on a phone that bar floats over the stays and favorites, and a tap meant for
+      // a pub's Remove link once landed on Delete trip.
+      (old ? '<div class="panel tdelzone"><h3>Delete this trip</h3><p class="small muted">It goes to Recently deleted for ' + M.BIN_DAYS + ' days, so you can bring it back.</p>' +
+        '<div class="actions"><button type="button" class="btn btn-danger" id="tdel">Delete "' + esc(M.tripLabel(old)) + '"</button></div></div>' : "") + '</div>';
     A_.main.innerHTML = A_.shell(k, "trips", html);
     var routeEl = $("#broute"), search = $("#psearch"), results = $("#presults");
     function kidIds() { return $$("input[name=kids]:checked").map(function (c) { return c.value; }); }
@@ -631,10 +635,13 @@
     };
     var del = $("#tdel");
     if (del) del.onclick = function () {
-      if (!confirm("Delete this trip? The map stays colored in.")) return;
-      var jobs = [A_.del("trips", old.id)]; if (old.photoId) jobs.push(A_.del("photos", old.photoId));
-      st.trips = st.trips.filter(function (x) { return x.id !== old.id; });
-      Promise.all(jobs).then(function () { location.hash = "#/p/" + k.id + "/trips"; A_.toast("Trip deleted"); });
+      var name = M.tripLabel(old);
+      if (!confirm("Delete the whole trip \"" + name + "\"" + (old.date ? " (" + M.prettyDate(old.date) + ")" : "") + "?\n\nIt moves to Recently deleted for " + M.BIN_DAYS + " days, and you can restore it from there. The map stays colored in.")) return;
+      A_.trashTrip(old).then(function () {
+        location.hash = "#/p/" + k.id + "/trips";
+        var undo = function () { A_.restoreTrip(old.id).then(function () { A_.toast(name + " is back"); A_.route(); }); };
+        if (window.FS_WHO && window.FS_WHO.undoToast) window.FS_WHO.undoToast(name + " moved to Recently deleted", undo); else A_.toast("Trip moved to Recently deleted");
+      });
     };
   }
   function unitToggle() {
