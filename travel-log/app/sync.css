@@ -30,7 +30,7 @@
 .mono { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; letter-spacing:.04em; }
 
 .invite { text-align:center; }
-.invite .code { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:clamp(1.25rem,6.2vw,1.9rem); font-weight:700; color:var(--navy); letter-spacing:.05em; padding:.6rem .4rem; background:#fff6e6; border:2px dashed var(--beacon); border-radius:14px; word-break:break-all; }
+.invite .code { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:clamp(1rem,5.4vw,1.9rem); font-weight:700; color:var(--navy); letter-spacing:.02em; padding:.6rem .4rem; background:#fff6e6; border:2px dashed var(--beacon); border-radius:14px; word-break:break-all; }
 .invite .qr { width:min(240px,70vw); height:auto; margin:1rem auto .4rem; display:block; border-radius:12px; border:1px solid var(--line); }
 .invite .linkline { word-break:break-all; margin-top:.6rem; }
 
@@ -179,3 +179,12 @@
 .fmitem.fmg[data-grow="in"] > .g { margin-top:.1rem; }
 .fmitem.fmg[data-grow="in"] .nm { flex:1 1 9rem; min-width:0; overflow:visible; white-space:normal; text-overflow:clip; overflow-wrap:anywhere; word-break:break-word; line-height:1.3; }
 .fmitem.fmg[data-grow="in"] .btn { min-height:44px; min-width:44px; padding:.25rem .7rem; font-size:.82rem; margin-left:auto; align-self:center; }
+.invrow { flex-wrap:wrap; gap:.5rem; }
+.invrow .nm { flex:1 1 12rem; min-width:0; }
+.invbtns { display:flex; flex-wrap:wrap; gap:.4rem; margin-left:auto; }
+.invbtns .pill { min-height:44px; min-width:44px; }
+.invbtns .fx { color:#9a3b2f; }
+.invtag { display:inline-block; margin-left:.3rem; padding:0 .45rem; border-radius:999px; background:#eee; color:#555; font:600 .72rem/1.6 system-ui,sans-serif; letter-spacing:0; }
+.invtag.invon { background:#e3f1e7; color:#2d5a3c; }
+.invdone { opacity:.75; }
+.invold summary { min-height:44px; display:flex; align-items:center; cursor:pointer; font-weight:600; }
