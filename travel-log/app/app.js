@@ -134,6 +134,7 @@
     if (window.MLTL_SYNC && window.MLTL_SYNC.route(h)) return;
     if (h[0] === "family" && h[1] === "passport") return UI().passportFamily();
     if (h[0] === "family" && h[1] === "signs") return UI().signs(null);
+    if (h[0] === "family" && h[1] === "wishes" && window.FS_WISH) return window.FS_WISH.view();
     if (window.MLTL_IMPORT && window.MLTL_IMPORT.route(h)) return;
     if (h[0] === "year" && window.FS_YEAR && window.FS_YEAR.view) return window.FS_YEAR.view(h[1] && kidById(h[1]) ? h[1] : "");
     if (h[0] === "family") return viewFamily();
@@ -185,6 +186,7 @@
         esc(top ? travelerNames(top.ids) + ": " + top.count + (top.count === 1 ? " trip" : " trips") + " together" : "Check who went on each trip to see who travels together") +
         '</span><br><span class="small">Pick two or more people to see the trips you shared →</span></span></a>';
     }
+    if (state.kids.length && window.FS_WISH) html += window.FS_WISH.card();
     if (state.kids.length) html += '<a class="panel familycard" href="#/year"><span class="fam-ic" aria-hidden="true">🎉</span><span><h3>Our ' + new Date().getFullYear() + ' in stamps</h3><span class="small">Make a card of this year\'s trips and stamps to share →</span></span></a>';
     if (window.MLTL_SYNC) html += window.MLTL_SYNC.homeCard();
     html += '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div>' +
@@ -586,6 +588,7 @@
       (n > 1 ? '<a class="stat person" href="#/together/fam" style="--kid:var(--sage-deep)"><div class="v">' + fs.togetherTrips + '</div><div class="k">Trips together · see them →</div></a>' + statBox(fs.togetherStates, 50, "States together") + statBox(fs.togetherCountries, 195, "Countries together") + statBox(fs.togetherParks, 64, "Parks together") : "") +
       statBox(fs.states, 50, "States, anyone") + statBox(fs.countries, 195, "Countries, anyone") + statBox(fs.parks, 64, "Parks, anyone") + statBox(fs.trips, 0, "Trips logged") + '</div>' +
       '<a class="panel familycard" href="#/year"><span class="fam-ic" aria-hidden="true">🎉</span><span><h3>Year in stamps</h3><span class="small">A card of the year to share →</span></span></a>' +
+      (window.FS_WISH ? window.FS_WISH.card() : "") +
       '<a class="panel familycard" href="#/family/passport"><span class="fam-ic" aria-hidden="true">🛂</span><span><h3>Family passport</h3><span class="small">Every stamp, with who was there →</span></span></a>' +
       UI().lifetimeHTML(null) +
       '<h2>Everyone</h2><div class="stats">' + people.map(function (p) {
