@@ -6,7 +6,9 @@ html { -webkit-text-size-adjust:100%; }
 body { font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:var(--cream); line-height:1.5; min-height:100vh; display:flex; flex-direction:column; }
 a { color:var(--sage-deep); }
 .wrap { width:100%; max-width:1000px; margin:0 auto; padding:0 1rem; }
-main { flex:1; padding-bottom:5.5rem; outline:none; }
+main { flex:1; outline:none; }
+/* main also has .wrap, whose padding shorthand used to win and leave Save buttons under the phone tab bar */
+main.wrap { padding-bottom:calc(5.5rem + env(safe-area-inset-bottom)); }
 .topbar { background:var(--navy); color:#e8eef6; padding-top:env(safe-area-inset-top); }
 .topbar .wrap { display:flex; justify-content:space-between; align-items:center; padding:.75rem 1rem; gap:1rem; }
 .topbar a { color:#e8eef6; text-decoration:none; font-weight:600; }
@@ -62,7 +64,7 @@ textarea { min-height:6rem; resize:vertical; }
   .tabs a { flex-direction:row; min-height:44px; padding:.5rem 1rem; border-radius:999px; background:#fff; border:1px solid var(--line); color:var(--ink); font-size:.95rem; gap:.4rem; }
   .tabs a .ic { font-size:1rem; }
   .tabs a[aria-current=page] { background:var(--navy); color:#fff; box-shadow:none; border-color:var(--navy); }
-  main { padding-bottom:2rem; }
+  main.wrap { padding-bottom:2rem; }
 }
 .count { display:flex; align-items:baseline; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-top:1rem; }
 .count .big { font-family:var(--serif); font-size:1.9rem; color:var(--navy); line-height:1; }
@@ -137,7 +139,7 @@ body.kidview .foot { display:none; }
   @page { size:letter landscape; margin:.45in; }
   body { background:#fff; }
   .topbar, .tabs, .foot, .noprint, .toast, .back { display:none !important; }
-  main { padding:0; } .wrap { max-width:none; padding:0; }
+  main, main.wrap { padding:0; } .wrap { max-width:none; padding:0; }
   .sheet .mapbox { border:1px solid #999; break-inside:avoid; page-break-inside:avoid; }
   .sheet .page { break-after:page; page-break-after:always; }
   .sheet .page:last-child { break-after:auto; page-break-after:auto; }
@@ -166,3 +168,20 @@ body.kidview .foot { display:none; }
 .stat.person { text-decoration:none; color:var(--ink); border-left:5px solid var(--kid); }
 .stat.person .v { font-size:1.1rem; display:flex; align-items:center; gap:.4rem; }
 .kidhead h1 .role { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.72rem; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--muted); background:rgba(22,40,58,.06); border-radius:999px; padding:.15rem .55rem; vertical-align:middle; }
+
+/* v1.2: who went, from / to, trips together, backup reminder */
+.trip .route { font-size:.92rem; font-weight:600; color:var(--ink); margin-top:.1rem; overflow-wrap:anywhere; }
+.trip .travelers { display:flex; align-items:center; gap:.45rem; margin-top:.35rem; font-size:.85rem; color:var(--muted); flex-wrap:wrap; }
+.dots { display:inline-flex; } .dots .dotp { margin-right:-6px; box-shadow:0 0 0 2px #fff; } .dots .dotp:last-child { margin-right:0; }
+.kidpick .dotp { width:24px; height:24px; font-size:.75rem; }
+.linkbtn { background:none; border:0; padding:.4rem 0; margin-top:.3rem; color:var(--sage-deep); font:inherit; font-weight:600; font-size:.92rem; cursor:pointer; text-decoration:underline; min-height:44px; }
+.linkbtn[hidden] { display:none; }
+.stop { display:flex; gap:.4rem; margin-top:.4rem; } .stop input { flex:1; } .stop .rmstop { min-width:44px; padding:0 .6rem; }
+.homechk { display:flex; align-items:center; gap:.4rem; margin-top:.35rem; font-weight:400; } .homechk[hidden] { display:none; }
+.homechk input { width:20px; height:20px; accent-color:var(--sage-deep); }
+.backupnag { position:relative; padding-right:2.6rem; } .backupnag .actions { margin-top:.6rem; }
+.backupnag .x { position:absolute; top:.3rem; right:.3rem; width:44px; height:44px; border:0; background:none; font-size:1.5rem; line-height:1; cursor:pointer; color:inherit; }
+.together-head { display:flex; align-items:center; justify-content:space-between; gap:.6rem; flex-wrap:wrap; }
+.together-head .big-n { font-size:1.5em; color:var(--sage-deep); font-variant-numeric:lining-nums; }
+.pairs .pairrow { display:flex; align-items:center; gap:.7rem; width:100%; background:none; border:0; border-bottom:1px solid var(--line); padding:.6rem .2rem; font:inherit; color:inherit; text-align:left; cursor:pointer; min-height:48px; }
+.pairs .pairrow:last-child { border-bottom:0; } .pairs .pairrow .nm { flex:1; } .pairs .pairrow .meta { color:var(--muted); font-size:.9rem; white-space:nowrap; }

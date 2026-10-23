@@ -7,7 +7,8 @@
   "use strict";
 
   var APP_ID = "my-lifetime-travel-log";
-  var BACKUP_VERSION = 2;   // v2 added roles (kid / adult / grandparent). v1 files still restore; their profiles become kids.
+  var BACKUP_VERSION = 3;   // v2 added roles (kid / adult / grandparent); v3 adds trip From / stops and the family's home town. v1 and v2 files still restore.
+  var MAX_STOPS = 5;
 
   // All 64 US national parks as of October 2026 (Chiricahua became #64 on Oct 20, 2026). Same list as the book.
   var PARK_LIST = [["Acadia", "ME"], ["American Samoa", "AS"], ["Arches", "UT"], ["Badlands", "SD"], ["Big Bend", "TX"], ["Biscayne", "FL"],
@@ -92,11 +93,59 @@
     if (!place) throw new Error("Where did you go? Add a place.");
     var kidIds = (opts.kidIds || []).filter(function (x) { return typeof x === "string" && x; });
     if (!kidIds.length) throw new Error("Pick at least one person for this trip.");
+    var stops = (Array.isArray(opts.stops) ? opts.stops : []).map(function (x) { return clean(x, 80); }).filter(Boolean).slice(0, MAX_STOPS);
     var mark = null;
     if (opts.mark && /^(state|place|park)$/.test(opts.mark.kind) && opts.mark.id) mark = { kind: opts.mark.kind, id: clean(opts.mark.id, 40) };
     var now = opts.now || new Date().toISOString();
-    return { id: opts.id || uid("trip"), kidIds: kidIds, place: place, date: validDate(opts.date), who: clean(opts.who, 120),
+    return { id: opts.id || uid("trip"), kidIds: kidIds, place: place, from: clean(opts.from, 80), stops: stops, date: validDate(opts.date), who: clean(opts.who, 120),
              memory: clean(opts.memory, 1000), photoId: opts.photoId || null, mark: mark, createdAt: opts.createdAt || now, updatedAt: now };
+  }
+  /** Older trips (v1/v2) have no From or stops; a trip with no travelers belongs to the person it was saved under. */
+  function migrateTrip(t, ownerId) {
+    if (!t || typeof t !== "object") return t;
+    var ids = Array.isArray(t.kidIds) ? t.kidIds.filter(function (x) { return typeof x === "string" && x; }) : [];
+    if (!ids.length && typeof t.kidId === "string" && t.kidId) ids = [t.kidId];
+    if (!ids.length && ownerId) ids = [ownerId];
+    t.kidIds = ids.filter(function (x, i) { return ids.indexOf(x) === i; });
+    if (typeof t.from !== "string") t.from = "";
+    if (!Array.isArray(t.stops)) t.stops = [];
+    delete t.kidId;
+    return t;
+  }
+  /** "Orlando to Edinburgh", "Orlando to London to Edinburgh", or just "Edinburgh". Plain words, no arrows. */
+  function routeText(t) {
+    var parts = [t.from].concat(t.stops || []).concat([t.place]).map(function (x) { return String(x || "").trim(); }).filter(Boolean);
+    return parts.filter(function (x, i) { return i === parts.length - 1 || x.toLowerCase() !== parts[i + 1].toLowerCase(); }).join(" to ");
+  }
+  /** "Lily", "Lily & Mom", "Lily, Mom & Dad". */
+  function joinNames(list) {
+    list = list.filter(Boolean);
+    return list.length < 2 ? (list[0] || "") : list.slice(0, -1).join(", ") + " & " + list[list.length - 1];
+  }
+  /** Trips every one of these people went on (others may have come too), newest first. */
+  function tripsTogether(trips, ids) {
+    if (!ids || ids.length < 2) return [];
+    return trips.filter(function (t) { return ids.every(function (id) { return t.kidIds.indexOf(id) >= 0; }); })
+      .sort(function (a, b) { return (b.date || b.createdAt || "") < (a.date || a.createdAt || "") ? -1 : 1; });
+  }
+  /** Every pair in the family with how many trips they shared, most first. Pairs with none are left out. */
+  function pairCounts(people, trips) {
+    var out = [];
+    for (var i = 0; i < people.length; i++) for (var j = i + 1; j < people.length; j++) {
+      var n = tripsTogether(trips, [people[i].id, people[j].id]).length;
+      if (n) out.push({ ids: [people[i].id, people[j].id], count: n });
+    }
+    return out.sort(function (a, b) { return b.count - a.count; });
+  }
+  /** Should we show the backup banner? Never backed up: after 3+ trips. Backed up: something changed since, and it's been 14+ days.
+      Dismissing hides it for 7 days. Dates are ISO strings. */
+  var BACKUP_DAYS = 14, SNOOZE_DAYS = 7, DAY = 864e5;
+  function backupDue(o) {
+    var now = o.now ? new Date(o.now).getTime() : Date.now(), last = o.lastBackupAt, trips = o.trips || [], people = o.people || [];
+    if (o.dismissedAt && now - new Date(o.dismissedAt).getTime() < SNOOZE_DAYS * DAY) return false;
+    if (!last) return trips.length >= 3;
+    var changed = trips.some(function (t) { return (t.updatedAt || "") > last; }) || people.some(function (p) { return (p.updatedAt || "") > last; });
+    return changed && now - new Date(last).getTime() >= BACKUP_DAYS * DAY;
   }
   /** Color in whatever the trip points at, for every kid on it. */
   function applyTripMark(trip, kids) {
@@ -206,10 +255,10 @@
   }
 
   // ---------- backup ----------
-  function makeBackup(kids, trips, photos, now) {
+  function makeBackup(kids, trips, photos, now, settings) {
     return { app: APP_ID, version: BACKUP_VERSION, exportedAt: now || new Date().toISOString(),
              note: "My Lifetime Travel Log backup. Keep this file somewhere safe (email it to yourself, or save it to your cloud drive).",
-             kids: kids, trips: trips, photos: photos };
+             kids: kids, trips: trips, photos: photos, settings: { home: clean(settings && settings.home, 80) } };
   }
   function cleanArea(bag, idRe) {
     var out = {};
@@ -238,13 +287,15 @@
       return p && idOk.test(p.id) && typeof p.dataUrl === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p.dataUrl) && p.dataUrl.length < 4e6;
     }).map(function (p) { return { id: p.id, dataUrl: p.dataUrl }; });
     var photoIds = photos.map(function (p) { return p.id; });
-    var trips = obj.trips.filter(function (t) { return t && idOk.test(t.id) && Array.isArray(t.kidIds); }).map(function (t) {
+    var trips = obj.trips.filter(function (t) { return t && idOk.test(t.id) && (Array.isArray(t.kidIds) || typeof t.kidId === "string"); }).map(function (t) {
+      t = migrateTrip(JSON.parse(JSON.stringify(t)));
       var ids = t.kidIds.filter(function (id) { return kidIds.indexOf(id) >= 0; });
       if (!ids.length || !clean(t.place, 80)) return null;
-      return newTrip({ id: t.id, kidIds: ids, place: t.place, date: t.date, who: t.who, memory: t.memory, mark: t.mark,
+      return newTrip({ id: t.id, kidIds: ids, place: t.place, from: obj.version >= 3 ? t.from : "", stops: obj.version >= 3 ? t.stops : [], date: t.date, who: t.who, memory: t.memory, mark: t.mark,
                        photoId: photoIds.indexOf(t.photoId) >= 0 ? t.photoId : null, createdAt: t.createdAt, now: t.updatedAt });
     }).filter(Boolean);
-    return { kids: kids, trips: trips, photos: photos, exportedAt: typeof obj.exportedAt === "string" ? obj.exportedAt : "" };
+    var home = obj.version >= 3 && obj.settings && typeof obj.settings === "object" ? clean(obj.settings.home, 80) : "";
+    return { kids: kids, trips: trips, photos: photos, settings: { home: home }, exportedAt: typeof obj.exportedAt === "string" ? obj.exportedAt : "" };
   }
 
   /** Long edge capped at max px, keeping the shape. */
@@ -268,5 +319,7 @@
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,
            slug: slug, uid: uid, newKid: newKid, toggleArea: toggleArea, togglePark: togglePark, newTrip: newTrip, applyTripMark: applyTripMark,
            ageOn: ageOn, stats: stats, badges: badges, BADGES: BADGES, makeBackup: makeBackup, readBackup: readBackup, fitDims: fitDims,
-           esc: esc, prettyDate: prettyDate, validDate: validDate, today: today, backupNudge: backupNudge };
+           esc: esc, prettyDate: prettyDate, validDate: validDate, today: today, backupNudge: backupNudge,
+           MAX_STOPS: MAX_STOPS, migrateTrip: migrateTrip, routeText: routeText, joinNames: joinNames, tripsTogether: tripsTogether, pairCounts: pairCounts,
+           backupDue: backupDue, BACKUP_DAYS: BACKUP_DAYS, SNOOZE_DAYS: SNOOZE_DAYS };
 });
