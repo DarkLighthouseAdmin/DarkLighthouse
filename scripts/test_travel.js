@@ -182,7 +182,7 @@ const sm = fs.readFileSync(R("sitemap.xml"), "utf8"), hub = fs.readFileSync(R("t
 const wear = fs.readFileSync(R("travel/gear/what-to-wear-in-scotland/index.html"), "utf8");
 ok(wear.includes("metoffice.gov.uk") && /72 mm/.test(wear) && /Oct<\/td><td>13°C/.test(wear), "wear: Met Office monthly table");
 ok(/<td>Jan<\/td>/.test(wear) && /<td>Dec<\/td>/.test(wear), "wear: all 12 months");
-ok(wear.includes("backcountry-barbour-bedale") && wear.includes("orvis-barbour-beadnell") && wear.includes("bespokepost-barbour-transport"), "wear: Barbour via retailers");
+ok(wear.includes("orvis-barbour-bedale") && wear.includes("orvis-barbour-beadnell") && wear.includes("bespokepost-barbour-transport"), "wear: Barbour via retailers");
 ok(/href="https:\/\/www\.sierra\.com[^"]*" rel="noopener"/.test(wear) && !/data-affiliate="sierra/.test(wear), "wear: Sierra is a plain, non-sponsored link");
 const str = fs.readFileSync(R("travel/gear/best-travel-stroller-europe/index.html"), "utf8");
 ["Doona", "YOYO", "Minu", "Nuna", "Mockingbird"].forEach(n => ok(str.includes(n), "stroller page covers " + n));
