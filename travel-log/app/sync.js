@@ -65,6 +65,7 @@
   function friendly(e) {
     var m = (e && (e.message || e.error_description || e.msg)) || String(e);
     if (/anonymous sign-ins are disabled|Anonymous sign-ins are disabled/i.test(m)) return new Error("Family Sync isn't switched on for invites yet. Try again soon.");
+    if (/Founders plan covers up to|people_cap/i.test(m)) return new Error("Your Founders plan covers up to " + ((m.match(/up to (\d+)/) || [])[1] || 10) + " people. Remove someone to add someone new.");
     if (/rate limit|over_email_send_rate_limit|too many/i.test(m)) return new Error("Too many emails were sent just now. Wait a few minutes and try again, or use an invite code.");
     if (/Failed to fetch|NetworkError|offline|Load failed/i.test(m)) return new Error("You're offline. Your log is safe on this phone; try again when you're connected.");
     if (/expired|invalid.*(otp|token)|Token has expired/i.test(m)) return new Error("That code didn't work or has expired. Ask for a new one.");
@@ -238,11 +239,11 @@
     var metaWas = metaHash(c);   // who's in, names, role, plan: shown in the header and on Family Sync
     return remote().then(function (x) { r = x; return r.session(); }).then(function (sess) {
       if (!sess) throw new Error("Signed out. Open Family Sync to sign back in.");
-      return Promise.all([r.family(fid), r.members(fid)]);
+      return (r.rpc ? r.rpc("refresh_my_plan", {}).catch(function () {}) : Promise.resolve()).then(function () { return Promise.all([r.family(fid), r.members(fid)]); });   // founder plan is decided on the server
     }).then(function (fm) {
       var fam = fm[0], members = fm[1] || [];
       if (!fam) return dropped();
-      c.familyName = fam.name; c.plan = { plan: fam.plan, keeper_until: fam.keeper_until, trial_ends_at: fam.trial_ends_at }; c.home = fam.home || "";
+      c.familyName = fam.name; c.plan = { plan: fam.plan, keeper_until: fam.keeper_until, trial_ends_at: fam.trial_ends_at, founder: !!fam.founder, max_people: fam.max_people || null }; c.home = fam.home || "";
       var me = members.filter(function (m) { return m.user_id === c.userId; })[0]; if (me) c.role = me.role;
       if (!opts.quiet) S.newMembers(members, c.seen, c.userId).forEach(function (m) { if (c.lastSync) celebrate.push(m); });
       members.forEach(function (m) { c.seen[m.user_id] = 1; });
@@ -519,7 +520,7 @@
       '<div class="actions">' + (grown ? '<a class="btn btn-beacon" href="#/sync/invite">＋ Invite someone</a>' : "") + '<a class="btn btn-primary" href="#/feed">📰 Family feed</a></div>' +
       '<h2>Who\'s in <span class="muted small">' + (c.members || []).length + '</span></h2><div class="panel members">' + (members || '<p class="muted">Just you so far.</p>') + '</div>' +
       mePanel(c) + logsPanel() +
-      '<div class="panel"><h3>Plan</h3><p class="small">' + esc(acc.label) + '</p><p class="small muted">Family Keeper (' + esc(CFG.price || "") + ') will cover everyone you invite with one subscription. Nothing is charged today.</p></div>' +
+      '<div class="panel"><h3>Plan</h3><p class="small">' + esc(acc.label) + '</p><p class="small muted">' + (acc.tier === "founder" ? "Everyone you invite into this family gets every feature free, on every device, up to " + (c.plan.max_people || 10) + " people." : 'Family Keeper (' + esc(CFG.price || "") + ') will cover everyone you invite with one subscription. Nothing is charged today.') + '</p></div>' +
       (c.anonymous !== false && (FLAGS.email || FLAGS.google) ? '<div class="panel keepspot"><h3>' + (FLAGS.google ? "Link Google so you can sign in on the web" : "Keep your spot") + '</h3><p class="small muted">You joined without signing in. ' + (FLAGS.google ? "Link Google so you can sign in on the web and on a new phone, as the same you" : "Add your email so you can get back into the family log on a new phone") + '. Optional.</p><div class="actions">' + googleBtn("link", "Link my Google account") + (FLAGS.email ? '<a class="btn btn-ghost" href="#/sync/email">Add my email</a>' : "") + '</div></div>' : "") +
       '<div class="panel"><h3>Privacy</h3><p class="small muted">The family\'s shared copy (names, map colors, trips and small photo copies) is stored with our database provider, Supabase, in the US. Only members of this family can read it. Full-size photos never leave the phone that took them. No ads, no analytics.</p>' +
       '<div class="actions"><a class="btn btn-danger" href="#/sync/leave">Leave family or delete my cloud data</a></div></div>';
@@ -1205,6 +1206,7 @@
   // ---------- wiring ----------
   window.MLTL_onChange = function (store) { if (store !== "meta") schedule(2500); };
   window.MLTL_SYNC = {
+    peopleCap: function () { var c = cfg(); return c && c.plan && c.plan.founder ? (c.plan.max_people || 10) : 0; },
     route: function (h) {
       if (h[0] === "sync") { viewSync(h[1]); return true; }
       if (h[0] === "join") { viewJoin(h[1]); return true; }

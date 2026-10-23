@@ -237,6 +237,7 @@
   var FREE = { members: 2, photos: false };
   function access(family, flags, now) {
     now = ms(now) || Date.now(); flags = flags || {};
+    if (family && family.founder) return { tier: "founder", unlocked: true, label: "Founders plan: everything unlocked for the whole family (up to " + (family.max_people || 10) + " people)" };
     if (flags.testing) return { tier: "testing", unlocked: true, label: "Family testing: everything is unlocked" };
     if (!family) return { tier: "free", unlocked: false, label: "Free" };
     if (family.plan === "keeper" && (!family.keeper_until || ms(family.keeper_until) > now)) return { tier: "keeper", unlocked: true, label: "Family Keeper" };
