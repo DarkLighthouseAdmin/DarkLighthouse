@@ -87,3 +87,27 @@
   .topright:has(.famchip:not([hidden])) .toplink { padding:.35rem .6rem; }
   .famchip { max-width:42vw; }
 }
+/* family menu: fixed, clamped into the viewport by placeMenu(); a bottom sheet under 480px */
+.fammenu { position:fixed; max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); overflow-y:auto; overscroll-behavior:contain; box-sizing:border-box; }
+.fammenu.sheet { left:8px; right:8px; bottom:calc(8px + env(safe-area-inset-bottom)); top:auto; width:auto; border-radius:18px; padding:.5rem .5rem .7rem; animation:sheetup .18s ease-out; z-index:61; }
+.fmscrim { position:fixed; inset:0; background:rgba(22,40,58,.38); z-index:60; }
+.fmscrim[hidden] { display:none; }
+.fammenu { z-index:61; }
+.fmsep { border-top:1px dashed var(--line); margin:.3rem .2rem; }
+.fmitem.add:first-of-type { border-top:0; }
+.fmitem.turnon { background:var(--beacon, #e8a54b); color:var(--navy, #16283a); font-weight:800; margin-bottom:.3rem; }
+.fmitem.turnon:hover, .fmitem.turnon:focus-visible { background:#f0b866; }
+@keyframes sheetup { from { transform:translateY(24px); opacity:0; } to { transform:none; opacity:1; } }
+@media (prefers-reduced-motion: reduce) { .fammenu.sheet { animation:none; } }
+.syncpill.s-off { background:rgba(232,165,75,.16); border:1px solid rgba(232,165,75,.7); color:#fff6e6; }
+.synctop { border:2px solid var(--beacon, #e8a54b); background:#fff8ec; }
+.synctop .synccta { display:inline-block; margin-top:.5rem; pointer-events:none; }
+.updtoast { position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:70; background:var(--navy, #16283a); color:#fff; border:2px solid var(--beacon, #e8a54b); border-radius:999px; padding:.7rem 1.2rem; font:inherit; font-weight:700; max-width:calc(100vw - 32px); cursor:pointer; box-shadow:0 10px 28px rgba(22,40,58,.3); }
+@media print { .fmscrim, .updtoast { display:none !important; } }
+/* small phones: keep the header on one line (logo, family button, sync, Back up) */
+@media (max-width:400px) {
+  .topbar .wrap { gap:.5rem; padding-left:.75rem; padding-right:.75rem; }
+  .topright:has(.famchip:not([hidden])) .toplink { white-space:nowrap; font-size:.8rem; padding:.3rem .5rem; }
+  .topright:has(.famchip:not([hidden])) { gap:.3rem; }
+  .famchip { max-width:36vw; padding:.3rem .55rem; }
+}

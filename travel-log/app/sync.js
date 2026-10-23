@@ -137,13 +137,15 @@
     status = s; statusMsg = msg || "";
     renderChip();
     var el = document.getElementById("syncpill"); if (!el) return;
-    el.hidden = !on();
-    var L = { synced: ["✓", "Synced"], syncing: ["↻", "Syncing"], offline: ["☁", "Offline"], error: ["!", "Sync paused"], off: ["", ""] }[s] || ["", ""];
+    el.hidden = !on() && !CFG.showEntry;   // while sync is off it's the way in: "Family Sync" right next to Back up
+    var L = { synced: ["✓", "Synced"], syncing: ["↻", "Syncing"], offline: ["☁", "Offline"], error: ["!", "Sync paused"], off: ["☁", entryLabel()] }[on() ? s : "off"] || ["", ""];
     el.className = "syncpill s-" + s;
     el.innerHTML = '<span aria-hidden="true">' + L[0] + '</span><span class="sl"> ' + esc(L[1]) + '</span>';
     el.title = statusMsg || (s === "synced" && cfg() && cfg().lastSync ? "Last synced " + S.ago(cfg().lastSync) : L[1]);
     el.setAttribute("aria-label", "Family Sync: " + L[1] + (statusMsg ? ". " + statusMsg : ""));
   }
+
+  function entryLabel() { return FLAGS.google ? "Sync & sign in" : "Family Sync"; }
 
   // ---------- photos ----------
   function dataUrlToImage(u) { return new Promise(function (res, rej) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = rej; i.src = u; }); }
@@ -732,21 +734,40 @@
     el.innerHTML = '<span aria-hidden="true">' + (on() ? "🏡" : "📱") + '</span> <span class="fcname">' + esc(name) + '</span> <span aria-hidden="true">▾</span>';
     el.setAttribute("aria-label", "Family log: " + name + ". Switch family");
   }
-  function closeMenu() { var m = document.getElementById("fammenu"); if (m) m.remove(); var c = document.getElementById("famchip"); if (c) c.setAttribute("aria-expanded", "false"); }
+  /** Keep the menu on screen: a bottom sheet on narrow phones, otherwise under the button, clamped 8px inside the viewport. */
+  function placeMenu() {
+    var m = document.getElementById("fammenu"), chip = document.getElementById("famchip"), sc = document.getElementById("fmscrim"); if (!m || !chip) return;
+    var vw = document.documentElement.clientWidth, vh = window.innerHeight, rc = chip.getBoundingClientRect(), sheet = vw < 480;
+    m.classList.toggle("sheet", sheet); if (sc) sc.hidden = !sheet;
+    if (sheet) { m.style.left = m.style.right = m.style.top = ""; m.style.maxHeight = Math.max(160, vh - Math.max(rc.bottom, 0) - 16) + "px"; return; }
+    var w = Math.min(320, vw - 16), top = Math.max(8, rc.bottom + 6);
+    var left = rc.right > vw / 2 ? rc.right - w : rc.left;                       // near the right edge: line up the right sides
+    left = Math.max(8, Math.min(left, vw - 8 - w));
+    m.style.width = w + "px"; m.style.left = left + "px"; m.style.right = "auto"; m.style.top = top + "px";
+    m.style.maxHeight = Math.max(120, vh - top - 8) + "px";
+  }
+  window.addEventListener("resize", placeMenu);
+  window.addEventListener("orientationchange", function () { setTimeout(placeMenu, 150); });
+  window.addEventListener("scroll", placeMenu, { passive: true });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", placeMenu);
+  function closeMenu() { var sc = document.getElementById("fmscrim"); if (sc) sc.remove(); var m = document.getElementById("fammenu"); if (m) m.remove(); var c = document.getElementById("famchip"); if (c) c.setAttribute("aria-expanded", "false"); }
   function toggleMenu() {
     if (document.getElementById("fammenu")) return closeMenu();
-    var r = reg(), full = S.linkedCount(r) >= S.MAX_FAMILIES, m = document.createElement("div");
-    m.id = "fammenu"; m.className = "fammenu"; m.setAttribute("role", "menu");
-    m.innerHTML = '<div class="fmhead small muted">Switch family log</div>' + r.logs.map(function (l) {
+    var r = reg(), m = document.createElement("div"), c = cfg(), grown = !c || c.role !== "kid";
+    m.id = "fammenu"; m.className = "fammenu"; m.setAttribute("role", "menu"); m.setAttribute("aria-label", "Family logs");
+    m.innerHTML = (on() ? "" : '<a role="menuitem" class="fmitem turnon" href="#/sync"><span aria-hidden="true">☁</span> <span class="nm">Turn on ' + esc(entryLabel()) + '</span></a>') +
+      '<div class="fmhead small muted">Switch family log</div>' + r.logs.map(function (l) {
       var cur = l.db === HERE;
       return '<button type="button" role="menuitem" class="fmitem' + (cur ? " cur" : "") + '"' + (cur ? "" : ' data-open-log="' + esc(l.db) + '"') + '><span aria-hidden="true">' + (l.familyId ? "🏡" : "📱") + '</span> <span class="nm">' + esc(S.logLabel(l)) + '</span>' + (cur ? ' <span aria-hidden="true">✓</span>' : "") + '</button>';
     }).join("") +
-      (full ? "" : '<a role="menuitem" class="fmitem add" href="#/sync/addjoin">＋ Join another family</a><a role="menuitem" class="fmitem add" href="#/sync/new">＋ Start another family log</a>') +
-      '<a role="menuitem" class="fmitem add" href="' + (on() ? "#/sync" : "#/sync") + '">' + (on() ? "⚙︎ This family's settings" : "⚙︎ Family Sync") + '</a>';
-    document.body.appendChild(m);
-    var chip = document.getElementById("famchip"), rc = chip.getBoundingClientRect();
-    m.style.top = (rc.bottom + window.scrollY + 6) + "px"; m.style.right = Math.max(8, document.documentElement.clientWidth - rc.right) + "px";
-    chip.setAttribute("aria-expanded", "true");
+      '<div class="fmsep" role="separator"></div>' +
+      (grown ? '<a role="menuitem" class="fmitem add" href="' + (on() ? "#/sync/invite" : "#/sync") + '">✉︎ Invite someone</a>' : "") +
+      '<a role="menuitem" class="fmitem add" href="#/sync/addjoin">＋ Join another family</a><a role="menuitem" class="fmitem add" href="#/sync/new">＋ Start another family log</a>' +
+      '<a role="menuitem" class="fmitem add" href="#/sync">⚙︎ ' + esc(entryLabel()) + ' settings</a>';
+    var scrim = document.createElement("div"); scrim.id = "fmscrim"; scrim.className = "fmscrim";
+    document.body.appendChild(scrim); document.body.appendChild(m);
+    placeMenu();
+    document.getElementById("famchip").setAttribute("aria-expanded", "true");
     var first = m.querySelector(".fmitem:not(.cur)"); if (first) first.focus();
   }
   document.addEventListener("click", function (e) { if (!e.target.closest || !e.target.closest("#fammenu")) closeMenu(); else if (e.target.closest("a")) closeMenu(); });
@@ -835,8 +856,11 @@
           return '<a class="row" href="#/feed"><span class="dots">' + who.map(function (p) { return dot(p); }).join("") + '</span><span class="nm"><b>' + esc(it.trip.place) + '</b><span>' + esc(M.joinNames(who.map(function (p) { return p.name; })) + (it.by ? " · added by " + it.by : "") + " · " + S.ago(it.at)) + '</span></span></a>';
         }).join("") + '</div>' : "");
     }
-    if (!CFG.showEntry) return "";
-    return '<a class="panel familycard synccard" href="#/sync"><span class="fam-ic" aria-hidden="true">👨‍👩‍👧‍👦</span><span><h3>Family Sync</h3><span class="muted small">Share one log across everyone\'s phones. Grandma can join with a code.</span><br><span class="small">Turn it on →</span></span></a>';
+    return "";   // while sync is off, homeTop() shows the invitation near the top instead
+  }
+  function homeTop() {
+    if (on() || !CFG.showEntry) return "";
+    return '<a class="panel familycard synccard synctop" href="#/sync"><span class="fam-ic" aria-hidden="true">👨‍👩‍👧‍👦</span><span><h3>Family Sync</h3><span class="muted small">Share one log across everyone\'s phones. Grandma can join with a code.</span><br><span class="btn btn-beacon small synccta">Turn on ' + esc(entryLabel()) + ' →</span></span></a>';
   }
 
 
@@ -887,7 +911,7 @@
       if (h[0] === "feed") { viewFeed(); return true; }
       return false;
     },
-    homeCard: homeCard, isOn: on, syncNow: syncNow, status: function () { return status; }, tripExtra: tripExtra, backupTag: backupTag,
+    homeCard: homeCard, homeTop: homeTop, isOn: on, syncNow: syncNow, status: function () { return status; }, tripExtra: tripExtra, backupTag: backupTag,
     logs: reg, switchTo: switchTo,
     photoNote: function () { return on() ? "We shrink it and keep the full photo on this device. A small copy is shared with your family log. Location data is removed." : null; },
     storageNote: function () { return on() ? "Your maps are on this device and synced with " + (cfg().familyName || "your family log") + ". A backup file is still a good idea." : null; },
@@ -905,7 +929,7 @@
   A.ready.then(function () {
     var c = cfg(), l = S.findLog(reg(), HERE);
     if (!l || (c && c.familyId ? l.familyId !== c.familyId || (c.familyName && l.name !== c.familyName) : l.familyId)) noteLog(c);   // keep the list in step with this log
-    renderChip(); emptyTrash(); oauthReturn();
+    if (!on()) setStatus("off"); renderChip(); emptyTrash(); oauthReturn();
     if (on()) { setStatus("syncing"); schedule(300); }
   });
 })();

@@ -157,6 +157,7 @@
       '<p class="lede">A travel map for each kid, and for the grown-ups too: states, countries and national parks, plus the little stories from every trip. ' +
       (window.MLTL_SYNC && window.MLTL_SYNC.isOn() ? "It's saved on this device and shared with your family log." : "It all stays right here on this device.") + '</p>';
     html = backupBanner() + html;
+    if (window.MLTL_SYNC && window.MLTL_SYNC.homeTop) html += window.MLTL_SYNC.homeTop();
     html += '<h2>Who\'s traveling?</h2><div class="kids">';
     state.kids.forEach(function (k) {
       html += '<a class="kidcard" href="#/p/' + esc(k.id) + '" style="' + kidStyle(k) + '"><span class="avatar">' + initial(k.name) + '</span>' +
@@ -664,5 +665,16 @@
     main.innerHTML = '<div class="panel"><h3>Storage isn\'t available</h3><p class="muted">This browser is blocking on-device storage (private browsing can do this). Try a normal window so your maps can be saved.</p></div>';
   });
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
-  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(function () {});
+  // Updates: check when the app comes back to the front (the Android app stays open for days), and offer a refresh once a new version takes over.
+  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (reg) {
+    var had = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", function () { if (had) updateToast(); had = true; });
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") reg.update().catch(function () {}); });
+    setInterval(function () { reg.update().catch(function () {}); }, 60 * 60 * 1000);
+  }).catch(function () {});
+  function updateToast() {
+    if (document.getElementById("updtoast")) return;
+    var b = document.createElement("button"); b.type = "button"; b.id = "updtoast"; b.className = "updtoast"; b.textContent = "Update available, tap to refresh";
+    b.onclick = function () { location.reload(); }; document.body.appendChild(b);
+  }
 })();
