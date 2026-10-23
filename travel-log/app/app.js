@@ -7,11 +7,13 @@
   var BOOK_URL = null;
 
   // ---------- storage ----------
+  // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
   var DB_NAME = "mltl", DB_VER = 1, dbp = null;
-  function db() {
-    if (dbp) return dbp;
-    dbp = new Promise(function (res, rej) {
-      var r = indexedDB.open(DB_NAME, DB_VER);
+  try { if (window.MLTL_SYNCCORE) DB_NAME = window.MLTL_SYNCCORE.readLogs(localStorage).active; } catch (e) {}
+  function db() { if (!dbp) dbp = openDb(DB_NAME); return dbp; }
+  function openDb(name) {
+    return new Promise(function (res, rej) {
+      var r = indexedDB.open(name, DB_VER);
       r.onupgradeneeded = function () {
         var d = r.result;
         ["kids", "trips", "photos"].forEach(function (s) { if (!d.objectStoreNames.contains(s)) d.createObjectStore(s, { keyPath: "id" }); });
@@ -20,19 +22,21 @@
       r.onsuccess = function () { res(r.result); };
       r.onerror = function () { rej(r.error); };
     });
-    return dbp;
   }
-  function tx(store, mode, fn) {
-    return db().then(function (d) {
+  function tx(store, mode, fn, other) {
+    return (other ? openDb(other) : db()).then(function (d) {
       return new Promise(function (res, rej) {
         var t = d.transaction(store, mode), out;
         var s = Array.isArray(store) ? store.map(function (n) { return t.objectStore(n); }) : t.objectStore(store);
         out = fn(s);
         t.oncomplete = function () { res(out && out.result !== undefined ? out.result : out); };
         t.onerror = function () { rej(t.error); }; t.onabort = function () { rej(t.error); };
-      });
+      }).then(function (x) { if (other) d.close(); return x; }, function (e) { if (other) d.close(); throw e; });
     });
   }
+  /** Read or write another family log's database (used by the family switcher). */
+  function txIn(name, store, mode, fn) { return name === DB_NAME ? tx(store, mode, fn) : tx(store, mode, fn, name); }
+  function deleteDb(name) { return new Promise(function (res) { if (name === DB_NAME) return res(false); var r = indexedDB.deleteDatabase(name); r.onsuccess = r.onerror = r.onblocked = function () { res(true); }; }); }
   function all(store) { return tx(store, "readonly", function (s) { return s.getAll(); }); }
   // Family Sync (sync.js) listens for saves so it can share them in the background. silent = a change that came from sync itself.
   function changed(store, silent) { if (!silent && window.MLTL_onChange) try { window.MLTL_onChange(store); } catch (e) {} }
@@ -90,7 +94,7 @@
   function doBackup() {
     return all("photos").then(function (photos) {
       var data = M.makeBackup(state.kids, state.trips, photos, null, { home: state.meta.home || "" }), blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "famstamp-backup-" + M.today() + ".json";
+      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "famstamp-backup-" + ((window.MLTL_SYNC && window.MLTL_SYNC.backupTag && window.MLTL_SYNC.backupTag()) || "") + M.today() + ".json";
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
       return setMeta("lastBackupAt", data.exportedAt);
     });
@@ -343,7 +347,8 @@
       (t.memory ? '<p class="mem">' + esc(t.memory) + '</p>' : "") +
       '<div class="travelers"><span class="dots">' + avatars(t.kidIds) + '</span><span>' + esc(travelerNames(t.kidIds)) + '</span></div>' +
       (t.who ? '<div class="who">Also along: ' + esc(t.who) + '</div>' : "") +
-      (owner ? '<a class="edit noprint" href="#/p/' + esc(owner.id) + '/trips/edit/' + esc(t.id) + '">Edit</a>' : "") + '</div></article>';
+      (owner ? '<a class="edit noprint" href="#/p/' + esc(owner.id) + '/trips/edit/' + esc(t.id) + '">Edit</a>' : "") +
+      (window.MLTL_SYNC && window.MLTL_SYNC.tripExtra ? window.MLTL_SYNC.tripExtra(t) : "") + '</div></article>';
   }
   function fillPhotos() { main.querySelectorAll("img[data-photo]").forEach(function (img) { photoURL(img.dataset.photo).then(function (u) { if (u) img.src = u; }); }); }
   function viewTrips(k) {
@@ -665,7 +670,8 @@
   // What sync.js needs from the app. Nothing here talks to the network.
   var readyRes; var ready = new Promise(function (r) { readyRes = r; });
   window.MLTL_APP = { state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, setMeta: setMeta,
-                      kidById: kidById, doBackup: doBackup, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready };
+                      kidById: kidById, doBackup: doBackup, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
+                      dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb };
   load().then(function () { readyRes(); route(); }).catch(function () {
     main.innerHTML = '<div class="panel"><h3>Storage isn\'t available</h3><p class="muted">This browser is blocking on-device storage (private browsing can do this). Try a normal window so your maps can be saved.</p></div>';
   });

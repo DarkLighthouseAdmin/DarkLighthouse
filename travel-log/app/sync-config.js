@@ -9,5 +9,7 @@ window.MLTL_SYNC_CONFIG = {
   showEntry: false,
   // Family testing: every Family Keeper feature is unlocked. Flip off when Family Keeper goes on sale.
   testing: true,
+  // "Continue with Google": turn on once Google is set up in Supabase (Auth > Providers > Google, plus "Allow manual linking").
+  google: false,
   price: "$24.99/yr for the whole family"
 };

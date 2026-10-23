@@ -302,7 +302,7 @@ ok((js.match(/My Lifetime Travel Log/g) || []).length === 4 && /matching paperba
 ok(M.APP_ID === "my-lifetime-travel-log", "backup id unchanged so old backups still restore");
 ok(/name="description" content="[^"]*family[^"]*kids/i.test(html), "meta description is family-wide and mentions kids");
 ok(/"description": "[^"]*family/.test(read("manifest.webmanifest")), "manifest description is family-wide");
-ok(/var CACHE = "mltl-v6"/.test(sw), "service worker cache bumped to v5 (Family Sync) so phones update");
+ok(/var CACHE = "mltl-v7"/.test(sw), "service worker cache bumped to v5 (Family Sync) so phones update");
 ok(/Color in every place your family goes, from the first road trip on\./.test(js), "onboarding leads with family, from the first road trip");
 ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.test(js) && /places you\\'ve been together/.test(js), "family map with a together view");
 ok(/Parent\/Adult/.test(read("log-core.js")) && /data-role/.test(js), "add-someone form has roles");
@@ -506,6 +506,45 @@ const linked = [];
   }
 })(path.join(__dirname, ".."));
 ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "));
+
+
+// ---- v1.4: several family logs on one phone ----
+{
+  const S = require("../travel-log/app/sync-core.js");
+  const mem = { v: {}, getItem(k) { return k in this.v ? this.v[k] : null; }, setItem(k, x) { this.v[k] = String(x); } };
+  let r = S.readLogs(mem);
+  ok(r.active === "mltl" && r.logs.length === 1 && r.logs[0].db === "mltl", "no list yet: just the phone's original log, open");
+  ok(S.logLabel(r.logs[0]) === "This phone only", "an unshared original log is labeled This phone only");
+  mem.setItem(S.LOGS_KEY, "{not json"); ok(S.readLogs(mem).logs.length === 1, "a broken list falls back to the original log");
+  mem.setItem(S.LOGS_KEY, JSON.stringify({ active: "mltl-evil/../x", logs: [{ db: "other" }, { db: "mltl-abcd1234", name: "<b>Rivera</b>", familyId: "f1" }] }));
+  r = S.readLogs(mem);
+  ok(r.active === "mltl" && r.logs.map(l => l.db).join() === "mltl,mltl-abcd1234", "odd database names are dropped and the original log is always kept");
+  S.updateLog(r, "mltl", { familyId: "f0", name: "Rivera Family", myPerson: "person_aaaa1111" });
+  const n2 = S.addLog(r, "Grandma & Grandpa's", () => "zz99yy88");
+  ok(n2 === "mltl-zz99yy88" && S.findLog(r, n2).familyId === null, "a new log gets its own database name and starts unlinked");
+  ok(S.linkedCount(r) === 2 && S.logForFamily(r, "f1").db === "mltl-abcd1234", "count linked families; find a family's log");
+  const n3 = S.addLog(r, "", () => "zz99yy88");
+  ok(n3 !== n2 && /^mltl-[a-z0-9]{4,24}$/.test(n3), "a clashing random name gets a fresh one");
+  S.updateLog(r, n2, { familyId: "f2", name: "Grandma & Grandpa's", myPerson: "person_gma11111" });
+  ok(S.copyTargets(r, "mltl").map(l => l.db).join() === n2, "only other linked logs where I picked myself can take a copy");
+  r.active = n2; S.writeLogs(mem, r); ok(S.readLogs(mem).active === n2, "the open log is remembered");
+  ok(S.removeLog(r, n2) && r.active === "mltl" && !S.findLog(r, n2), "removing the open log falls back to the original");
+  ok(!S.removeLog(r, "mltl") && S.findLog(r, "mltl"), "the original log can't be removed");
+  ok(S.MAX_FAMILIES === 3, "up to 3 families, same as the server");
+  const trip = { id: "trip_src12345", kidIds: ["person_aaaa1111", "person_kid22222"], place: "Yellowstone", date: "2026-07-04", mark: { kind: "park", id: "yell" }, memory: "Old Faithful!", stops: [{ place: "Cody" }], photoId: "photo_x1234", createdAt: "2026-07-05T00:00:00Z", updatedAt: "2026-07-05T00:00:00Z" };
+  const cp = S.copyTrip(trip, "person_gma11111", { familyName: "Rivera Family", familyId: "f0" }, "trip_new12345", "2026-10-23T16:00:00.000Z");
+  ok(cp.id === "trip_new12345" && cp.kidIds.join() === "person_gma11111" && cp.place === "Yellowstone" && cp.stops[0].place === "Cody" && cp.memory === "Old Faithful!", "a copied trip keeps the details (new fields too) with just me on it");
+  ok(cp.copiedFrom.familyName === "Rivera Family" && cp.copiedFrom.tripId === "trip_src12345" && cp.createdAt === "2026-10-23T16:00:00.000Z", "and notes where it came from");
+  ok(trip.kidIds.length === 2 && !trip.copiedFrom, "the original trip is untouched");
+  const row = S.tripRow(cp, "f2"); ok(row.data.copiedFrom.tripId === "trip_src12345" && row.id !== trip.id, "the copy syncs as its own record in the other family");
+  ok(S.slug("Grandma & Grandpa's") === "grandma-grandpa-s", "backup file tag");
+  const app = fs.readFileSync(path.join(APP, "app.js"), "utf8"), sj = fs.readFileSync(path.join(APP, "sync.js"), "utf8");
+  ok(/readLogs\(localStorage\)\.active/.test(app) && /var DB_NAME = "mltl"/.test(app), "the app opens the chosen log, and the original one by default");
+  ok(/famstamp-backup-" \+ \(\(window\.MLTL_SYNC/.test(app), "each log's backup file is named for its family");
+  ok(/signInWithOAuth\(opts\)/.test(sj) && /linkIdentity\(opts\)/.test(sj) && /flowType: "pkce"/.test(sj) && /redirectTo: location\.origin \+ location\.pathname/.test(sj), "Google: link for anonymous members, sign in otherwise, back to the app's own URL");
+  const cfgSrc = fs.readFileSync(path.join(APP, "sync-config.js"), "utf8");
+  ok(/google: false/.test(cfgSrc), "Google button is off until the provider is set up");
+}
 
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
