@@ -316,6 +316,8 @@
       var kid = newPerson({ id: k.id, name: k.name, role: obj.version >= 2 ? k.role : "kid", birthYear: k.birthYear, color: k.color, now: k.createdAt });
       kid.states = cleanArea(k.states, /^[A-Z]{2}$/); kid.places = cleanArea(k.places, /^[A-Z0-9]{3}$/); kid.parks = cleanArea(k.parks, /^[a-z0-9-]{2,40}$/);
       if (obj.version >= 4 && Array.isArray(k.stamps) && k.stamps.length) kid.stamps = P.cleanStamps(k.stamps);
+      // kid quests and firsts: plain JSON, checked again by quests.js / firsts.js when shown
+      ["quests", "firsts"].forEach(function (f) { var v = k[f]; if (v && typeof v === "object" && !Array.isArray(v)) { var j = JSON.stringify(v); if (j.length < 60000) kid[f] = JSON.parse(j); } });
       kid.createdAt = typeof k.createdAt === "string" ? k.createdAt.slice(0, 30) : kid.createdAt;
       kid.updatedAt = typeof k.updatedAt === "string" ? k.updatedAt.slice(0, 30) : kid.updatedAt;
       return kid;

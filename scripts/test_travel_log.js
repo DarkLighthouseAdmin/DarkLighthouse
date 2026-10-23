@@ -829,5 +829,30 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/\.homeadd \.btn-big \{[^}]*min-height:56px/.test(css) && /\.apchip \{[^}]*min-height:44px/.test(css), "big tap targets for the new buttons");
 }
 
+// ---- kid travel quests
+{
+  const Q = require("../travel-log/app/quests.js"), M = require("../travel-log/app/log-core.js");
+  ok(Q.QUESTS.length >= 10 && new Set(Q.QUESTS.map(q => q.id)).size === Q.QUESTS.length, "quests: 10+ with unique ids");
+  ok(["scotland", "ireland", "england", "florida", "park", "road-trip"].every(id => Q.byId[id]), "quests for Scotland, Ireland, England, Florida, parks and road trips");
+  ok(Q.QUESTS.every(q => q.items.length >= 6 && q.items.every(i => i[0] && i[1] && i[1].length <= 48) && q.badge), "every quest has 6+ short kid-friendly items and a badge");
+  ok(Q.QUESTS.every(q => !(q.match && q.match.parks) || q.match.parks.every(id => M.PARKS.some(p => p.id === id))), "park quests point at real park ids");
+  const p = M.newPerson({ name: "Test kid", role: "kid" }); p.states.FL = { at: "2026-01-02" };
+  ok(Q.list(p)[0].q.id === "florida" && Q.list(p)[0].mine, "a Florida trip puts the Florida quest first");
+  const n = Q.byId.florida.items.length; let fin = false;
+  for (let i = 0; i < n; i++) fin = Q.toggle(p, "florida", i, true, "2026-02-03");
+  ok(fin && Q.progress(p, "florida").complete && p.quests.florida.at === "2026-02-03", "finishing every item earns the badge with a date");
+  ok(Q.earned(p).length === 1, "earned badges listed");
+  Q.toggle(p, "florida", 0, false); ok(!Q.progress(p, "florida").complete && !p.quests.florida.at, "unticking takes the badge back");
+  ok(JSON.stringify(Q.clean({ florida: { done: { 0: "2026-01-01", 99: "2026-01-01", 1: "bad" } }, nope: { done: { 0: "2026-01-01" } } })) === '{"florida":{"done":{"0":"2026-01-01"}}}', "clean drops unknown quests, items and bad dates");
+  const bk = M.readBackup(JSON.parse(JSON.stringify(M.makeBackup([p], [], [])))); ok(bk.kids[0].quests && bk.kids[0].quests.florida, "quests survive a backup round trip");
+  Q.setParks(M.PARKS); const z = M.newPerson({ name: "Test kid 2", role: "kid" }); z.parks.zion = { at: "2026-06-01", jr: false };
+  ok(Q.list(z)[0].q.id === "park-zion" && Q.list(z)[0].q.badge === "Zion Explorer", "every park in the log gets its own explorer quest, first in the list");
+  ok(!/arrowhead|official|NPS logo/i.test(JSON.stringify(Q.PARK_ITEMS)) && Q.JR_URL === "https://www.nps.gov/kids/junior-rangers.htm", "park quest: plain text, links the official Junior Ranger page");
+  Q.toggle(z, "park-zion", 0, true, "2026-06-02"); ok(z.parks.zion.jr === true, "ticking Junior Ranger in the quest marks it on the Parks tab too");
+  z.parks.zion.jr = false; ok(Q.progress(z, "park-zion").have === 1 - 1 + (z.quests["park-zion"].done[0] ? 1 : 0), "progress follows the stored ticks");
+  z.parks.zion.jr = true; delete z.quests["park-zion"]; ok(Q.progress(z, "park-zion").have === 1, "a Ranger tick from the Parks tab counts in the quest");
+  ok(/quests\.js/.test(read("index.html")) && /"quests\.js"/.test(read("sw.js")) && /FS_QUESTS\.view/.test(read("app.js")), "quests loaded, cached offline and routed");
+}
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
