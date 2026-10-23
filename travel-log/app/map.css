@@ -95,3 +95,6 @@ select.ppk-native { position:absolute !important; width:1px !important; height:1
 .mapbox.pz .pz-opt-on, .mapbox.pz .pz-opt-off { transition:none; }
 .mapbox.pz circle.dot.pz-opt-on { fill:var(--kid); }
 @media print { .ppk-bg { display:none !important; } }
+.ppk-btn.ppk-empty .ppk-v { color:var(--muted); font-weight:500; }
+.ppk-btn.ppk-empty .ppk-ch { display:none; }
+.sheetbox .btn-primary:disabled { opacity:.45; cursor:not-allowed; }
