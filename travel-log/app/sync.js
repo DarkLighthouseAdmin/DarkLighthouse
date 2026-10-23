@@ -66,7 +66,8 @@
     var m = (e && (e.message || e.error_description || e.msg)) || String(e);
     if (/anonymous sign-ins are disabled|Anonymous sign-ins are disabled/i.test(m)) return new Error("Family Sync isn't switched on for invites yet. Try again soon.");
     if (/Founders plan covers up to|people_cap/i.test(m)) return new Error("Your Founders plan covers up to " + ((m.match(/up to (\d+)/) || [])[1] || 10) + " people. Remove someone to add someone new.");
-    if (/rate limit|over_email_send_rate_limit|too many/i.test(m)) return new Error("Too many emails were sent just now. Wait a few minutes and try again, or use an invite code.");
+    if (/Too many open invites/i.test(m)) return new Error("This family has 10 open invites, the most it can have. Turn one off below, then make a new one.");
+    if (/over_email_send_rate_limit|email rate limit|email.*too many|too many.*email|you can only request this/i.test(m)) return new Error("Too many emails were sent just now. Wait a few minutes and try again, or use an invite code.");
     if (/Failed to fetch|NetworkError|offline|Load failed/i.test(m)) return new Error("You're offline. Your log is safe on this phone; try again when you're connected.");
     if (/expired|invalid.*(otp|token)|Token has expired/i.test(m)) return new Error("That code didn't work or has expired. Ask for a new one.");
     if (/identity.*already|already linked|identity_already_exists/i.test(m)) return new Error("That Google account is already used with Famstamp on another phone. Open Family Sync there, or sign in with it here from \"I already set this up on another phone\".");
@@ -144,6 +145,7 @@
       family: function (fid) { return sb.from("families").select("*").eq("id", fid).maybeSingle().then(chk); },
       myFamilies: function (uid) { return sb.from("family_members").select("family_id, role, families(name)").eq("user_id", uid).then(chk); },
       members: function (fid) { return sb.from("family_members").select("*").eq("family_id", fid).order("joined_at").then(chk); },
+      allInvites: function (fid) { return sb.from("invites").select("*").eq("family_id", fid).order("created_at", { ascending: false }).limit(40).then(chk); },
       invites: function (fid) { return sb.from("invites").select("*").eq("family_id", fid).is("revoked_at", null).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).then(chk); },
       updateMe: function (fid, uid, vals) { return sb.from("family_members").update(vals).eq("family_id", fid).eq("user_id", uid).then(chk); },
       updateFamily: function (fid, vals) { return sb.from("families").update(vals).eq("id", fid).then(chk); },
@@ -546,13 +548,33 @@
       (A.state.kids.length ? '<div class="field"><label for="ifor">Who is it for?</label><select id="ifor"><option value="">Anyone (they pick themselves)</option>' +
         A.state.kids.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(M.who(k)) + '</option>'; }).join("") + '</select></div>' : "") +
       '<div class="panel invite" id="invbox"><p class="muted">Making a code…</p></div><p class="err" id="ierr" hidden></p>' +
-      '<h2>Open invites</h2><div class="panel" id="invlist"><p class="muted small">Loading…</p></div>';
+      '<h2 id="invhead">Open invites</h2><div class="panel" id="invlist"><p class="muted small">Loading…</p></div>';
     var role = "adult";
-    function make() {
+    // Reuse an open invite for this role when there is one (opening this screen used to make a new code every time,
+    // and a family can only have 10 open). At the cap, turn off the oldest unused one and make a fresh code.
+    function usable(i) { return i.role === role && i.uses < i.max_uses && Date.parse(i.expires_at) > Date.now() + 2 * 864e5; }
+    function make(fresh) {
       var box = document.getElementById("invbox"); box.innerHTML = '<p class="muted">Making a code…</p>'; err("ierr");
-      Promise.all([remote().then(function (r) { return r.rpc("create_invite", { p_family: c.familyId, p_role: role, p_days: 7, p_max_uses: 10 }); }), needQR()]).then(function (res) {
-        var inv = Array.isArray(res[0]) ? res[0][0] : res[0]; lastInvite = inv; showInvite(inv); list();
-      }).catch(function (e) { box.innerHTML = ""; err("ierr", friendly(e)); });
+      Promise.all([remote().then(function (r) {
+        function create() { return r.rpc("create_invite", { p_family: c.familyId, p_role: role, p_days: 7, p_max_uses: 10 }); }
+        return (fresh ? Promise.resolve([]) : r.invites(c.familyId).catch(function () { return []; })).then(function (rows) {
+          var have = (rows || []).filter(usable)[0]; if (have) return have;
+          return create().catch(function (e) {
+            if (!/Too many open invites/i.test(String(e && e.message))) throw e;
+            return r.invites(c.familyId).then(function (all) {
+              var old = (all || []).slice().sort(function (a, b) { return (a.uses - b.uses) || (Date.parse(a.created_at) - Date.parse(b.created_at)); })[0];
+              if (!old) throw e;
+              return r.rpc("revoke_invite", { p_code: old.code }).then(create);
+            });
+          });
+        });
+      }), needQR()]).then(function (res) {
+        var inv = Array.isArray(res[0]) ? res[0][0] : res[0]; lastInvite = inv; showInvite(inv);
+      }).catch(function (e) {
+        box.innerHTML = '<p class="muted small">No code yet.</p><div class="actions"><button type="button" class="btn btn-beacon" id="iretry">Try again</button></div>';
+        document.getElementById("iretry").onclick = function () { make(); };
+        err("ierr", friendly(e));
+      }).then(list);
     }
     function showInvite(inv) {
       var forSel = document.getElementById("ifor"), forPid = forSel ? forSel.value : "";
@@ -560,24 +582,49 @@
       document.getElementById("invbox").innerHTML = '<div class="code" aria-label="Invite code">' + esc(inv.code) + '</div>' + qrSVG(link) +
         '<p class="small muted">Scan with a phone camera, or open the link. ' + (inv.role === "kid" ? "They'll join as a kid." : "They'll join as a grown-up.") + '</p>' +
         '<div class="actions center"><button class="btn btn-beacon" id="ishare">Share invite</button><button class="btn btn-ghost" id="icopy">Copy link</button></div>' +
-        '<p class="small muted linkline">' + esc(link) + '</p>';
+        '<p class="small muted linkline">' + esc(link) + '</p><p class="small muted">Text it yourself: tap Share invite and pick Messages. <button type="button" class="linkbtn" id="inew2">Make a new code</button></p>';
       var text = "Join " + title + " on Famstamp! Tap the link, or open the app and enter " + inv.code + ".";
       document.getElementById("ishare").onclick = function () {
         if (navigator.share) navigator.share({ title: "Join " + title, text: text, url: link }).catch(function () {});
         else copy(text + " " + link);
       };
       document.getElementById("icopy").onclick = function () { copy(link); };
+      document.getElementById("inew2").onclick = function () { make(true); };
     }
     function list() {
-      remote().then(function (r) { return r.invites(c.familyId); }).then(function (rows) {
+      remote().then(function (r) { return r.allInvites ? r.allInvites(c.familyId) : r.invites(c.familyId); }).then(function (rows) {
         var el = document.getElementById("invlist"); if (!el) return;
-        el.innerHTML = rows.length ? rows.map(function (i) {
-          return '<div class="row"><span class="nm"><b class="mono">' + esc(i.code) + '</b><span>' + esc((i.role === "kid" ? "Kid" : "Grown-up") + " · used " + i.uses + " of " + i.max_uses + " · ends " + M.prettyDate(String(i.expires_at).slice(0, 10))) + '</span></span><button type="button" class="pill" data-revoke="' + esc(i.code) + '">Turn off</button></div>';
-        }).join("") : '<p class="muted small">No open invites.</p>';
+        rows = rows || [];
+        function state(i) { return i.revoked_at ? "Cancelled" : i.uses >= i.max_uses ? "Used up" : Date.parse(i.expires_at) <= Date.now() ? "Expired" : ""; }
+        var open = rows.filter(function (i) { return !state(i); }), closed = rows.filter(function (i) { return state(i); });
+        var h = document.getElementById("invhead"); if (h) h.innerHTML = 'Open invites <span class="muted small">' + open.length + ' of 10</span>';
+        function line(i) {
+          var st = state(i), shown = lastInvite && lastInvite.code === i.code;
+          var meta = (i.role === "kid" ? "Kid" : "Grown-up") + " · " + (i.uses ? "used " + i.uses + " of " + i.max_uses : "not used yet") + " · " + (st === "Expired" ? "ended " : "ends ") + M.prettyDate(String(i.expires_at).slice(0, 10)) + " · made " + M.prettyDate(String(i.created_at).slice(0, 10));
+          return '<div class="row invrow' + (st ? " invdone" : "") + '"><span class="nm"><b class="mono">' + esc(i.code) + (st ? ' <span class="invtag">' + esc(st) + '</span>' : shown ? ' <span class="invtag invon">Shown above</span>' : "") + '</b><span>' + esc(meta) + '</span></span>' +
+            (st ? "" : '<span class="invbtns">' + (shown ? "" : '<button type="button" class="pill" data-ishow="' + esc(i.code) + '" aria-label="Show code and QR for ' + esc(i.code) + '">Show</button>') +
+              '<button type="button" class="pill" data-ishare="' + esc(i.code) + '" aria-label="Share ' + esc(i.code) + '">Share</button><button type="button" class="pill" data-icp="' + esc(i.code) + '" aria-label="Copy the link for ' + esc(i.code) + '">Copy</button>' +
+              '<button type="button" class="pill fx" data-revoke="' + esc(i.code) + '" aria-label="Cancel ' + esc(i.code) + '">Cancel</button></span>') + '</div>';
+        }
+        el.innerHTML = (open.length ? open.map(line).join("") : '<p class="muted small">No open invites.</p>') +
+          (closed.length ? '<details class="invold"><summary>Earlier invites (' + closed.length + ')</summary>' + closed.map(line).join("") + '</details>' : "");
+        function byCode(code) { return rows.filter(function (i) { return i.code === code; })[0]; }
+        function linkFor(i) { var forSel = document.getElementById("ifor"), pid = forSel ? forSel.value : ""; return S.inviteLink(location.origin + location.pathname, i.code) + (pid ? "&for=" + encodeURIComponent(pid) : ""); }
+        el.querySelectorAll("[data-ishow]").forEach(function (b) { b.onclick = function () {
+          var inv = byCode(b.dataset.ishow); if (!inv) return;
+          needQR().then(function () { lastInvite = inv; showInvite(inv); list(); document.getElementById("invbox").scrollIntoView({ block: "center", behavior: "smooth" }); });
+        }; });
+        el.querySelectorAll("[data-icp]").forEach(function (b) { b.onclick = function () { var i = byCode(b.dataset.icp); if (i) copy(linkFor(i)); }; });
+        el.querySelectorAll("[data-ishare]").forEach(function (b) { b.onclick = function () {
+          var i = byCode(b.dataset.ishare); if (!i) return; var title = S.familyTitle(c.familyName), text = "Join " + title + " on Famstamp! Tap the link, or open the app and enter " + i.code + ".";
+          if (navigator.share) navigator.share({ title: "Join " + title, text: text, url: linkFor(i) }).catch(function () {}); else copy(text + " " + linkFor(i));
+        }; });
         el.querySelectorAll("[data-revoke]").forEach(function (b) {
-          b.onclick = function () { remote().then(function (r) { return r.rpc("revoke_invite", { p_code: b.dataset.revoke }); }).then(function () { A.toast("Invite turned off"); if (lastInvite && lastInvite.code === b.dataset.revoke) { lastInvite = null; document.getElementById("invbox").innerHTML = '<p class="muted small">That code is off. Make a new one any time.</p><div class="actions"><button class="btn btn-beacon" id="inew">New code</button></div>'; document.getElementById("inew").onclick = make; } list(); }).catch(function (e) { A.toast(friendly(e).message); }); };
+          b.onclick = function () {
+            if (!confirm("Cancel invite " + b.dataset.revoke + "? Anyone who hasn't used it yet won't be able to join with it.")) return;
+            remote().then(function (r) { return r.rpc("revoke_invite", { p_code: b.dataset.revoke }); }).then(function () { A.toast("Invite cancelled"); if (lastInvite && lastInvite.code === b.dataset.revoke) { lastInvite = null; document.getElementById("invbox").innerHTML = '<p class="muted small">That code is off. Make a new one any time.</p><div class="actions"><button class="btn btn-beacon" id="inew">New code</button></div>'; document.getElementById("inew").onclick = function () { make(true); }; } list(); }).catch(function (e) { A.toast(friendly(e).message); }); };
         });
-      }).catch(function () {});
+      }).catch(function () { var el = document.getElementById("invlist"); if (el) el.innerHTML = '<p class="muted small">Couldn\'t load your invites just now. The code above still works.</p>'; });
     }
     var fs = document.getElementById("ifor"); if (fs) fs.onchange = function () { if (lastInvite) showInvite(lastInvite); };
     main.querySelectorAll("[data-irole]").forEach(function (b) { b.onclick = function () { role = b.dataset.irole; main.querySelectorAll("[data-irole]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); make(); }; });
