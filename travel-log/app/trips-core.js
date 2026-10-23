@@ -138,6 +138,7 @@
     if (!b || typeof b !== "object" || !MODE[b.mode]) return null;
     var o = { mode: b.mode };
     if (b.mode === "plane") { var d = cleanAirport(b.dep), r = cleanAirport(b.arr); if (d) o.dep = d; if (r) o.arr = r; }
+    if (b.picked) o.picked = true;   // the family chose this airport home themselves: don't re-guess it when stops change
     return o;
   }
   function cleanPoint(p, first) {
@@ -236,8 +237,23 @@
     x.fly = /^(yes|no|skip)$/.test(o.fly || "") ? o.fly : "";
     x.back = cleanBack(o.back);
     x.memories = cleanMemories(o.memories);
+    x.wx = wxClean(o.wx);   // v1.7: weather picked by hand, per day
     return x;
   }
+
+  function wxClean(o) {
+    var W = (typeof self !== "undefined" && self.WK_WX) || (typeof require === "function" ? require("./weather-core.js") : null);
+    return W ? W.cleanWx(o) : {};
+  }
+  // a line about the weather: only days the family picked by hand, or real recorded past weather (never a forecast)
+  var WX_LINES = {
+    storybook: { rainy: ["It was a rainy day in {p}, so they splashed through the puddles!", "The rain pitter-pattered all day in {p}, but nobody minded!"],
+      sunny: ["The sun shone bright and warm in {p}!", "It was a sunny day in {p}, perfect for exploring!"], stormy: ["A big thunderstorm rumbled over {p}!"],
+      snowy: ["Snowflakes fell in {p}!"], windy: ["The wind whooshed and whistled in {p}!"], foggy: ["Fog wrapped around {p} like a big gray blanket."],
+      hot: ["It was a hot, hot day in {p}!"], cold: ["It was a chilly day in {p}, so everyone bundled up!"], cloudy: ["Clouds filled the sky over {p}."], partly: ["The sun peeked through the clouds in {p}."] },
+    journal: { rainy: ["We had a rainy day in {p}.", "It rained in {p}, and we didn't let it stop us."], sunny: ["We got a sunny day in {p}.", "The sun came out for us in {p}."],
+      stormy: ["A thunderstorm rolled through {p}."], snowy: ["We saw snow in {p}."], windy: ["It was a windy day in {p}."], foggy: ["Fog rolled into {p}."],
+      hot: ["It was a hot day in {p}."], cold: ["It was a cold day in {p}."], cloudy: ["It was a cloudy day in {p}."], partly: ["We had sun and clouds in {p}."] } };
 
   // ---------- migration ----------
   /** v1.2 trips have From / stops / To as words. Turn them into route points with no location (miles show as "?" until
@@ -523,6 +539,8 @@
       if (p && typeof p.nights === "number" && p.nights > 0 && R() < 0.8) out.push(fill(pick(L.nights), { n: plural(p.nights, "night"), b: p.name }));
     });
     if (!s.legs.length && r.length) out.push(style === "journal" ? "We made it to " + r[r.length - 1].name + "." : "They made it all the way to " + r[r.length - 1].name + "!");
+    // weather (ctx.wx = [{ kind, place }] from WK_WX.storyNotes: hand-picked or real past days only)
+    (ctx.wx || []).slice(0, 2).forEach(function (w) { var a = WX_LINES[style][w && w.kind]; if (a && w.place) out.push(fill(pick(a), { p: w.place })); });
     // stays
     (t.stays || []).forEach(function (st) {
       var where = st.where ? " in " + st.where : "", tpl = pick(L.stay[st.type] || L.stay.other);

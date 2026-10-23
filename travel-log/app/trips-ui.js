@@ -128,9 +128,18 @@
     var map = T.routeMap(t); if (!map) return "";
     var r = t.route || [], pts = r.map(function (p) { return T.project(p, map); });
     var xy = pts.filter(Boolean), base = map === "us" ? MAPS.us : MAPS.world;
+    // v1.7: zoom to the stops when home is far away (Orlando -> a Scotland loop): the loop fills the map and the long
+    // flights run off the edge, with a small "✈️ to Orlando" marker pointing home
+    var far = null, away = pts.slice(1).filter(Boolean);
+    if (pts[0] && away.length > 1) {
+      var ax = away.map(function (p) { return p[0]; }), ay = away.map(function (p) { return p[1]; });
+      var sw = Math.max(Math.max.apply(null, ax) - Math.min.apply(null, ax), map === "us" ? 120 : 40), sh = Math.max(Math.max.apply(null, ay) - Math.min.apply(null, ay), map === "us" ? 70 : 24);
+      var acx = (Math.max.apply(null, ax) + Math.min.apply(null, ax)) / 2, acy = (Math.max.apply(null, ay) + Math.min.apply(null, ay)) / 2;
+      if (Math.abs(pts[0][0] - acx) > sw * 1.6 || Math.abs(pts[0][1] - acy) > sh * 1.6) { far = pts[0]; xy = away; }
+    }
     var minx = Math.min.apply(null, xy.map(function (p) { return p[0]; })), maxx = Math.max.apply(null, xy.map(function (p) { return p[0]; }));
     var miny = Math.min.apply(null, xy.map(function (p) { return p[1]; })), maxy = Math.max.apply(null, xy.map(function (p) { return p[1]; }));
-    var w = Math.max(maxx - minx, map === "us" ? 120 : 40), h = Math.max(maxy - miny, map === "us" ? 70 : 24);
+    var w = Math.max(maxx - minx, map === "us" ? (far ? 60 : 120) : (far ? 14 : 40)), h = Math.max(maxy - miny, map === "us" ? (far ? 35 : 70) : (far ? 9 : 24));
     w *= 1.35; h *= 1.35; if (w / h < 1.5) w = h * 1.5; else h = w / 1.5;
     var cx = (minx + maxx) / 2, cy = (miny + maxy) / 2, vb = [cx - w / 2, cy - h / 2, w, h];
     vb[0] = Math.max(0, Math.min(vb[0], base.w - w)); vb[1] = Math.max(0, Math.min(vb[1], base.h - h));
@@ -152,8 +161,16 @@
       } else line += '<path class="leg ' + esc(L.mode) + '" d="M' + a[0] + ',' + a[1] + ' L' + b[0] + ',' + b[1] + '" stroke-width="' + (u * 2.6).toFixed(2) + '"/>';
     });
     s += line;
+    if (far) {   // where home is, off the edge of the map
+      var hx = far[0], hy = far[1], ccx = vb[0] + vb[2] / 2, ccy = vb[1] + vb[3] / 2, m = u * 14, dx2 = hx - ccx, dy2 = hy - ccy;
+      var tt = Math.min(dx2 ? (vb[2] / 2 - m) / Math.abs(dx2) : 1e9, dy2 ? (vb[3] / 2 - m) / Math.abs(dy2) : 1e9, 1);
+      var ex = ccx + dx2 * tt, ey = ccy + dy2 * tt, left = ex < ccx, fs = u * 8.5, lbl = "✈️ " + (r[0].name || "home");
+      var tw = lbl.length * fs * 0.55 + u * 10, tx = left ? Math.max(vb[0] + u * 3, ex - u * 5) : Math.min(vb[0] + vb[2] - u * 3 - tw, ex - tw + u * 5), ty = Math.max(vb[1] + u * 3, Math.min(vb[1] + vb[3] - u * 17, ey - u * 8));
+      s += '<g class="homeflag"><rect x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" width="' + tw.toFixed(1) + '" height="' + (u * 15).toFixed(1) + '" rx="' + (u * 7).toFixed(1) + '"/>' +
+        '<text x="' + (tx + u * 5).toFixed(1) + '" y="' + (ty + u * 10.5).toFixed(1) + '" font-size="' + fs.toFixed(2) + '">' + esc(lbl) + '</text><title>Home: ' + esc(r[0].name || "") + '</title></g>';
+    }
     pts.forEach(function (p, i) {
-      if (!p) return;
+      if (!p || (far && i === 0)) return;
       s += '<g class="stopdot"><circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (u * (i ? 6 : 5)).toFixed(2) + '" stroke-width="' + (u * 1.6).toFixed(2) + '"' + (i ? "" : ' class="home"') + '/>' +
         (i ? '<text x="' + p[0] + '" y="' + (p[1] + u * 2.6).toFixed(2) + '" font-size="' + (u * 7.5).toFixed(2) + '">' + i + '</text>' : "") + '<title>' + esc(r[i].name) + '</title></g>';
     });
@@ -280,13 +297,37 @@
       return best;
     }
     function planes() { return d.route.filter(function (p, i) { return i > 0 && p.mode === "plane"; }).length; }
+    // ---- the way home (open-jaw): fly home from the airport nearest the last stop when that isn't where we landed ----
+    function outFlight() { for (var i = 1; i < d.route.length; i++) if (d.route[i].mode === "plane" && d.route[i].dep && d.route[i].arr) return i; return 0; }
+    function autoBack() {
+      var rt = $("#tround") ? $("#tround").checked : d.roundTrip, fi = outFlight(), r = d.route;
+      if (!rt || !fi || fly === "no") { if (d.back && d.back.mode === "plane" && (!rt || !fi)) d.back = null; return; }
+      if (d.back && d.back.picked && d.back.mode === "plane" && d.back.dep) { d.back.arr = r[fi].dep; return; }
+      var b = r[fi], last = r[r.length - 1], ap = airports && r.length - 1 > fi ? nearestAirport(last, airports) : null;
+      if (ap && ap.code !== b.arr.code && T.gcMiles(last, r[0]) > 300) d.back = { mode: "plane", dep: ap, arr: b.dep };
+      else d.back = fi > 1 ? { mode: "plane", dep: b.arr, arr: b.dep } : null;
+    }
+    function backHTML() {
+      var fi = outFlight(), r = d.route; if (!fi || !airports || !($("#tround") && $("#tround").checked)) return "";
+      var cur = d.back && d.back.mode === "plane" && d.back.dep ? d.back.dep : r[fi].arr, last = r[r.length - 1];
+      var list = nearAirports(last, airports, 3); [r[fi].arr, cur].forEach(function (x) { if (x && !list.some(function (y) { return y.code === x.code; })) { var o = Object.assign({}, x), g = T.gcMiles(last, x); if (g != null) o.away = Math.round(g); list.push(o); } });
+      return '<div class="flyhome" id="flyhome"><div class="aplabel" id="flyl-back">🏠 Flew home from <span class="muted small">near ' + esc(last.name) + ' · to ' + esc(r[fi].dep.code) + '</span></div>' +
+        '<div class="chips apchips" role="group" aria-labelledby="flyl-back">' + list.map(function (x) { return apChip("back", x, x.code === cur.code); }).join("") + '</div>' +
+        '<input type="search" autocomplete="off" id="flyq-back" data-flyq="back" placeholder="Another airport: code or city" aria-label="Flew home from: search airports"><div class="results" data-flyres="back"></div></div>';
+    }
+    function pickBack(o) {
+      var fi = outFlight(); if (!fi || !o) return;
+      d.back = { mode: "plane", dep: airportObj(o), arr: d.route[fi].dep, picked: true }; renderRoute();
+      var again = $('[data-flyap="back"][data-code="' + o.code + '"]'); if (again) again.focus();
+    }
     function apChip(w, a, on) {
       return '<button type="button" class="chip apchip" data-flyap="' + w + '" data-code="' + esc(a.code) + '" aria-pressed="' + !!on + '"><b>' + esc(a.code) + '</b> <span>' + esc(T.airportCity(a.city, a.name, a.code) || a.name) + '</span>' +
         (a.away != null ? ' <small>' + esc(dist(a.away)) + '</small>' : "") + '</button>';
     }
     function flySummary(s) {
-      var out = s.legs.filter(function (L) { return L.mode === "plane" && !L.home && L.dep && L.arr; }).map(function (L) { return L.dep.code + " → " + L.arr.code; }),
-        home = s.legs.some(function (L) { return L.mode === "plane" && L.home; });
+      var outL = s.legs.filter(function (L) { return L.mode === "plane" && !L.home && L.dep && L.arr; }), out = outL.map(function (L) { return L.dep.code + " → " + L.arr.code; }),
+        hl = s.legs.filter(function (L) { return L.mode === "plane" && L.home; })[0], home = !!hl;
+      if (hl && hl.dep && outL[0] && hl.dep.code !== outL[0].arr.code) { out.push(hl.dep.code + " → " + (hl.arr ? hl.arr.code : "home")); home = false; }
       return (out.length ? esc(out.join(", ")) + (home ? " and back" : "") + ': ' : "") + '<b>' + s.flights + (s.flights === 1 ? " flight" : " flights") + '</b> · ' + esc(dist(s.flightMiles)) + ' flown' + (s.airMin ? ' · about ' + esc(T.fmtAir(s.airMin)) + ' in the air' : "");
     }
     function renderFly() {
@@ -295,8 +336,9 @@
       if (r.length < 2) { box.innerHTML = ""; return; }
       var intl = abroad(), n = planes(), ask = flyOpen || (intl && !fly);
       if (!ask) {
+        autoBack();
         var s = T.summary(Object.assign({}, d, { roundTrip: rt }));
-        if (n) box.innerHTML = '<div class="flydone" id="flydone"><span aria-hidden="true">✈️</span><span>' + flySummary(s) + '</span><span class="flybtns"><button type="button" class="linkbtn sm" id="flyedit">Change airports</button><button type="button" class="linkbtn sm" id="flyno">We didn\'t fly</button></span></div>';
+        if (n) box.innerHTML = '<div class="flydone" id="flydone"><span aria-hidden="true">✈️</span><span>' + flySummary(s) + '</span><span class="flybtns"><button type="button" class="linkbtn sm" id="flyedit">Change airports</button><button type="button" class="linkbtn sm" id="flyno">We didn\'t fly</button></span></div>' + backHTML();
         else box.innerHTML = '<p class="flylink small">' + (fly === "no" && intl ? '<span class="muted">No flights on this one. </span>' : "") + '<button type="button" class="linkbtn sm" id="flyedit">✈️ ' + (fly === "no" && intl ? "We did fly" : "Did you fly? Add airports") + '</button></p>';
         return;
       }
@@ -342,7 +384,7 @@
         b.mode = "plane"; b.dep = { code: flyPick.dep.code, name: flyPick.dep.name, city: flyPick.dep.city, country: flyPick.dep.country, lat: flyPick.dep.lat, lon: flyPick.dep.lon };
         b.arr = { code: flyPick.arr.code, name: flyPick.arr.name, city: flyPick.arr.city, country: flyPick.arr.country, lat: flyPick.arr.lat, lon: flyPick.arr.lon };
         // home again: the first leg backwards covers it; a flight later in the trip flies home from the same airport
-        d.back = ti > 1 ? { mode: "plane", dep: b.arr, arr: b.dep } : null;
+        d.back = ti > 1 ? { mode: "plane", dep: b.arr, arr: b.dep } : null; autoBack();
         A_.toast("Flights added ✈️");
       } else if (v === "no") {
         d.route.forEach(function (p, i) { if (i && p.mode === "plane") { p.mode = "car"; delete p.dep; delete p.arr; } });
@@ -357,6 +399,7 @@
       else if (b.id === "flyno") setFly("no");
       else if (b.id === "flyskip") setFly("skip");
       else if (b.id === "flyedit") { flyOpen = true; flyPick.ti = 0; renderFly(); var q = $("#flyask"); if (q && q.scrollIntoView) q.scrollIntoView({ block: "nearest" }); }
+      else if (b.dataset.flyap === "back") { var fi = outFlight(), cand = nearAirports(d.route[d.route.length - 1], airports, 3).concat([d.route[fi] && d.route[fi].arr, d.back && d.back.dep].filter(Boolean)); pickBack(cand.filter(function (x) { return x.code === b.dataset.code; })[0]); }
       else if (b.dataset.flyap) {
         var w = b.dataset.flyap, ti = flyPick.ti, near = nearAirports(w === "dep" ? d.route[ti - 1] : d.route[ti], airports, 3).concat(flyPick[w] ? [flyPick[w]] : []);
         flyPick[w] = near.filter(function (x) { return x.code === b.dataset.code; })[0] || flyPick[w]; renderFly();
@@ -368,6 +411,7 @@
       var box = $('[data-flyres="' + w + '"]');
       if (el.value.trim().length < 2) { box.innerHTML = ""; return; }
       showResults(box, searchAirports(el.value, airports).map(function (a) { return { label: a.code + " · " + a.city, sub: a.name, a: a }; }), function (x) {
+        if (x && w === "back") return pickBack(x.a);
         if (!x) return; var o = airportObj(x.a), ref = w === "dep" ? d.route[flyPick.ti - 1] : d.route[flyPick.ti], g = T.gcMiles(ref, o); if (g != null) o.away = Math.round(g);
         flyPick[w] = o; renderFly();
       });
@@ -519,13 +563,14 @@
       var photoId = d.photoId || null;
       if (removePhoto && photoId) { jobs.push(A_.del("photos", photoId)); photoId = null; }
       if (newPhoto) { if (photoId) jobs.push(A_.del("photos", photoId)); photoId = M.uid("photo"); }
+      autoBack();
       var nightsV = $("#tnights").value, title = $("#ttitle").value.trim();
       var before = stampKeys(ids), grown = adultOn(ids), trip;
       try {
         var made = M.newTrip({ id: old ? old.id : undefined, createdAt: old ? old.createdAt : undefined, kidIds: ids,
           place: title || T.mainDest(d.route) || (d.route[d.route.length - 1] || {}).name, route: T.stops(d.route), title: title, date: $("#tdate").value, endDate: end.value,
           nights: end.value ? null : (nightsV === "" ? null : +nightsV), roundTrip: d.route.length > 1 && $("#tround").checked, done: done.checked,
-          fly: fly, back: $("#tround").checked ? d.back : null, stays: d.stays, favs: d.favs.filter(function (f) { return grown || !T.FAV[f.cat].adult; }), moments: d.moments, story: d.story, memories: memVals(),
+          fly: fly, back: $("#tround").checked ? d.back : null, stays: d.stays, favs: d.favs.filter(function (f) { return grown || !T.FAV[f.cat].adult; }), moments: d.moments, story: d.story, memories: memVals(), wx: d.wx,
           who: $("#twho").value, memory: $("#tmem").value, mark: mv ? { kind: mv.split(":")[0], id: mv.split(":")[1] } : null, photoId: photoId });
         trip = Object.assign(old ? copy(old) : {}, made);
       } catch (x) { err.textContent = x.message; err.hidden = false; return; }
@@ -594,7 +639,7 @@
   }
   function storyCtx(t, viewer) {
     return { travelers: people(t.kidIds), units: units(), allowAdult: T.showAdult(t, S().kids, viewer, !!S().meta.adultInKid),
-             firsts: firstsFor(t), badges: badgesFor(t), familyName: S().meta.familyName || "" };
+             firsts: firstsFor(t), badges: badgesFor(t), familyName: S().meta.familyName || "", wx: wxNotes(t) };
   }
   function storyText(t, viewer, style, seed) { return T.makeStory(t, storyCtx(t, viewer), { style: style, seed: seed }).text; }
   function canStory(t) { return !!(t.done || (t.endDate && t.endDate <= M.today())); }
@@ -626,7 +671,7 @@
         return '<li><span class="lic" aria-hidden="true">' + modeIc(L.mode) + '</span><div><b>' + esc(L.from) + ' → ' + esc(L.home ? L.to + " (home)" : L.to) + '</b><span>' + esc([MODE_LABEL[L.mode], L.dep && L.arr ? L.dep.code + " → " + L.arr.code : "", how, L.air ? "about " + T.fmtAir(L.air) + " in the air" : ""].filter(Boolean).join(" · ")) + '</span>' +
           (gnd.length ? '<span class="gnd">🚗 ' + esc(gnd.join(" · ")) + '</span>' : "") + '</div>' +
           '<b class="lmi">' + (L.how === "about" ? "~" : "") + esc(dist(L.miles)) + '</b></li>'; }).join("") + '</ol>' : "") +
-      seenBlock(t, s) +
+      seenBlock(t, s) + weatherBlock(t) +
       ((t.stays || []).length ? '<h3 class="sec">Where we stayed</h3><div class="cards">' + t.stays.map(function (x) {
         var ty = T.STAY_TYPES.filter(function (y) { return y.id === x.type; })[0] || T.STAY_TYPES[0];
         return '<div class="card stay"><span class="cic" aria-hidden="true">' + ty.ic + '</span><div><b>' + esc(x.name) + '</b><span class="meta">' + esc([ty.label, x.where, x.nights ? x.nights + (x.nights === 1 ? " night" : " nights") : ""].filter(Boolean).join(" · ")) + '</span>' + stars(x.rating) + (x.note ? '<p>' + esc(x.note) + '</p>' : "") + '</div></div>'; }).join("") + '</div>' : "") +
@@ -640,7 +685,8 @@
     A_.fillPhotos();
     bindUnits(A_.main, function () { detail(k, tid); });
     $$("[data-adultkid]").forEach(function (b) { b.onclick = function () { A_.setMeta("adultInKid", b.dataset.adultkid === "1").then(function () { detail(k, tid); }); }; });
-    bindStory(k, t);
+    var storyRender = bindStory(k, t);
+    bindWeather(k, t, function () { if (storyRender && !(t.story && t.story.edited)) storyRender(); });
   }
   function tstat(ic, v, label) { return '<div class="tstat"><span aria-hidden="true">' + ic + '</span><b>' + esc(String(v)) + '</b><small>' + esc(label) + '</small></div>'; }
   function seenBlock(t, s) {
@@ -671,6 +717,84 @@
     return '<h3 class="sec">Trip memories</h3>' + mem + (!list.length ? "" : '<div class="moments">' + list.map(function (p) {
       return '<blockquote style="' + A_.kidStyle(p) + '"><p>“' + esc(m[p.id]) + '”</p><cite><span class="dotp" aria-hidden="true">' + A_.initial(M.who(p)) + '</span> ' + esc(M.who(p)) + '</cite></blockquote>'; }).join("") +
       '</div>');
+  }
+
+  // ---------- weather, day by day (v1.7) ----------
+  var WX = window.WK_WX;
+  function tempUnit() { var m = S().meta.tempUnit; return m === "C" || m === "F" ? m : units() === "km" ? "C" : "F"; }
+  function wxStore() { try { return window.localStorage; } catch (e) { return null; } }
+  function wxDays(t) { return WX ? WX.build(t, WX.cached(t, M.today(), wxStore()), M.today()) : []; }
+  function wxNotes(t) { return WX ? WX.storyNotes(wxDays(t), 2) : []; }
+  function wxDate(d) { var x = new Date(d + "T12:00:00"); return x.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); }
+  var WX_TAG = { manual: "Your pick", past: "Real weather", forecast: "Forecast", typical: "Typical" };
+  function wxStop(s, unit) {
+    if (!s.kind) return '<span class="wxstop none"><b>' + esc(s.name) + '</b> <span class="muted">' + (navigator.onLine === false ? "offline" : "no data yet") + '</span></span>';
+    var hi = WX.fmtT(s.hi, unit), lo = WX.fmtT(s.lo, unit), rain = "";
+    if (s.src === "past" && typeof s.mm === "number") rain = s.mm < 0.2 ? "dry" : unit === "F" ? (s.mm / 25.4).toFixed(2).replace(/^0/, "") + " in" : (Math.round(s.mm * 10) / 10) + " mm";
+    else if (typeof s.pop === "number") rain = Math.round(s.pop) + "%";
+    return '<span class="wxstop"><span class="wxic" aria-hidden="true">' + s.ic + '</span><span class="wxname"><b>' + esc(s.name) + '</b> <span class="sr">' + esc(WX.KIND[s.kind].label) + '</span></span>' +
+      (hi || lo ? '<span class="wxt">' + esc(hi) + (lo ? ' <span class="muted">/ ' + esc(lo) + '</span>' : "") + '</span>' : "") +
+      (rain ? '<span class="wxr" title="' + (s.src === "past" ? "Rain that fell" : "Chance of rain") + '">💧 ' + esc(rain) + '</span>' : "") + '</span>';
+  }
+  function wxRowsHTML(t, days) {
+    var unit = tempUnit();
+    return days.map(function (d) {
+      var src = d.manual ? "manual" : (d.stops.filter(function (s) { return s.src; })[0] || {}).src || "";
+      return '<li class="wxday' + (d.manual ? " manual" : "") + '" data-wxday="' + d.date + '"><span class="wxdate">' + esc(wxDate(d.date)) + '</span>' +
+        '<span class="wxstops">' + d.stops.map(function (s) { return wxStop(s, unit); }).join("") + '</span>' +
+        '<span class="wxside">' + (src ? '<span class="wxtag ' + src + '">' + WX_TAG[src] + '</span>' : "") +
+        (d.manual ? '<button type="button" class="linkbtn sm" data-wxreal="' + d.date + '">Use real weather</button>' : "") +
+        '<button type="button" class="linkbtn sm wxedit" data-wxpick="' + d.date + '" aria-label="Pick the weather for ' + esc(wxDate(d.date)) + '">✏️ Pick</button></span></li>';
+    }).join("");
+  }
+  function weatherBlock(t) {
+    if (!WX) return "";
+    var days = wxDays(t); if (!days.length) return "";
+    var typ = days.some(function (d) { return d.src === "typical"; }), unit = tempUnit();
+    return '<section class="wxsec" id="wxsec"><h3 class="sec">🌦️ Weather, day by day <span class="units seg sm" role="group" aria-label="Temperature"><button type="button" data-tunit="F" aria-pressed="' + (unit === "F") + '">°F</button><button type="button" data-tunit="C" aria-pressed="' + (unit === "C") + '">°C</button></span></h3>' +
+      '<ol class="wxdays" id="wxdays">' + wxRowsHTML(t, days) + '</ol>' +
+      '<p class="small muted wxnote">' + (typ ? '“Typical” days are too far ahead for a forecast: they show the same dates averaged over the last ' + WX.TYPICAL_YEARS + ' years. ' : "") +
+      'Tap ✏️ Pick to choose a day\'s weather yourself. Weather data: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (only each stop\'s location and the dates are sent).</p></section>';
+  }
+  function wxPicker(t, date) {
+    var m = (t.wx || {})[date] || {}, unit = tempUnit(), tv = typeof m.t === "number" ? Math.round(unit === "C" ? WX.toC(m.t) : m.t) : "";
+    return '<li class="wxpick" id="wxpick" data-for="' + date + '"><div class="wxpickh"><b>Weather on ' + esc(wxDate(date)) + '</b></div>' +
+      '<div class="chips wxkinds" role="group" aria-label="Weather">' + WX.KINDS.map(function (k) { return '<button type="button" class="chip" data-wxk="' + k.id + '" aria-pressed="' + (m.k === k.id) + '"><span aria-hidden="true">' + k.ic + '</span> ' + esc(k.label) + '</button>'; }).join("") + '</div>' +
+      '<label class="wxtemp">Temperature <small class="muted">(optional)</small> <input type="number" inputmode="numeric" id="wxtemp" min="-60" max="140" step="1" value="' + tv + '" aria-label="Temperature in degrees ' + (unit === "C" ? "Celsius" : "Fahrenheit") + '"> °' + unit + '</label>' +
+      '<div class="actions"><button type="button" class="btn btn-primary" id="wxdone">Done</button>' + (m.k ? '<button type="button" class="btn btn-ghost" data-wxreal="' + date + '">Use real weather</button>' : "") + '</div></li>';
+  }
+  /** Wire the weather section on a trip page; onChange runs when the story-worthy weather changes. */
+  function bindWeather(k, t, onChange) {
+    var sec = $("#wxsec"); if (!sec || !WX) return;
+    var open = null, notes = JSON.stringify(wxNotes(t));
+    function paint() {
+      var list = $("#wxdays"); if (!list) return;
+      list.innerHTML = wxRowsHTML(t, wxDays(t));
+      if (open) { var row = $('[data-wxday="' + open + '"]', list); if (row) row.insertAdjacentHTML("afterend", wxPicker(t, open)); }
+      var n = JSON.stringify(wxNotes(t)); if (n !== notes) { notes = n; if (onChange) onChange(); }
+    }
+    function setPick(date, kind, temp) {
+      var wx = Object.assign({}, t.wx || {});
+      if (!kind) delete wx[date]; else { var e = { k: kind }; if (typeof temp === "number" && isFinite(temp)) e.t = temp; wx[date] = e; }
+      t.wx = WX.cleanWx(wx); saveTrip(t); paint();
+    }
+    function tempF() { var el = $("#wxtemp"); if (!el || el.value === "") return null; var v = +el.value; return isFinite(v) ? (tempUnit() === "C" ? v * 9 / 5 + 32 : v) : null; }
+    sec.addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.tunit) { A().setMeta("tempUnit", b.dataset.tunit).then(function () { $$("[data-tunit]", sec).forEach(function (x) { x.setAttribute("aria-pressed", x.dataset.tunit === tempUnit()); }); paint(); }); }
+      else if (b.dataset.wxpick) { open = open === b.dataset.wxpick ? null : b.dataset.wxpick; paint(); var f = $("#wxpick [data-wxk]"); if (f) f.focus(); }
+      else if (b.dataset.wxk) { setPick(open, b.dataset.wxk, tempF()); var again = $('#wxpick [data-wxk="' + b.dataset.wxk + '"]'); if (again) again.focus(); }
+      else if (b.dataset.wxreal) { var d = b.dataset.wxreal; open = null; setPick(d, null); A().toast("Back to the real weather"); }
+      else if (b.id === "wxdone") { open = null; paint(); }
+    });
+    sec.addEventListener("change", function (e) { if (e.target.id === "wxtemp" && open) { var m = (t.wx || {})[open]; if (m) setPick(open, m.k, tempF()); } });
+    // fetch what's missing; a forecast refreshes after a few hours; offline / API down = quietly keep what's saved
+    WX.load(t, M.today(), { store: wxStore(), fetch: window.fetch ? function (u) { return fetchT(u, 9000); } : null, offline: navigator.onLine === false })
+      .then(function (r) { if (r.fetched && document.body.contains(sec)) paint(); }).catch(function () {});
+  }
+  function fetchT(u, ms) {
+    var ac = window.AbortController ? new AbortController() : null, tm = ac ? setTimeout(function () { ac.abort(); }, ms) : 0;
+    return fetch(u, ac ? { signal: ac.signal } : undefined).then(function (r) { clearTimeout(tm); return r; }, function (e) { clearTimeout(tm); throw e; });
   }
 
   // ---------- the story ----------
@@ -762,6 +886,7 @@
       $("#sstop").onclick = function () { stopSpeech(); SP.i = 0; highlight(-1); showPlayer(false); };
     }
     render();
+    return render;
   }
   function showPlayer(playing, paused) {
     var p = $("#splay"); if (!p) return;

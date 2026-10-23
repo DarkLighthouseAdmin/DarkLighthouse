@@ -319,7 +319,7 @@ ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.tes
 ok(/Parent\/Adult/.test(read("log-core.js")) && /data-role/.test(js), "add-someone form has roles");
 ok(!/Add a kid|All kids|Which kids went/.test(js), "no kids-only wording in the people flow");
 ok(/Content-Security-Policy[^>]*default-src 'self'[^>]*script-src 'self'/.test(html), "CSP locks scripts to this site");
-ok(!/https?:\/\//.test(html.replace(/<!--[\s\S]*?-->/g, "").replace(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co wss:\/\/ercowufdbmvqagshduxh\.supabase\.co;/, "").replace(/img-src 'self' data: blob: https:\/\/lh3\.googleusercontent\.com;/, "")), "index.html loads nothing from other sites (only Family Sync may connect to the family database; Google profile photos only)");
+ok(!/https?:\/\//.test(html.replace(/<!--[\s\S]*?-->/g, "").replace(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co wss:\/\/ercowufdbmvqagshduxh\.supabase\.co https:\/\/api\.open-meteo\.com https:\/\/archive-api\.open-meteo\.com;/, "").replace(/img-src 'self' data: blob: https:\/\/lh3\.googleusercontent\.com;/, "")), "index.html loads nothing from other sites (only Family Sync may connect to the family database; Google profile photos only)");
 ok(/function okAvatar\(u\) \{ return \/\^https:\\\/\\\/lh3\\\.googleusercontent\\\.com/.test(read("sync.js")), "only Google profile photo URLs are shown");
 ok(/that\\'s me \(on another device\)/.test(read("sync.js")) && /This will link this device to/.test(read("sync.js")), "already-joined people are selectable, with a confirm");
 ok(/function identityJoin/.test(read("sync.js")) && /mltl-join-for/.test(read("sync.js")), "login = identity: members skip the picker; invites can name who they're for");
@@ -1035,5 +1035,88 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(!/innerHTML\s*=\s*[^;]*\+\s*(f|feed)\.(family|label)\b/.test(fj), "follow: family and label are escaped");
 }
 
-console.log(`${pass} passed, ${fail} failed`);
-process.exit(fail ? 1 : 0);
+{ // v1.7: weather day by day, the way home from another airport
+  const X = require("../travel-log/app/weather-core.js"), T = require("../travel-log/app/trips-core.js"), L = require("../travel-log/app/log-core.js");
+  ok(X.KINDS.map(k => k.label).join() === "Sunny,Partly cloudy,Cloudy,Rainy,Stormy,Snowy,Windy,Foggy,Hot,Cold", "weather picker has the 10 kinds");
+  ok(X.codeKind(0) === "sunny" && X.codeKind(2) === "partly" && X.codeKind(3) === "cloudy" && X.codeKind(45) === "foggy" && X.codeKind(61) === "rainy" && X.codeKind(81) === "rainy" && X.codeKind(73) === "snowy" && X.codeKind(95) === "stormy", "WMO codes map to kinds");
+  const sc = (n, lat, lon) => ({ name: n, lat, lon, country: "GBR", region: "SCT", mode: "car" });
+  const t = { id: "trip_wx1", date: "2026-07-10", endDate: "2026-07-21", route: [{ name: "Orlando", lat: 28.5, lon: -81.4, country: "USA" }, Object.assign(sc("Edinburgh", 55.95, -3.19), { mode: "plane" }), sc("Stirling", 56.12, -3.94), sc("Glasgow", 55.86, -4.25)],
+    stays: [{ name: "Zz", nights: 4, where: "Edinburgh" }] };
+  const days = X.tripDays(t);
+  ok(days.length === 12 && days[0].date === "2026-07-10" && days[11].date === "2026-07-21", "one weather row per trip day (11 nights = 12 days)");
+  ok(days.slice(0, 4).every(d => d.stops[0].name === "Edinburgh") && days[4].stops[0].name === "Stirling" && days[11].stops[0].name === "Glasgow", "days follow the stops and the nights stayed");
+  ok(X.tripDays({ date: "2026-07-10", route: [] }).length === 0 && X.tripDays({ route: t.route }).length === 0, "no dates or no places = no weather rows");
+  ok(X.tripDays(Object.assign({}, t, { endDate: "2027-07-10" })).length === X.MAX_DAYS, "long trips are capped at " + X.MAX_DAYS + " days");
+  const today = "2026-10-23";
+  ok(X.sourceFor("2026-07-10", today) === "archive" && X.sourceFor("2026-10-20", today) === "forecast" && X.sourceFor("2026-11-05", today) === "forecast" && X.sourceFor("2026-11-20", today) === "typical", "past -> archive, next 2 weeks -> forecast, later -> typical");
+  const pl = X.plan(days, today);
+  ok(pl.length === 1 && /^https:\/\/archive-api\.open-meteo\.com\/v1\/archive\?/.test(pl[0].url) && /start_date=2026-07-10&end_date=2026-07-21/.test(pl[0].url) && pl[0].locs.length === 3, "a past trip is one archive request for every stop");
+  ok(!/apikey|key=/i.test(pl[0].url) && /temperature_unit=fahrenheit/.test(pl[0].url) && /timezone=auto,auto,auto/.test(pl[0].url), "no key; °F; a timezone per stop");
+  const fut = X.plan(X.tripDays(Object.assign({}, t, { date: "2026-10-20", endDate: "2026-11-20" })), today);
+  ok(fut.filter(r => r.group === "forecast").length === 1 && fut.filter(r => r.group === "typical").length === X.TYPICAL_YEARS, "a trip from now: one forecast request + 5 years of archive for typical days");
+  ok(/start_date=2025-/.test(fut.find(r => r.year === 1).url) && /start_date=2021-/.test(fut.find(r => r.year === 5).url), "typical years go back 1..5 years");
+  ok(X.shiftYears("2028-02-29", 1) === "2027-02-28", "Feb 29 shifts to Feb 28");
+  const one = { daily: { time: ["2026-07-10"], weather_code: [61], temperature_2m_max: [60.1], temperature_2m_min: [50], precipitation_sum: [4.2] } };
+  const pr = X.parse(one, { locs: ["55.95,-3.19"] });
+  ok(pr["55.95,-3.19|2026-07-10"].hi === 60.1 && pr["55.95,-3.19|2026-07-10"].mm === 4.2, "parse: one location (object)");
+  const many = X.parse([one, one], { locs: ["a", "b"] }); ok(many["a|2026-07-10"] && many["b|2026-07-10"], "parse: several locations (array)");
+  const shifted = X.parse({ daily: { time: ["2025-11-20"], weather_code: [3], temperature_2m_max: [50], temperature_2m_min: [40], precipitation_sum: [0] } }, { locs: ["a"], shift: 1 });
+  ok(shifted["a|2026-11-20"], "typical rows land on the trip's own dates");
+  const ty = X.typicalOf([{ hi: 50, lo: 40, code: 61, mm: 3 }, { hi: 54, lo: 42, code: 3, mm: 0 }, { hi: 52, lo: 41, code: 61, mm: 2 }, { hi: 56, lo: 44, code: 3, mm: 0 }]);
+  ok(ty.hi === 53 && ty.lo === 41.75 && ty.pop === 50 && ty.kind === "rainy" && ty.years === 4, "typical = the average of the years, rain chance = wet years share");
+  ok(X.fmtT(64, "F") === "64°" && X.fmtT(64, "C") === "18°" && X.fmtT(null, "F") === "", "°F / °C display");
+  // manual picks
+  const cw = X.cleanWx({ "2026-07-11": { k: "sunny", t: 64.4 }, "2026-07-12": { k: "lava" }, "bad": { k: "rainy" }, "2026-07-13": { k: "rainy", t: 999 } });
+  ok(JSON.stringify(cw) === '{"2026-07-11":{"k":"sunny","t":64},"2026-07-13":{"k":"rainy"}}', "manual weather is cleaned: " + JSON.stringify(cw));
+  const cache = { rows: { "55.95,-3.19|2026-07-10": { hi: 60, lo: 50, code: 61, mm: 4 }, "55.95,-3.19|2026-07-11": { hi: 58, lo: 49, code: 61, mm: 5 } }, typical: {} };
+  const b1 = X.build(Object.assign({}, t, { wx: { "2026-07-11": { k: "sunny", t: 64 } } }), cache, today);
+  ok(b1[0].stops[0].src === "past" && b1[0].stops[0].kind === "rainy" && b1[0].stops[0].ic === "🌧️", "past days show real weather");
+  ok(b1[1].stops[0].src === "manual" && b1[1].stops[0].kind === "sunny" && b1[1].stops[0].hi === 64 && b1[1].stops[0].real.kind === "rainy" && b1[1].stops[0].pop == null, "a hand pick overrides the fetched day (real kept aside)");
+  ok(b1[2].stops[0].src === "" && !b1[2].stops[0].kind, "no data yet = empty, not an error");
+  const notes = X.storyNotes(b1);
+  ok(notes.length === 2 && notes[0].src === "manual" && notes[0].kind === "sunny" && notes[1].kind === "rainy" && notes[1].place === "Edinburgh", "story weather: hand picks first, then real past weather");
+  const fb = X.build(Object.assign({}, t, { date: "2026-10-24", endDate: "2026-10-26" }), { rows: { "55.95,-3.19|2026-10-24": { hi: 60, lo: 50, code: 61 } }, typical: {} }, today);
+  ok(fb[0].stops[0].src === "forecast" && X.storyNotes(fb).length === 0, "forecasts never go in the story");
+  // fetching: cache, offline, failures
+  const mem = { d: {}, getItem(k) { return this.d[k] || null; }, setItem(k, v) { this.d[k] = v; } };
+  let calls = 0; const okFetch = () => { calls++; return Promise.resolve({ ok: true, json: () => Promise.resolve([one, one, one]) }); };
+  X.load(t, today, { store: mem, fetch: okFetch, now: 1e12 }).then(r => {
+    ok(calls === 1 && r.fetched === 1 && Object.keys(r.rows).length >= 1 && mem.d["fs-wx:trip_wx1"], "load fetches once and caches per trip");
+    return X.load(t, today, { store: mem, fetch: okFetch, now: 1e12 + 864e5 * 30 });
+  }).then(r => {
+    ok(calls === 1 && r.fetched === 0, "past weather is never fetched again");
+    ok(Object.keys(X.cached(t, today, mem).rows).length >= 1, "cached() reads without the network");
+    const ft = Object.assign({}, t, { id: "trip_wx2", date: "2026-10-24", endDate: "2026-10-25" }); let n2 = 0;
+    const f2 = () => { n2++; return Promise.resolve({ ok: true, json: () => Promise.resolve([one, one, one]) }); };
+    return X.load(ft, today, { store: mem, fetch: f2, now: 1e12 }).then(() => X.load(ft, today, { store: mem, fetch: f2, now: 1e12 + 3600e3 }))
+      .then(() => { ok(n2 === 1, "a forecast isn't refetched within a few hours"); return X.load(ft, today, { store: mem, fetch: f2, now: 1e12 + 4 * 3600e3 }); })
+      .then(() => { ok(n2 === 2, "a forecast refreshes after a few hours"); return X.load(ft, today, { store: mem, fetch: () => Promise.reject(new Error("offline")), now: 1e12 + 9 * 3600e3 }); })
+      .then(r => { ok(r.failed === 1 && Object.keys(r.rows).length >= 1, "a failed refresh keeps the saved forecast, quietly"); return X.load(Object.assign({}, ft, { id: "trip_wx3" }), today, { store: mem, fetch: () => Promise.resolve({ ok: false, status: 500 }) }); })
+      .then(r => ok(r.failed === 1 && !Object.keys(r.rows).length, "API down with nothing saved: empty, no throw"));
+  }).catch(e => ok(false, "weather load threw: " + e.message));
+  // trips keep the picks; the story uses them
+  const trip = L.newTrip({ kidIds: ["k1"], place: "Scotland", route: t.route, date: t.date, endDate: t.endDate, wx: { "2026-07-11": { k: "rainy" }, x: 1 } });
+  ok(JSON.stringify(trip.wx) === '{"2026-07-11":{"k":"rainy"}}', "a trip saves its weather picks");
+  const st = T.makeStory(trip, { travelers: [{ name: "Rosie", nickname: "Rosie Roo" }], wx: [{ kind: "rainy", place: "Edinburgh", src: "manual" }] }, { style: "storybook" }).text;
+  ok(/rain/i.test(st) && /Edinburgh/.test(st), "storybook mentions a rainy day in Edinburgh");
+  const sj = T.makeStory(trip, { travelers: [], wx: [{ kind: "sunny", place: "Glasgow", src: "past" }] }, { style: "journal" }).text;
+  ok(/sun/i.test(sj) && /Glasgow/.test(sj), "journal mentions the sunny day");
+  const s0 = T.makeStory(trip, { travelers: [] }, { style: "storybook" }).text; ok(!/rain|sunny/i.test(s0.replace(/Rain every day/, "")), "no weather notes = no weather line");
+  // the way home: a chosen airport
+  const bk = T.cleanBack({ mode: "plane", dep: { code: "GLA", name: "Glasgow", lat: 55.87, lon: -4.43 }, arr: { code: "MCO", name: "Orlando", lat: 28.43, lon: -81.31 }, picked: true, junk: 1 });
+  ok(bk.dep.code === "GLA" && bk.picked === true && !bk.junk, "the return airport (and that it was picked) is kept");
+  const oj = { roundTrip: true, route: [{ name: "Orlando", lat: 28.5, lon: -81.4, country: "USA" }, Object.assign(sc("Edinburgh", 55.95, -3.19), { mode: "plane", dep: { code: "MCO", lat: 28.43, lon: -81.31 }, arr: { code: "EDI", lat: 55.95, lon: -3.37 } }), sc("Glasgow", 55.86, -4.25)], back: bk };
+  const legs = T.summary(oj).legs.filter(x => x.mode === "plane");
+  ok(legs.length === 2 && legs[1].dep.code === "GLA" && legs[1].arr.code === "MCO" && legs[1].home, "open-jaw: home from GLA to MCO");
+  const ui = read("trips-ui.js");
+  ok(/function autoBack\(\)/.test(ui) && /nearestAirport\(last, airports\)/.test(ui) && /Flew home from/.test(ui), "the form defaults the way home to the airport nearest the last stop, editable");
+  ok(/far = pts\[0\]; xy = away;/.test(ui) && /homeflag/.test(ui), "trip maps zoom to the stops when home is far away");
+  const html = read("index.html");
+  ok(/<script src="weather-core\.js"><\/script>\s*<script src="trips-core\.js"><\/script>/.test(html) && /"weather-core\.js"/.test(read("sw.js")), "weather-core loads before trips-core and is cached offline");
+  ok(/connect-src [^;]*https:\/\/api\.open-meteo\.com https:\/\/archive-api\.open-meteo\.com;/.test(html), "CSP allows only the two Open-Meteo hosts for weather");
+}
+
+setTimeout(() => {
+  console.log(`${pass} passed, ${fail} failed`);
+  process.exit(fail ? 1 : 0);
+}, 300);
