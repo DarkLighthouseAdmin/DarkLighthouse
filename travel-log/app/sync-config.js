@@ -6,7 +6,7 @@ window.MLTL_SYNC_CONFIG = {
   key: "sb_publishable_ea0LGZ0qR94t3_8AF_Gx0g_iKj88O6i",
   bucket: "trip-photos",
   // Show the Family Sync card on the home screen. While false, sync is reachable only from #/sync and ?join= links.
-  showEntry: false,
+  showEntry: true,
   // Family testing: every Family Keeper feature is unlocked. Flip off when Family Keeper goes on sale.
   testing: true,
   // "Continue with Google": turn on once Google is set up in Supabase (Auth > Providers > Google, plus "Allow manual linking").

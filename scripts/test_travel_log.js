@@ -302,7 +302,7 @@ ok((js.match(/My Lifetime Travel Log/g) || []).length === 4 && /matching paperba
 ok(M.APP_ID === "my-lifetime-travel-log", "backup id unchanged so old backups still restore");
 ok(/name="description" content="[^"]*family[^"]*kids/i.test(html), "meta description is family-wide and mentions kids");
 ok(/"description": "[^"]*family/.test(read("manifest.webmanifest")), "manifest description is family-wide");
-ok(/var CACHE = "mltl-v7"/.test(sw), "service worker cache bumped to v5 (Family Sync) so phones update");
+ok(/var CACHE = "mltl-v8"/.test(sw), "service worker cache bumped (Family Sync visible) so phones update");
 ok(/Color in every place your family goes, from the first road trip on\./.test(js), "onboarding leads with family, from the first road trip");
 ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.test(js) && /places you\\'ve been together/.test(js), "family map with a together view");
 ok(/Parent\/Adult/.test(read("log-core.js")) && /data-role/.test(js), "add-someone form has roles");
