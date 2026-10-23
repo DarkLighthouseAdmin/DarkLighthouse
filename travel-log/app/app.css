@@ -384,3 +384,9 @@ h2 .units { margin-left:.4rem; }
 @media (max-width:380px) { .brand .logomark { width:120px; height:40px; } }
 @media (prefers-color-scheme: dark) { .brand, .topbar a.brand { color:#f2b862; } }
 @media (prefers-reduced-motion: reduce) { .brand.thunk .logomark { animation:none; } }
+/* v1.5 state stamp pictures: Bird / Flower / Animal / Mix */
+.artseg { margin-top:.5rem; gap:.3rem; }
+.artseg button { min-height:36px; padding:.3rem .7rem; font-size:.85rem; }
+.arthint { margin:.35rem 0 0; }
+.ppage .stamp { -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
+.symline { margin:.2rem 0; }

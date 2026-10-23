@@ -708,24 +708,48 @@
   function stampKeys(ids) { var out = {}; people(ids).forEach(function (p) { stampsOf(p).forEach(function (s) { out[p.id + "|" + s.id] = 1; if (s.kind === "state") out["sign|" + p.id + "|" + s.area] = 1; }); }); return out; }
   function newStamps(before, ids) {
     var seen = {}, out = [];
-    people(ids).forEach(function (p) { stampsOf(p).forEach(function (s) { var k = s.kind + ":" + s.area; if (!before[p.id + "|" + s.id] && s.source !== "map" && !seen[k]) { seen[k] = 1; out.push(Object.assign({}, s, { newSign: s.kind === "state" && !before["sign|" + p.id + "|" + s.area] })); } }); });
+    people(ids).forEach(function (p) { stampsOf(p).forEach(function (s) { var k = s.kind + ":" + s.area; if (!before[p.id + "|" + s.id] && s.source !== "map" && !seen[k]) { seen[k] = 1; out.push(Object.assign({}, s, { holder: p.id, newSign: s.kind === "state" && !before["sign|" + p.id + "|" + s.area] })); } }); });
     return out.sort(function (a, b) { return (b.newSign ? 1 : 0) - (a.newSign ? 1 : 0); });
   }
   var SECTIONS = [["world", "🌍 Countries"], ["states", "🇺🇸 States"], ["parks", "🌲 Parks"]];
   var psec = "world";
   function inSection(s, sec) { return sec === "parks" ? s.kind === "park" : sec === "states" ? s.kind === "state" : s.kind === "place"; }
-  function stampSVG(s) { return P.stampSVG(s, stampName(s), { sub: s.kind === "park" ? (PARK_BY[s.area] ? PARK_BY[s.area].states.replace(/,\s*/g, " · ") + " · NATIONAL PARK" : "NATIONAL PARK SERVICE") : "" }); }
-  function bookHTML(title, color, stamps, who) {
+  // State stamps can show the state's bird, flower or animal (or a mix). Each person (and the family passport) keeps
+  // their own choice on this device, like the State Signs seen list; press and hold one stamp to switch just that one.
+  var ART_MODES = [["bird", "🐦 Bird"], ["flower", "🌸 Flower"], ["animal", "🦌 Animal"], ["mix", "🔀 Mix"]];
+  function artKey(personId) { var log = "mltl"; try { log = window.MLTL_SYNCCORE.readLogs(localStorage).active || log; } catch (e) {} return "famstamp-stampart:" + log + ":" + (personId || "all"); }
+  function readArt(personId) {
+    var o = null; try { o = JSON.parse(localStorage.getItem(artKey(personId)) || "null"); } catch (e) {}
+    o = o && typeof o === "object" ? o : {}; var ok = function (m) { return m === "bird" || m === "flower" || m === "animal" || m === "mix"; };
+    var one = {}; if (o.one && typeof o.one === "object") Object.keys(o.one).forEach(function (id) { if (/^[A-Z]{2}$/.test(id) && ok(o.one[id]) && o.one[id] !== "mix") one[id] = o.one[id]; });
+    return { mode: ok(o.mode) ? o.mode : "mix", one: one };
+  }
+  function writeArt(personId, o) { try { localStorage.setItem(artKey(personId), JSON.stringify(o)); } catch (e) {} }
+  var heldAt = 0;   // the lift after a press-and-hold lands on the redrawn stamp: don't open it
+  function artFor(personId, area) { var o = readArt(personId); return o.one[area] || o.mode; }
+  function symLine(s, personId) {
+    var D = s.kind === "state" && P.STATE_SYMBOLS ? P.STATE_SYMBOLS[s.area] : null; if (!D) return "";
+    var mode = P.stampArtMode(s.area, artFor(personId, s.area)), x = D[mode];
+    return '<p class="small symline">State ' + mode + ': <b>' + esc(x.name) + '</b>' + (x.fallback ? ' <span class="muted">(' + esc(areaName("state", s.area)) + ' has no official state animal, so this shows its bird)</span>' : "") + '</p>';
+  }
+  function stampSVG(s, personId) {
+    return P.stampSVG(s, stampName(s), { art: s.kind === "state" ? artFor(personId, s.area) : "",
+      sub: s.kind === "park" ? (PARK_BY[s.area] ? PARK_BY[s.area].states.replace(/,\s*/g, " · ") + " · NATIONAL PARK" : "NATIONAL PARK SERVICE") : "" });
+  }
+  function bookHTML(title, color, stamps, who, pid) {
     var counts = { world: 0, states: 0, parks: 0 }; stamps.forEach(function (s) { counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : "world"]++; });
     var list = stamps.filter(function (s) { return inSection(s, psec); }), pages = P.pages(list, 4);
     var secName = { world: "Countries", states: "Domestic stamps", parks: "National parks" }[psec];
+    var art = readArt(pid);
     var html = '<div class="seg" role="group" aria-label="Passport section">' + SECTIONS.map(function (x) { return '<button type="button" data-psec="' + x[0] + '" aria-pressed="' + (psec === x[0]) + '">' + x[1] + ' <small>' + counts[x[0]] + '</small></button>'; }).join("") + '</div>' +
+      (psec === "states" ? '<div class="seg artseg" role="group" aria-label="State stamp pictures">' + ART_MODES.map(function (x) { return '<button type="button" data-art="' + x[0] + '" aria-pressed="' + (art.mode === x[0]) + '">' + x[1] + '</button>'; }).join("") + '</div>' +
+        '<p class="small muted arthint">Each state stamp shows its state bird, flower or animal. Press and hold a stamp to switch just that one.</p>' : "") +
       '<div class="pbook" style="--pc:' + esc(color) + '"><div class="pages" id="pages" tabindex="0" aria-label="Passport pages. Swipe to turn.">' +
       '<section class="ppage cover"><div class="crest" aria-hidden="true"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="3"/><ellipse cx="50" cy="50" rx="18" ry="40" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M10 50h80M16 30h68M16 70h68" stroke="currentColor" stroke-width="2.5" fill="none"/></svg></div>' +
       '<p class="ptype">PASSPORT</p><h2>' + esc(title) + '</h2><p class="pcount">' + counts.world + (counts.world === 1 ? " country stamp" : " country stamps") + ' · ' + counts.states + ' states · ' + counts.parks + ' parks</p><p class="pswipe">Swipe to open →</p></section>' +
       (pages.length ? pages.map(function (pg, n) {
         return '<section class="ppage"><header><span>' + esc(secName.toUpperCase()) + '</span><span>' + (n + 1) + '</span></header>' + pg.map(function (c) {
-          return '<button type="button" class="stamp" data-sid="' + esc(c.stamp.id) + '" style="left:' + (c.x / 3).toFixed(1) + '%;top:' + (c.y / 4).toFixed(1) + '%;--r:' + c.rot + 'deg" aria-label="' + esc(stampName(c.stamp) + ", " + (P.fmtDate(c.stamp.date) || "date not set")) + '">' + stampSVG(c.stamp) +
+          return '<button type="button" class="stamp" data-sid="' + esc(c.stamp.id) + '" style="left:' + (c.x / 3).toFixed(1) + '%;top:' + (c.y / 4).toFixed(1) + '%;--r:' + c.rot + 'deg" aria-label="' + esc(stampName(c.stamp) + (c.stamp.kind === "state" ? ", " + artFor(pid, c.stamp.area) : "") + (P.fmtDate(c.stamp.date) ? ", " + P.fmtDate(c.stamp.date) : "")) + '">' + stampSVG(c.stamp, pid) +
             (who && c.stamp.who.length ? '<span class="dots">' + A().avatars(c.stamp.who) + '</span>' : "") + '</button>';
         }).join("") + '</section>';
       }).join("") : '<section class="ppage empty"><header><span>' + esc(secName.toUpperCase()) + '</span><span>1</span></header><p>No ' + esc(secName.toLowerCase()) + ' stamps yet.<br>' +
@@ -735,14 +759,33 @@
   }
   function bindBook(again, stamps, owner) {
     $$("[data-psec]").forEach(function (b) { b.onclick = function () { psec = b.dataset.psec; again(1); }; });
-    var pages = $("#pages"), n = $$(".ppage", pages).length;
+    var pages = $("#pages"), n = $$(".ppage", pages).length, pid = owner ? owner.id : null;
     function at() { return Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth)); }
+    $$("[data-art]").forEach(function (b) { b.onclick = function () { writeArt(pid, { mode: b.dataset.art, one: {} }); again(Math.max(1, at())); var f = $('[data-art="' + b.dataset.art + '"]'); if (f) f.focus(); }; });
     function label() { var i = at(); $("#pgn").textContent = i === 0 ? "Cover" : "Page " + i + " of " + (n - 1); }
     pages.addEventListener("scroll", function () { label(); }, { passive: true });
     $("#pprev").onclick = function () { pages.scrollTo({ left: (at() - 1) * pages.clientWidth, behavior: reduced() ? "auto" : "smooth" }); };
     $("#pnext").onclick = function () { pages.scrollTo({ left: (at() + 1) * pages.clientWidth, behavior: reduced() ? "auto" : "smooth" }); };
     pages.addEventListener("keydown", function (e) { if (e.key === "ArrowRight") $("#pnext").click(); if (e.key === "ArrowLeft") $("#pprev").click(); });
-    $$(".stamp", pages).forEach(function (b) { b.onclick = function () { var s = stamps.filter(function (x) { return x.id === b.dataset.sid; })[0]; if (s) stampSheet(s, owner, again); }; });
+    $$(".stamp", pages).forEach(function (b) {
+      var s = stamps.filter(function (x) { return x.id === b.dataset.sid; })[0], timer = 0, held = false;
+      b.onclick = function (e) { if (held || Date.now() - heldAt < 900) { held = false; e.preventDefault(); return; } if (s) stampSheet(s, owner, again); };
+      if (!s || s.kind !== "state") return;
+      // press and hold a state stamp: bird → flower → animal → back to the page's choice
+      var stop = function () { clearTimeout(timer); timer = 0; };
+      b.addEventListener("pointerdown", function () {
+        held = false; stop();
+        timer = setTimeout(function () {
+          held = true; heldAt = Date.now(); var o = readArt(pid), cur = o.one[s.area] || (o.mode === "mix" ? P.stampArtMode(s.area, "mix") : o.mode), order = ["bird", "flower", "animal"];
+          var next = order[(order.indexOf(cur) + 1) % 3]; o.one[s.area] = next;
+          if (o.mode === next || (o.mode === "mix" && P.stampArtMode(s.area, "mix") === next)) delete o.one[s.area];
+          writeArt(pid, o); var pg = at(); again(Math.max(1, pg));
+          A().toast(stampName(s) + ": " + next);
+        }, 550);
+      });
+      ["pointerup", "pointerleave", "pointercancel"].forEach(function (ev) { b.addEventListener(ev, stop); });
+      b.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    });
     label();
     return { open: function (i) { pages.scrollLeft = i * pages.clientWidth; label(); } };
   }
@@ -751,7 +794,7 @@
     var stamps = stampsOf(k);
     A_.main.innerHTML = A_.shell(k, "passport", '<div class="seg pswitch" role="group" aria-label="Passport or State Signs"><a class="btn" aria-current="page">🛂 Passport</a><a class="btn" href="#/p/' + esc(k.id) + '/signs">🪧 State Signs</a></div>' +
       '<p class="lede small">Every place ' + esc(k.name) + ' has been gets a stamp, with the date. Trips add them on their own; tap a stamp to see it.</p>' +
-      bookHTML(k.name + "'s Famstamp Passport", k.color, stamps, false) +
+      bookHTML(k.name + "'s Famstamp Passport", k.color, stamps, false, k.id) +
       '<div class="actions"><button type="button" class="btn btn-beacon" id="addstamp">+ Add a stamp</button>' + (S().kids.length > 1 ? '<a class="btn btn-ghost" href="#/family/passport">👨‍👩‍👧 Family passport</a>' : "") + '</div>');
     var bk = bindBook(function (pg) { passport(k, pg); }, stamps, k);
     if (openAt) bk.open(openAt);
@@ -761,7 +804,7 @@
     var A_ = A(); document.title = "Family passport · Famstamp";
     var stamps = P.familyStamps(S().kids, S().trips, CTX), title = S().meta.familyName ? "The " + S().meta.familyName + " Family Passport" : "Our Family's Famstamp Passport";
     A_.main.innerHTML = '<a class="back" href="#/family">← Family map</a><h1>Family passport</h1><div class="seg pswitch" role="group" aria-label="Passport or State Signs"><a class="btn" aria-current="page">🛂 Passport</a><a class="btn" href="#/family/signs">🪧 State Signs</a></div><p class="lede small">Every stamp anyone in the family has, with who was there. A trip you took together is one stamp.</p>' +
-      bookHTML(title, "#16283a", stamps, true) +
+      bookHTML(title, "#16283a", stamps, true, null) +
       '<h2>Passports</h2><div class="stats">' + S().kids.map(function (p) {
         var n = stampsOf(p).length;
         return '<a class="stat person" href="#/p/' + esc(p.id) + '/passport" style="' + A_.kidStyle(p) + '"><div class="v"><span class="dotp">' + A_.initial(p.name) + '</span> ' + esc(p.name) + '</div><div class="k">' + n + (n === 1 ? " stamp" : " stamps") + '</div></a>'; }).join("") + '</div>';
@@ -792,9 +835,9 @@
   function closeSheet() { $$(".sheetbg").forEach(function (x) { x.remove(); }); }
   window.addEventListener("hashchange", closeSheet);
   function stampSheet(s, owner, again) {
-    var A_ = A(), name = stampName(s), dates = P.fmtDate(s.date) ? P.fmtDate(s.date) + (s.end ? " to " + P.fmtDate(s.end) : "") : "Date not set";
+    var A_ = A(), name = stampName(s), dates = P.fmtDate(s.date) ? P.fmtDate(s.date) + (s.end ? " to " + P.fmtDate(s.end) : "") : "";
     var t = s.tripId ? tripById(s.tripId) : null, holder = owner || (s.who.length === 1 ? A_.kidById(s.who[0]) : null);
-    var html = '<div class="bigstamp">' + stampSVG(s) + '</div><h3>' + esc(name) + '</h3><p class="muted">' + esc(dates) + (s.via ? " · via " + esc(s.via) : "") + '</p>' +
+    var html = '<div class="bigstamp">' + stampSVG(s, owner ? owner.id : null) + '</div><h3>' + esc(name) + '</h3>' + symLine(s, owner ? owner.id : null) + (dates || s.via ? '<p class="muted">' + esc(dates) + (s.via ? (dates ? " · " : "") + "via " + esc(s.via) : "") + '</p>' : "") + '' +
       (s.who.length > 1 || !owner ? '<p class="small"><span class="dots">' + A_.avatars(s.who) + '</span> ' + esc(A_.travelerNames(s.who)) + '</p>' : "");
     if (t) html += '<p class="small">From the trip <a href="#/p/' + esc((holder || A_.kidById(t.kidIds[0])).id) + '/trip/' + esc(t.id) + '">' + esc(t.place) + ' →</a></p><p class="small muted">Its dates come from the trip, so edit the trip to change them.</p><div class="actions"><button type="button" class="btn btn-ghost" data-close>Close</button></div>';
     else if (holder) {
@@ -872,7 +915,7 @@
     el.innerHTML = s.newSign
       ? '<div class="fxbox"><div class="fxsign">' + P.signSVG(s.area, areaName("state", s.area), { first: s.date, visits: 1 }) + '</div><b>Sign collected: ' + esc(areaName("state", s.area)) + '!</b><span>' +
         (s.signOnly ? "It's in your State Signs." : "Plus a new passport stamp" + (more ? " and " + more + " more" : "") + ".") + '</span></div>'
-      : '<div class="fxbox"><div class="fxstamp">' + stampSVG(s) + '</div><b>New stamp: ' + esc(stampName(s)) + '</b>' + (more ? '<span>+ ' + more + ' more in the passport</span>' : "") + '</div>';
+      : '<div class="fxbox"><div class="fxstamp">' + stampSVG(s, s.holder) + '</div><b>New stamp: ' + esc(stampName(s)) + '</b>' + (more ? '<span>+ ' + more + ' more in the passport</span>' : "") + '</div>';
     document.body.appendChild(el);
     setTimeout(function () { thunk(); if (navigator.vibrate) try { navigator.vibrate(reduced() ? 20 : [18, 40, 28]); } catch (e) {} }, reduced() ? 0 : 260);
     el.onclick = function () { el.remove(); };
@@ -911,7 +954,7 @@
       var chunks = []; for (var ci = 0; ci < stamps.length; ci += 12) chunks.push(stamps.slice(ci, ci + 12).map(function (x, j) { return { stamp: x, rot: (T.hash(x.id) % 17) - 8 }; }));
       out += chunks.map(function (pg, n) {
         return '<section class="page passprint"><h1>' + esc(k.name) + '\'s passport' + (n ? " (" + (n + 1) + ")" : "") + '</h1><div class="pgrid">' + pg.map(function (c) {
-          return '<div class="pstamp" style="--r:' + c.rot + 'deg">' + stampSVG(c.stamp) + '</div>'; }).join("") + '</div></section>';
+          return '<div class="pstamp" style="--r:' + c.rot + 'deg">' + stampSVG(c.stamp, k.id) + '</div>'; }).join("") + '</div></section>';
       }).join("");
     }
     return out;
@@ -983,7 +1026,7 @@
     var A_ = A(), t = v.tripId ? tripById(v.tripId) : null, d = t ? dateRange(t) : (P.fmtDate(v.date) ? P.fmtDate(v.date) + (v.end ? " to " + P.fmtDate(v.end) : "") : "");
     var how = t ? '<a href="#/p/' + esc((k || A_.kidById(v.who[0]) || { id: t.kidIds[0] }).id) + '/trip/' + esc(t.id) + '">' + esc(t.place) + ' →</a>' : v.source === "hand" ? "Added by hand" : "Colored in on the map";
     var owner = k || (v.who.length === 1 ? A_.kidById(v.who[0]) : null);
-    return '<li><span class="vnum" aria-hidden="true">' + (i + 1) + '</span><div><b>' + esc(d || "Date not set") + '</b><span class="small">' + how + '</span>' + (!k && v.who.length ? '<span class="dots">' + A_.avatars(v.who) + '</span>' : "") + '</div>' +
+    return '<li><span class="vnum" aria-hidden="true">' + (i + 1) + '</span><div>' + (d ? '<b>' + esc(d) + '</b>' : "") + '<span class="small">' + how + '</span>' + (!k && v.who.length ? '<span class="dots">' + A_.avatars(v.who) + '</span>' : "") + '</div>' +
       (!t && owner ? '<button type="button" class="btn btn-ghost btn-sm" data-vdate="' + i + '">' + (d ? "Change date" : "Add date") + '</button>' : "") + '</li>';
   }
   function signSheet(k, id) {
@@ -993,7 +1036,7 @@
       (look ? '<p class="signnick">' + esc(look.nick) + '</p>' : "");
     if (info) {
       var next = t === "gold" ? "Top frame. Gold!" : (t === "silver" ? 4 - info.visits : 1) + (t === "silver" && 4 - info.visits > 1 ? " more visits" : " more visit") + " for " + (t === "silver" ? "Gold" : "Silver");
-      html += '<div class="signmeta"><span class="tierpill t-' + t + '"><i aria-hidden="true"></i>' + TIER_NAME[t] + ' sign</span><span><b>' + info.visits + '</b> ' + (info.visits === 1 ? "visit" : "visits") + '</span><span>' + (info.first ? "First visit <b>" + esc(P.fmtDate(info.first)) + "</b>" : "Date not set yet") + '</span></div>' +
+      html += '<div class="signmeta"><span class="tierpill t-' + t + '"><i aria-hidden="true"></i>' + TIER_NAME[t] + ' sign</span><span><b>' + info.visits + '</b> ' + (info.visits === 1 ? "visit" : "visits") + '</span>' + (info.first ? "<span>First visit <b>" + esc(P.fmtDate(info.first)) + "</b></span>" : "") + '</div>' +
         '<p class="small muted">' + esc(next) + '</p>' +
         '<p class="small"><span class="dots">' + A_.avatars(info.who) + '</span> ' + esc(A_.travelerNames(info.who)) + '</p>' +
         '<h4 class="sec">Visits</h4><ol class="visitlist">' + info.list.map(function (v, i) { return visitRow(v, k, i); }).join("") + '</ol>';

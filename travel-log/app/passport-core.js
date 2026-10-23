@@ -2,17 +2,17 @@
    No browser parts, so it runs in Node tests. Stamps from trips are worked out on the fly (never stored), so editing a
    trip moves its stamps; stamps someone adds by hand live on the person as person.stamps (see trips-data-model.md). */
 (function (root, factory) {
-  if (typeof module === "object" && module.exports) module.exports = factory(require("./trips-core.js"), require("./state-signs.js"));
-  else root.WK_PASSPORT = factory(root.WK_TRIPS, root.WK_SIGNS);
-})(typeof self !== "undefined" ? self : this, function (T, SG) {
+  if (typeof module === "object" && module.exports) module.exports = factory(require("./trips-core.js"), require("./state-signs.js"), require("./stamp-art.js"));
+  else root.WK_PASSPORT = factory(root.WK_TRIPS, root.WK_SIGNS, root.WK_STAMPART);
+})(typeof self !== "undefined" ? self : this, function (T, SG, SA) {
   "use strict";
   var MAX_STAMPS = 60, STAMP_BUDGET = 6000;   // hand-added only (trip stamps are worked out, not stored); keeps a person under sync's 8 KB
   var ISO32 = {}; "ABWAWAFGAFAGOAOAIAAIALBALALDAXANDADAREAEARGARARMAMASMASATAAQATFTFATGAGAUSAUAUTATAZEAZBDIBIBELBEBENBJBESBQBFABFBGDBDBGRBGBHRBHBHSBSBIHBABLMBLBLRBYBLZBZBMUBMBOLBOBRABRBRBBBBRNBNBTNBTBVTBVBWABWCAFCFCANCACCKCCCHECHCHLCLCHNCNCIVCICMRCMCODCDCOGCGCOKCKCOLCOCOMKMCPVCVCRICRCUBCUCUWCWCXRCXCYMKYCYPCYCZECZDEUDEDJIDJDMADMDNKDKDOMDODZADZECUECEGYEGERIERESPESESTEEETHETFINFIFJIFJFLKFKFRAFRFROFOFSMFMGABGAGBRGBGEOGEGGYGGGHAGHGIBGIGINGNGLPGPGMBGMGNBGWGNQGQGRCGRGRDGDGRLGLGTMGTGUFGFGUMGUGUYGYHKGHKHMDHMHNDHNHRVHRHTIHTHUNHUIDNIDIMNIMINDINIOTIOIRLIEIRNIRIRQIQISLISISRILITAITJAMJMJEYJEJORJOJPNJPKAZKZKENKEKGZKGKHMKHKIRKIKNAKNKORKRKOSXKKWTKWLAOLALBNLBLBRLRLBYLYLCALCLIELILKALKLSOLSLTULTLUXLULVALVMACMOMAFMFMARMAMCOMCMDAMDMDGMGMDVMVMEXMXMHLMHMKDMKMLIMLMLTMTMMRMMMNEMEMNGMNMNPMPMOZMZMRTMRMSRMSMTQMQMUSMUMWIMWMYSMYMYTYTNAMNANCLNCNERNENFKNFNGANGNICNINIUNUNLDNLNORNONPLNPNRUNRNZLNZOMNOMPAKPKPANPAPCNPNPERPEPHLPHPLWPWPNGPGPOLPLPRIPRPRKKPPRTPTPRYPYPSXPSPYFPFQATQAREUREROURORUSRURWARWSAHEHSAUSASDNSDSDSSSSENSNSGPSGSGSGSSHNSHSJMSJSLBSBSLESLSLVSVSMRSMSOMSOSPMPMSRBRSSTPSTSURSRSVKSKSVNSISWESESWZSZSXMSXSYCSCSYRSYTCATCTCDTDTGOTGTHATHTJKTJTKLTKTKMTMTLSTLTONTOTTOTTTUNTNTURTRTUVTVTWNTWTZATZUGAUGUKRUAUMIUMURYUYUSAUSUZBUZVATVAVCTVCVENVEVGBVGVIRVIVNMVNVUTVUWLFWFWSMWSYEMYEZAFZAZMBZMZWEZW".replace(/([A-Z]{3})([A-Z]{2})/g, function (_, a, b) { ISO32[a] = b; return ""; });
   var UK = { ENG: "\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F", SCT: "\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC73\uDB40\uDC63\uDB40\uDC74\uDB40\uDC7F",
              WLS: "\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC77\uDB40\uDC6C\uDB40\uDC73\uDB40\uDC7F", NIR: "\uD83C\uDDEC\uD83C\uDDE7" };
   var NATIONS = ["ENG", "SCT", "WLS", "NIR"];
-  var INKS = ["#2b4c9b", "#b23a48", "#2f7d4f", "#6b3fa0", "#1f2d3d", "#a5531c", "#0f6e7a"];
-  var SHAPES = ["circle", "rect", "oval", "triangle", "double"];
+  // stamp shapes and inks come from stamp-art.js (seeded from the place, so the same place always looks the same)
+  var SHAPES = SA.SHAPES, INKS = SA.INK_LIST;
   var MON = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
   function clean(s, max) { return String(s == null ? "" : s).replace(/[\u0000-\u001f]/g, "").trim().slice(0, max || 80); }
@@ -93,7 +93,7 @@
     return "world";
   }
   /** Every stamp in one person's passport, oldest first. Sources: trips they went on, stamps added by hand, and places colored
-      on the map with no visit yet (shown with "date not set"). The same visit is never stamped twice. */
+      on the map with no visit yet (shown with no date). The same visit is never stamped twice. */
   function stampsFor(person, trips, ctx) {
     ctx = ctx || {};
     var out = [], have = {};
@@ -125,7 +125,7 @@
     var byKey = {}, out = [];
     people.forEach(function (p) {
       stampsFor(p, trips, ctx).forEach(function (s) {
-        var key = s.source === "trip" ? s.id : s.kind + ":" + s.area + ":" + (s.date || "?");
+        var key = s.source === "trip" ? s.id : s.kind + ":" + s.area + ":" + (s.date || "");
         if (byKey[key]) { if (byKey[key].who.indexOf(p.id) < 0) byKey[key].who.push(p.id); return; }
         var c = Object.assign({}, s, { who: [p.id] }); byKey[key] = c; out.push(c);
       });
@@ -135,10 +135,10 @@
 
   // ---------- look ----------
   function hash(s) { return T.hash(String(s)); }
-  function look(s) {
-    var h = hash(s.id), R = T.rng(h);
-    var shape = s.kind === "park" ? "park" : SHAPES[h % SHAPES.length];
-    return { shape: shape, ink: s.kind === "park" ? ["#5b4a2f", "#2f5d3a", "#6b3a2a"][h % 3] : INKS[(h >>> 3) % INKS.length], rot: Math.round((R() * 2 - 1) * 16), r: R };
+  /** How a stamp looks: shape, ink and motif come from the place (stamp-art.js); the tilt comes from the stamp itself. */
+  function look(s, name, art) {
+    var h = hash(s.id), R = T.rng(h), d = SA.design(s.kind, s.area, name, art);
+    return { shape: d.shape, ink: d.ink, motif: d.motif, border: d.border, rot: Math.round((R() * 2 - 1) * 16), r: R };
   }
   /** Spread stamps over passport pages: 4 per page, each nudged and turned a little (stable for the same stamp). */
   function pages(stamps, perPage) {
@@ -161,42 +161,13 @@
     var two = ISO32[area]; if (!two) return "";
     return String.fromCodePoint(0x1F1E6 + two.charCodeAt(0) - 65, 0x1F1E6 + two.charCodeAt(1) - 65);
   }
-  function fit(name, base, max) { var n = name.length; return n <= max ? base : Math.max(7, Math.round(base * max / n)); }
-  /** One stamp as SVG (viewBox 160x160). name = place name; opts.label overrides ARRIVED / ENTRY. */
+  /** One stamp as SVG (viewBox 160x160), drawn by stamp-art.js. name = place name; opts.sub = park line under the name,
+      opts.art = bird | flower | animal | mix for state stamps, opts.flag = false to leave the flag off.
+      No date means no date line at all (never a placeholder). */
   function stampSVG(s, name, opts) {
     opts = opts || {};
-    var L = look(s), ink = opts.ink || L.ink, uid = "s" + (hash(s.id) % 1e8);
-    var NAME = esc(String(name || s.area).toUpperCase()), date = fmtDate(s.date), end = fmtDate(s.end);
-    var label = s.kind === "park" ? "NATIONAL PARK" : (hash(s.id) % 2 ? "ARRIVED" : "ENTRY");
-    var via = esc(String(s.via || "").toUpperCase().slice(0, 18)), fl = opts.flag === false ? "" : flag(s.kind, s.area);
-    var g = '<g fill="none" stroke="' + ink + '" stroke-width="3">', t = '<g fill="' + ink + '" font-family="Courier New, Courier, monospace" font-weight="700" text-anchor="middle">';
-    var body = "", txt = "", dTxt = esc(date || "DATE ?");
-    if (L.shape === "park") {
-      body = '<circle cx="80" cy="80" r="74"/><circle cx="80" cy="80" r="47" stroke-width="1.5"/>';
-      txt = '<defs><path id="' + uid + 't" d="M23,80 A57,57 0 0 1 137,80"/><path id="' + uid + 'b" d="M14,80 A66,66 0 0 0 146,80"/></defs>' +
-        '<text font-size="' + fit(NAME, 12, 18) + '"><textPath href="#' + uid + 't" startOffset="50%">' + NAME + '</textPath></text>' +
-        '<text font-size="9"><textPath href="#' + uid + 'b" startOffset="50%">' + esc(opts.sub || "NATIONAL PARK SERVICE") + '</textPath></text>' +
-        '<text x="80" y="84" font-size="' + (date.length > 8 ? 10 : 12) + '">' + dTxt + '</text>' +
-        (end ? '<text x="80" y="96" font-size="7">TO ' + esc(end) + '</text>' : "");
-    } else if (L.shape === "circle" || L.shape === "double") {
-      body = '<circle cx="80" cy="80" r="68"/>' + (L.shape === "double" ? '<circle cx="80" cy="80" r="58" stroke-width="2"/>' : "") + '<line x1="28" y1="64" x2="132" y2="64" stroke-width="1.5"/><line x1="28" y1="102" x2="132" y2="102" stroke-width="1.5"/>';
-      txt = '<text x="80" y="52" font-size="' + fit(NAME, 14, 11) + '">' + NAME + '</text><text x="80" y="78" font-size="10">' + label + '</text><text x="80" y="95" font-size="' + (date.length > 8 ? 11 : 13) + '">' + dTxt + '</text>' +
-        (end ? '<text x="80" y="116" font-size="8">DEP ' + esc(end) + '</text>' : via ? '<text x="80" y="116" font-size="8">' + via + '</text>' : "");
-    } else if (L.shape === "oval") {
-      body = '<ellipse cx="80" cy="80" rx="74" ry="52"/><ellipse cx="80" cy="80" rx="66" ry="45" stroke-width="1.5"/>';
-      txt = '<text x="80" y="62" font-size="' + fit(NAME, 13, 13) + '">' + NAME + '</text><text x="80" y="80" font-size="9">' + label + (via ? " · " + via : "") + '</text><text x="80" y="98" font-size="' + (date.length > 8 ? 11 : 13) + '">' + dTxt + '</text>' +
-        (end ? '<text x="80" y="112" font-size="8">DEP ' + esc(end) + '</text>' : "");
-    } else if (L.shape === "triangle") {
-      body = '<path d="M80,8 L152,140 L8,140 Z"/><path d="M80,24 L138,132 L22,132 Z" stroke-width="1.5"/>';
-      txt = '<text x="80" y="76" font-size="' + fit(NAME, 12, 11) + '">' + NAME + '</text><text x="80" y="94" font-size="8">' + label + '</text><text x="80" y="112" font-size="' + (date.length > 8 ? 10 : 12) + '">' + dTxt + '</text>' +
-        (end ? '<text x="80" y="126" font-size="7">DEP ' + esc(end) + '</text>' : via ? '<text x="80" y="126" font-size="7">' + via + '</text>' : "");
-    } else {
-      body = '<rect x="8" y="30" width="144" height="100" rx="6"/><rect x="15" y="37" width="130" height="86" rx="3" stroke-width="1.5"/>';
-      txt = '<text x="80" y="60" font-size="' + fit(NAME, 13, 14) + '">' + NAME + '</text><text x="80" y="78" font-size="9">' + label + (via ? " · " + via : "") + '</text><text x="80" y="98" font-size="' + (date.length > 8 ? 12 : 14) + '">' + dTxt + '</text>' +
-        (end ? '<text x="80" y="114" font-size="8">DEP ' + esc(end) + '</text>' : "");
-    }
-    var flagTxt = fl && L.shape !== "park" ? '<text x="' + (L.shape === "triangle" ? 80 : 80) + '" y="' + (L.shape === "triangle" ? 56 : L.shape === "rect" ? 26 : L.shape === "oval" ? 38 : 36) + '" font-size="14" text-anchor="middle">' + fl + '</text>' : "";
-    return '<svg class="stampsvg" viewBox="0 0 160 160" role="img" aria-label="' + esc((name || s.area) + (date ? ", " + date : "")) + '"><g filter="url(#inkrough)" opacity=".9">' + g + body + '</g>' + t + txt + '</g></g>' + flagTxt + '</svg>';
+    return SA.stampSVG(s, { name: name || s.area, date: fmtDate(s.date), end: fmtDate(s.end), sub: opts.sub || "" },
+      { art: opts.art, flag: opts.flag === false || s.kind === "park" ? "" : flag(s.kind, s.area) });
   }
 
   // ---------- State Signs: a "Welcome to ..." roadside sign for every state someone has been to ----------
@@ -231,5 +202,6 @@
 
   return { newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits,
            stampsFor: stampsFor, familyStamps: familyStamps, pages: pages, look: look, flag: flag, stampSVG: stampSVG, ISO32: ISO32, NATIONS: NATIONS, MAX_STAMPS: MAX_STAMPS, SHAPES: SHAPES,
-           STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook, signTier: signTier, signInfo: SG.look };
+           STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook, signTier: signTier, signInfo: SG.look,
+           stampArtMode: function (id, art) { return SA.stateMode(id, art); }, stampDesign: SA.design, STATE_SYMBOLS: SA.SYM ? SA.SYM.DATA : null };
 });
