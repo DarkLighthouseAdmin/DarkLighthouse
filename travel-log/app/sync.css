@@ -157,3 +157,6 @@
   .topright:has(.famchip:not([hidden])) .famchip { max-width:28vw; }
 }
 .topbar:has(.famchip:not([hidden])) .brand, .topbar .brand { min-height:44px; }
+.gnote { border-left:4px solid #2e8b57; }
+.gnote.bad { border-left-color:#c0392b; background:#fff6f4; }
+.gnote h3 { margin:0 0 .3rem; }
