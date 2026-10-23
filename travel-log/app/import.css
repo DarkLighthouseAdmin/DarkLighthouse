@@ -1,0 +1,39 @@
+/* Famstamp importer (#/import). Uses the app's colors from app.css. */
+.imp-privacy { border-left: 4px solid var(--sage); }
+.imp-drop { display: flex; flex-direction: column; align-items: center; gap: .25rem; text-align: center; padding: 1.4rem 1rem; margin: 1rem 0;
+  border: 2px dashed var(--sage); border-radius: 16px; background: var(--card); cursor: pointer; }
+.imp-drop.over { background: #eef4ef; border-color: var(--sage-deep); }
+.imp-drop .imp-ic { font-size: 2rem; }
+.imp-drop input, .imp-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.imp-prog { margin: 1rem 0; }
+.imp-bar { height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.imp-bar i { display: block; height: 100%; width: 0; background: var(--beacon); transition: width .2s; }
+.imp-facts { margin-top: -.4rem; }
+.imp-warn { margin: .5rem 0; }
+.imp-warn.toc { border-left: 4px solid var(--beacon); font-weight: 600; }
+.imp-row { display: flex; gap: .5rem; }
+.imp-row input { flex: 1; min-width: 0; }
+.imp-bulk { margin: .2rem 0 .6rem; }
+.imp-trips { display: grid; gap: .6rem; }
+.imp-trip { display: flex; gap: .6rem; padding: .7rem; border: 1px solid var(--line); border-radius: 14px; background: var(--card); opacity: .72; }
+.imp-trip.on { opacity: 1; border-color: var(--sage); box-shadow: 0 1px 0 var(--line); }
+.imp-trip .body { flex: 1; min-width: 0; display: grid; gap: .2rem; }
+.imp-pick input { width: 22px; height: 22px; margin-top: .3rem; accent-color: var(--sage-deep); }
+.imp-title { font: 600 1.05rem var(--serif); border: 1px solid transparent; border-radius: 8px; padding: .15rem .3rem; margin-left: -.3rem; background: transparent; width: 100%; }
+.imp-title:focus { border-color: var(--line); background: #fff; outline: none; }
+.imp-trip .route { overflow-wrap: anywhere; }
+.imp-b-done { background: #e6efe9; color: var(--sage-deep); }
+.imp-b-maybe { background: #fbecd6; color: #8a5413; }
+.imp-whotrip summary { cursor: pointer; color: var(--muted); }
+.imp-list summary { cursor: pointer; }
+.imp-place { display: flex; justify-content: space-between; align-items: center; gap: .6rem; padding: .45rem 0; border-top: 1px solid var(--line); }
+.imp-place select { max-width: 45%; }
+.imp-save { position: sticky; bottom: 0; padding: .8rem 0 calc(.8rem + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--cream) 30%); text-align: center; }
+.imp-save .btn { width: 100%; max-width: 420px; }
+.imp-help ol, .imp-help ul { padding-left: 1.2rem; }
+.imp-help li { margin: .25rem 0; }
+.imp-empty { margin-top: .4rem; }
+.imp-unsure .imp-trip { border-style: dashed; }
+.imp-seg { display: inline-flex; gap: .25rem; }
+.imp-seg .btn { padding: .3rem .6rem; font-size: .85rem; }
+.imp-seg .btn.on { background: var(--sage-deep); color: #fff; border-color: var(--sage-deep); }
