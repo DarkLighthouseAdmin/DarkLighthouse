@@ -59,6 +59,8 @@ FCSS = """
     .list2 { columns:2 240px; margin:.6rem 0 0 1.1rem; } .list2 li { margin:.25rem 0; break-inside:avoid; }
 """
 
+from build_travel import TP_DRIVE  # homepage needs it for Travelpayouts verification
+
 def head(path, title, desc, ld, cur, extra_head=""):
     url = SITE + path
     lds = "".join(f'\n  <script type="application/ld+json">\n{json.dumps(x, indent=1, ensure_ascii=False)}\n  </script>' for x in ld)
@@ -86,7 +88,7 @@ def head(path, title, desc, ld, cur, extra_head=""):
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />{lds}
   <style>{BASE_CSS}{FCSS}  </style>
-</head>
+{TP_DRIVE if path == "/" else ""}</head>
 <body>
   <div class="gbar"><div class="wrap">
     <a class="brand" href="/">Dark Lighthouse <span>Solutions</span></a>
