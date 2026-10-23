@@ -22,7 +22,7 @@
       return { cont: c ? c.cont : "Other places" };
     }
     if (kind === "state") return { region: FF().REGION[id] || "Other" };
-    var p = (M.PARKS || []).filter(function (x) { return x.id === id; })[0];
+    var p = M.parkById ? M.parkById(id) : (M.PARKS || []).filter(function (x) { return x.id === id; })[0];
     var st = p ? p.states.split(/,\s*/)[0] : "";
     return { region: FF().REGION[st] || "West", states: p ? p.states : "" };
   }

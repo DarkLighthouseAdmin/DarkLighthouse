@@ -733,7 +733,7 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/first visit/.test(P.signSVG("TX", "Texas", { first: "2020-05-01", visits: 2 })), "a dated sign still shows its first visit");
   ok(read("index.html").indexOf("state-symbols.js") < read("index.html").indexOf("stamp-art.js") && read("index.html").indexOf("stamp-art.js") < read("index.html").indexOf("passport-core.js"), "index.html loads symbols, then stamp art, then the passport");
   const sw2 = read("sw.js"); ok(["state-symbols.js", "stamp-art.js"].every(f => sw2.indexOf('"' + f + '"') >= 0), "service worker caches the stamp art files");
-  ok(read("stamp-art.js").length < 66000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight");
+  ok(read("stamp-art.js").length < 70000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight");
   ok(/famstamp-stampart:/.test(read("trips-ui.js")) && /data-art=/.test(read("trips-ui.js")), "passport has the Bird / Flower / Animal / Mix toggle, saved per person");
 }
 
@@ -930,6 +930,36 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/svg path\.leg \{ fill:none/.test(css), "every route/story arc path.leg has fill:none");
   const ui = fs.readFileSync(__dirname + "/../travel-log/app/trips-ui.js", "utf8"), app = fs.readFileSync(__dirname + "/../travel-log/app/app.js", "utf8");
   ok(/if \(saving\) return/.test(ui) && /if \(ksaving\) return/.test(app), "double taps on Save trip / Add someone are ignored");
+}
+
+// ---- Park sets: national parks, state parks, national monuments & memorials ----
+{
+  ok(M.PARKS.length === 64, "64 national parks (Chiricahua is the 64th)");
+  const sp = M.parksIn("sp"), nm = M.parksIn("nm"), np = M.parksIn("np");
+  ok(np.length === 64 && sp.length >= 50 && nm.length >= 40, "set sizes " + [np.length, sp.length, nm.length]);
+  const ids = M.ALL_PARKS.map(p => p.id);
+  ok(new Set(ids).size === ids.length, "park ids are unique");
+  ok(ids.every(id => /^[a-z0-9-]{2,40}$/.test(id)), "park ids fit the backup and sync id rules");
+  ok(M.ALL_PARKS.every(p => typeof p.lat === "number" && typeof p.lon === "number" && p.lat > -15 && p.lat < 72 && p.lon < -60), "every park has US coordinates");
+  ok(M.ALL_PARKS.every(p => p.states && p.full && p.label), "every park has states, full name and label");
+  ok(!ids.includes("nm-gateway-arch") && !ids.some(id => /9-11|september/.test(id)), "Gateway Arch and the 9/11 Memorial aren't in the extra sets");
+  ok(M.parkSub(M.parkById("sp-custer")) === "SD · STATE PARK", "state park label: " + M.parkSub(M.parkById("sp-custer")));
+  ok(M.parkSub(M.parkById("mem-mount-rushmore")) === "SD · NATIONAL MEMORIAL", "memorial label");
+  ok(/NATIONAL MONUMENT$/.test(M.parkSub(M.parkById("nm-devils-tower"))), "monument label");
+  ok(/NATIONAL PARK$/.test(M.parkSub(M.parkById("zion"))), "national park label");
+  ok(M.parkById("nope") === null || M.parkById("nope") === undefined, "unknown park id");
+  const k = M.newKid({ name: "Sample", birthYear: 2016 });
+  k.parks["sp-custer"] = { at: "2020-06-01", jr: true }; k.parks["mem-mount-rushmore"] = { at: "2020-06-02", jr: false }; k.parks.zion = { at: "2025-05-01", jr: false };
+  const st = M.stats(k, [], MAPS.world);
+  ok(st.parksTotal === 64, "parks badge total stays at 64 national parks");
+  const F = require("../travel-log/app/firsts.js");
+  const fz = F.found(k, [], { home: { country: "USA", region: "MA" }, park: id => (M.parkById(id) || {}).name });
+  ok(fz.park && fz.park.place === "Zion" && fz.park.at === "2025-05-01", "first national park ignores earlier state park and memorial visits");
+  ok(!fz.jr, "a state park ranger badge isn't a Junior Ranger first");
+  const bk = M.readBackup(JSON.parse(JSON.stringify(M.makeBackup([k], []))));
+  ok(bk.kids[0].parks["sp-custer"] && bk.kids[0].parks["mem-mount-rushmore"], "state park and memorial visits survive a backup round trip");
+  const SA = require("../travel-log/app/stamp-art.js");
+  ok(M.ALL_PARKS.slice(64).every(p => SA.GLYPHS[SA.design("park", p.id, p.name).motif]), "every extra park has a drawn picture");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

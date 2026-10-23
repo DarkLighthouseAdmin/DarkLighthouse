@@ -43,8 +43,8 @@
   /** what we can tell from the maps and trips. ctx: { home: {country, region}, park(id), state(id), country(id) } names */
   function found(p, trips, ctx) {
     ctx = ctx || {}; var home = ctx.home || {}, hc = home.country || "USA", nm = function (f, id) { return (ctx[f] && ctx[f](id)) || id; }, out = {};
-    var pk = earliest(p.parks); if (pk) out.park = { at: pk.at, place: nm("park", pk.id) };
-    var jr = earliest(p.parks, function (id, v) { return v.jr; }); if (jr) out.jr = { at: jr.at, place: nm("park", jr.id), text: "Earned a Junior Ranger badge at " + nm("park", jr.id) };
+    var pk = earliest(p.parks, function (id) { return !/^(sp|nm|mem)-/.test(id); }); if (pk) out.park = { at: pk.at, place: nm("park", pk.id) };
+    var jr = earliest(p.parks, function (id, v) { return v.jr && !/^sp-/.test(id); }); if (jr) out.jr = { at: jr.at, place: nm("park", jr.id), text: "Earned a Junior Ranger badge at " + nm("park", jr.id) };
     var st = earliest(p.states, function (id) { return !(hc === "USA" && id === home.region); }); if (st) out.state = { at: st.at, place: nm("state", st.id) };
     var co = earliest(p.places, function (id) { return id !== hc; }); if (co) out.country = { at: co.at, place: nm("country", co.id) };
     var mine = (trips || []).filter(function (t) { return (t.kidIds || []).indexOf(p.id) >= 0 && DATE.test(t.date || ""); })
@@ -86,7 +86,7 @@
   function ctx() {
     var M = window.MLTL, maps = window.MLTL_MAPS || {}, st = A().state, hp = st.meta.homePoint || {};
     function find(list, id) { var x = (list || []).filter(function (s) { return s.id === id; })[0]; return x && x.name; }
-    return { home: { country: hp.country || "USA", region: hp.region || "" }, park: function (id) { return find(M && M.PARKS, id); },
+    return { home: { country: hp.country || "USA", region: hp.region || "" }, park: function (id) { var p = M && M.parkById && M.parkById(id); return p ? p.name : find(M && M.PARKS, id); },
              state: function (id) { return find(maps.us && maps.us.shapes, id); }, country: function (id) { return find(maps.world && maps.world.countries, id); } };
   }
   function fmt(at) { if (!at) return "Date not set"; var d = new Date(at + "T12:00:00"); return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }); }
