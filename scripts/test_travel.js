@@ -197,5 +197,58 @@ ok(priv.includes('id="affiliate-links"') && /retailers/.test(priv) && /\/travel\
 ok(fs.readFileSync(R("index.html"), "utf8").includes("impact-site-verification"), "homepage keeps Impact verification meta");
 ok(fs.readFileSync(R("index.html"), "utf8").includes('href="/travel/gear/"'), "homepage footer links to gear");
 
+// Holiday gift guides
+const GIFTS = ["gifts-for-travelers", "gifts-for-him-outdoors", "gifts-for-new-parents"];
+const giftHub = fs.readFileSync(R("travel/gifts/index.html"), "utf8");
+["", ...GIFTS].forEach(g => {
+  const p = "/travel/gifts/" + (g ? g + "/" : ""), slug = "gifts" + (g ? "/" + g : "");
+  const h = fs.readFileSync(R(p.slice(1) + "index.html"), "utf8");
+  ok(h.includes(`<link rel="canonical" href="https://darklighthousesolutions.com${p}" />`), slug + ": canonical");
+  ok(/<title>[^<]+\| Dark Lighthouse Solutions<\/title>/.test(h), slug + ": title");
+  const ld = [...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => JSON.parse(m[1]));
+  const faq = ld.find(x => x["@type"] === "FAQPage");
+  ok(faq && faq.mainEntity.length >= 2 && faq.mainEntity.every(q => q.name && q.acceptedAnswer && q.acceptedAnswer.text && !/</.test(q.acceptedAnswer.text)), slug + ": FAQPage JSON-LD");
+  ok(["Article", "BreadcrumbList"].every(t => ld.some(x => x["@type"] === t)), slug + ": Article + Breadcrumb JSON-LD");
+  ok(ld.some(x => x["@type"] === "Article" && x.datePublished === "2026-10-23"), slug + ": Article dated 2026-10-23");
+  const main = h.slice(h.indexOf('<header class="wrap hero">'));
+  const di = main.indexOf(FTC), firstLink = main.indexOf("<a ");
+  ok(di > -1 && di < firstLink, slug + ": FTC disclosure is before the first link in the page content");
+  ok(main.slice(0, main.indexOf("</p>", di) + 4).includes('href="/privacy/#affiliate-links"'), slug + ": disclosure links to /privacy/#affiliate-links");
+  ok(!/As an Amazon Associate/.test(h) && !/amazon\.com/i.test(h), slug + ": no Amazon links or Amazon sentence yet");
+  ok(!/\b(whisk(e)?y|beer|wine|gin|pubs?|distiller(y|ies)|alcohol|cocktails?|brewer(y|ies))\b/i.test(h.replace(/<script[\s\S]*?<\/script>/g, "")), slug + ": no alcohol content");
+  ok(!/oraclinical|mhillORA/i.test(h), slug + ": no personal identities");
+  ok(!/Dark Lighthouse Solutions/.test(h.slice(h.indexOf("<main"), h.indexOf("</main>"))), slug + ": brand name only in the credit, not the page copy");
+  ok(h.includes('href="/travel/gifts/"') && h.includes(">Gift guides</a>"), slug + ": section nav has Gift guides");
+  ok(h.includes('/travel/affiliates.js'), slug + ": affiliates.js loaded");
+  ok(sm.includes(`<loc>https://darklighthousesolutions.com${p}</loc>`), "sitemap has " + p);
+  ok(h.includes("/templates/#holiday-gift-budget-planner"), slug + ": links the Holiday Gift & Budget Planner");
+  const tags = [...h.matchAll(/<a [^>]*data-affiliate="([^"]+)"[^>]*>/g)];
+  tags.forEach(m => {
+    const k = m[1], a = affj[k];
+    ok(a && m[0].includes(`href="${a.plain_url.replace(/&/g, "&amp;")}"`), slug + ": link matches affiliates.json: " + k);
+    ok(m[0].includes('rel="sponsored nofollow noopener"'), slug + ": rel=sponsored: " + k);
+    ok(a && a.status === "not-joined" && a.tracked_url === "" && NETWORKS.includes(a.network) && a.program.includes(a.network), slug + ": not-joined with program and network named: " + k);
+  });
+  if (!g) { ok(tags.length === 0, "gifts hub: no product links"); return; }
+  ok(tags.length >= 8 && tags.length <= 15, slug + ": 8-15 picks, got " + tags.length);
+  ok(new Set(tags.map(m => m[1])).size === tags.length, slug + ": no duplicate product links");
+  const cards = [...h.matchAll(/<div class="prod" id="p-([^"]+)">([\s\S]*?)<\/div>/g)];
+  ok(cards.length === tags.length, slug + ": one card per pick");
+  cards.forEach(c => ok(/<strong>\$[0-9][^<]*<\/strong> when we checked/.test(c[2]), slug + ": price shown for " + c[1]));
+  const il = ld.find(x => x["@type"] === "ItemList");
+  ok(il && il.numberOfItems === tags.length && il.itemListElement.length === tags.length, slug + ": ItemList matches picks");
+  ok(/23 October 2026/.test(h) && h.includes('id="sources"'), slug + ": dated sources section");
+  ok(giftHub.includes(`href="${p}"`) && hub.includes('href="/travel/gifts/"'), "hubs link to " + slug);
+});
+const giftPar = fs.readFileSync(R("travel/gifts/gifts-for-new-parents/index.html"), "utf8");
+["mockingbird-travel-stroller", "babylist-", "doona-x", "babylist-ergobaby-omni-deluxe"].forEach(k => ok(giftPar.includes(`data-affiliate="${k}`), "parents gifts: " + k));
+ok(giftPar.includes('id="family-travel-kids-planner"') && giftPar.includes("just-in-case-binder"), "parents gifts: Polar planner + binder mentions");
+const giftHim = fs.readFileSync(R("travel/gifts/gifts-for-him-outdoors/index.html"), "utf8");
+["bespokepost-barbour-transport", "llbean-bean-boots-8", "saxx-quest-boxer-brief", "darntough-mens-hiker-3-pack", "smartwool-classic-thermal-crew"].forEach(k => ok(giftHim.includes(`data-affiliate="${k}"`), "him gifts: " + k));
+const giftTr = fs.readFileSync(R("travel/gifts/gifts-for-travelers/index.html"), "utf8");
+["ridge-carry-on", "cotopaxi-allpa-35", "peakdesign-packing-cube", "bellroy-travel-wallet", "fjallraven-kanken-mini", "osprey-daylite-plus"].forEach(k => ok(giftTr.includes(`data-affiliate="${k}"`), "traveler gifts: " + k));
+ok(/\/travel\/gifts\//.test(priv), "privacy: mentions gift guides");
+ok(fs.readFileSync(R("index.html"), "utf8").includes('href="/travel/gifts/"'), "homepage footer links to gift guides");
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
