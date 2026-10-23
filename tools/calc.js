@@ -61,7 +61,7 @@
   var WED_SPLITS = {
     simple:  { venue: 15, catering: 28, photo: 12, video: 0, attire: 10, flowers: 6,  music: 6, planner: 2, stationery: 3, cake: 3, transport: 1, officiant: 2, favors: 2, buffer: 10 },
     classic: { venue: 20, catering: 25, photo: 10, video: 4, attire: 8,  flowers: 8,  music: 7, planner: 4, stationery: 2, cake: 2, transport: 2, officiant: 1, favors: 2, buffer: 5 },
-    formal:  { venue: 22, catering: 24, photo: 9,  video: 5, attire: 8,  flowers: 10, music: 8, planner: 4, stationery: 2, cake: 2, transport: 2, officiant: 1, favors: 1, buffer: 2 }
+    formal:  { venue: 21, catering: 23, photo: 9,  video: 5, attire: 7,  flowers: 10, music: 8, planner: 4, stationery: 2, cake: 2, transport: 2, officiant: 1, favors: 1, buffer: 5 }
   };
   // [category, typical deposit share, months before the wedding it's usually due]
   var WED_DEPOSITS = [["venue", 0.5, 12], ["photo", 0.3, 11], ["planner", 0.3, 11], ["catering", 0.3, 9], ["music", 0.3, 9],
