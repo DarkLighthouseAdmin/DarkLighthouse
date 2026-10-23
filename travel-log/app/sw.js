@@ -1,5 +1,5 @@
 /* Offline support for My Lifetime Travel Log. Caches the app's own files only; your data lives in IndexedDB, never here. */
-var CACHE = "mltl-v1";
+var CACHE = "mltl-v2";
 var FILES = ["./", "index.html", "app.css", "app.js", "log-core.js", "maps.js", "manifest.webmanifest",
              "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png"];
 self.addEventListener("install", function (e) {

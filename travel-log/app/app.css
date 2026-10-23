@@ -145,3 +145,24 @@ body.kidview .foot { display:none; }
   .mapbox path.a, .mapbox circle.dot { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 }
 @media (min-width:760px) { .mapbox svg { max-height:72vh; } .sheet .mapbox svg { max-height:none; } }
+/* v1.1: family-wide profiles and the family map */
+.kidcard h3 .role { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.72rem; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--muted); background:rgba(22,40,58,.06); border-radius:999px; padding:.1rem .5rem; vertical-align:middle; margin-left:.25rem; }
+.familycard { display:flex; gap:.9rem; align-items:center; text-decoration:none; color:var(--ink); margin-top:1rem; border:1px solid var(--sage); }
+.familycard .fam-ic { font-size:2rem; width:56px; height:56px; display:grid; place-items:center; background:#e6efe8; border-radius:50%; flex:none; }
+.familycard h3 { font-size:1.15rem; } .familycard .small:not(.muted) { color:var(--sage-deep); font-weight:600; }
+.chips { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.8rem; }
+.chip { display:inline-flex; align-items:center; gap:.4rem; min-height:40px; padding:.35rem .85rem .35rem .45rem; border-radius:999px; border:1px solid rgba(31,42,51,.25); background:#fff; font:inherit; font-weight:600; font-size:.9rem; cursor:pointer; color:var(--muted); }
+.chip i { width:22px; height:22px; border-radius:50%; background:var(--kid); opacity:.35; }
+.chip[aria-pressed=true] { color:var(--ink); border-color:var(--kid); box-shadow:inset 0 0 0 1px var(--kid); }
+.chip[aria-pressed=true] i { opacity:1; }
+.seg button:disabled { opacity:.45; cursor:not-allowed; }
+.mapbox path.a.fam-2, .key.fam-2 { fill:#8fb09a; background:#8fb09a; }
+.mapbox path.a.fam-3, .key.fam-3 { fill:#5c8a6c; background:#5c8a6c; }
+.mapbox path.a.fam-4, .key.fam-4 { fill:#3f5f4c; background:#3f5f4c; }
+.mapbox path.a.fam-all, .key.fam-all { fill:#16283a; background:#16283a; }
+.key { display:inline-block; width:14px; height:14px; border-radius:4px; vertical-align:-2px; margin:0 .2rem 0 .4rem; }
+.dots { display:flex; gap:.25rem; flex-wrap:wrap; justify-content:flex-end; }
+.dotp { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--kid); color:#fff; font-size:.8rem; font-weight:700; font-family:inherit; }
+.stat.person { text-decoration:none; color:var(--ink); border-left:5px solid var(--kid); }
+.stat.person .v { font-size:1.1rem; display:flex; align-items:center; gap:.4rem; }
+.kidhead h1 .role { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.72rem; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--muted); background:rgba(22,40,58,.06); border-radius:999px; padding:.15rem .55rem; vertical-align:middle; }
