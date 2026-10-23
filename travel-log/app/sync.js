@@ -560,7 +560,7 @@
         return (fresh ? Promise.resolve([]) : r.invites(c.familyId).catch(function () { return []; })).then(function (rows) {
           var have = (rows || []).filter(usable)[0]; if (have) return have;
           return create().catch(function (e) {
-            if (!/Too many open invites/i.test(String(e && e.message))) throw e;
+            if (!/Too many open invites|10 open invites/i.test(String(e && e.message))) throw e;
             return r.invites(c.familyId).then(function (all) {
               var old = (all || []).slice().sort(function (a, b) { return (a.uses - b.uses) || (Date.parse(a.created_at) - Date.parse(b.created_at)); })[0];
               if (!old) throw e;
