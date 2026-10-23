@@ -1,7 +1,8 @@
 /* Offline support for Famstamp (/travel-log/app/). Caches the app's own files only; your data lives in IndexedDB, never here.
-   Family Sync talks to Supabase (another origin), which this worker never touches. vendor/*.js is cached the first time sync loads it. */
-var CACHE = "mltl-v10";
-var FILES = ["./", "index.html", "app.css", "app.js", "log-core.js", "trips-core.js", "passport-core.js", "trips-ui.js", "logo.js", "maps.js", "sync-core.js", "sync-config.js", "sync.js", "sync.css", "manifest.webmanifest",
+   Family Sync talks to Supabase (another origin), which this worker never touches. vendor/*.js is cached the first time sync loads it,
+   and the importer's place data (import-geo.js, import-towns.js) the first time someone imports. */
+var CACHE = "mltl-v12";
+var FILES = ["./", "index.html", "app.css", "app.js", "log-core.js", "trips-core.js", "passport-core.js", "trips-ui.js", "logo.js", "maps.js", "sync-core.js", "sync-config.js", "sync.js", "sync.css", "import-core.js", "import.js", "import.css", "import-worker.js", "manifest.webmanifest",
              "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png", "icon.svg"];
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); }));
