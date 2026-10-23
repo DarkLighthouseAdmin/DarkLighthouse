@@ -43,6 +43,24 @@
   var ROLES = [{ id: "kid", label: "Kid" }, { id: "adult", label: "Parent/Adult" }, { id: "grand", label: "Grandparent/Other" }];
   function validRole(r) { return r === "adult" || r === "grand" ? r : "kid"; }
   function isKid(p) { return validRole(p && p.role) === "kid"; }
+  // Relationship and nickname are per profile in this family log (not per login): Matt's dad can be "Grandparent" in
+  // Matt's log and "Parent" in his own. Both ride in people.data, so they sync with no schema change; old profiles have neither.
+  var RELATIONS = [{ id: "parent", label: "Parent" }, { id: "kid", label: "Kid" }, { id: "grandparent", label: "Grandparent" }, { id: "auntuncle", label: "Aunt/Uncle" },
+                   { id: "cousin", label: "Cousin" }, { id: "sibling", label: "Sibling" }, { id: "friend", label: "Friend" }, { id: "other", label: "Other" }];
+  var NICK_MAX = 20;
+  function defaultRel(role) { role = validRole(role); return role === "kid" ? "kid" : role === "grand" ? "grandparent" : "parent"; }
+  function validRel(r, role) { return RELATIONS.some(function (x) { return x.id === r; }) ? r : defaultRel(role); }
+  function relOf(p) { return validRel(p && p.relationship, p && p.role); }
+  function relLabel(p) { var r = relOf(p); return RELATIONS.filter(function (x) { return x.id === r; })[0].label; }
+  /** The name to show: nickname if set, else the name. Always escape it before putting it in HTML. */
+  function who(p) { return p ? (clean(p.nickname, NICK_MAX) || p.name || "") : ""; }
+  /** Real name to show as secondary text, only when a nickname is shown instead. */
+  function realName(p) { return p && clean(p.nickname, NICK_MAX) && clean(p.nickname, NICK_MAX) !== p.name ? p.name : ""; }
+  // FOR THE GRANDPARENT UPDATES PAGE (features worker): "followers" are the people who get the family's travel updates
+  // instead of (or as well as) traveling. Use M.followers(state.kids) / M.isFollower(p) to decide who sees updates.
+  var FOLLOWER_RELS = { grandparent: 1, auntuncle: 1, friend: 1, other: 1 };
+  function isFollower(p) { return !!FOLLOWER_RELS[relOf(p)]; }
+  function followers(people) { return (people || []).filter(isFollower); }
   var COLORS = ["#e8a54b", "#3f8f9f", "#c0607a", "#6f8f7a", "#7b6bb0", "#d0703c"];
 
   function uid(prefix) {
@@ -64,8 +82,11 @@
     var name = clean(opts.name, 40);
     if (!name) throw new Error("Add a name or nickname.");
     var now = opts.now || new Date().toISOString();
-    return { id: opts.id || uid("person"), name: name, role: validRole(opts.role), birthYear: validYear(opts.birthYear),
+    var p = { id: opts.id || uid("person"), name: name, role: validRole(opts.role), birthYear: validYear(opts.birthYear),
              color: COLORS.indexOf(opts.color) >= 0 ? opts.color : COLORS[0], states: {}, places: {}, parks: {}, createdAt: now, updatedAt: now };
+    p.relationship = validRel(opts.relationship, p.role);
+    var nick = clean(opts.nickname, NICK_MAX); if (nick) p.nickname = nick;
+    return p;
   }
   var newKid = newPerson;
 
@@ -313,7 +334,7 @@
     var idOk = /^[a-z]+_[A-Za-z0-9]{4,40}$/;
     var kids = obj.kids.filter(function (k) { return k && idOk.test(k.id) && clean(k.name, 40); }).map(function (k) {
       // v1 files have no role: everyone in them was a kid
-      var kid = newPerson({ id: k.id, name: k.name, role: obj.version >= 2 ? k.role : "kid", birthYear: k.birthYear, color: k.color, now: k.createdAt });
+      var kid = newPerson({ id: k.id, name: k.name, role: obj.version >= 2 ? k.role : "kid", birthYear: k.birthYear, color: k.color, now: k.createdAt, relationship: k.relationship, nickname: k.nickname });
       kid.states = cleanArea(k.states, /^[A-Z]{2}$/); kid.places = cleanArea(k.places, /^[A-Z0-9]{3}$/); kid.parks = cleanArea(k.parks, /^[a-z0-9-]{2,40}$/);
       if (obj.version >= 4 && Array.isArray(k.stamps) && k.stamps.length) kid.stamps = P.cleanStamps(k.stamps);
       // kid quests and firsts: plain JSON, checked again by quests.js / firsts.js when shown
@@ -370,7 +391,7 @@
     return since >= 3 ? since : 0;
   }
 
-  return { APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid,
+  return { APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,
            slug: slug, uid: uid, newKid: newKid, toggleArea: toggleArea, togglePark: togglePark, newTrip: newTrip, applyTripMark: applyTripMark,

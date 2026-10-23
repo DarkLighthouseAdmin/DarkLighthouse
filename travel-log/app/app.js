@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v24" -> "v24").
-  var VERSION = "v24";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v25" -> "v25").
+  var VERSION = "v25";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -57,7 +57,7 @@
   }
   var ROLE_ORDER = { kid: 0, adult: 1, grand: 2 };
   function byRole(a, b) { return (ROLE_ORDER[a.role] - ROLE_ORDER[b.role]) || (a.createdAt < b.createdAt ? -1 : 1); }
-  function roleLabel(p) { return M.ROLES.filter(function (r) { return r.id === M.validRole(p.role); })[0].label; }
+  function roleLabel(p) { return M.relLabel(p); }   // relationship in this log (Parent, Kid, Grandparent...), not the login role
   function saveKid(k) { return put("kids", k); }
   function setMeta(key, value) { state.meta[key] = value; return put("meta", { key: key, value: value }); }
   function kidById(id) { return state.kids.filter(function (k) { return k.id === id; })[0]; }
@@ -81,7 +81,7 @@
   }
 
   function avatars(ids) {
-    return ids.map(kidById).filter(Boolean).map(function (x) { return '<span class="dotp" title="' + esc(x.name) + '" style="' + kidStyle(x) + '">' + initial(x.name) + '</span>'; }).join("");
+    return ids.map(kidById).filter(Boolean).map(function (x) { return '<span class="dotp" title="' + esc(M.who(x)) + '" style="' + kidStyle(x) + '">' + initial(M.who(x)) + '</span>'; }).join("");
   }
   function travelerNames(ids) { return M.joinNames(names(ids)); }
 
@@ -166,8 +166,8 @@
     if (window.MLTL_SYNC && window.MLTL_SYNC.homeTop) html += window.MLTL_SYNC.homeTop();
     html += '<h2>Who\'s traveling?</h2><div class="kids">';
     state.kids.forEach(function (k) {
-      html += '<a class="kidcard" href="#/p/' + esc(k.id) + '" style="' + kidStyle(k) + '"><span class="avatar">' + initial(k.name) + '</span>' +
-              '<span><h3>' + esc(k.name) + ' <span class="role">' + esc(roleLabel(k)) + '</span></h3><span class="muted">' + esc(summaryLine(k)) + '</span></span></a>';
+      html += '<a class="kidcard" href="#/p/' + esc(k.id) + '" style="' + kidStyle(k) + '"><span class="avatar">' + initial(M.who(k)) + '</span>' +
+              '<span><h3>' + esc(M.who(k)) + ' <span class="role">' + esc(roleLabel(k)) + '</span></h3>' + (M.realName(k) ? '<span class="muted small realname">' + esc(M.realName(k)) + '</span><br>' : "") + '<span class="muted">' + esc(summaryLine(k)) + '</span></span></a>';
     });
     html += '<a class="kidcard add" href="#/add">+ Add someone</a></div>';
     if (!state.kids.length) html += '<p class="hint">Start with the kids, then add Mom, Dad, Grandma or anyone else who travels with you. Nicknames work great.</p>';
@@ -197,31 +197,35 @@
   function viewKidForm(k) {
     var editing = !!k, color = k ? k.color : M.COLORS[state.kids.length % M.COLORS.length], role = k ? M.validRole(k.role) : (state.kids.length ? "" : "kid");
     if (!editing && !role) role = state.kids.some(function (x) { return x.role === "kid"; }) && !state.kids.some(function (x) { return x.role !== "kid"; }) ? "adult" : "kid";
+    var rel = k ? M.relOf(k) : M.defaultRel(role), relTouched = !!(k && k.relationship);
     var html = '<a class="back" href="' + (k ? "#/p/" + esc(k.id) + "/stats" : "#/") + '">← Back</a>' +
-      '<h1>' + (editing ? "Edit " + esc(k.name) : "Add someone") + '</h1><div class="panel">' +
+      '<h1>' + (editing ? "Edit " + esc(M.who(k)) : "Add someone") + '</h1><div class="panel">' +
       '<div class="field" style="margin-top:0"><label>Who is this?</label><div class="seg" role="group" aria-label="Who is this?">' + M.ROLES.map(function (r) {
         return '<button type="button" data-role="' + r.id + '" aria-pressed="' + (r.id === role) + '">' + esc(r.label) + '</button>'; }).join("") + '</div></div>' +
-      '<div class="field"><label for="kname">Name or nickname</label><input id="kname" type="text" maxlength="40" autocomplete="off" value="' + (k ? esc(k.name) : "") + '" placeholder="' + PLACEHOLDER[role] + '" /></div>' +
+      '<div class="field"><label for="kname">Name</label><input id="kname" type="text" maxlength="40" autocomplete="off" value="' + (k ? esc(k.name) : "") + '" placeholder="' + PLACEHOLDER[role] + '" /></div>' +
+      '<div class="field"><label for="knick">Nickname (optional, shows instead of the name)</label><input id="knick" type="text" maxlength="' + M.NICK_MAX + '" autocomplete="off" value="' + (k && k.nickname ? esc(k.nickname) : "") + '" placeholder="e.g. Nana, Papa, Bug" /></div>' +
+      '<div class="field"><label for="krel">Relationship in this family</label><select id="krel">' + M.RELATIONS.map(function (r) { return '<option value="' + r.id + '"' + (r.id === rel ? " selected" : "") + '>' + esc(r.label) + '</option>'; }).join("") + '</select></div>' +
       '<div class="field"><label for="kyear">Year they were born (optional, shows a kid\'s age on each trip)</label><input id="kyear" type="number" inputmode="numeric" min="1900" max="' + new Date().getFullYear() + '" value="' + (k && k.birthYear ? k.birthYear : "") + '" /></div>' +
       '<div class="field"><label>Map color</label><div class="swatches" role="group" aria-label="Map color">' +
       M.COLORS.map(function (c) { return '<button type="button" class="swatch" data-color="' + c + '" aria-pressed="' + (c === color) + '" aria-label="Color ' + c + '" style="background:' + c + '"></button>'; }).join("") +
       '</div></div><p class="err" id="kerr" hidden></p><div class="actions"><button class="btn btn-primary" id="ksave">' + (editing ? "Save" : "Add") + '</button>' +
-      (editing ? '<button class="btn btn-danger" id="kdel">Remove ' + esc(k.name) + '</button>' : "") + '</div></div>';
+      (editing ? '<button class="btn btn-danger" id="kdel">Remove ' + esc(M.who(k)) + '</button>' : "") + '</div></div>';
     main.innerHTML = html;
     main.querySelectorAll("[data-role]").forEach(function (b) {
-      b.onclick = function () { role = b.dataset.role; document.getElementById("kname").placeholder = PLACEHOLDER[role]; main.querySelectorAll("[data-role]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); };
+      b.onclick = function () { role = b.dataset.role; document.getElementById("kname").placeholder = PLACEHOLDER[role]; if (!relTouched) document.getElementById("krel").value = M.defaultRel(role); main.querySelectorAll("[data-role]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); };
     });
     main.querySelectorAll(".swatch").forEach(function (b) {
       b.onclick = function () { color = b.dataset.color; main.querySelectorAll(".swatch").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); };
     });
     document.getElementById("ksave").onclick = function () {
       var name = document.getElementById("kname").value, year = document.getElementById("kyear").value, err = document.getElementById("kerr");
+      var nick = document.getElementById("knick").value, relv = document.getElementById("krel").value;
       try {
         var cap = !editing && window.MLTL_SYNC && window.MLTL_SYNC.peopleCap ? window.MLTL_SYNC.peopleCap() : 0;
         if (cap && state.kids.length >= cap) throw new Error("Your Founders plan covers up to " + cap + " people. Remove someone to add someone new.");
-        var kid = editing ? k : M.newPerson({ name: name, role: role, birthYear: year, color: color });
-        if (editing) { var tmp = M.newPerson({ name: name, role: role, birthYear: year, color: color }); k.name = tmp.name; k.role = tmp.role; k.birthYear = tmp.birthYear; k.color = tmp.color; k.updatedAt = new Date().toISOString(); }
-        saveKid(kid).then(function () { if (!editing) state.kids.push(kid); state.kids.sort(byRole); location.hash = "#/p/" + kid.id + (editing ? "/stats" : "/us"); toast(editing ? "Saved" : "Welcome aboard, " + kid.name + "!"); });
+        var kid = editing ? k : M.newPerson({ name: name, role: role, birthYear: year, color: color, nickname: nick, relationship: relv });
+        if (editing) { var tmp = M.newPerson({ name: name, role: role, birthYear: year, color: color }); k.name = tmp.name; k.role = tmp.role; k.birthYear = tmp.birthYear; k.color = tmp.color; k.relationship = M.validRel(relv, tmp.role); var nk = M.newPerson({ name: "x", nickname: nick }).nickname; if (nk) k.nickname = nk; else delete k.nickname; k.updatedAt = new Date().toISOString(); }
+        saveKid(kid).then(function () { if (!editing) state.kids.push(kid); state.kids.sort(byRole); location.hash = "#/p/" + kid.id + (editing ? "/stats" : "/us"); toast(editing ? "Saved" : "Welcome aboard, " + M.who(kid) + "!"); });
       } catch (e) { err.textContent = e.message; err.hidden = false; }
     };
     if (editing) document.getElementById("kdel").onclick = function () {
@@ -244,7 +248,7 @@
   var worldZoom = "world";
   function shell(k, tab, inner) {
     var cur = tab === "trip" ? "trips" : tab;
-    return (tab === "trips" ? backupBanner() : "") + '<div style="' + kidStyle(k) + '"><a class="back" href="#/">← Everyone</a><div class="kidhead"><span class="avatar">' + initial(k.name) + '</span><h1>' + esc(k.name) + ' <span class="role">' + esc(roleLabel(k)) + '</span></h1></div>' +
+    return (tab === "trips" ? backupBanner() : "") + '<div style="' + kidStyle(k) + '"><a class="back" href="#/">← Everyone</a><div class="kidhead"><span class="avatar">' + initial(M.who(k)) + '</span><h1>' + esc(M.who(k)) + ' <span class="role">' + esc(roleLabel(k)) + '</span>' + (M.realName(k) ? ' <span class="muted small realname">' + esc(M.realName(k)) + '</span>' : "") + '</h1></div>' +
       '<nav class="tabs" aria-label="Sections" style="' + kidStyle(k) + '"><div class="wrap">' + TABS.map(function (t) {
         return '<a href="#/p/' + esc(k.id) + '/' + t[0] + '"' + (t[0] === cur ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">' + t[2] + '</span>' + t[1] + '</a>';
       }).join("") + '</div></nav>' + inner + '</div>';
@@ -261,7 +265,7 @@
     return '<div class="count"><div class="big">' + n + ' <small>of ' + total + ' ' + label + '</small></div>' + (extra || "") + '</div><div class="bar"><i style="width:' + Math.round(100 * n / total) + '%"></i></div>';
   }
   function usSVG(k, opts) {
-    var u = MAPS.us, s = '<svg viewBox="0 0 ' + u.w + ' ' + u.h + '" data-pz="us" role="img" aria-label="US map with ' + esc(k.name) + '\'s states colored in">';
+    var u = MAPS.us, s = '<svg viewBox="0 0 ' + u.w + ' ' + u.h + '" data-pz="us" role="img" aria-label="US map with ' + esc(M.who(k)) + '\'s states colored in">';
     u.insets.forEach(function (b) { s += '<rect class="inset" x="' + (b[0] - 4) + '" y="' + (b[1] - 4) + '" width="' + (b[2] + 8) + '" height="' + (b[3] + 8) + '" rx="8"/>'; });
     u.shapes.forEach(function (p) { s += '<path class="a' + (k.states[p.id] ? " on" : "") + '" data-kind="state" data-id="' + p.id + '" d="' + p.d + '"><title>' + esc(p.name) + '</title></path>'; });
     return s + '</svg>';
@@ -269,7 +273,7 @@
   var ZOOMS = { world: null, europe: [452, 32, 130, 80], uk: [467, 44, 38, 33], na: [60, 15, 330, 190] };
   function worldSVG(k, zoom) {
     var w = MAPS.world, vb = [0, 0, w.w, w.h], pre = ZOOMS[zoom];
-    var s = '<svg viewBox="' + vb.join(" ") + '" data-pz="world"' + (pre ? ' data-pzinit="' + pre.join(" ") + '"' : "") + ' role="img" aria-label="World map with ' + esc(k.name) + '\'s places colored in"><path class="ocean" d="' + w.outline + '"/><path class="grat" d="' + w.grat + '"/>';
+    var s = '<svg viewBox="' + vb.join(" ") + '" data-pz="world"' + (pre ? ' data-pzinit="' + pre.join(" ") + '"' : "") + ' role="img" aria-label="World map with ' + esc(M.who(k)) + '\'s places colored in"><path class="ocean" d="' + w.outline + '"/><path class="grat" d="' + w.grat + '"/>';
     var r = Math.max(vb[2] / 260, 0.25) * (pre ? pre[2] / vb[2] : 1);
     w.shapes.forEach(function (p) {
       var on = !!k.places[p.id] || (p.id === "USA" && Object.keys(k.states).length > 0);
@@ -326,7 +330,7 @@
     }).join("");
     main.innerHTML = shell(k, "us", counter(s.states, 50, "states") +
       '<div class="pzfind"></div><div class="mapbox us">' + usSVG(k) + '</div>' + MAP_HINT + ' Tiny states are easy in the list too.</p>' +
-        '<p class="small"><a href="#/p/' + esc(k.id) + '/signs">🪧 See ' + esc(k.name) + '\'s State Signs →</a></p>' +
+        '<p class="small"><a href="#/p/' + esc(k.id) + '/signs">🪧 See ' + esc(M.who(k)) + '\'s State Signs →</a></p>' +
       '<details class="list"><summary>Pick from a list</summary><div class="checks plist" data-plist="us:' + esc(k.id) + '">' +
         FF.tools('<div class="field"><label for="find">Find a state</label><input id="find" type="search" placeholder="Type a state, e.g. Utah or UT" autocomplete="off"></div>') + list + '</div></details>');
     FF.bind(main.querySelector("[data-plist]"), main.querySelector("#find"), false);
@@ -399,7 +403,7 @@
       }).join(""));
     }).join("");
     main.innerHTML = shell(k, "parks", counter(s.parks, M.PARKS.length, "national parks", kidMode ? '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>' : "") +
-      '<div class="mapbox us parksmap">' + parksMapSVG(k) + '</div><p class="hint">Green dots are parks ' + esc(k.name) + ' has been to. Every park has its own stamp below. American Samoa and the Virgin Islands are off the map.</p>' +
+      '<div class="mapbox us parksmap">' + parksMapSVG(k) + '</div><p class="hint">Green dots are parks ' + esc(M.who(k)) + ' has been to. Every park has its own stamp below. American Samoa and the Virgin Islands are off the map.</p>' +
       '<div class="panel parks plist" data-plist="parks:' + esc(k.id) + '">' + FF.tools('<div class="field" style="margin-top:0"><label for="pfind">Find a park or state</label><input id="pfind" type="search" placeholder="e.g. Zion, Utah or UT" autocomplete="off"></div>') + groups + '</div>' +
       (kidMode ? '<p class="hint">Earned a Junior Ranger badge? Tap "Ranger?" too. Ask at any park visitor center; most parks have a free booklet.</p>' : ""));
     var f = main.querySelector("#pfind");
@@ -482,7 +486,7 @@
   }
   function viewStats(k) {
     var s = M.stats(k, state.trips, MAPS.world), b = M.badges(s), earned = b.filter(function (x) { return x.earned; }).length;
-    main.innerHTML = shell(k, "stats", '<h2>' + esc(k.name) + '\'s travel stats</h2><div class="stats">' +
+    main.innerHTML = shell(k, "stats", '<h2>' + esc(M.who(k)) + '\'s travel stats</h2><div class="stats">' +
       statBox(s.states, 50, "States") + statBox(s.countries, 195, "Countries") + statBox(s.ukNations, 4, "UK nations") + statBox(s.parks, 64, "National parks") +
       (s.kid ? statBox(s.juniorRanger, 0, "Junior Ranger") : "") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
       (s.years ? statBox(s.years, 0, s.years === 1 ? "Year of trips" : "Years of trips") : "") + (s.firstTripAge != null ? statBox(s.firstTripAge, 0, "Age on first trip") : "") + '</div>' +
@@ -504,7 +508,7 @@
     if (!famSel || !famSel.length) famSel = state.kids.map(function (k) { return k.id; });
     return state.kids.filter(function (k) { return famSel.indexOf(k.id) >= 0; });
   }
-  function names(ids) { return ids.map(kidById).filter(Boolean).map(function (p) { return p.name; }); }
+  function names(ids) { return ids.map(kidById).filter(Boolean).map(function (p) { return M.who(p); }); }
   function famTitle(people) {
     var adults = people.filter(function (p) { return !M.isKid(p); });
     if (people.length === 2 && adults.length === 2) return "you two";
@@ -547,7 +551,7 @@
       var wk = M.whoBeen(people, "park", MAPS.world);
       var rows = M.PARKS.filter(function (p) { var who = wk[p.id]; return who && (!together || who.length === n); }).map(function (p) {
         return '<div class="row"><div class="nm"><b>' + esc(p.name) + '</b><span>' + esc(p.states) + '</span></div><span class="dots">' + wk[p.id].map(function (id) {
-          var x = kidById(id); return '<span class="dotp" title="' + esc(x.name) + '" style="' + kidStyle(x) + '">' + initial(x.name) + '</span>'; }).join("") + '</span></div>';
+          var x = kidById(id); return '<span class="dotp" title="' + esc(M.who(x)) + '" style="' + kidStyle(x) + '">' + initial(M.who(x)) + '</span>'; }).join("") + '</span></div>';
       }).join("");
       map = '<div class="panel parks">' + (rows || '<p class="muted">' + (together ? "No parks you've all been to yet. Time to plan one?" : "No national parks yet.") + '</p>') + '</div>';
       line = together ? fs.togetherParks + " <small>of 64 parks together</small>" : fs.parks + " <small>of 64 national parks between " + (n === 1 ? "them" : "you") + "</small>";
@@ -570,7 +574,7 @@
       UI().lifetimeHTML(null) +
       '<h2>Everyone</h2><div class="stats">' + people.map(function (p) {
         var ps = M.stats(p, state.trips, MAPS.world);
-        return '<a class="stat person" href="#/p/' + esc(p.id) + '" style="' + kidStyle(p) + '"><div class="v"><span class="dotp">' + initial(p.name) + '</span> ' + esc(p.name) + '</div><div class="k">' + ps.states + ' states · ' + ps.countries + ' countries · ' + ps.parks + ' parks</div></a>';
+        return '<a class="stat person" href="#/p/' + esc(p.id) + '" style="' + kidStyle(p) + '"><div class="v"><span class="dotp">' + initial(M.who(p)) + '</span> ' + esc(M.who(p)) + '</div><div class="k">' + ps.states + ' states · ' + ps.countries + ' countries · ' + ps.parks + ' parks</div></a>';
       }).join("") + '</div>';
     main.querySelectorAll("[data-person]").forEach(function (b) { b.onclick = function () {
       var id = b.dataset.person, i = famSel.indexOf(id);
@@ -633,11 +637,11 @@
     main.innerHTML = '<div class="sheet" style="' + kidStyle(k) + '"><a class="back" href="#/p/' + esc(k.id) + '/stats">← Back</a>' +
       '<div class="actions noprint"><button class="btn btn-primary" id="doprint">🖨 Print or save as PDF</button></div>' +
       '<p class="hint noprint">Tip: choose "Landscape" and turn on "Background graphics" so the colors print.</p>' +
-      '<section class="page"><h1>' + esc(k.name) + '\'s United States</h1><p class="statline">' + s.states + ' of 50 states · ' + s.parks + ' of 64 national parks · ' + s.trips + ' trips</p>' +
+      '<section class="page"><h1>' + esc(M.who(k)) + '\'s United States</h1><p class="statline">' + s.states + ' of 50 states · ' + s.parks + ' of 64 national parks · ' + s.trips + ' trips</p>' +
       '<div class="mapbox us">' + usSVG(k) + '</div></section>' +
-      '<section class="page"><h1>' + esc(k.name) + '\'s world</h1><p class="statline">' + s.countries + ' of 195 countries · ' + s.continents + ' continents · UK nations ' + s.ukNations + ' of 4</p>' +
+      '<section class="page"><h1>' + esc(M.who(k)) + '\'s world</h1><p class="statline">' + s.countries + ' of 195 countries · ' + s.continents + ' continents · UK nations ' + s.ukNations + ' of 4</p>' +
       '<div class="mapbox">' + worldSVG(k, "world") + '</div></section>' +
-      '<section class="page"><h1>Where ' + esc(k.name) + ' has been</h1><div class="cols">' +
+      '<section class="page"><h1>Where ' + esc(M.who(k)) + ' has been</h1><div class="cols">' +
       '<div><h2>States</h2><p>' + (Object.keys(k.states).sort().map(function (x) { return esc(STATE_NAME[x]); }).join(", ") || "Not yet!") + '</p>' +
       '<h2>Countries and places</h2><p>' + (places.map(esc).join(", ") || "Not yet!") + '</p></div>' +
       '<div><h2>National parks</h2>' + (parks.length ? '<ul>' + parks.map(function (p) { return '<li>' + esc(p.name) + (k.parks[p.id].jr ? " ★ Junior Ranger" : "") + '</li>'; }).join("") + '</ul>' : "<p>Not yet!</p>") + '</div></div>' +
