@@ -9,6 +9,9 @@
 
   var EARTH_MI = 3958.8, KM_PER_MI = 1.609344, AROUND_WORLD = 24901;
   var MAX_POINTS = 12, MAX_STAYS = 8, MAX_FAVS = 12;
+  // Flights: time in the air is a rough "gate to gate" guess (525 mph cruise plus 30 minutes for taxi, climb and landing).
+  // A drive to or from the airport counts once it's 25 miles or more (closer than that and it's just the airport run).
+  var CRUISE_MPH = 525, TAXI_MIN = 30, GROUND_MIN_MI = 25;
   // How each leg was traveled. Ground legs are estimated as great-circle x factor and shown as "about".
   var MODES = [
     { id: "car", label: "Car", ic: "🚗", factor: 1.2, road: true },
@@ -53,10 +56,29 @@
     if (typeof b.miles === "number" && b.miles >= 0) return { miles: b.miles, how: "manual", mode: m.id };
     if (m.id === "plane") {
       var from = hasLoc(b.dep) ? b.dep : a, to = hasLoc(b.arr) ? b.arr : b, g = gcMiles(from, to);
-      return { miles: g == null ? null : g, how: g == null ? "unknown" : "flight", mode: m.id };
+      var o = { miles: g == null ? null : g, how: g == null ? "unknown" : "flight", mode: m.id, air: g == null ? null : airMinutes(g) };
+      // the drive to the airport and from the one you landed at, when it's more than an airport run
+      var gA = hasLoc(b.dep) ? gcMiles(a, b.dep) : null, gB = hasLoc(b.arr) ? gcMiles(b.arr, b) : null;
+      if (gA != null && gA >= GROUND_MIN_MI) o.toAp = gA * MODE.car.factor;
+      if (gB != null && gB >= GROUND_MIN_MI) o.fromAp = gB * MODE.car.factor;
+      return o;
     }
     var d = gcMiles(a, b);
     return { miles: d == null ? null : d * m.factor, how: d == null ? "unknown" : "about", mode: m.id };
+  }
+  /** Rough minutes in the air for one flight of this many miles. */
+  function airMinutes(mi) { return mi == null || !isFinite(mi) || mi <= 0 ? null : Math.round(mi / CRUISE_MPH * 60 + TAXI_MIN); }
+  /** "8h 5m", "45m". Rounded to 5 minutes, since it's a guess. */
+  function fmtAir(min) {
+    if (min == null || !(min > 0)) return "";
+    var m = Math.max(5, Math.round(min / 5) * 5), h = Math.floor(m / 60), r = m % 60;
+    return h ? h + "h" + (r ? " " + r + "m" : "") : r + "m";
+  }
+  /** Does the route leave the home country (its first stop's country)? */
+  function crossesBorder(route, homeCountry) {
+    var r = route || [], home = homeCountry || (r[0] && r[0].country) || "";
+    if (!home) { var seen = {}; r.forEach(function (p) { if (p.country) seen[p.country] = 1; }); return Object.keys(seen).length > 1; }
+    return r.slice(1).some(function (p) { return p.country && p.country !== home; });
   }
   function fmtDist(mi, units, opts) {
     if (mi == null) return "? " + (units === "km" ? "km" : "mi");
@@ -71,6 +93,13 @@
     var o = { code: a.code, name: clean(a.name, 80), city: clean(a.city, 60), country: /^[A-Z]{3}$/.test(a.country || "") ? a.country : "" };
     var lat = num(a.lat, -90, 90, 3), lon = num(a.lon, -180, 180, 3);
     if (lat != null && lon != null) { o.lat = lat; o.lon = lon; }
+    return o;
+  }
+  /** The way home on a round trip, when it isn't just the first leg backwards (e.g. drove to Miami, flew to London). */
+  function cleanBack(b) {
+    if (!b || typeof b !== "object" || !MODE[b.mode]) return null;
+    var o = { mode: b.mode };
+    if (b.mode === "plane") { var d = cleanAirport(b.dep), r = cleanAirport(b.arr); if (d) o.dep = d; if (r) o.arr = r; }
     return o;
   }
   function cleanPoint(p, first) {
@@ -156,6 +185,9 @@
               stays: cleanStays(o.stays), favs: cleanFavs(o.favs), moments: cleanMoments(o.moments, kidIds) };
     var n = num(o.nights, 0, 999); x.nights = n == null ? null : n;
     x.story = cleanStory(o.story);
+    // v1.6: the "Did you fly?" answer ("yes", "no", "skip" or "" = not asked yet) and an optional way home
+    x.fly = /^(yes|no|skip)$/.test(o.fly || "") ? o.fly : "";
+    x.back = cleanBack(o.back);
     return x;
   }
 
@@ -195,14 +227,20 @@
       legs.push(L);
     }
     if (t.roundTrip && r.length > 1) {
-      var first = r[1], back = { name: r[0].name, lat: r[0].lat, lon: r[0].lon, mode: first.mode || "car" };
-      if (first.mode === "plane") { if (first.arr) back.dep = first.arr; if (first.dep) back.arr = first.dep; }
+      var first = r[1], bk = cleanBack(t.back), back = { name: r[0].name, lat: r[0].lat, lon: r[0].lon, mode: bk ? bk.mode : first.mode || "car" };
+      if (bk) { if (bk.dep) back.dep = bk.dep; if (bk.arr) back.arr = bk.arr; }
+      else if (first.mode === "plane") { if (first.arr) back.dep = first.arr; if (first.dep) back.arr = first.dep; }
       var R = legMiles(r[r.length - 1], back); R.from = r[r.length - 1].name; R.to = r[0].name; R.i = r.length; R.home = true; R.dep = back.dep || null; R.arr = back.arr || null;
       legs.push(R);
     }
+    var flown = 0, air = 0;
     legs.forEach(function (L) {
       if (L.miles == null) known = false; else { miles += L.miles; if (MODE[L.mode].road) road += L.miles; }
-      if (L.mode === "plane") flights++;
+      if (L.mode === "plane") {
+        flights++;
+        if (L.miles != null) { flown += L.miles; air += L.air || airMinutes(L.miles) || 0; }
+        var g = (L.toAp || 0) + (L.fromAp || 0); miles += g; road += g;
+      }
     });
     var seen = r.length > 1 ? r.slice(1) : r.slice();
     var cities = [], parks = [], states = [], countries = [], uk = [];
@@ -215,7 +253,7 @@
     });
     var nights = typeof t.nights === "number" ? t.nights : nightsBetween(t.date, t.endDate);
     if (nights == null) { var s = 0, any = false; r.forEach(function (p) { if (typeof p.nights === "number") { s += p.nights; any = true; } }); nights = any ? s : null; }
-    return { legs: legs, miles: Math.round(miles), milesKnown: known && legs.length > 0, flights: flights, roadMiles: Math.round(road),
+    return { legs: legs, miles: Math.round(miles), milesKnown: known && legs.length > 0, flights: flights, roadMiles: Math.round(road), flightMiles: Math.round(flown), airMin: air,
              cities: cities, parks: parks, states: states, countries: countries, ukNations: uk, nights: nights, days: nights == null ? null : nights + 1 };
   }
   /** Map areas a trip colors in for everyone on it: [{ kind: "state"|"place"|"park", id }]. */
@@ -251,16 +289,16 @@
   /** Lifetime numbers for one person (personId) or the whole family (personId = null, each trip counted once). */
   function lifetime(personId, trips) {
     var mine = trips.filter(function (t) { return !personId || (t.kidIds || []).indexOf(personId) >= 0; });
-    var miles = 0, flights = 0, bigRoad = 0, longest = null, stateCount = {}, restaurants = [];
+    var miles = 0, flights = 0, flown = 0, air = 0, bigRoad = 0, longest = null, stateCount = {}, restaurants = [];
     mine.forEach(function (t) {
-      var s = summary(t); miles += s.miles; flights += s.flights; bigRoad = Math.max(bigRoad, s.roadMiles);
+      var s = summary(t); miles += s.miles; flights += s.flights; flown += s.flightMiles; air += s.airMin; bigRoad = Math.max(bigRoad, s.roadMiles);
       if (s.miles > 0 && (!longest || s.miles > longest.miles)) longest = { id: t.id, name: t.place, miles: s.miles };
       s.states.forEach(function (st) { stateCount[st] = (stateCount[st] || 0) + 1; });
       (t.favs || []).forEach(function (f) { if (f.cat === "restaurant") restaurants.push({ name: f.name, where: f.where || "", rating: f.rating || 0, tripId: t.id, trip: t.place, date: t.date || "" }); });
     });
     var top = Object.keys(stateCount).sort(function (a, b) { return stateCount[b] - stateCount[a] || (a < b ? -1 : 1); })[0];
     restaurants.sort(function (a, b) { return (b.rating - a.rating) || (b.date < a.date ? -1 : 1); });
-    return { trips: mine.length, miles: Math.round(miles), flights: flights, bigRoad: Math.round(bigRoad), longest: longest,
+    return { trips: mine.length, miles: Math.round(miles), flights: flights, flightMiles: Math.round(flown), airMin: air, bigRoad: Math.round(bigRoad), longest: longest,
              topState: top ? { id: top, count: stateCount[top] } : null, restaurants: restaurants, aroundWorld: Math.round(miles / AROUND_WORLD * 100) / 100 };
   }
 
@@ -335,6 +373,7 @@
       firstPark: ["{p} visited {c} for the very first time.", "{c} was brand new for {p}."],
       badge: ["{p} even earned a new badge: {c}!", "And guess what? {p} unlocked the {c} badge!"],
       total: ["All together, they traveled {mi}{nights}.", "When they added it all up, they had gone {mi}{nights}."],
+      air: ["They spent about {h} up in the sky on {f} {fl}.", "That's about {h} of looking out the airplane window!"],
       close: ["And they all lived happily ever after, already dreaming about the next trip. The end.", "They came home tired, happy and full of stories. The end.",
               "And that is how {who} made a memory to keep forever. The end."]
     },
@@ -366,9 +405,11 @@
       firstPark: ["It was {p}'s first visit to {c}.", "{p} saw {c} for the first time."],
       badge: ["{p} earned the {c} badge on this one.", "New badge for {p}: {c}."],
       total: ["All told, we covered {mi}{nights}.", "By the end we'd traveled {mi}{nights}."],
+      air: ["About {h} of that was in the air, on {f} {fl}.", "We spent about {h} in the air."],
       close: ["Already wondering where we'll go next.", "Here's to the next one.", "A trip worth writing down."]
     }
   };
+  function airWords(min) { var h = Math.round(min / 60); return h < 1 ? "an hour" : h === 1 ? "an hour" : numWord(h) + " hours"; }
   function sentenceEnd(m) { m = clean(m, 280); return /[.!?"”]$/.test(m) ? m : m + "."; }
   /** Turn a trip into a short story. ctx = { travelers: [{id,name,role}], units, allowAdult, firsts: [{who, what, kind: "country"|"park"}],
       badges: [{who, name}], countryName(id), parkName(id), familyName }. opts = { style, seed }. Same trip + seed = same story. */
@@ -422,6 +463,7 @@
     // totals
     var nights = s.nights ? " over " + plural(s.nights, "night") : "";
     if (s.miles > 0) out.push(fill(pick(L.total), { mi: fmtDist(s.miles, units, { long: true }), nights: nights }));
+    if (s.flights && s.airMin) { var al = L.air, ah = airWords(s.airMin); out.push(fill(al[hash(String(t.id || "trip") + ":air") % al.length], { h: ah, f: numWord(s.flights), fl: s.flights === 1 ? "flight" : "flights" })); }
     var seen = [];
     if (s.cities.length > 1) seen.push(numWord(s.cities.length) + " towns and cities");
     if (s.parks.length) seen.push(plural(s.parks.length, "national park"));
@@ -440,7 +482,8 @@
 
   return { EARTH_MI: EARTH_MI, KM_PER_MI: KM_PER_MI, AROUND_WORLD: AROUND_WORLD, MAX_POINTS: MAX_POINTS, MAX_STAYS: MAX_STAYS, MAX_FAVS: MAX_FAVS,
            MODES: MODES, MODE: MODE, STAY_TYPES: STAY_TYPES, FAV_CATS: FAV_CATS, FAV: FAV, US_STATES: US_STATES,
-           gcMiles: gcMiles, legMiles: legMiles, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport,
+           gcMiles: gcMiles, legMiles: legMiles, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
+           airMinutes: airMinutes, fmtAir: fmtAir, crossesBorder: crossesBorder, CRUISE_MPH: CRUISE_MPH, GROUND_MIN_MI: GROUND_MIN_MI,
            cleanStays: cleanStays, cleanFavs: cleanFavs, cleanMoments: cleanMoments, cleanStory: cleanStory, cleanExtras: cleanExtras,
            routeFromLegacy: routeFromLegacy, syncLegacy: syncLegacy, nightsBetween: nightsBetween, summary: summary, areas: areas, isAdult: isAdult,
            showAdult: showAdult, visibleFavs: visibleFavs, tripMiles: tripMiles, lifetime: lifetime, project: project, routeMap: routeMap, PROJ: PROJ,
