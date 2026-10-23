@@ -69,6 +69,8 @@
     if (/Failed to fetch|NetworkError|offline|Load failed/i.test(m)) return new Error("You're offline. Your log is safe on this phone; try again when you're connected.");
     if (/expired|invalid.*(otp|token)|Token has expired/i.test(m)) return new Error("That code didn't work or has expired. Ask for a new one.");
     if (/identity.*already|already linked|identity_already_exists/i.test(m)) return new Error("That Google account is already used with Famstamp on another phone. Open Family Sync there, or sign in with it here from \"I already set this up on another phone\".");
+    if (/flow.?state|code.?verifier|code challenge|invalid flow|bad_code_verifier/i.test(m)) return new Error("Google sign-in started in a different app or browser, or took too long. Tap \"Try Google again\" and finish it without switching apps.");
+    if (/access_denied|access denied|cancel/i.test(m)) return new Error("Google sign-in was cancelled or blocked by Google. Tap \"Try Google again\". If Google said \"Access blocked\", tell us so we can fix it.");
     if (/manual linking|provider is not enabled|Unsupported provider/i.test(m)) return new Error("Google sign-in isn't switched on yet. Use an invite code or email for now.");
     return new Error(m.replace(/^.*?:\s*/, "") || "Something went wrong. Try again.");
   }
@@ -94,6 +96,15 @@
           var u = r.data && r.data.session && r.data.session.user;
           return kind === "link" && u && u.is_anonymous ? sb.auth.linkIdentity(opts) : sb.auth.signInWithOAuth(opts);
         }).then(chk);
+      },
+      // Back from Google with ?code=: swap it for a session here (not silently on load), so a failure is reported instead of
+      // falling back to the old anonymous session and looking like it worked.
+      finishOAuth: function (code) {
+        if (!code) return sb.auth.getSession().then(function (r) { return r.data && r.data.session ? user(r.data.session.user) : null; });
+        return sb.auth.exchangeCodeForSession(code).then(function (r) {
+          if (r.error) throw friendly(r.error);
+          var d = r.data || {}; return user(d.user || (d.session && d.session.user));
+        });
       },
       rpc: function (fn, args) { return sb.rpc(fn, args || {}).then(chk); },
       pull: function (table, fid, since) {
@@ -128,7 +139,7 @@
     if (window.MLTL_SYNC_REMOTE) return Promise.resolve(window.MLTL_SYNC_REMOTE);   // test stand-in
     if (!CFG.url || !CFG.key) return Promise.reject(new Error("Family Sync isn't set up in this version yet."));
     if (!remoteP) remoteP = (window.supabase ? Promise.resolve() : loadScript("vendor/supabase.js")).then(function () {
-      return sbAdapter(window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce", storageKey: "mltl-auth" } }));
+      return sbAdapter(window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: "pkce", storageKey: "mltl-auth" } }));
     }).catch(function (e) { remoteP = null; throw friendly(e); });
     return remoteP;
   }
@@ -396,6 +407,20 @@
 
   // ---------- screens ----------
   function viewSync(sub) {
+    var r = viewSync0(sub); putNote(); return r;
+  }
+  // The result of coming back from Google stays on Family Sync until dismissed (a toast is too easy to miss while the app loads).
+  var oauthNote = null;
+  function putNote() {
+    var main = document.getElementById("main"); if (!oauthNote || !main || main.querySelector(".gnote")) return;
+    var n = oauthNote, d = document.createElement("div"), c = cfg();
+    d.className = "panel gnote " + (n.ok ? "ok" : "bad"); d.setAttribute("role", n.ok ? "status" : "alert");
+    d.innerHTML = '<h3>' + (n.ok ? "You're signed in with Google" : "Google sign-in didn't finish") + '</h3><p class="small">' + esc(n.msg) + '</p><div class="actions">' +
+      (n.ok ? "" : googleBtn(on() && c && c.anonymous !== false ? "link" : "signin", "Try Google again")) + '<button type="button" class="btn btn-ghost small" data-gnote-x>OK</button></div>';
+    var after = main.querySelector(".back"); if (after && after.parentNode === main) main.insertBefore(d, after.nextSibling); else main.insertBefore(d, main.firstChild);
+  }
+  document.addEventListener("click", function (e) { var x = e.target.closest && e.target.closest("[data-gnote-x]"); if (!x) return; oauthNote = null; var n = x.closest(".gnote"); if (n) n.remove(); });
+  function viewSync0(sub) {
     document.title = "Family Sync · Famstamp";
     if (sub === "invite") return viewInvite();
     if (sub === "email") return FLAGS.email ? viewEmail() : viewOther();
@@ -1061,7 +1086,12 @@
     var b = e.target.closest && e.target.closest("[data-google]"); if (!b) return;
     var kind = b.getAttribute("data-google"); busy(b, true, "Opening Google…");
     try { localStorage.setItem("mltl-oauth", JSON.stringify({ kind: kind, db: HERE, at: Date.now(), code: b.getAttribute("data-code") || "" })); } catch (x) {}
-    remote().then(function (r) { return r.google(kind === "link" && on() ? "link" : "signin"); }).catch(function (x) { busy(b, false); try { localStorage.removeItem("mltl-oauth"); } catch (y) {} A.toast(friendly(x).message); });
+    var left = false, stuck = setTimeout(function () { if (left) return; busy(b, false); A.toast("Google didn't open. Check your connection and tap it again."); }, 10000);
+    window.addEventListener("pagehide", function () { left = true; clearTimeout(stuck); }, { once: true });
+    remote().then(function (r) { return r.google(kind === "link" && on() ? "link" : "signin"); }).catch(function (x) {
+      clearTimeout(stuck); busy(b, false); try { localStorage.removeItem("mltl-oauth"); } catch (y) {}
+      var m = friendly(x).message; oauthNote = { ok: false, msg: m }; A.toast(m); if (/^#\/sync/.test(location.hash)) A.route(); else location.hash = "#/sync";
+    });
   });
   /** Back from Google: the URL has ?code=… (or ?error=…). Finish signing in, then tidy the URL. */
   function oauthReturn() {
@@ -1069,13 +1099,15 @@
     if (/^#.*\berror(_description)?=/.test(location.hash) && !/[?&]error/.test(q)) q = "?" + location.hash.slice(1).replace(/^\/?\??/, "");   // errors can come back in the #fragment
     if (!/[?&](code|error|error_description)=/.test(q)) return;
     try { intent = JSON.parse(localStorage.getItem("mltl-oauth") || "null"); localStorage.removeItem("mltl-oauth"); } catch (x) {}
-    if (!intent || Date.now() - intent.at > 30 * 60 * 1000) return;
-    var params = new URLSearchParams(q), bad = params.get("error_description") || params.get("error");
+    if (!intent || Date.now() - intent.at > 30 * 60 * 1000) intent = { kind: on() ? "link" : "signin", code: "", at: Date.now() };   // back without our note (older version, other tab): still finish
+    var params = new URLSearchParams(q), bad = params.get("error_description") || params.get("error"), code = params.get("code");
     function tidy(hash) { history.replaceState(null, "", location.pathname + (hash || "#/sync")); A.route(); }
-    if (bad) { tidy("#/sync"); A.toast(friendly(new Error(bad)).message); return; }
+    function fail(m) { oauthNote = { ok: false, msg: m }; tidy("#/sync"); A.toast(m); }
+    if (bad) { fail(friendly(new Error(bad)).message); return; }
     var r;
-    remote().then(function (x) { r = x; return r.session(); }).then(function (u) {
-      if (!u) throw new Error("Google sign-in didn't finish. Try again.");
+    remote().then(function (x) { r = x; return r.finishOAuth ? r.finishOAuth(code) : r.session(); }).then(function (u) {
+      if (!u || u.anon) throw new Error("Google sign-in didn't finish on this phone. Tap \"Try Google again\".");
+      oauthNote = { ok: true, msg: "Signed in" + (u.email ? " as " + u.email : "") + ". Use the same Google account on the web or a new phone and you'll be the same you." };
       try { localStorage.setItem("mltl-signedin", JSON.stringify({ email: u.email || "", at: Date.now() })); } catch (x) {}
       if (intent.kind === "link" && on()) {
         var c = cfg(); c.anonymous = false; c.email = u.email || c.email || "";
@@ -1084,7 +1116,7 @@
       history.replaceState(null, "", location.pathname + "#/sync");
       if (intent.kind === "join" && intent.code) { location.hash = "#/join/" + intent.code; return; }   // the invite again, now as the Google account (login = identity)
       return welcomeBack(r, u, u.email || "");
-    }).catch(function (x) { tidy("#/sync"); A.toast(friendly(x).message); });
+    }).catch(function (x) { fail(friendly(x).message); });
   }
 
   function backupTag() {
