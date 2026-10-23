@@ -407,7 +407,7 @@
 
   // ---------- little view helpers ----------
   function dot(p, big) {
-    var name = p ? p.name : "?";
+    var name = p ? (M.who(p) || p.name) : "?";
     if (p && okAvatar(p.avatar)) return '<span class="' + (big ? "avatar" : "dotp") + ' hasimg" style="--kid:' + esc(p.color || "#6f8f7a") + '" title="' + esc(name) + '"><img src="' + esc(p.avatar) + '" alt="" referrerpolicy="no-referrer" loading="lazy"></span>';
     return '<span class="' + (big ? "avatar" : "dotp") + '" style="--kid:' + esc(p && p.color || "#6f8f7a") + '" title="' + esc(name) + '">' + esc(String(name || "?").charAt(0).toUpperCase()) + '</span>';
   }
@@ -420,7 +420,7 @@
   function back(href, label) { return '<a class="back" href="' + href + '">← ' + esc(label || "Back") + '</a>'; }
   function peoplePicker(name, list, selected, extra) {
     return '<div class="kidpick" role="radiogroup">' + list.map(function (p) {
-      return '<label style="--kid:' + esc(p.color) + '"><input type="radio" name="' + name + '" value="' + esc(p.id) + '"' + (p.id === selected ? " checked" : "") + (p.taken ? ' data-taken="1"' : "") + '> ' + dot(p) + ' ' + esc(p.name) + (p.taken ? ", that\'s me (on another device)" : "") + '</label>';
+      return '<label style="--kid:' + esc(p.color) + '"><input type="radio" name="' + name + '" value="' + esc(p.id) + '"' + (p.id === selected ? " checked" : "") + (p.taken ? ' data-taken="1"' : "") + '> ' + dot(p) + ' ' + esc(M.who(p)) + (M.realName(p) ? ' <span class="muted small">(' + esc(M.realName(p)) + ')</span>' : "") + (p.taken ? ", that\'s me (on another device)" : "") + '</label>';
     }).join("") + (extra || "") + '</div>';
   }
 
@@ -511,7 +511,7 @@
     var members = groups.map(function (g) {
       var m = g[0], p = memberPerson(m), me = g.some(function (x) { return x.user_id === c.userId; }), n = g.length;
       var oldest = g.map(function (x) { return x.joined_at; }).sort()[0];
-      return '<div class="row member">' + dot(p) + '<span class="nm"><b>' + esc(p.name || m.display_name) + (n > 1 ? ' <span class="muted small">(' + n + ' devices)</span>' : "") + (me ? ' <span class="muted small">(you)</span>' : "") + '</b><span>' + esc(ROLE_NAME[m.role] || "") + ' · joined ' + esc(S.ago(oldest)) + '</span></span>' +
+      return '<div class="row member">' + dot(p) + '<span class="nm"><b>' + esc((p && M.who(p)) || m.display_name) + (n > 1 ? ' <span class="muted small">(' + n + ' devices)</span>' : "") + (me ? ' <span class="muted small">(you)</span>' : "") + '</b><span>' + (p && M.realName(p) ? esc(M.realName(p)) + ' · ' : "") + (p ? esc(M.relLabel(p)) + ' · ' : "") + esc(ROLE_NAME[m.role] || "") + ' · joined ' + esc(S.ago(oldest)) + '</span></span>' +
         (owner && !me && n === 1 ? '<button type="button" class="pill" data-rm="' + esc(m.user_id) + '" aria-label="Remove ' + esc(m.display_name) + '">Remove</button>' : "") + '</div>';
     }).join("");
     main.innerHTML = back("#/", "Home") + '<h1>' + esc(c.familyName || "Family log") + '</h1>' +
@@ -544,7 +544,7 @@
     main.innerHTML = back("#/sync", "Family") + '<h1>Invite the crew</h1><p class="lede small">Send the link, or let them scan the code. It works for 7 days, up to 10 people.</p>' +
       '<div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" data-irole="adult" aria-pressed="true">A grown-up</button><button type="button" data-irole="kid" aria-pressed="false">A kid with their own phone</button></div>' +
       (A.state.kids.length ? '<div class="field"><label for="ifor">Who is it for?</label><select id="ifor"><option value="">Anyone (they pick themselves)</option>' +
-        A.state.kids.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join("") + '</select></div>' : "") +
+        A.state.kids.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(M.who(k)) + '</option>'; }).join("") + '</select></div>' : "") +
       '<div class="panel invite" id="invbox"><p class="muted">Making a code…</p></div><p class="err" id="ierr" hidden></p>' +
       '<h2>Open invites</h2><div class="panel" id="invlist"><p class="muted small">Loading…</p></div>';
     var role = "adult";
@@ -691,7 +691,9 @@
       (FLAGS.google && (!sess || sess.anon) ? '<div class="panel gjoin"><p class="small"><b>Already in this family on another phone?</b> Sign in with the same Google account.</p><div class="actions">' + googleBtn("join", "Continue with Google", code) + '</div></div>' : "") +
       '<div class="panel"><div class="field" style="margin-top:0"><label>Which one is you?</label>' +
       (fam.length ? peoplePicker("jme", fam, match ? match.id : "", '<label><input type="radio" name="jme" value=""' + (match ? "" : " checked") + '> I\'m new to the log</label>') : "") + '</div>' +
-      '<div class="field" id="jnamebox"' + (match ? " hidden" : "") + '><label for="jname">Your name or nickname</label><input id="jname" type="text" maxlength="40" placeholder="e.g. Grandma, Pop, Lily" value="' + esc(gFirst) + '"></div>' +
+      '<div class="field" id="jnamebox"' + (match ? " hidden" : "") + '><label for="jname">Your name or nickname</label><input id="jname" type="text" maxlength="40" placeholder="e.g. Grandma, Pop, Lily" value="' + esc(gFirst) + '">' +
+        '<label for="jnick" style="margin-top:10px">Nickname (optional)</label><input id="jnick" type="text" maxlength="' + M.NICK_MAX + '" placeholder="e.g. Nana, Papa">' +
+        '<label for="jrel" style="margin-top:10px">You are the family\'s…</label><select id="jrel">' + M.RELATIONS.map(function (x) { var d = M.defaultRel(inv.role === "kid" ? "kid" : "adult"); return '<option value="' + x.id + '"' + (x.id === d ? " selected" : "") + '>' + esc(x.label) + '</option>'; }).join("") + '</select></div>' +
       (hasLocal ? '<div class="field"><label>This phone already has a log (' + mine.length + (mine.length === 1 ? " person" : " people") + ', ' + A.state.trips.length + ' trips)</label>' +
         '<div class="seg col" role="radiogroup"><label class="opt"><input type="radio" name="jmerge" value="combine" checked> <span><b>Put them together</b><br><span class="small muted">Your maps and trips join the family log. Same names become one person.</span></span></label>' +
         '<label class="opt"><input type="radio" name="jmerge" value="separate"> <span><b>Keep them separate</b><br><span class="small muted">This phone\'s log stays as it is, and ' + esc(title) + ' gets its own log. Switch between them any time.</span></span></label>' +
@@ -711,7 +713,9 @@
         if (!famP) {   // new to the log: use a matching local profile, or make one
           var loc = A.state.kids.filter(function (k) { return k.name.toLowerCase() === myName.toLowerCase(); })[0];
           if (loc) { pid = loc.id; return; }
-          newPerson = M.newPerson({ name: myName, role: inv.role === "kid" ? "kid" : "adult", color: M.COLORS[(fam.length + A.state.kids.length) % M.COLORS.length] });
+          newPerson = M.newPerson({ name: myName, role: inv.role === "kid" ? "kid" : "adult", color: M.COLORS[(fam.length + A.state.kids.length) % M.COLORS.length],
+            nickname: (document.getElementById("jnick") || {}).value, relationship: (document.getElementById("jrel") || {}).value });
+          if (newPerson.relationship === "grandparent") newPerson.role = "grand";
           if (sess && !sess.anon && okAvatar(sess.avatar)) newPerson.avatar = sess.avatar;   // Google photo, for new people only
           pid = newPerson.id; return A.put("kids", newPerson);
         }
@@ -866,7 +870,7 @@
   // ---------- "this is me", and the family logs on this phone ----------
   function mePanel(c) {
     var p = c.myPerson ? A.kidById(c.myPerson) : null;
-    return '<div class="panel mepanel"><h3>This is you</h3>' + (p ? '<p class="row">' + dot(p) + ' <span><b>' + esc(p.name) + '</b> <span class="muted small">in ' + esc(c.familyName || "this log") + '</span></span></p>'
+    return '<div class="panel mepanel"><h3>This is you</h3>' + (p ? '<p class="row">' + dot(p) + ' <span><b>' + esc(M.who(p)) + '</b> <span class="muted small">in ' + esc(c.familyName || "this log") + '</span></span></p>'
       : '<p class="small muted">Pick which person on the log is you, so trips you add can also go to your other family logs.</p>') +
       '<div class="actions"><a class="btn btn-ghost" href="#/sync/me">' + (p ? "Change" : "Choose which one is me") + '</a></div></div>';
   }
@@ -1061,7 +1065,7 @@
   }
   function feedItem(it) {
     var t = it.trip, who = t.kidIds.map(A.kidById).filter(Boolean), route = M.routeText(t), owner = who[0];
-    return '<article class="feeditem">' + '<div class="fhead"><span class="dots">' + who.map(function (p) { return dot(p); }).join("") + '</span><span class="small"><b>' + esc(M.joinNames(who.map(function (p) { return p.name; }))) + '</b> went to <b>' + esc(t.place) + '</b></span></div>' +
+    return '<article class="feeditem">' + '<div class="fhead"><span class="dots">' + who.map(function (p) { return dot(p); }).join("") + '</span><span class="small"><b>' + esc(M.joinNames(who.map(function (p) { return M.who(p); }))) + '</b> went to <b>' + esc(t.place) + '</b></span></div>' +
       (t.photoId ? '<img alt="" data-photo="' + esc(t.photoId) + '">' : "") +
       '<div class="fbody">' + (route !== t.place ? '<div class="route small">' + esc(route) + '</div>' : "") + (t.memory ? '<p class="mem">' + esc(t.memory) + '</p>' : "") +
       '<div class="small muted">' + esc([M.prettyDate(t.date), it.by ? "added by " + it.by : "", S.ago(it.at)].filter(Boolean).join(" · ")) + '</div>' +
@@ -1077,7 +1081,7 @@
         '</span><br><span class="small">Invite someone, see the family feed →</span></span></a>' +
         (items.length ? '<div class="feed mini">' + items.map(function (it) {
           var who = it.trip.kidIds.map(A.kidById).filter(Boolean);
-          return '<a class="row" href="#/feed"><span class="dots">' + who.map(function (p) { return dot(p); }).join("") + '</span><span class="nm"><b>' + esc(it.trip.place) + '</b><span>' + esc(M.joinNames(who.map(function (p) { return p.name; })) + (it.by ? " · added by " + it.by : "") + " · " + S.ago(it.at)) + '</span></span></a>';
+          return '<a class="row" href="#/feed"><span class="dots">' + who.map(function (p) { return dot(p); }).join("") + '</span><span class="nm"><b>' + esc(it.trip.place) + '</b><span>' + esc(M.joinNames(who.map(function (p) { return M.who(p); })) + (it.by ? " · added by " + it.by : "") + " · " + S.ago(it.at)) + '</span></span></a>';
         }).join("") + '</div>' : "");
     }
     return "";   // while sync is off, homeTop() shows the invitation near the top instead

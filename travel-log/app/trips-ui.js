@@ -181,7 +181,7 @@
     // "Did you fly?": "" = not answered, "yes", "no" or "skip". Older trips that already have a flight count as yes.
     var fly = d.fly || (old && (d.route || []).some(function (p) { return p.mode === "plane"; }) ? "yes" : ""), flyOpen = false, flyPick = { dep: null, arr: null, ti: 0 };
     var picks = st.kids.map(function (x) {
-      return '<label style="' + A_.kidStyle(x) + '"><input type="checkbox" name="kids" value="' + esc(x.id) + '"' + (d.kidIds.indexOf(x.id) >= 0 ? " checked" : "") + '> <span class="dotp" aria-hidden="true">' + A_.initial(x.name) + '</span> ' + esc(x.name) + '</label>';
+      return '<label style="' + A_.kidStyle(x) + '"><input type="checkbox" name="kids" value="' + esc(x.id) + '"' + (d.kidIds.indexOf(x.id) >= 0 ? " checked" : "") + '> <span class="dotp" aria-hidden="true">' + A_.initial(M.who(x)) + '</span> ' + esc(M.who(x)) + '</label>';
     }).join("");
     var html = '<h2>' + (old ? "Edit trip" : "Add a trip") + '</h2><div class="panel builder">' +
       '<div class="field" style="margin-top:0"><label>Who went?</label><div class="kidpick">' + picks + '</div>' +
@@ -441,7 +441,7 @@
     function renderMoments() {
       var ids = kidIds();
       $("#bmoments").innerHTML = people(ids).map(function (p) {
-        return '<div class="field"><label for="mo-' + esc(p.id) + '" style="' + A_.kidStyle(p) + '"><span class="dotp" aria-hidden="true">' + A_.initial(p.name) + '</span> ' + esc(p.name) + '\'s favorite moment</label>' +
+        return '<div class="field"><label for="mo-' + esc(p.id) + '" style="' + A_.kidStyle(p) + '"><span class="dotp" aria-hidden="true">' + A_.initial(M.who(p)) + '</span> ' + esc(M.who(p)) + '\'s favorite moment</label>' +
           '<input id="mo-' + esc(p.id) + '" type="text" maxlength="280" data-moment="' + esc(p.id) + '" value="' + esc((d.moments || {})[p.id] || "") + '" placeholder="' + (M.isKid(p) ? "e.g. Seeing a real castle!" : "e.g. The sunset on the ferry") + '"></div>';
       }).join("") || '<p class="small muted">Check who went first.</p>';
     }
@@ -633,7 +633,7 @@
     var A_ = A(), m = t.moments || {}, list = people(t.kidIds).filter(function (p) { return m[p.id]; }), mem = memoriesHTML(t);
     if (!list.length && !mem) return "";
     return '<h3 class="sec">Trip memories</h3>' + mem + (!list.length ? "" : '<div class="moments">' + list.map(function (p) {
-      return '<blockquote style="' + A_.kidStyle(p) + '"><p>“' + esc(m[p.id]) + '”</p><cite><span class="dotp" aria-hidden="true">' + A_.initial(p.name) + '</span> ' + esc(p.name) + '</cite></blockquote>'; }).join("") +
+      return '<blockquote style="' + A_.kidStyle(p) + '"><p>“' + esc(m[p.id]) + '”</p><cite><span class="dotp" aria-hidden="true">' + A_.initial(M.who(p)) + '</span> ' + esc(M.who(p)) + '</cite></blockquote>'; }).join("") +
       '</div>');
   }
 
@@ -923,7 +923,7 @@
       bookHTML(title, "#16283a", stamps, true, null) +
       '<h2>Passports</h2><div class="stats">' + S().kids.map(function (p) {
         var n = stampsOf(p).length;
-        return '<a class="stat person" href="#/p/' + esc(p.id) + '/passport" style="' + A_.kidStyle(p) + '"><div class="v"><span class="dotp">' + A_.initial(p.name) + '</span> ' + esc(p.name) + '</div><div class="k">' + n + (n === 1 ? " stamp" : " stamps") + '</div></a>'; }).join("") + '</div>';
+        return '<a class="stat person" href="#/p/' + esc(p.id) + '/passport" style="' + A_.kidStyle(p) + '"><div class="v"><span class="dotp">' + A_.initial(M.who(p)) + '</span> ' + esc(M.who(p)) + '</div><div class="k">' + n + (n === 1 ? " stamp" : " stamps") + '</div></a>'; }).join("") + '</div>';
     var bk = bindBook(function (pg) { passportFamily(pg); }, stamps, null);
     if (openAt) bk.open(openAt);
   }
@@ -999,7 +999,7 @@
   function askDate(k, kind, id, after) {
     var name = shortArea(kind, id);
     if (kind === "place" && id === "USA") return;
-    var html = '<div class="askhead"><span aria-hidden="true">🛂</span><div><h3>Stamp ' + esc(k.name) + '\'s passport?</h3><p class="muted small">When ' + (M.isKid(k) ? "were you" : "were you") + ' in ' + esc(name) + '?</p></div></div>' + dateFields("") +
+    var html = '<div class="askhead"><span aria-hidden="true">🛂</span><div><h3>Stamp ' + esc(M.who(k)) + '\'s passport?</h3><p class="muted small">When ' + (M.isKid(k) ? "were you" : "were you") + ' in ' + esc(name) + '?</p></div></div>' + dateFields("") +
       '<div class="actions"><button type="button" class="btn btn-primary" id="sok">Stamp it</button><button type="button" class="btn btn-ghost" data-close id="snot">Not sure</button></div>';
     sheet(html);
     $("#sok").onclick = function () {
@@ -1063,14 +1063,14 @@
         (s.legs.length ? '<h2>The way we went</h2><ul>' + s.legs.map(function (L) { return '<li>' + modeIc(L.mode) + ' ' + esc(L.from + " → " + L.to) + ': ' + esc((L.how === "about" ? "about " : "") + dist(L.miles)) + '</li>'; }).join("") + '</ul>' : "") +
         ((t.stays || []).length ? '<h2>Where we stayed</h2><ul>' + t.stays.map(function (x) { return '<li>' + esc(x.name) + (x.nights ? ", " + x.nights + " nights" : "") + (x.rating ? " " + "★★★★★".slice(0, x.rating) : "") + (x.note ? ": " + esc(x.note) : "") + '</li>'; }).join("") + '</ul>' : "") +
         (favs.length ? '<h2>Favorites</h2><ul>' + favs.map(function (f) { return '<li>' + T.FAV[f.cat].ic + ' ' + esc(T.FAV[f.cat].short) + ': <b>' + esc(f.name) + '</b>' + (f.where ? " (" + esc(f.where) + ")" : "") + (f.rating ? " " + "★★★★★".slice(0, f.rating) : "") + '</li>'; }).join("") + '</ul>' : "") +
-        (people(t.kidIds).some(function (p) { return m[p.id]; }) ? '<h2>Favorite moments</h2><ul>' + people(t.kidIds).filter(function (p) { return m[p.id]; }).map(function (p) { return '<li><b>' + esc(p.name) + ':</b> ' + esc(m[p.id]) + '</li>'; }).join("") + '</ul>' : "") +
+        (people(t.kidIds).some(function (p) { return m[p.id]; }) ? '<h2>Favorite moments</h2><ul>' + people(t.kidIds).filter(function (p) { return m[p.id]; }).map(function (p) { return '<li><b>' + esc(M.who(p)) + ':</b> ' + esc(m[p.id]) + '</li>'; }).join("") + '</ul>' : "") +
         '</div><div>' + (t.story && canStory(t) ? '<h2>Our story</h2><p class="storyprint">' + esc(storyTextForPrint(t, k)) + '</p>' : "") + '</div></div></section>';
     }).join("");
     var stamps = stampsOf(k);
     if (stamps.length) {
       var chunks = []; for (var ci = 0; ci < stamps.length; ci += 12) chunks.push(stamps.slice(ci, ci + 12).map(function (x, j) { return { stamp: x, rot: (T.hash(x.id) % 17) - 8 }; }));
       out += chunks.map(function (pg, n) {
-        return '<section class="page passprint"><h1>' + esc(k.name) + '\'s passport' + (n ? " (" + (n + 1) + ")" : "") + '</h1><div class="pgrid">' + pg.map(function (c) {
+        return '<section class="page passprint"><h1>' + esc(M.who(k)) + '\'s passport' + (n ? " (" + (n + 1) + ")" : "") + '</h1><div class="pgrid">' + pg.map(function (c) {
           return '<div class="pstamp" style="--r:' + c.rot + 'deg">' + stampSVG(c.stamp, k.id) + '</div>'; }).join("") + '</div></section>';
       }).join("");
     }
@@ -1102,7 +1102,7 @@
   function collectBar(personId) {
     if (S().kids.length < 2) return "";
     return '<div class="chips signwho" role="group" aria-label="Whose signs">' + '<a class="chip" href="#/family/signs"' + (personId ? "" : ' aria-current="true"') + '>Everyone</a>' +
-      S().kids.map(function (p) { return '<a class="chip" style="' + A().kidStyle(p) + '" href="#/p/' + esc(p.id) + '/signs"' + (p.id === personId ? ' aria-current="true"' : "") + '><span class="dotp" aria-hidden="true">' + A().initial(p.name) + '</span> ' + esc(p.name) + '</a>'; }).join("") + '</div>';
+      S().kids.map(function (p) { return '<a class="chip" style="' + A().kidStyle(p) + '" href="#/p/' + esc(p.id) + '/signs"' + (p.id === personId ? ' aria-current="true"' : "") + '><span class="dotp" aria-hidden="true">' + A().initial(M.who(p)) + '</span> ' + esc(M.who(p)) + '</a>'; }).join("") + '</div>';
   }
   // Which signs this screen has already shown, so a newly collected one flips in once (kept on this device only).
   function seenKey(personId) { var log = "mltl"; try { log = window.MLTL_SYNCCORE.readLogs(localStorage).active || log; } catch (e) {} return "famstamp-signs-seen:" + log + ":" + (personId || "all"); }
@@ -1129,7 +1129,7 @@
       '<p class="small muted">Signs fill in from trips, passport stamps and the states you color in on the map. Tap one to see its trips and dates. The designs are Famstamp originals, not real state signs.</p>';
   }
   function signs(k) {
-    var A_ = A(), pid = k ? k.id : null; document.title = (k ? k.name + "'s state signs" : "State signs") + " · Famstamp";
+    var A_ = A(), pid = k ? k.id : null; document.title = (k ? M.who(k) + "'s state signs" : "State signs") + " · Famstamp";
     var have = Object.keys(P.signsFor(k ? [k] : S().kids, S().trips, CTX)), seen = readSeen(pid);
     // First visit to this screen: nothing flips. After that, signs collected since last time get a flip-in and a shine.
     var fresh = seen ? have.filter(function (id) { return seen.indexOf(id) < 0; }) : [];
@@ -1187,7 +1187,7 @@
     var list = kids.slice().sort(function (a, b) { return (b.id === me ? 1 : 0) - (a.id === me ? 1 : 0); }), lead = A_.kidById(me) || list[0];
     sheet('<div class="sheethead"><h3 id="wwh">Who went?</h3><button type="button" class="sheetx" data-close aria-label="Close">✕</button></div><p class="small muted">Pick one to start. You can check everyone else on the next screen.</p>' +
       '<div class="whowent" role="group" aria-labelledby="wwh"><a class="wwall" href="' + esc(addTripHref(lead, true)) + '"><span aria-hidden="true">👨‍👩‍👧</span> Everyone went</a>' +
-      list.map(function (p) { return '<a class="wwone" href="' + esc(addTripHref(p)) + '" style="' + A_.kidStyle(p) + '"><span class="dotp" aria-hidden="true">' + A_.initial(p.name) + '</span> ' + esc(p.name) + (p.id === me ? ' <small>(you)</small>' : "") + '</a>'; }).join("") + '</div>' +
+      list.map(function (p) { return '<a class="wwone" href="' + esc(addTripHref(p)) + '" style="' + A_.kidStyle(p) + '"><span class="dotp" aria-hidden="true">' + A_.initial(M.who(p)) + '</span> ' + esc(M.who(p)) + (p.id === me ? ' <small>(you)</small>' : "") + '</a>'; }).join("") + '</div>' +
       '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
   }
 

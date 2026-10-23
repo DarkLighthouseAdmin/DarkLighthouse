@@ -128,7 +128,7 @@
     document.title = (q ? q.name : "Quests") + " · Famstamp";
     if (!q) {
       var L = list(k), mine = L.filter(function (x) { return x.mine; }), rest = L.filter(function (x) { return !x.mine; }), got = earned(k);
-      main.innerHTML = A.shell(k, "stats", '<div class="qhead"><h2>🧭 ' + esc(k.name) + '\'s travel quests</h2><p class="muted">Little scavenger hunts for your trips. Tick things off as you spot them and finish a quest to earn its badge.</p></div>' +
+      main.innerHTML = A.shell(k, "stats", '<div class="qhead"><h2>🧭 ' + esc(window.MLTL.who(k)) + '\'s travel quests</h2><p class="muted">Little scavenger hunts for your trips. Tick things off as you spot them and finish a quest to earn its badge.</p></div>' +
         (got.length ? '<div class="qbadges" aria-label="Quest badges">' + got.map(function (g) { return '<span class="qbadge" title="' + esc(g.q.badge) + '"><i aria-hidden="true">' + g.q.emoji + '</i>' + esc(g.q.badge) + '</span>'; }).join("") + '</div>' : "") +
         (mine.length ? '<h3 class="qsec">For your trips</h3><div class="qlist">' + mine.map(function (x) { return card(k, x); }).join("") + '</div>' : "") +
         '<h3 class="qsec">' + (mine.length ? "More quests" : "Pick a quest") + '</h3><div class="qlist">' + rest.map(function (x) { return card(k, x); }).join("") + '</div>' +

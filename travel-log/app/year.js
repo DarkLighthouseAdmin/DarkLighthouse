@@ -112,7 +112,7 @@
     var year = view.year && ys.indexOf(view.year) >= 0 ? view.year : (ys.indexOf(now) >= 0 ? now : ys[0] || now);
     var back = one ? "#/p/" + esc(one.id) + "/stats" : "#/";
     var who = '<div class="field"><label for="yr-who">Whose year</label><select id="yr-who"><option value="">The whole family</option>' +
-      st.kids.map(function (k) { return '<option value="' + esc(k.id) + '"' + (one && one.id === k.id ? " selected" : "") + '>' + esc(k.name) + '</option>'; }).join("") + '</select></div>';
+      st.kids.map(function (k) { return '<option value="' + esc(k.id) + '"' + (one && one.id === k.id ? " selected" : "") + '>' + esc(window.MLTL.who(k)) + '</option>'; }).join("") + '</select></div>';
     var yearSel = ys.length > 1 ? '<div class="field"><label for="yr-year">Year</label><select id="yr-year">' + ys.map(function (y) { return '<option' + (y === year ? " selected" : "") + '>' + y + '</option>'; }).join("") + '</select></div>' : "";
     var sum = summary(people, st.trips, year);
     var head = '<a class="back" href="' + back + '">← Back</a><h1>' + esc(year) + ' in stamps</h1>' +
@@ -124,7 +124,7 @@
     main.innerHTML = head + '<div class="yr-card"><div class="yr-wait muted">Making your card…</div></div>' +
       '<div class="actions yr-actions"><button type="button" class="btn btn-beacon" id="yr-share" disabled>Share</button><button type="button" class="btn btn-ghost" id="yr-dl" disabled>Download</button></div>';
     bind(one);
-    var title = one ? one.name + "'s " + year + " in stamps" : "Our " + year + " in stamps";
+    var title = one ? window.MLTL.who(one) + "'s " + year + " in stamps" : "Our " + year + " in stamps";
     draw(sum, title).then(function (cv) {
       cv.toBlob(function (blob) {
         if (!blob || !document.getElementById("yr-share")) return;
