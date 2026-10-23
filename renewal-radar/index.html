@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TVG78TY2JC"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-TVG78TY2JC');</script>
+  <title>Renewal Radar: Subscription &amp; Free Trial Tracker for Firefox and Edge</title>
+  <meta name="description" content="A private browser extension that tracks your subscriptions and free trials, shows your real monthly total, and reminds you before every charge. Free, with a one-time $7 Pro." />
+  <meta name="author" content="Dark Lighthouse Solutions" />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://darklighthousesolutions.com/renewal-radar/" />
+  <meta property="og:site_name" content="Dark Lighthouse Solutions" />
+  <meta property="og:title" content="Renewal Radar: Subscription &amp; Free Trial Tracker for Firefox and Edge" />
+  <meta property="og:description" content="A private browser extension that tracks your subscriptions and free trials, shows your real monthly total, and reminds you before every charge. Free, with a one-time $7 Pro." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://darklighthousesolutions.com/renewal-radar/" />
+  <meta property="og:image" content="https://darklighthousesolutions.com/renewal-radar/img/og.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="/renewal-radar/img/icon-128.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Renewal Radar","applicationCategory":"FinanceApplication","operatingSystem":"Firefox, Microsoft Edge","description":"Browser extension that tracks subscriptions and free trials and reminds you before each charge. Data stays in your browser.","offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free"},{"@type":"Offer","price":"7.00","priceCurrency":"USD","name":"Pro (one-time)"}],"author":{"@type":"Organization","name":"Dark Lighthouse Solutions","url":"https://darklighthousesolutions.com/"}}
+  </script>
+<style>
+    :root { --ink:#1f2a33; --muted:#5b6b73; --cream:#f7f3ea; --card:#fffdf8; --sage:#6f8f7a; --sage-deep:#3f5f4c;
+            --navy:#16283a; --beacon:#e8a54b; --beacon-hot:#d98b25; --line:rgba(31,42,51,.12); --ok:#2f8f5f; --bad:#b4442f; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:"IBM Plex Sans",system-ui,sans-serif; color:var(--ink); background:var(--cream); line-height:1.55; }
+    a { color:var(--sage-deep); }
+    .wrap { max-width:1000px; margin:0 auto; padding:0 1.25rem; }
+    .topbar { background:var(--navy); color:#e8eef6; }
+    .topbar .wrap { display:flex; justify-content:space-between; align-items:center; padding:.8rem 1.25rem; gap:1rem; flex-wrap:wrap; }
+    .topbar a { color:#e8eef6; text-decoration:none; font-weight:500; }
+    .topbar .brand { font-family:Fraunces,serif; font-size:1.15rem; }
+    .topbar .brand span { color:var(--beacon); }
+    .hero { padding:2.5rem 0 1rem; }
+    .crumb { font-size:.9rem; color:var(--muted); margin-bottom:.6rem; }
+    h1 { font-family:Fraunces,serif; font-size:clamp(1.9rem,4.5vw,2.7rem); line-height:1.12; color:var(--navy); }
+    .lede { font-size:1.1rem; color:var(--muted); max-width:46rem; margin-top:.7rem; }
+    h2 { font-family:Fraunces,serif; font-size:1.55rem; color:var(--navy); margin:2.2rem 0 .5rem; }
+    h3 { font-size:1.08rem; color:var(--navy); margin:1.2rem 0 .3rem; }
+    .panel { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:1.2rem; box-shadow:0 2px 10px rgba(22,40,58,.05); margin-top:1.2rem; }
+    label { font-size:.85rem; font-weight:600; color:var(--muted); display:block; margin-bottom:.2rem; }
+    input, select { font:inherit; width:100%; padding:.55rem .65rem; border:1px solid rgba(31,42,51,.25); border-radius:9px; background:#fff; color:var(--ink); min-width:0; }
+    input:focus, select:focus { outline:2px solid var(--beacon); outline-offset:1px; }
+    input[aria-invalid="true"] { border-color:var(--bad); background:#fff5f2; }
+    .rows { display:flex; flex-direction:column; gap:.7rem; }
+    .row { display:grid; gap:.6rem; align-items:end; padding:.7rem; border:1px solid var(--line); border-radius:12px; background:#fff; }
+    .row.debt { grid-template-columns:1.6fr 1fr .8fr 1fr auto; }
+    .row.goal { grid-template-columns:1.6fr 1fr 1fr 1.2fr auto; }
+    .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.8rem; margin-top:1rem; }
+    .rm { border:0; background:transparent; color:var(--muted); font-size:1.4rem; line-height:1; padding:.45rem .5rem; cursor:pointer; border-radius:8px; }
+    .rm:hover { background:#f1ece2; color:var(--bad); }
+    .actions { display:flex; gap:.7rem; flex-wrap:wrap; margin-top:1rem; }
+    .btn { display:inline-block; padding:.65rem 1.15rem; border-radius:10px; font-weight:600; text-decoration:none; border:0; cursor:pointer; font:inherit; font-weight:600; }
+    .btn-primary { background:var(--sage-deep); color:#fff; } .btn-primary:hover { background:var(--sage); }
+    .btn-ghost { background:transparent; border:1px solid var(--line); color:var(--sage-deep); }
+    .btn-beacon { background:var(--beacon); color:var(--navy); } .btn-beacon:hover { background:var(--beacon-hot); }
+    .seg { display:flex; flex-wrap:wrap; gap:.4rem; } .seg label { margin:0; }
+    .seg input { position:absolute; opacity:0; width:1px; }
+    .seg span { display:inline-block; padding:.45rem .85rem; border:1px solid rgba(31,42,51,.25); border-radius:999px; background:#fff; font-weight:600; color:var(--ink); cursor:pointer; font-size:.9rem; }
+    .seg input:checked + span { background:var(--navy); color:#fff; border-color:var(--navy); }
+    .seg input:focus-visible + span { outline:2px solid var(--beacon); }
+    .errors { display:none; background:#fff3ef; border:1px solid #e9b8a9; color:#7a2a17; border-radius:12px; padding:.8rem 1rem; margin-top:1rem; }
+    .errors.show { display:block; } .errors ul { margin-left:1.1rem; }
+    .results { margin-top:1.2rem; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.8rem; }
+    .stat { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:1rem; }
+    .stat.win { border:2px solid var(--ok); }
+    .stat .k { font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; }
+    .stat .v { font-family:Fraunces,serif; font-size:1.7rem; color:var(--navy); line-height:1.2; }
+    .stat .s { font-size:.9rem; color:var(--muted); }
+    .stat ol { margin:.4rem 0 0 1.2rem; font-size:.92rem; }
+    .callout { background:#e6f4ec; border:1px solid var(--ok); color:#174d33; border-radius:12px; padding:.8rem 1rem; margin-top:1rem; }
+    .warn { background:#fff7e8; border:1px solid var(--beacon); color:#6b4a12; border-radius:12px; padding:.8rem 1rem; margin-top:1rem; }
+    .tablewrap { overflow:auto; max-height:420px; border:1px solid var(--line); border-radius:12px; margin-top:.7rem; background:#fff; }
+    table { border-collapse:collapse; width:100%; font-size:.92rem; }
+    th, td { padding:.45rem .65rem; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; }
+    th:first-child, td:first-child { text-align:left; }
+    th { background:#f1ece2; color:var(--navy); position:sticky; top:0; font-weight:600; }
+    tfoot td { font-weight:700; background:#faf7f0; }
+    td.note { text-align:left; white-space:normal; color:var(--muted); }
+    .bar { display:inline-block; height:.55rem; background:var(--sage); border-radius:4px; vertical-align:middle; margin-right:.4rem; }
+    .muted { color:var(--muted); font-size:.92rem; }
+    .copy p, .copy li { max-width:46rem; margin-top:.7rem; } .copy ul, .copy ol { margin-left:1.2rem; }
+    .faq details { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.8rem 1rem; margin-top:.6rem; max-width:46rem; }
+    .faq summary { font-weight:600; cursor:pointer; color:var(--navy); } .faq details p { margin-top:.5rem; }
+    .cta { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; margin-top:1rem; }
+    .pcard { background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; }
+    .pcard img { width:100%; height:auto; aspect-ratio:4/3; object-fit:cover; display:block; background:#eee; }
+    .pcard .b { padding:1rem 1.1rem 1.2rem; display:flex; flex-direction:column; gap:.45rem; flex:1; }
+    .pcard h3 { margin:0; } .pcard p { color:var(--muted); font-size:.95rem; flex:1; }
+    .buy-row { display:flex; align-items:center; justify-content:space-between; gap:.8rem; }
+    .price { font-size:1.3rem; font-weight:600; color:var(--navy); }
+    .tools { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; margin-top:1rem; }
+    .tool { display:block; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:1.2rem; text-decoration:none; color:var(--ink); }
+    .tool:hover { border-color:var(--sage); } .tool h2 { font-size:1.3rem; margin:0 0 .4rem; } .tool p { color:var(--muted); }
+    .tool .go { display:inline-block; margin-top:.7rem; font-weight:600; color:var(--sage-deep); }
+    footer { margin:3.5rem 0 2rem; color:var(--muted); font-size:.92rem; border-top:1px solid var(--line); padding-top:1.2rem; }
+    @media (max-width:720px) {
+      .row.debt, .row.goal { grid-template-columns:1fr 1fr; }
+      .row .name { grid-column:1 / -1; }
+      .row .rm { grid-column:2; justify-self:end; }
+      th, td { padding:.4rem .5rem; font-size:.86rem; }
+    }
+  </style>
+  <style>
+    .shots { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; margin-top:1rem; }
+    .shots img { width:100%; height:auto; border-radius:12px; border:1px solid var(--line); display:block; }
+    .heroflex { display:flex; gap:1.2rem; align-items:center; }
+    .heroflex img { width:84px; height:84px; flex:0 0 auto; }
+    .plans { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; margin-top:1rem; }
+    .plans .panel { margin-top:0; } .plans ul { margin:.6rem 0 0 1.2rem; } .plans li { margin-top:.3rem; }
+    .soon { display:inline-block; padding:.65rem 1.15rem; border-radius:10px; border:1px dashed var(--line); color:var(--muted); font-weight:600; }
+    #thanks { display:none; } #thanks.show { display:block; }
+  </style>
+</head>
+<body>
+  <div class="topbar"><div class="wrap">
+    <a class="brand" href="/">Dark Lighthouse <span>Solutions</span></a>
+    <nav><a href="/templates/">Money templates</a> &nbsp;·&nbsp; <a href="/tools/">Free tools</a> &nbsp;·&nbsp; <a href="/renewal-radar/">Renewal Radar</a> &nbsp;·&nbsp; <a href="/#kits">Developer kits</a></nav>
+  </div></div>
+
+  <header class="wrap hero">
+    <div class="heroflex"><img src="/renewal-radar/img/icon-128.png" alt="Renewal Radar icon" width="84" height="84" />
+    <div><h1>Renewal Radar</h1>
+    <p class="lede">A little browser extension that keeps an eye on your subscriptions and free trials, so you stop finding $14.99 charges you forgot about.</p></div></div>
+    <div class="actions">
+      <span class="soon">Firefox: coming soon</span>
+      <span class="soon">Microsoft Edge: coming soon</span>
+      <a class="btn btn-beacon" href="https://buy.polar.sh/polar_cl_8uoHdB7lnHSgTsGEGVU83azBFdiaP4jwN3jpR2Hiiif">Get Pro for $7</a>
+    </div>
+    <div id="thanks" class="callout"><strong>Thanks for getting Pro!</strong> Your license key is on the Polar confirmation page and in your receipt email (you can always find it again in your Polar customer portal). Open Renewal Radar, go to <em>Settings</em>, paste the key and hit <em>Unlock</em>.</div>
+  </header>
+
+  <main class="wrap">
+    <div class="shots">
+      <img src="/renewal-radar/img/shot-1.jpg" alt="Upcoming charges list with monthly and yearly totals" width="1280" height="800" loading="lazy" />
+      <img src="/renewal-radar/img/shot-3.jpg" alt="Spending by category and how much to set aside per paycheck" width="1280" height="800" loading="lazy" />
+    </div>
+
+    <section class="copy">
+      <h2>What it does</h2>
+      <ul>
+        <li><strong>Adds up what you actually pay.</strong> Weekly, monthly, quarterly and yearly charges, turned into one monthly and one yearly number.</li>
+        <li><strong>Warns you before money leaves.</strong> A notification before each renewal, and before each free trial turns into a paid plan.</li>
+        <li><strong>Makes cancelling easy.</strong> Save the cancel page link with each item. When the reminder pops up, you're one click away.</li>
+        <li><strong>Shows what you've saved.</strong> Mark something cancelled and it keeps a running total of what you're no longer paying each year.</li>
+      </ul>
+
+      <h2>Free or Pro</h2>
+    </section>
+    <div class="plans">
+      <div class="panel"><h3>Free</h3><p class="muted">Enough for most people to get started.</p>
+        <ul><li>Up to 10 subscriptions and trials</li><li>Monthly and yearly totals</li><li>Trial countdowns and cancel links</li><li>A reminder the day before each charge</li></ul></div>
+      <div class="panel"><h3>Pro: $7 once</h3><p class="muted">No subscription. That would be a bit rich.</p>
+        <ul><li>Unlimited items</li><li>Pick your reminders: a week, 3 days, 1 day, day-of</li><li>How much to set aside each payday for yearly bills</li><li>CSV export that opens in Google Sheets</li><li>Backup and restore</li></ul>
+        <div class="actions"><a class="btn btn-beacon" href="https://buy.polar.sh/polar_cl_8uoHdB7lnHSgTsGEGVU83azBFdiaP4jwN3jpR2Hiiif">Get Pro for $7</a></div></div>
+    </div>
+
+    <section class="copy">
+      <h2>Your data stays put</h2>
+      <p>There's no account and no bank login. Everything you enter is saved inside your browser and never sent anywhere. The only time the extension talks to the internet is when you paste a Pro license key, and then it sends just that key to Polar, the store that sold it, to check it's real. Details are in the <a href="/renewal-radar/privacy/">privacy policy</a>.</p>
+
+      <h2>Questions</h2>
+    </section>
+    <div class="faq">
+      <details><summary>Does it read my email or bank account?</summary><p>No. You add things yourself. That's a feature: nothing gets access to your inbox or your bank.</p></details>
+      <details><summary>Where's my license key after I buy?</summary><p>On the confirmation page right after checkout, in the receipt Polar emails you, and in your Polar customer portal any time you need it again.</p></details>
+      <details><summary>Can I use Pro on more than one computer?</summary><p>Yes. Paste the same key into Renewal Radar on each browser you use. Your list doesn't sync between them, but you can use Pro's backup and restore to copy it over.</p></details>
+      <details><summary>What if I get a new computer?</summary><p>Back up your list from Settings first, then restore it on the new one and paste your key again.</p></details>
+      <details><summary>Something not working?</summary><p>Email <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a> and tell us what you're seeing. A real person reads it.</p></details>
+    </div>
+
+    <section class="copy">
+      <h2>Like doing this in a spreadsheet?</h2>
+      <p>The <a href="/templates/#sinking-funds">Sinking Funds template</a> plans for yearly bills in Google Sheets, and the free <a href="/tools/sinking-funds-calculator/">sinking funds calculator</a> gives you a quick number without installing anything.</p>
+    </section>
+  </main>
+  <script>if (/[?&]thanks=1\b/.test(location.search)) { document.getElementById("thanks").classList.add("show"); if (typeof gtag === "function") gtag("event", "purchase_thanks", { item_name: "Renewal Radar Pro" }); }</script>
+  <footer class="wrap">
+    <p><a href="/renewal-radar/">Renewal Radar</a> · <a href="/renewal-radar/privacy/">Privacy policy</a> · <a href="/tools/">Free tools</a> · <a href="/templates/">Money templates</a></p>
+    <p style="margin-top:.4rem"><strong>Dark Lighthouse Solutions</strong> · Pro licenses sold via Polar (merchant of record). Questions or a lost key? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
+  </footer>
+  <!-- ga4-checkout-click -->
+  <script>
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href*="buy.polar.sh"]') : null;
+      if (!a || typeof gtag !== "function") return;
+      var box = a.closest("article, .card, section, li"), h = box && box.querySelector("h1, h2, h3");
+      var name = (h ? h.textContent : a.textContent || "").replace(/\s+/g, " ").trim();
+      gtag("event", "begin_checkout", { item_name: name, link_url: a.href, transport_type: "beacon" });
+    }, true);
+  </script>
+</body>
+</html>
