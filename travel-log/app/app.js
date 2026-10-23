@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v21" -> "v21").
-  var VERSION = "v21";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v23" -> "v23").
+  var VERSION = "v23";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -145,6 +145,7 @@
       if (tab === "passport") return UI().passport(k);
       if (tab === "signs") return UI().signs(k);
       if (tab === "print") return viewPrint(k);
+      if (tab === "quests" && window.FS_QUESTS) return window.FS_QUESTS.view(k, h[3] || "");
       if (tab === "edit") return viewKidForm(k);
       return viewKid(k, tab);
     }
@@ -473,13 +474,19 @@
                  abroad: "🛂", "countries-5": "🌍", "continents-3": "🧭", scotland: "🏴", "uk-4": "👑", "park-1": "🌲", "parks-10": "🥾", "junior-ranger": "⭐", together: "🤝",
                  "first-flight": "✈️", "frequent-flyer": "🛫", "sky-miles": "☁️", "road-trip": "🚐", "miles-1000": "🧭", "miles-10000": "🚀", "around-world": "🌐" };
   function statBox(v, total, k) { return '<div class="stat"><div class="v">' + v + (total ? ' <small>/ ' + total + '</small>' : "") + '</div><div class="k">' + k + '</div></div>'; }
+  function questsCard(k) {
+    var Q = window.FS_QUESTS; if (!Q) return "";
+    var got = Q.earned(k), going = Q.list(k).filter(function (x) { return x.pr.have && !x.pr.complete; }).length;
+    return '<a class="familycard qentry" href="#/p/' + esc(k.id) + '/quests"><span class="qemo" aria-hidden="true"><i>🧭</i></span><span><b>Travel quests</b><span class="small muted">' +
+      (got.length ? got.length + " quest badge" + (got.length === 1 ? "" : "s") + " earned" + (going ? " · " + going + " on the go" : "") : going ? going + " on the go" : "Scavenger hunts for your trips") + '</span></span><span class="qgo" aria-hidden="true">›</span></a>';
+  }
   function viewStats(k) {
     var s = M.stats(k, state.trips, MAPS.world), b = M.badges(s), earned = b.filter(function (x) { return x.earned; }).length;
     main.innerHTML = shell(k, "stats", '<h2>' + esc(k.name) + '\'s travel stats</h2><div class="stats">' +
       statBox(s.states, 50, "States") + statBox(s.countries, 195, "Countries") + statBox(s.ukNations, 4, "UK nations") + statBox(s.parks, 64, "National parks") +
       (s.kid ? statBox(s.juniorRanger, 0, "Junior Ranger") : "") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
       (s.years ? statBox(s.years, 0, s.years === 1 ? "Year of trips" : "Years of trips") : "") + (s.firstTripAge != null ? statBox(s.firstTripAge, 0, "Age on first trip") : "") + '</div>' +
-      UI().lifetimeHTML(k.id) +
+      UI().lifetimeHTML(k.id) + questsCard(k) +
       '<h2>Badges <span class="muted small">' + earned + ' of ' + b.length + '</span></h2><div class="badges">' + b.map(function (x) {
         return '<div class="badge' + (x.earned ? "" : " locked") + '"><div class="medal" aria-hidden="true">' + (MEDALS[x.id] || "★") + '</div><b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span>' +
           (x.earned ? "" : '<span>' + x.have + ' / ' + x.need + '</span>') + '</div>';
@@ -692,7 +699,7 @@
                       dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
                       // for trips-ui.js
                       main: main, shell: shell, placeName: placeName, saveKid: saveKid, kidStyle: kidStyle, initial: initial, avatars: avatars, travelerNames: travelerNames,
-                      photoURL: photoURL, shrinkPhoto: shrinkPhoto, markOptions: markOptions };
+                      photoURL: photoURL, shrinkPhoto: shrinkPhoto, markOptions: markOptions, parkStamp: parkStamp };
   load().then(function () { readyRes(); route(); }).catch(function () {
     main.innerHTML = '<div class="panel"><h3>Storage isn\'t available</h3><p class="muted">This browser is blocking on-device storage (private browsing can do this). Try a normal window so your maps can be saved.</p></div>';
   });
