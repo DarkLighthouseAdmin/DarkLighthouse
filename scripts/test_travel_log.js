@@ -1116,6 +1116,56 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/connect-src [^;]*https:\/\/api\.open-meteo\.com https:\/\/archive-api\.open-meteo\.com;/.test(html), "CSP allows only the two Open-Meteo hosts for weather");
 }
 
+{ // v1.8: Trips to plan (family wishlist)
+  const WS = require("../travel-log/app/wish-core.js");
+  const kid = { id: "p_kid", name: "Zz Test Kid", nickname: "Zz Roo", role: "kid", states: {}, places: {}, parks: {} };
+  const mom = { id: "p_mom", name: "Zz Test Parent", role: "adult", states: { FL: { at: "2020-01-01" } }, places: {}, parks: { zion: { at: "2019-05-01" } } };
+  const fam = [kid, mom];
+  const edi = { name: "Edinburgh", kind: "city", lat: 55.953, lon: -3.189, country: "GBR", region: "SCT", sub: "Scotland, United Kingdom" };
+  const w1 = WS.addWish(kid, edi, "  I want to see a real castle! ", [], fam, "2026-10-23T12:00:00.000Z");
+  ok(/^wish_/.test(w1.id) && w1.note === "I want to see a real castle!" && w1.at === "2026-10-23", "wish: added with a clean note and date");
+  ok(kid.wv[w1.id].v === 1, "wish: the person who adds a place votes for it");
+  let L = WS.list(fam, [], "2026-10-23");
+  ok(L.open.length === 1 && L.open[0].votes.length === 1 && L.open[0].owner === "p_kid", "wish: on the list with one vote");
+  throws(() => WS.addWish(mom, { name: "Edinburgh", kind: "city", lat: 55.95, lon: -3.2, country: "GBR" }, "", L.open, fam), /already on the list/, "wish: no duplicates");
+  throws(() => WS.addWish(mom, null, "", [], fam), /Pick a place/, "wish: needs a place");
+  ok(WS.toggleVote(mom, w1.id) === true && WS.toggleVote(mom, w1.id) === false && WS.toggleVote(mom, w1.id) === true, "wish: vote toggles");
+  ok(WS.cleanVotes({ [w1.id]: { v: 5, r: ["😍", "😍", "💩"] } })[w1.id].v === 1, "wish: a vote counts once");
+  ok(WS.toggleReact(mom, w1.id, "😍") && WS.toggleReact(mom, w1.id, "🏔️") && !WS.toggleReact(mom, w1.id, "🏔️") && !WS.toggleReact(mom, w1.id, "💩"), "wish: reactions toggle, only the six");
+  const zion = WS.addWish(mom, { name: "Zion National Park", kind: "park", ref: "zion", country: "USA", sub: "UT" }, "", WS.list(fam, [], "2026-10-23").open, fam, "2026-10-23T13:00:00.000Z");
+  ok(zion.had && zion.had[0] === "p_mom", "wish: remembers who already had a park stamped");
+  const fl = WS.addWish(mom, { name: "Florida", kind: "area", area: "state:FL", country: "USA", region: "FL" }, "", [], fam, "2026-10-23T14:00:00.000Z");
+  const jp = WS.addWish(kid, { name: "Japan", kind: "area", area: "place:JPN", country: "JPN" }, "Sushi!", [], fam, "2026-10-23T15:00:00.000Z");
+  L = WS.list(fam, [], "2026-10-23");
+  ok(L.open[0].w.id === w1.id && L.open[0].votes.length === 2 && L.open[0].reacts["😍"].length === 1, "wish: most votes first, reactions counted");
+  ok(L.made.length === 0, "wish: old stamps don't count as made it");
+  const trip = { id: "trip_1", kidIds: ["p_kid", "p_mom"], date: "2027-06-01", endDate: "2027-06-10", done: true, createdAt: "2027-06-11T00:00:00Z",
+    route: [{ name: "Orlando", lat: 28.5, lon: -81.4, country: "USA", region: "FL" }, { name: "Edinburgh", lat: 55.95, lon: -3.19, country: "GBR", region: "SCT" }] };
+  L = WS.list(fam, [trip], "2027-06-12");
+  ok(L.made.length === 1 && L.made[0].w.id === w1.id && L.made[0].made.how === "trip" && L.made[0].made.at === "2027-06-10", "wish: a finished trip there moves it to Made it");
+  ok(!L.made.some(e => e.w.id === fl.id), "wish: home as the start of a trip isn't a visit");
+  const planned = Object.assign({}, trip, { done: false, endDate: "2027-08-01" });
+  ok(WS.list(fam, [planned], "2027-06-12").made.length === 0, "wish: a planned trip doesn't count yet");
+  const oldTrip = Object.assign({}, trip, { date: "2025-06-01", endDate: "2025-06-10", createdAt: "2025-06-11T00:00:00Z" });
+  ok(WS.list(fam, [oldTrip], "2027-06-12").made.length === 0, "wish: a trip from before it was added doesn't count");
+  kid.places.JPN = { at: "2027-04-01" };
+  L = WS.list(fam, [], "2027-06-12");
+  ok(L.made.some(e => e.w.id === jp.id && e.made.how === "stamp" && e.made.who[0] === "p_kid"), "wish: stamping the country moves it to Made it");
+  kid.parks.zion = { at: "" };
+  ok(WS.list(fam, [], "2027-06-12").made.some(e => e.w.id === zion.id), "wish: a new person stamping the park counts");
+  ok(WS.stopMatches({ kind: "area", area: "place:SCT" }, { country: "GBR", region: "SCT" }) && !WS.stopMatches({ kind: "area", area: "place:SCT" }, { country: "GBR", region: "ENG" }), "wish: UK nations match by region");
+  const st = WS.tripStop(zion); ok(st.kind === "park" && st.ref === "zion" && st.name === "Zion National Park", "wish: Plan this trip stop");
+  ok(WS.cleanWishes([{ name: "<x>", id: "bad id" }, { name: "" }, null]).length === 1, "wish: bad wishes are cleaned");
+  ok(WS.cleanWish({ name: "X", kind: "area", area: "nope" }).kind === "city", "wish: an area needs an area id");
+  const owner = WS.removeWish(fam, jp.id); ok(owner === kid && !kid.wishes.some(w => w.id === jp.id), "wish: remove from its owner");
+  ok(WS.list(fam, [], "2027-06-12").open.every(e => e.w.id !== jp.id), "wish: removed wish and its votes are gone");
+  ok(!/wishes|"wv"/.test(read("sync-core.js").match(/PERSON_SKIP = [^;]+/)[0]), "wish: wishes and votes sync with the person");
+  const idx = read("index.html"), sw = read("sw.js");
+  ok(idx.indexOf('src="wish-core.js"') > 0 && idx.indexOf('src="wish.js"') > idx.indexOf('src="wish-core.js"'), "wish: scripts in index.html");
+  ok(/"wish-core\.js", "wish\.js"/.test(sw), "wish: scripts cached offline");
+  ok(/family" && h\[1\] === "wishes"/.test(read("app.js")), "wish: #/family/wishes route");
+}
+
 setTimeout(() => {
   console.log(`${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);

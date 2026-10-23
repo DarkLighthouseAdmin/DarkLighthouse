@@ -99,6 +99,33 @@
     if (near) cities = cities.filter(function (p) { return p.country === near; }).concat(cities.filter(function (p) { return p.country !== near; }));
     return out.concat(cities).slice(0, Math.max(9, nParks + 6));
   }
+  // v1.8 wishlist search: countries, US states and UK nations first, then towns and parks, then airports (by code or city)
+  function areaPoints(d, q) {
+    var out = [];
+    function centre(c, a1) { var b = null; for (var i = 0; i < d.rows.length; i++) { var r = d.rows[i]; if (r.country === c && (!a1 || r.admin1 === a1) && (!b || r.pop > b.pop)) b = r; } return b; }
+    function push(name, area, c, a1, sub) {
+      var b = centre(c, a1), o = { name: name, kind: "area", area: area, country: c, sub: sub };
+      if (a1) o.region = a1; if (b) { o.lat = b.lat; o.lon = b.lon; } out.push(o);
+    }
+    Object.keys(d.countries).forEach(function (c) { var n = d.countries[c]; if (normQ(n).indexOf(q) === 0 && out.length < 3) push(n, "place:" + c, c, "", "Country"); });
+    Object.keys(d.admin).forEach(function (k) {
+      var m = /^(USA|GBR)\.([A-Z]{2,3})$/.exec(k); if (!m || out.length >= 4 || normQ(d.admin[k]).indexOf(q) !== 0) return;
+      if (m[1] === "GBR" && ["ENG", "SCT", "WLS", "NIR"].indexOf(m[2]) < 0) return;
+      push(d.admin[k], m[1] === "USA" ? "state:" + m[2] : "place:" + m[2], m[1], m[2], m[1] === "USA" ? "US state" : "United Kingdom");
+    });
+    return out;
+  }
+  function findPlaces(q) {
+    return Promise.all([loadPlaces(), loadAirports().catch(function () { return null; })]).then(function (r) {
+      var d = r[0], aps = r[1], nq = normQ((q || "").trim()); if (nq.length < 2) return [];
+      var out = areaPoints(d, nq.split(",")[0].trim()).concat(searchPlaces(q, d));
+      if (aps) searchAirports(q, aps).slice(0, 3).forEach(function (a) {
+        var p = { name: a.city || a.town || a.name, kind: "city", lat: a.lat, lon: a.lon, country: a.country, region: a.country === "USA" || a.country === "GBR" ? a.region : "", sub: a.code + " · " + a.name };
+        if (!out.some(function (o) { return o.lat != null && T.gcMiles(o, p) < 15; })) out.push(p);
+      });
+      return out.slice(0, 12);
+    });
+  }
   function searchAirports(q, list) {
     q = q.trim().toLowerCase(); if (q.length < 2) return [];
     var exact = list.filter(function (a) { return a.code.toLowerCase() === q; });
@@ -208,6 +235,13 @@
     if (!d.route) d.route = [];
     if (!old && st.meta.homePoint) d.route = [copy(st.meta.homePoint)];
     else if (!old && st.meta.home) d.route = [{ name: st.meta.home, kind: "place" }];
+    // v1.8: "Plan this trip" from the family wishlist: the dream place is the destination, the people who voted are going, not done yet
+    var fromWish = !old && window.FS_WISH && window.FS_WISH.take ? window.FS_WISH.take() : null;
+    if (fromWish) {
+      d.route.push(fromWish.stop); d.done = false; d.title = "Trip to " + fromWish.stop.name;
+      if (fromWish.who && fromWish.who.length) d.kidIds = fromWish.who.filter(function (id) { return st.kids.some(function (x) { return x.id === id; }); });
+      if (!d.kidIds.length) d.kidIds = [k.id];
+    }
     var newPhoto = null, removePhoto = false, saveHome = !st.meta.homePoint, places = null, airports = null;
     function memVals() { var o = {}; document.querySelectorAll("[data-memf]").forEach(function (el) { o[el.dataset.memf] = el.value; }); return o; }
     loadPlaces().then(function (x) { places = x; renderRoute(); }).catch(function () {});
@@ -1352,7 +1386,7 @@
       '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
   }
 
-  window.FS_UI = { builder: builder, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
+  window.FS_UI = { findPlaces: findPlaces, builder: builder, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
                    lifetimeHTML: lifetimeHTML, bindLifetime: bindLifetime, printExtra: printExtra, loadPlaces: loadPlaces, loadAirports: loadAirports, routeSVG: routeSVG,
                    searchPlaces: searchPlaces, searchAirports: searchAirports, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs };
 })();
