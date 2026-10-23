@@ -1,4 +1,4 @@
-/* My Lifetime Travel Log: the app. Plain JavaScript, no libraries, no network calls.
+/* Wanderkin (the My Lifetime Travel Log app): the app. Plain JavaScript, no libraries, no network calls.
    Data lives in this browser's IndexedDB ("mltl"); photos are shrunk and re-saved as JPEG, which also drops GPS/EXIF data. */
 (function () {
   "use strict";
@@ -88,7 +88,7 @@
   function doBackup() {
     return all("photos").then(function (photos) {
       var data = M.makeBackup(state.kids, state.trips, photos, null, { home: state.meta.home || "" }), blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "my-lifetime-travel-log-backup-" + M.today() + ".json";
+      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "wanderkin-backup-" + M.today() + ".json";
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
       return setMeta("lastBackupAt", data.exportedAt);
     });
@@ -145,10 +145,10 @@
         '</span><br><span class="small">Pick two or more people to see the trips you shared →</span></span></a>';
     }
     html += '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div>' +
-            '<h3>Like paper too?</h3><p class="small muted">The matching paperback has the same maps to color, all 64 parks and 40 trip pages, for the shelf. ' +
+            '<h3>Like paper too?</h3><p class="small muted">The matching paperback, My Lifetime Travel Log, has the same maps to color, all 64 parks and 40 trip pages, for the shelf. ' +
             '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>';
     main.innerHTML = html;
-    document.title = "My Lifetime Travel Log: color in every place your family goes";
+    document.title = "Wanderkin: your family's travel story";
   }
 
   // ---------- add / edit a person ----------
@@ -206,7 +206,7 @@
       }).join("") + '</div></nav>' + inner + '</div>';
   }
   function viewKid(k, tab) {
-    document.title = k.name + " · My Lifetime Travel Log";
+    document.title = k.name + " · Wanderkin";
     if (tab === "world") return viewWorld(k);
     if (tab === "parks") return viewParks(k);
     if (tab === "trips") return viewTrips(k);
@@ -486,7 +486,7 @@
     return names(people.map(function (p) { return p.id; })).join(" & ");
   }
   function viewFamily() {
-    document.title = "Family map · My Lifetime Travel Log";
+    document.title = "Family map · Wanderkin";
     var people = famPeople(), n = people.length, together = famMode === "together" && n > 1;
     var fs = M.familyStats(people, state.trips, MAPS.world);
     function fillFor(who) {   // who = ids of chosen people who've been there
@@ -556,7 +556,7 @@
   // ---------- trips together ----------
   var togSel = null;
   function viewTogether(startId) {
-    document.title = "Trips together · My Lifetime Travel Log";
+    document.title = "Trips together · Wanderkin";
     if (startId === "fam" && famSel && famSel.length >= 2) { togSel = famSel.slice(); history.replaceState(null, "", "#/together"); }
     else if (startId === "top") { togSel = null; history.replaceState(null, "", "#/together"); }
     else if (startId && kidById(startId)) {   // coming from someone's Trips tab: start with them and the person they travel with most
@@ -599,7 +599,7 @@
     var s = M.stats(k, state.trips, MAPS.world), list = kidTrips(k);
     var parks = M.PARKS.filter(function (p) { return k.parks[p.id]; });
     var places = Object.keys(k.places).map(function (id) { return placeName("place", id); }).sort();
-    document.title = k.name + "'s travel map";
+    document.title = k.name + "'s travel map · Wanderkin";
     main.innerHTML = '<div class="sheet" style="' + kidStyle(k) + '"><a class="back" href="#/p/' + esc(k.id) + '/stats">← Back</a>' +
       '<div class="actions noprint"><button class="btn btn-primary" id="doprint">🖨 Print or save as PDF</button></div>' +
       '<p class="hint noprint">Tip: choose "Landscape" and turn on "Background graphics" so the colors print.</p>' +
@@ -615,7 +615,7 @@
         var r = M.routeText(t), others = t.kidIds.filter(function (x) { return x !== k.id; });
         return '<li><b>' + esc(t.place) + '</b>' + (t.date ? ", " + esc(M.prettyDate(t.date)) : "") + (r !== t.place ? " (" + esc(r) + ")" : "") +
           (others.length ? ". With " + esc(travelerNames(others)) : "") + (t.who ? (others.length ? ", plus " : ". With ") + esc(t.who) : "") + (t.memory ? ": " + esc(t.memory) : "") + '</li>'; }).join("") + '</ul>' : "") +
-      '<p class="small muted" style="margin-top:1rem">My Lifetime Travel Log · Map data: Natural Earth (public domain). Alaska and Hawaii are not to scale.</p></section></div>';
+      '<p class="small muted" style="margin-top:1rem">Wanderkin · Map data: Natural Earth (public domain). Alaska and Hawaii are not to scale.</p></section></div>';
     document.getElementById("doprint").onclick = function () { window.print(); };
   }
 
