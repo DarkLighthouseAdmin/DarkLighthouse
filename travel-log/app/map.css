@@ -1,0 +1,52 @@
+/* Famstamp 1.5: map zoom / pan controls, country names, Jump to, and collapsible pick lists. */
+.mapbox.pz { outline:none; touch-action:pan-y; }
+.mapbox.pz:focus-visible { box-shadow:0 0 0 3px var(--sage); }
+.mapbox.pz svg { touch-action:pan-y; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; cursor:grab; }
+.mapbox.pz.zoomed, .mapbox.pz.zoomed svg { touch-action:none; }
+.mapbox.pz.dragging svg { cursor:grabbing; } .mapbox.pz.dragging path.a { transition:none; }
+.mapbox.pz path.a, .mapbox.pz circle.dot, .mapbox.pz .ocean, .mapbox.pz .grat { vector-effect:non-scaling-stroke; }
+.mapbox.pz .stopdot circle, .mapbox.pz .leg { vector-effect:non-scaling-stroke; }
+.pz-labels { pointer-events:none; }
+.pz-labels text { font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; font-weight:600; fill:#1f2a33; text-anchor:middle; dominant-baseline:central;
+  paint-order:stroke fill; stroke:rgba(255,253,248,.92); stroke-width:.3em; stroke-linejoin:round; letter-spacing:.01em; }
+.pz-labels text.pzd { font-weight:500; }
+.mapbox path.a.pzflash { animation:pzflash 1.6s ease-out 1; }
+@keyframes pzflash { 0%, 40% { stroke:#e8a54b; stroke-width:3; } 100% { stroke:#7b8a93; } }
+.pzctl { position:absolute; right:8px; bottom:8px; display:flex; flex-direction:column; gap:6px; z-index:2; }
+.pzctl button { width:40px; height:40px; border-radius:10px; border:1px solid rgba(31,42,51,.25); background:rgba(255,255,255,.94); color:var(--ink); font:600 1.3rem/1 system-ui,sans-serif;
+  display:grid; place-items:center; cursor:pointer; box-shadow:0 1px 4px rgba(22,40,58,.15); padding:0; }
+.pzctl button:focus-visible { outline:3px solid var(--sage); outline-offset:1px; }
+.pzhint { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(22,40,58,.85); color:#fff; padding:.45rem .8rem; border-radius:10px; font-size:.85rem;
+  pointer-events:none; opacity:0; transition:opacity .2s; max-width:80%; text-align:center; }
+.pzhint.show { opacity:1; }
+.pzfind { position:relative; margin-top:.8rem; min-height:44px; }
+.pzfind input { padding-left:2.1rem; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='8.5' cy='8.5' r='5.5' fill='none' stroke='%235b6b73' stroke-width='2'/%3E%3Cpath d='M13 13l4 4' stroke='%235b6b73' stroke-width='2'/%3E%3C/svg%3E") no-repeat .65rem center / 16px; }
+.pzfind + .mapbox { margin-top:.5rem; }
+.pzsug { position:absolute; left:0; right:0; top:100%; z-index:5; list-style:none; margin:.25rem 0 0; padding:.25rem; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 6px 20px rgba(22,40,58,.15); }
+.pzsug li { padding:.55rem .7rem; border-radius:8px; cursor:pointer; min-height:40px; display:flex; align-items:center; }
+.pzsug li[aria-selected=true], .pzsug li:hover { background:#f3ead8; } .pzsug li.none { color:var(--muted); cursor:default; background:none; }
+.sr { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+mark { background:#f6d98e; color:inherit; border-radius:3px; padding:0 1px; }
+/* collapsible groups */
+.plist-tools .field { margin-top:0; }
+.plist-btns { display:flex; gap:1rem; justify-content:flex-end; margin:.4rem 0 .2rem; flex-wrap:wrap; }
+.linkbtn { background:none; border:0; padding:.35rem 0; min-height:36px; font:inherit; font-size:.9rem; font-weight:600; color:var(--sage-deep); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.plist-none { margin:.6rem 0; }
+.pgrp { border-top:1px solid var(--line); }
+.pgrp .pgt { margin:0; font-size:1rem; }
+.pgh { display:flex; align-items:center; gap:.5rem; width:100%; min-height:48px; padding:.5rem .2rem; background:none; border:0; font:inherit; color:var(--ink); cursor:pointer; text-align:left; flex-wrap:wrap; }
+.pgh:focus-visible { outline:3px solid var(--sage); outline-offset:-2px; border-radius:8px; }
+.pgn { font-family:var(--serif); font-weight:700; font-size:1.05rem; }
+.pgc { color:var(--muted); font-size:.85rem; font-weight:500; }
+.pgm { font-size:.8rem; font-weight:700; color:var(--sage-deep); background:#e7efe9; border-radius:999px; padding:.05rem .5rem; }
+.chev { margin-left:auto; width:10px; height:10px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg) translate(-2px,-2px); transition:transform .15s; flex:none; }
+.pgh[aria-expanded=false] .chev { transform:rotate(-45deg); }
+.pgb > p.small { margin:.2rem 0 .4rem; }
+.parks.plist .pgrp:first-of-type { border-top:0; }
+@media (prefers-reduced-motion: reduce) { .chev, .pzhint { transition:none; } .mapbox path.a.pzflash { animation:none; stroke:#e8a54b; } }
+@media (prefers-color-scheme: dark) { .pz-labels text { fill:#14202a; stroke:rgba(255,253,248,.95); } }
+@media print { .pzctl, .pzfind, .pzhint, .plist-btns { display:none !important; } }
+.checks .pgrp .pgt { margin:0; text-transform:none; letter-spacing:0; color:var(--ink); font-size:1rem; }
+/* phones: a taller world map, so there's room to zoom into Europe or the Caribbean (the extra space is sea) */
+@media (max-width:640px) { .mapbox.pz:not(.us):not(.routebox) > svg { aspect-ratio:8/5; height:auto; } }
+.pgrp[hidden], .pgb[hidden], .pgb [data-name][hidden], .plist-none[hidden] { display:none !important; }

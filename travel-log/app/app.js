@@ -109,7 +109,22 @@
   });
 
   // ---------- router ----------
+  var lastRouted = null;
   function route() {
+    var same = lastRouted === location.hash; lastRouted = location.hash;
+    if (!same) return routeView();
+    // Same screen drawn again (a sync, a background save): keep the scroll spot, open lists, typed searches and focus.
+    var y = window.scrollY, open = Array.prototype.map.call(main.querySelectorAll("details"), function (d) { return d.open; });
+    var boxes = {}; main.querySelectorAll("input[type=search][id]").forEach(function (i) { if (i.value) boxes[i.id] = i.value; });
+    var ae = document.activeElement, focusId = ae && main.contains(ae) && ae.id, sel = focusId && ae.selectionStart != null ? [ae.selectionStart, ae.selectionEnd] : null;
+    var r = routeView();
+    var ds = main.querySelectorAll("details"); if (ds.length === open.length) ds.forEach(function (d, i) { if (open[i]) d.open = true; });
+    Object.keys(boxes).forEach(function (id) { var i = document.getElementById(id); if (i && !i.value) { i.value = boxes[id]; i.dispatchEvent(new Event("input")); } });
+    if (focusId) { var f = document.getElementById(focusId); if (f) { f.focus({ preventScroll: true }); if (sel) try { f.setSelectionRange(sel[0], sel[1]); } catch (e) {} } }
+    window.scrollTo(0, y);
+    return r;
+  }
+  function routeView() {
     var h = location.hash.replace(/^#\/?/, "").split("/");
     document.body.classList.remove("kidview");
     if (window.MLTL_SYNC && window.MLTL_SYNC.route(h)) return;
@@ -234,22 +249,32 @@
     return '<div class="count"><div class="big">' + n + ' <small>of ' + total + ' ' + label + '</small></div>' + (extra || "") + '</div><div class="bar"><i style="width:' + Math.round(100 * n / total) + '%"></i></div>';
   }
   function usSVG(k, opts) {
-    var u = MAPS.us, s = '<svg viewBox="0 0 ' + u.w + ' ' + u.h + '" role="img" aria-label="US map with ' + esc(k.name) + '\'s states colored in">';
+    var u = MAPS.us, s = '<svg viewBox="0 0 ' + u.w + ' ' + u.h + '" data-pz="us" role="img" aria-label="US map with ' + esc(k.name) + '\'s states colored in">';
     u.insets.forEach(function (b) { s += '<rect class="inset" x="' + (b[0] - 4) + '" y="' + (b[1] - 4) + '" width="' + (b[2] + 8) + '" height="' + (b[3] + 8) + '" rx="8"/>'; });
     u.shapes.forEach(function (p) { s += '<path class="a' + (k.states[p.id] ? " on" : "") + '" data-kind="state" data-id="' + p.id + '" d="' + p.d + '"><title>' + esc(p.name) + '</title></path>'; });
     return s + '</svg>';
   }
   var ZOOMS = { world: null, europe: [452, 32, 130, 80], uk: [467, 44, 38, 33], na: [60, 15, 330, 190] };
   function worldSVG(k, zoom) {
-    var w = MAPS.world, vb = ZOOMS[zoom] || [0, 0, w.w, w.h];
-    var s = '<svg viewBox="' + vb.join(" ") + '" role="img" aria-label="World map with ' + esc(k.name) + '\'s places colored in"><path class="ocean" d="' + w.outline + '"/><path class="grat" d="' + w.grat + '"/>';
-    var r = Math.max(vb[2] / 260, 0.25);
+    var w = MAPS.world, vb = [0, 0, w.w, w.h], pre = ZOOMS[zoom];
+    var s = '<svg viewBox="' + vb.join(" ") + '" data-pz="world"' + (pre ? ' data-pzinit="' + pre.join(" ") + '"' : "") + ' role="img" aria-label="World map with ' + esc(k.name) + '\'s places colored in"><path class="ocean" d="' + w.outline + '"/><path class="grat" d="' + w.grat + '"/>';
+    var r = Math.max(vb[2] / 260, 0.25) * (pre ? pre[2] / vb[2] : 1);
     w.shapes.forEach(function (p) {
       var on = !!k.places[p.id] || (p.id === "USA" && Object.keys(k.states).length > 0);
       s += '<path class="a' + (p.other ? " o" : "") + (p.uk ? " uk" : "") + (on ? " on" : "") + '" data-kind="place" data-id="' + p.id + '" d="' + p.d + '"><title>' + esc(p.name) + '</title></path>';
     });
     w.shapes.forEach(function (p) { if (p.dot && !p.other) s += '<circle class="dot' + (k.places[p.id] ? " on" : "") + '" data-kind="place" data-id="' + p.id + '" cx="' + p.c[0] + '" cy="' + p.c[1] + '" r="' + (r * 1.15).toFixed(2) + '"><title>' + esc(p.name) + '</title></circle>'; });
     return s + '</svg>';
+  }
+  // Region buttons (Whole world, North America, Europe, UK & Ireland) glide the map there instead of re-drawing it (mapzoom.js).
+  function bindZoomButtons() {
+    var box = main.querySelector(".mapbox.pz, .mapbox"), btns = main.querySelectorAll("[data-zoom]");
+    btns.forEach(function (b) { b.onclick = function () {
+      worldZoom = b.dataset.zoom; var pz = window.FS_MAP && window.FS_MAP.of(box), z = ZOOMS[worldZoom];
+      if (pz) { if (z) pz.zoomToBox(z, 1); else pz.fit(); }
+      btns.forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+    }; });
+    if (box) box.addEventListener("pzuser", function () { worldZoom = ""; btns.forEach(function (x) { x.setAttribute("aria-pressed", "false"); }); });
   }
   function bindMap(k, rerender) {
     main.querySelectorAll("[data-kind]").forEach(function (el) {
@@ -277,63 +302,78 @@
     var q2 = main.querySelector("#find"); if (q2 && qv) { q2.value = qv; q2.dispatchEvent(new Event("input")); }
     window.scrollTo(0, y);
   }
+  var MAP_HINT = '<p class="hint">Pinch or use + and − to zoom, drag to move. Tap to color it in, tap again to undo.';
   function viewUS(k) {
-    var s = M.stats(k, state.trips, MAPS.world);
-    var list = MAPS.us.shapes.map(function (p) {
-      return '<label class="check"><input type="checkbox" data-kind="state" data-id="' + p.id + '"' + (k.states[p.id] ? " checked" : "") + '> ' + esc(p.name) + (p.id === "DC" ? '<span class="meta">bonus</span>' : "") + '</label>';
+    var s = M.stats(k, state.trips, MAPS.world), FF = window.FS_FIND, byReg = {};
+    MAPS.us.shapes.forEach(function (p) { var r = FF.REGION[p.id] || "West"; (byReg[r] = byReg[r] || []).push(p); });
+    var list = FF.REGIONS.filter(function (r) { return byReg[r]; }).map(function (r) {
+      var ps = byReg[r], n = ps.filter(function (p) { return k.states[p.id] && p.id !== "DC"; }).length;
+      return FF.group(r, r, n, ps.filter(function (p) { return p.id !== "DC"; }).length, ps.map(function (p) {
+        return '<label class="check" data-name="' + esc(p.name + " " + p.id) + '"><input type="checkbox" data-kind="state" data-id="' + p.id + '"' + (k.states[p.id] ? " checked" : "") + '> <span data-hl>' + esc(p.name) + '</span>' + (p.id === "DC" ? '<span class="meta">bonus</span>' : "") + '</label>';
+      }).join(""));
     }).join("");
     main.innerHTML = shell(k, "us", counter(s.states, 50, "states") +
-      '<div class="mapbox us">' + usSVG(k) + '</div><p class="hint">Tap a state to color it in. Tap again to undo. Tiny states are easier in the list.</p>' +
+      '<div class="pzfind"></div><div class="mapbox us">' + usSVG(k) + '</div>' + MAP_HINT + ' Tiny states are easy in the list too.</p>' +
         '<p class="small"><a href="#/p/' + esc(k.id) + '/signs">🪧 See ' + esc(k.name) + '\'s State Signs →</a></p>' +
-      '<details class="list"><summary>Pick from a list</summary><div class="checks">' + list + '</div></details>');
+      '<details class="list"><summary>Pick from a list</summary><div class="checks plist" data-plist="us:' + esc(k.id) + '">' +
+        FF.tools('<div class="field"><label for="find">Find a state</label><input id="find" type="search" placeholder="Type a state, e.g. Utah or UT" autocomplete="off"></div>') + list + '</div></details>');
+    FF.bind(main.querySelector("[data-plist]"), main.querySelector("#find"), false);
     bindMap(k, function () { keepOpen(function () { viewUS(k); }); });
   }
   function viewWorld(k) {
-    var s = M.stats(k, state.trips, MAPS.world);
+    var s = M.stats(k, state.trips, MAPS.world), FF = window.FS_FIND;
     var byCont = {};
     MAPS.world.countries.forEach(function (c) { (byCont[c.cont] = byCont[c.cont] || []).push(c); });
+    function row(id, name, on, extra, cls) {
+      return '<label class="check' + (cls || "") + '" data-name="' + esc(name + " " + FF.alias(id) + (cls ? " united kingdom uk" : "")) + '"><input type="checkbox" data-kind="place" data-id="' + id + '"' + (on ? " checked" : "") + (extra || "") + '> <span data-hl>' + esc(name) + '</span></label>';
+    }
     var list = Object.keys(byCont).map(function (cont) {
-      return '<h3>' + esc(cont) + '</h3>' + byCont[cont].map(function (c) {
+      var cs = byCont[cont], n = 0;
+      var rows = cs.map(function (c) {
         if (c.id === "GBR") {
-          return '<div class="check" data-name="united kingdom england scotland wales northern ireland"><b>United Kingdom</b><span class="meta">' + s.ukNations + ' of 4</span></div>' +
-            MAPS.world.uk.map(function (u) { return '<label class="check sub" data-name="' + esc(u.name.toLowerCase()) + ' united kingdom"><input type="checkbox" data-kind="place" data-id="' + u.id + '"' + (k.places[u.id] ? " checked" : "") + '> ' + esc(u.name) + '</label>'; }).join("");
+          if (s.ukNations) n++;
+          return '<div class="check ukhead" data-name="' + esc("united kingdom england scotland wales northern ireland " + FF.alias("GBR")) + '"><b data-hl>United Kingdom</b><span class="meta">' + s.ukNations + ' of 4</span></div>' +
+            MAPS.world.uk.map(function (u) { return row(u.id, u.name, !!k.places[u.id], "", " sub"); }).join("");
         }
         var on = c.id === "USA" ? Object.keys(k.states).length > 0 || !!k.places.USA : !!k.places[c.id];
-        return '<label class="check" data-name="' + esc(c.name.toLowerCase()) + '"><input type="checkbox" data-kind="place" data-id="' + c.id + '"' + (on ? " checked" : "") + (c.id === "USA" && Object.keys(k.states).length ? " disabled" : "") + '> ' + esc(c.name) + '</label>';
+        if (on) n++;
+        return row(c.id, c.name, on, c.id === "USA" && Object.keys(k.states).length ? " disabled" : "");
       }).join("");
+      return FF.group(cont, cont, n, cs.length, rows);
     }).join("");
     var others = MAPS.world.shapes.filter(function (p) { return p.other; });
-    list += '<h3>Other places</h3><p class="small muted">Territories and places that aren\'t on the list of 195, like Puerto Rico or Greenland. They\'re on your map but don\'t add to the country count.</p>' +
-      others.map(function (p) { return '<label class="check" data-name="' + esc(p.name.toLowerCase()) + '"><input type="checkbox" data-kind="place" data-id="' + p.id + '"' + (k.places[p.id] ? " checked" : "") + '> ' + esc(p.name) + '</label>'; }).join("");
+    list += FF.group("Other places", "Other places", others.filter(function (p) { return k.places[p.id]; }).length, others.length,
+      '<p class="small muted">Territories and places that aren\'t on the list of 195, like Puerto Rico or Greenland. They\'re on your map but don\'t add to the country count.</p>' +
+      others.map(function (p) { return row(p.id, p.name, !!k.places[p.id]); }).join(""));
     var extra = '<div class="muted small">UK nations: ' + s.ukNations + ' of 4</div>';
     main.innerHTML = shell(k, "world", counter(s.countries, 195, "countries", extra) +
       '<div class="seg" role="group" aria-label="Zoom">' + [["world", "Whole world"], ["na", "North America"], ["europe", "Europe"], ["uk", "UK & Ireland"]].map(function (z) {
         return '<button type="button" data-zoom="' + z[0] + '" aria-pressed="' + (worldZoom === z[0]) + '">' + z[1] + '</button>'; }).join("") + '</div>' +
-      '<div class="mapbox">' + worldSVG(k, worldZoom) + '</div><p class="hint">Tap a country to color it in. England, Scotland, Wales and Northern Ireland each get their own color. Tiny countries have a dot.</p>' +
-      '<details class="list"><summary>Pick from a list</summary><div class="checks"><div class="field"><label for="find">Find a place</label><input id="find" type="search" placeholder="Type a country" autocomplete="off"></div>' + list + '</div></details>');
-    main.querySelectorAll("[data-zoom]").forEach(function (b) { b.onclick = function () { worldZoom = b.dataset.zoom; keepOpen(function () { viewWorld(k); }); }; });
-    var find = main.querySelector("#find");
-    find.addEventListener("input", function () {
-      var q = find.value.trim().toLowerCase();
-      main.querySelectorAll(".checks .check").forEach(function (el) { el.hidden = q && (el.dataset.name || "").indexOf(q) < 0; });
-      main.querySelectorAll(".checks h3").forEach(function (h) { h.hidden = !!q; });
-    });
+      '<div class="pzfind"></div><div class="mapbox">' + worldSVG(k, worldZoom) + '</div>' + MAP_HINT + ' England, Scotland, Wales and Northern Ireland each get their own color.</p>' +
+      '<details class="list"><summary>Pick from a list</summary><div class="checks plist" data-plist="world:' + esc(k.id) + '">' +
+        FF.tools('<div class="field"><label for="find">Find a place</label><input id="find" type="search" placeholder="Type a country, e.g. Holland or UK" autocomplete="off"></div>') + list + '</div></details>');
+    bindZoomButtons();
+    FF.bind(main.querySelector("[data-plist]"), main.querySelector("#find"), false);
     bindMap(k, function () { keepOpen(function () { viewWorld(k); }); });
   }
   function viewParks(k) {
-    var s = M.stats(k, state.trips, MAPS.world), kidMode = M.isKid(k);
-    var rows = M.PARKS.map(function (p) {
-      var v = k.parks[p.id];
-      return '<div class="row" data-name="' + esc((p.name + " " + p.states).toLowerCase()) + '"><div class="nm"><b>' + esc(p.name) + '</b><span>' + esc(p.states) + '</span></div>' +
-        '<button type="button" class="pill" data-park="' + p.id + '" aria-pressed="' + !!v + '">' + (v ? "✓ Been here" : "Been here?") + '</button>' +
-        (kidMode ? '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button>' : "") + '</div>';
+    var s = M.stats(k, state.trips, MAPS.world), kidMode = M.isKid(k), FF = window.FS_FIND, byReg = {};
+    M.PARKS.forEach(function (p) { var r = FF.REGION[p.states.split(/,\s*/)[0]] || "West"; (byReg[r] = byReg[r] || []).push(p); });
+    var groups = FF.REGIONS.filter(function (r) { return byReg[r]; }).map(function (r) {
+      var ps = byReg[r];
+      return FF.group(r, r, ps.filter(function (p) { return k.parks[p.id]; }).length, ps.length, ps.map(function (p) {
+        var v = k.parks[p.id];
+        return '<div class="row" data-name="' + esc(p.name + " " + p.states + " " + p.states.split(/,\s*/).map(function (x) { return STATE_NAME[x] || ""; }).join(" ")) + '"><div class="nm"><b data-hl>' + esc(p.name) + '</b><span>' + esc(p.states) + '</span></div>' +
+          '<button type="button" class="pill" data-park="' + p.id + '" aria-pressed="' + !!v + '">' + (v ? "✓ Been here" : "Been here?") + '</button>' +
+          (kidMode ? '<button type="button" class="pill jr" data-jr="' + p.id + '" aria-pressed="' + !!(v && v.jr) + '" aria-label="Junior Ranger badge at ' + esc(p.name) + '">' + (v && v.jr ? "★ Ranger" : "Ranger?") + '</button>' : "") + '</div>';
+      }).join(""));
     }).join("");
     main.innerHTML = shell(k, "parks", counter(s.parks, 64, "national parks", kidMode ? '<div class="muted small">Junior Ranger badges: ' + s.juniorRanger + '</div>' : "") +
-      '<div class="panel parks"><div class="field" style="margin-top:0"><label for="pfind">Find a park or state</label><input id="pfind" type="search" placeholder="e.g. Zion or UT" autocomplete="off"></div>' + rows + '</div>' +
+      '<div class="panel parks plist" data-plist="parks:' + esc(k.id) + '">' + FF.tools('<div class="field" style="margin-top:0"><label for="pfind">Find a park or state</label><input id="pfind" type="search" placeholder="e.g. Zion, Utah or UT" autocomplete="off"></div>') + groups + '</div>' +
       (kidMode ? '<p class="hint">Earned a Junior Ranger badge? Tap "Ranger?" too. Ask at any park visitor center; most parks have a free booklet.</p>' : ""));
     var f = main.querySelector("#pfind");
-    f.addEventListener("input", function () { var q = f.value.trim().toLowerCase(); main.querySelectorAll(".parks .row").forEach(function (r) { r.hidden = q && r.dataset.name.indexOf(q) < 0; }); });
-    function again() { var q = f.value, y = window.scrollY; viewParks(k); var f2 = main.querySelector("#pfind"); f2.value = q; f2.dispatchEvent(new Event("input")); window.scrollTo(0, y); }
+    FF.bind(main.querySelector("[data-plist]"), f, true);
+    function again() { var q = f.value, y = window.scrollY, foc = document.activeElement === f; viewParks(k); var f2 = main.querySelector("#pfind"); f2.value = q; f2.dispatchEvent(new Event("input")); if (foc) f2.focus({ preventScroll: true }); window.scrollTo(0, y); }
     main.querySelectorAll("[data-park]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.park, "visit"); saveKid(k); toast(on ? placeName("park", b.dataset.park) + ": visited!" : "Removed"); again(); if (on) UI().askDate(k, "park", b.dataset.park, again); }; });
     main.querySelectorAll("[data-jr]").forEach(function (b) { b.onclick = function () { var on = M.togglePark(k, b.dataset.jr, "jr"); saveKid(k); if (on) toast("Junior Ranger! ★"); again(); }; });
   }
@@ -454,16 +494,16 @@
     var map = "", line = "";
     if (famMap === "us") {
       var w = M.whoBeen(people, "state", MAPS.world), u = MAPS.us;
-      map = '<div class="mapbox us"><svg viewBox="0 0 ' + u.w + ' ' + u.h + '" role="img" aria-label="Family map of US states">' +
+      map = '<div class="mapbox us"><svg viewBox="0 0 ' + u.w + ' ' + u.h + '" data-pz="us" role="img" aria-label="Family map of US states">' +
         u.insets.map(function (b) { return '<rect class="inset" x="' + (b[0] - 4) + '" y="' + (b[1] - 4) + '" width="' + (b[2] + 8) + '" height="' + (b[3] + 8) + '" rx="8"/>'; }).join("") +
         u.shapes.map(function (p) { return pathTag("state", p, w[p.id]); }).join("") + '</svg></div>';
       line = together ? fs.togetherStates + " <small>of 50 states together</small>" : fs.states + " <small>of 50 states between " + (n === 1 ? "them" : "you") + "</small>";
     } else if (famMap === "world") {
-      var wp = M.whoBeen(people, "place", MAPS.world), vb = ZOOMS[worldZoom] || [0, 0, MAPS.world.w, MAPS.world.h];
+      var wp = M.whoBeen(people, "place", MAPS.world), vb = [0, 0, MAPS.world.w, MAPS.world.h], pre = ZOOMS[worldZoom];
       people.forEach(function (p) { if (Object.keys(p.states).length && !(wp.USA || []).some(function (x) { return x === p.id; })) (wp.USA = wp.USA || []).push(p.id); });
       map = '<div class="seg" role="group" aria-label="Zoom">' + [["world", "Whole world"], ["na", "North America"], ["europe", "Europe"], ["uk", "UK & Ireland"]].map(function (z) {
           return '<button type="button" data-zoom="' + z[0] + '" aria-pressed="' + (worldZoom === z[0]) + '">' + z[1] + '</button>'; }).join("") + '</div>' +
-        '<div class="mapbox"><svg viewBox="' + vb.join(" ") + '" role="img" aria-label="Family world map"><path class="ocean" d="' + MAPS.world.outline + '"/><path class="grat" d="' + MAPS.world.grat + '"/>' +
+        '<div class="mapbox"><svg viewBox="' + vb.join(" ") + '" data-pz="world"' + (pre ? ' data-pzinit="' + pre.join(" ") + '"' : "") + ' role="img" aria-label="Family world map"><path class="ocean" d="' + MAPS.world.outline + '"/><path class="grat" d="' + MAPS.world.grat + '"/>' +
         MAPS.world.shapes.map(function (p) { return pathTag("place", p, wp[p.id], (p.other ? " o" : "") + (p.uk ? " uk" : "")); }).join("") + '</svg></div>';
       line = together ? fs.togetherCountries + " <small>of 195 countries together</small>" : fs.countries + " <small>of 195 countries between " + (n === 1 ? "them" : "you") + "</small>";
     } else {
@@ -500,7 +540,7 @@
       if (famSel.length < 2) famMode = "any"; viewFamily(); }; });
     main.querySelectorAll("[data-mode]").forEach(function (b) { b.onclick = function () { famMode = b.dataset.mode; viewFamily(); }; });
     main.querySelectorAll("[data-fmap]").forEach(function (b) { b.onclick = function () { famMap = b.dataset.fmap; viewFamily(); }; });
-    main.querySelectorAll("[data-zoom]").forEach(function (b) { b.onclick = function () { worldZoom = b.dataset.zoom; viewFamily(); }; });
+    bindZoomButtons();
     UI().bindLifetime(viewFamily);
     main.querySelectorAll("[data-fam]").forEach(function (el) { el.addEventListener("click", function () { toast(el.dataset.names.indexOf(":") > 0 ? el.dataset.names : el.dataset.names + ": not yet"); }); });
   }
