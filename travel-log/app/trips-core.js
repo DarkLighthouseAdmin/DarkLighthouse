@@ -51,9 +51,27 @@
   }
   function hasLoc(p) { return !!p && typeof p.lat === "number" && typeof p.lon === "number" && isFinite(p.lat) && isFinite(p.lon); }
   /** One leg into point b from point a. how: "manual" (they typed real miles), "flight" (great circle), "about" (estimate), "unknown". */
+  /** A leg no one drives: across an ocean (the Americas to Europe/Africa/Asia) or longer than coast to coast. */
+  function mustFly(a, b) {
+    var g = gcMiles(a, b); if (g == null) return false;
+    return g > 2800 || (g > 1000 && (a.lon < -30) !== (b.lon < -30));
+  }
+  /** A stop that's really the place you're already at (typed "Orlando" again after starting at home in Orlando). */
+  function sameStop(a, b) {
+    if (!a || !b) return false;
+    var g = gcMiles(a, b); if (g != null) return g < 5;
+    return String(a.name || "").trim().toLowerCase() === String(b.name || "").trim().toLowerCase();
+  }
+  /** The route without stops that repeat the one before them; at (optional) gets each kept stop's index. */
+  function stops(r0, at) {
+    var r = [];
+    (r0 || []).forEach(function (p, j) { if (!r.length || !sameStop(r[r.length - 1], p) || (typeof p.miles === "number" && p.miles > 0)) { r.push(p); if (at) at.push(j); } });
+    return r;
+  }
   function legMiles(a, b) {
     var m = MODE[b.mode] || MODE.car;
     if (typeof b.miles === "number" && b.miles >= 0) return { miles: b.miles, how: "manual", mode: m.id };
+    if (m.id !== "plane" && m.id !== "boat" && mustFly(a, b)) m = MODE.plane;   // Skip on "Did you fly?" doesn't make Rome -> Orlando a drive
     if (m.id === "plane") {
       var from = hasLoc(b.dep) ? b.dep : a, to = hasLoc(b.arr) ? b.arr : b, g = gcMiles(from, to);
       var o = { miles: g == null ? null : g, how: g == null ? "unknown" : "flight", mode: m.id, air: g == null ? null : airMinutes(g) };
@@ -251,16 +269,18 @@
   function nightsBetween(a, b) { a = vdate(a); b = vdate(b); if (!a || !b) return null; var n = Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 864e5); return n >= 0 ? n : null; }
   /** Legs, miles and what the trip saw. Skips the start point when the trip has more than one stop (that's home). */
   function summary(t) {
-    var r = t.route || [], legs = [], miles = 0, known = true, flights = 0, road = 0;
+    var r0 = t.route || [], r = [], at = [], legs = [], miles = 0, known = true, flights = 0, road = 0;
+    // a stop repeating the one before it (Orlando -> Orlando, ~0 mi) isn't a leg, a town or a story line
+    stops(r0, at).forEach(function (p) { r.push(p); });
     for (var i = 1; i < r.length; i++) {
-      var L = legMiles(r[i - 1], r[i]); L.from = r[i - 1].name; L.to = r[i].name; L.i = i; L.dep = r[i].dep || null; L.arr = r[i].arr || null;
+      var L = legMiles(r[i - 1], r[i]); L.from = r[i - 1].name; L.to = r[i].name; L.i = at[i]; L.dep = r[i].dep || null; L.arr = r[i].arr || null;
       legs.push(L);
     }
     if (t.roundTrip && r.length > 1) {
       var first = r[1], bk = cleanBack(t.back), back = { name: r[0].name, lat: r[0].lat, lon: r[0].lon, mode: bk ? bk.mode : first.mode || "car" };
       if (bk) { if (bk.dep) back.dep = bk.dep; if (bk.arr) back.arr = bk.arr; }
       else if (first.mode === "plane") { if (first.arr) back.dep = first.arr; if (first.dep) back.arr = first.dep; }
-      var R = legMiles(r[r.length - 1], back); R.from = r[r.length - 1].name; R.to = r[0].name; R.i = r.length; R.home = true; R.dep = back.dep || null; R.arr = back.arr || null;
+      var R = legMiles(r[r.length - 1], back); R.from = r[r.length - 1].name; R.to = r[0].name; R.i = r0.length; R.home = true; R.dep = back.dep || null; R.arr = back.arr || null;
       legs.push(R);
     }
     var flown = 0, air = 0;
@@ -290,7 +310,7 @@
   function areas(t, parkStates) {
     var out = [], keys = {};
     function add(kind, id) { if (id && !keys[kind + id]) { keys[kind + id] = 1; out.push({ kind: kind, id: id }); } }
-    var r = t.route || [], seen = r.length > 1 ? r.slice(1) : r;
+    var r = stops(t.route), seen = r.length > 1 ? r.slice(1) : r;
     seen.forEach(function (p) {
       if (p.kind === "park" && p.ref) {
         add("park", p.ref);
@@ -512,7 +532,7 @@
 
   return { EARTH_MI: EARTH_MI, KM_PER_MI: KM_PER_MI, AROUND_WORLD: AROUND_WORLD, MAX_POINTS: MAX_POINTS, MAX_STAYS: MAX_STAYS, MAX_FAVS: MAX_FAVS,
            MODES: MODES, MODE: MODE, STAY_TYPES: STAY_TYPES, FAV_CATS: FAV_CATS, FAV: FAV, US_STATES: US_STATES,
-           gcMiles: gcMiles, legMiles: legMiles, airportCity: airportCity, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
+           gcMiles: gcMiles, legMiles: legMiles, airportCity: airportCity, mustFly: mustFly, sameStop: sameStop, stops: stops, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
            airMinutes: airMinutes, fmtAir: fmtAir, crossesBorder: crossesBorder, CRUISE_MPH: CRUISE_MPH, GROUND_MIN_MI: GROUND_MIN_MI,
            cleanStays: cleanStays, cleanFavs: cleanFavs, cleanMoments: cleanMoments, cleanStory: cleanStory, cleanMemories: cleanMemories, MEM_PROMPTS: MEM_PROMPTS, cleanExtras: cleanExtras,
            routeFromLegacy: routeFromLegacy, syncLegacy: syncLegacy, nightsBetween: nightsBetween, summary: summary, areas: areas, isAdult: isAdult,

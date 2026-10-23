@@ -244,6 +244,7 @@ body.kidview .foot { display:none; }
 .routeline { margin-top:.9rem; font-size:1.05rem; line-height:1.6; } .routeline b { color:var(--sage-deep); }
 .routebox { background:#dfeef2; }
 .routebox path.a { cursor:default; } .routebox path.a.on { fill:var(--kid); opacity:.55; }
+svg path.leg { fill:none; stroke:var(--navy); stroke-linecap:round; } svg path.leg.plane { stroke:#2b4c9b; }
 .routebox .leg { fill:none; stroke:var(--navy); stroke-linecap:round; } .routebox .leg.plane { stroke:#2b4c9b; }
 .routebox .stopdot circle { fill:var(--kid); stroke:var(--navy); } .routebox .stopdot circle.home { fill:#fff; }
 .routebox .stopdot text { fill:var(--navy); font-weight:700; text-anchor:middle; font-family:sans-serif; }

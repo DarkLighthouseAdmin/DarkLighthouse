@@ -218,7 +218,9 @@
     main.querySelectorAll(".swatch").forEach(function (b) {
       b.onclick = function () { color = b.dataset.color; main.querySelectorAll(".swatch").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); };
     });
+    var ksaving = false;
     document.getElementById("ksave").onclick = function () {
+      if (ksaving) return;   // a double tap mustn't add the person twice
       var name = document.getElementById("kname").value, year = document.getElementById("kyear").value, err = document.getElementById("kerr");
       var nick = document.getElementById("knick").value, relv = document.getElementById("krel").value;
       try {
@@ -226,7 +228,9 @@
         if (cap && state.kids.length >= cap) throw new Error("Your Founders plan covers up to " + cap + " people. Remove someone to add someone new.");
         var kid = editing ? k : M.newPerson({ name: name, role: role, birthYear: year, color: color, nickname: nick, relationship: relv });
         if (editing) { var tmp = M.newPerson({ name: name, role: role, birthYear: year, color: color }); k.name = tmp.name; k.role = tmp.role; k.birthYear = tmp.birthYear; k.color = tmp.color; k.relationship = M.validRel(relv, tmp.role); var nk = M.newPerson({ name: "x", nickname: nick }).nickname; if (nk) k.nickname = nk; else delete k.nickname; k.updatedAt = new Date().toISOString(); }
-        saveKid(kid).then(function () { if (!editing) state.kids.push(kid); state.kids.sort(byRole); location.hash = "#/p/" + kid.id + (editing ? "/stats" : "/us"); toast(editing ? "Saved" : "Welcome aboard, " + M.who(kid) + "!"); });
+        ksaving = true; document.getElementById("ksave").disabled = true;
+        saveKid(kid).then(function () { if (!editing) state.kids.push(kid); state.kids.sort(byRole); location.hash = "#/p/" + kid.id + (editing ? "/stats" : "/us"); toast(editing ? "Saved" : "Welcome aboard, " + M.who(kid) + "!"); })
+          .catch(function () { ksaving = false; document.getElementById("ksave").disabled = false; err.textContent = "Couldn't save. Is the device out of space?"; err.hidden = false; });
       } catch (e) { err.textContent = e.message; err.hidden = false; }
     };
     if (editing) document.getElementById("kdel").onclick = function () {
