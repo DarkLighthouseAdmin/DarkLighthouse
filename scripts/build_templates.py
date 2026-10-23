@@ -2,7 +2,8 @@
 """Rebuild /templates/ (page + product images) and /pins/ from the local product kits.
 Run from the repo root:  python3 scripts/build_templates.py
 Sources (on the build box): /workspace/dls-products/listing-kits, /workspace/polar-push, /workspace/marketing."""
-import json, shutil, html
+import json, shutil, html, sys
+sys.dont_write_bytecode = True
 from pathlib import Path
 from PIL import Image
 
@@ -133,7 +134,8 @@ def page():
     out = (tpl.replace("{{BUNDLES}}", bundles).replace("{{SINGLES}}", singles)
               .replace("{{SOON}}", soons).replace("{{JSONLD}}", json.dumps(ld, indent=1)))
     (ROOT / "templates").mkdir(exist_ok=True)
-    (ROOT / "templates/index.html").write_text(out)
+    from add_analytics import inject  # GA4 snippet + checkout/thanks events (no-op if already present)
+    (ROOT / "templates/index.html").write_text(inject(out, is_templates=True))
 
 if __name__ == "__main__":
     build_assets()

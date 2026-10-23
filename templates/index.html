@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TVG78TY2JC"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-TVG78TY2JC');</script>
   <title>Budget Spreadsheets, Wedding Planner &amp; Emergency Binder Templates | Dark Lighthouse Solutions</title>
   <meta name="description" content="Google Sheets budget templates, a debt payoff dashboard, wedding planner &amp; budget, the Just-In-Case emergency binder and a 2027 digital budget planner. Instant download." />
   <meta name="author" content="Dark Lighthouse Solutions" />
@@ -554,6 +556,18 @@
         if (e.key === "ArrowRight") modal.querySelector(".next").click();
       });
     })();
+  </script>
+  <!-- ga4-purchase-thanks -->
+  <script>if (/[?&]thanks=1\b/.test(location.search) && typeof gtag === "function") gtag("event", "purchase_thanks");</script>
+  <!-- ga4-checkout-click -->
+  <script>
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href*="buy.polar.sh"]') : null;
+      if (!a || typeof gtag !== "function") return;
+      var box = a.closest("article, .card, section, li"), h = box && box.querySelector("h1, h2, h3");
+      var name = (h ? h.textContent : a.textContent || "").replace(/\s+/g, " ").trim();
+      gtag("event", "begin_checkout", { item_name: name, link_url: a.href, transport_type: "beacon" });
+    }, true);
   </script>
 </body>
 </html>

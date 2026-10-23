@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TVG78TY2JC"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-TVG78TY2JC');</script>
   <title>AI SaaS Starter (ForgeChat) — Guide | Dark Lighthouse Solutions</title>
   <meta name="description" content="Next.js App Router, marketing page, Polar-ready pricing CTA, dashboard chat UI, and POST /api/chat that defaults to mock replies so demos don’t burn tokens" />
   <meta name="keywords" content="AI SaaS boilerplate Next.js, Polar checkout AI chat starter" />
@@ -195,5 +197,15 @@
       <a href="/kits/">All guides</a> · <a href="/">Storefront</a> · © Dark Lighthouse Solutions
     </footer>
   </article>
+  <!-- ga4-checkout-click -->
+  <script>
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href*="buy.polar.sh"]') : null;
+      if (!a || typeof gtag !== "function") return;
+      var box = a.closest("article, .card, section, li"), h = box && box.querySelector("h1, h2, h3");
+      var name = (h ? h.textContent : a.textContent || "").replace(/\s+/g, " ").trim();
+      gtag("event", "begin_checkout", { item_name: name, link_url: a.href, transport_type: "beacon" });
+    }, true);
+  </script>
 </body>
 </html>
