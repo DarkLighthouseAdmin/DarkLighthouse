@@ -208,7 +208,7 @@
     var years = {}; dates.forEach(function (d) { years[d.slice(0, 4)] = 1; });
     var abroad = countries.filter(function (id) { return id !== "USA"; }).length;
     var life = T.lifetime(kid.id, trips);
-    return { miles: life.miles, flights: life.flights, bigRoad: life.bigRoad,
+    return { miles: life.miles, flights: life.flights, flightMiles: life.flightMiles, airMin: life.airMin, bigRoad: life.bigRoad,
       role: validRole(kid.role), kid: isKid(kid), together: mine.filter(function (t) { return t.kidIds.length > 1; }).length,
       states: states, statesTotal: US_STATE_TOTAL, dc: !!kid.states.DC,
       countries: countries.length, countriesTotal: COUNTRY_TOTAL, abroad: abroad,
@@ -239,6 +239,8 @@
     { id: "junior-ranger", name: "Junior Ranger", desc: "Earn a Junior Ranger badge", need: 1, key: "juniorRanger", kidsOnly: true },
     // v1.4: these come from trip routes
     { id: "first-flight", name: "First flight", desc: "Take a trip with a flight", need: 1, key: "flights" },
+    { id: "frequent-flyer", name: "Frequent flyer", desc: "Take 5 flights", need: 5, key: "flights" },
+    { id: "sky-miles", name: "Sky high", desc: "Fly 10,000 miles", need: 10000, key: "flightMiles" },
     { id: "road-trip", name: "Big road trip", desc: "Drive 500 miles on one trip", need: 500, key: "bigRoad" },
     { id: "miles-1000", name: "1,000 miles", desc: "Travel 1,000 miles", need: 1000, key: "miles" },
     { id: "miles-10000", name: "10,000 miles", desc: "Travel 10,000 miles", need: 10000, key: "miles" },
@@ -330,7 +332,7 @@
       if (!ids.length || !clean(t.place, 80)) return null;
       return keepUnknown(t, newTrip({ id: t.id, kidIds: ids, place: t.place, from: obj.version >= 3 ? t.from : "", stops: obj.version >= 3 ? t.stops : [], date: t.date, who: t.who, memory: t.memory, mark: t.mark,
                        photoId: photoIds.indexOf(t.photoId) >= 0 ? t.photoId : null, createdAt: t.createdAt, now: t.updatedAt,
-                       route: v4 ? t.route : [], title: v4 ? t.title : "", endDate: v4 ? t.endDate : "", nights: v4 ? t.nights : null, roundTrip: v4 && t.roundTrip, done: v4 && t.done,
+                       route: v4 ? t.route : [], title: v4 ? t.title : "", endDate: v4 ? t.endDate : "", nights: v4 ? t.nights : null, roundTrip: v4 && t.roundTrip, done: v4 && t.done, fly: v4 ? t.fly : "", back: v4 ? t.back : null,
                        stays: v4 ? t.stays : [], favs: v4 ? t.favs : [], moments: v4 ? t.moments : {}, story: v4 ? t.story : null }));
     }).filter(Boolean);
     var home = obj.version >= 3 && obj.settings && typeof obj.settings === "object" ? clean(obj.settings.home, 80) : "";

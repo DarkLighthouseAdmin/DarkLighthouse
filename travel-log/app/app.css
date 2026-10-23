@@ -403,3 +403,45 @@ h2 .units { margin-left:.4rem; }
 .yr-card { margin-top:1rem; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:var(--card); }
 .yr-card img { display:block; width:100%; height:auto; } .yr-wait { padding:3rem 1rem; text-align:center; }
 .yr-actions .btn { min-height:44px; }
+
+/* v1.6: "+ Add a trip" on the home screen, the "Who went?" chooser, "Did you fly? Which airports?" */
+.homeadd { display:flex; flex-direction:column; align-items:stretch; gap:.35rem; margin:1rem 0 .4rem; }
+.homeadd .btn-big { min-height:56px; font-size:1.15rem; justify-content:center; box-shadow:0 4px 14px rgba(232,165,75,.35); }
+.homeadd .btn-big span[aria-hidden] { font-size:1.35rem; line-height:1; margin-right:.15rem; }
+.homeadd > .small { text-align:center; }
+@media (max-width:419px) { .homeadd > .small { display:none; } .homeadd { margin:.8rem 0 .2rem; } }
+@media (min-width:640px) { .homeadd { flex-direction:row; align-items:center; gap:1rem; } .homeadd .btn-big { min-width:260px; } .homeadd > .small { text-align:left; } }
+.sheethead { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.sheethead h3 { margin:0; }
+.sheetx { min-width:44px; min-height:44px; border:0; background:transparent; font-size:1.2rem; border-radius:50%; cursor:pointer; color:var(--ink); }
+.sheetx:hover { background:rgba(31,42,51,.08); }
+.whowent { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:.5rem; margin:.6rem 0 .2rem; }
+.whowent a { display:flex; align-items:center; gap:.5rem; min-height:52px; padding:.5rem .8rem; border:1px solid var(--line); border-left:6px solid var(--kid, #16283a); border-radius:14px; background:#fff; color:var(--ink); text-decoration:none; font-weight:700; overflow-wrap:anywhere; }
+.whowent a:hover, .whowent a:focus-visible { box-shadow:0 0 0 2px var(--kid, #16283a); }
+.whowent .wwall { grid-column:1 / -1; background:#16283a; color:#fff; border-color:#16283a; justify-content:center; font-size:1.05rem; }
+.whowent .dotp { width:28px; height:28px; flex:none; }
+.whowent small { font-weight:500; color:var(--muted); }
+.bfly:empty { display:none; }
+.flyask { margin-top:.8rem; border:2px solid #16283a; border-radius:16px; padding:.85rem .9rem; background:linear-gradient(180deg, #eef5fb, #fff 70%); }
+.flyask h4 { margin:0 0 .2rem; font-family:var(--serif); font-size:1.2rem; }
+.flyask h4 span { font-family:inherit; font-weight:600; color:var(--muted); font-size:.95rem; }
+.apgroup { margin-top:.7rem; min-width:0; }
+.aplabel { font-weight:700; margin-bottom:.3rem; overflow-wrap:anywhere; }
+.apchips { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.4rem; }
+.apchip { min-height:44px; padding:.3rem .6rem; gap:.3rem; font-size:.86rem; color:var(--ink); max-width:100%; }
+.apchip small { font-size:.75rem; }
+.apchip span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:11rem; font-weight:500; }
+.apchip small { color:var(--muted); font-weight:500; }
+.apchip[aria-pressed=true] { background:#16283a; color:#fff; border-color:#16283a; box-shadow:none; }
+.apchip[aria-pressed=true] small { color:#c9d5e2; }
+.apgroup input[type=search] { width:100%; min-height:44px; }
+.flyprev { margin:.7rem 0 0; padding:.55rem .7rem; background:#16283a; color:#fff; border-radius:12px; }
+.flyprev b { color:var(--beacon); } .flyprev .muted { color:#c9d5e2; }
+.flyacts { flex-wrap:wrap; margin-top:.7rem; }
+.flyacts .btn { min-height:44px; }
+.flydone { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-top:.6rem; padding:.55rem .8rem; border-radius:12px; background:#eef5fb; border:1px solid #c9d5e2; }
+.flydone .flybtns { display:flex; gap:.3rem; flex-wrap:wrap; margin-left:auto; }
+.flylink { margin:.5rem 0 0; }
+.flybtns .linkbtn, .flylink .linkbtn { min-height:44px; }
+.legs .gnd { display:block; font-size:.85rem; color:var(--muted); }
+.pfly { font-size:.9rem; opacity:.9; margin:.2rem 0 0; }

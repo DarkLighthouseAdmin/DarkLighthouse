@@ -77,7 +77,7 @@ ok(M.ageOn(2016, "2026-07-14") === 10 && M.ageOn(null, "2026-07-14") === null, "
 
 // ---- badges ----
 const bs = M.badges(M.stats(a, [t1], MAPS.world)), got = id => bs.find(x => x.id === id).earned;
-ok(bs.length === 21, "21 badges for kids");
+ok(bs.length === 23, "23 badges for kids");
 ok(got("first-trip") && got("photo") && got("states-5") && !got("states-10"), "trip/photo/state badges");
 ok(got("scotland") && got("uk-4") && got("abroad") && got("continents-3") && !got("countries-5"), "Wee explorer, All four nations, Passport power");
 ok(got("park-1") && !got("junior-ranger"), "park badge, no ranger yet");
@@ -104,7 +104,7 @@ ok(ms.firstTripAge === null, "no 'age on first trip' for adults");
 ok(M.stats(a, [tFam], MAPS.world).firstTripAge === 10, "kids still get age on first trip");
 ok(ms.together === 2 && ms.trips === 2, "trips together counted per person");
 const mb = M.badges(ms), mg = id => mb.find(x => x.id === id);
-ok(mb.length === 20 && !mg("junior-ranger"), "adults skip the Junior Ranger badge");
+ok(mb.length === 22 && !mg("junior-ranger"), "adults skip the Junior Ranger badge");
 ok(mg("scotland").name === "Scotland calling" && mg("scotland").earned, "adults get 'Scotland calling', not 'Wee explorer'");
 ok(M.badges(M.stats(a, [], MAPS.world)).find(x => x.id === "scotland").name === "Wee explorer", "kids keep 'Wee explorer'");
 ok(mg("park-1").earned && mg("abroad").earned && !mg("together").earned, "adults earn the same badges");
@@ -255,7 +255,7 @@ ok(M.backupNudge("2999-01-01T00:00:00Z", [t1, t2, t1]) === 0, "no nudge right af
   const js2 = read("app.js"), css2 = read("app.css");
   const ui = read("trips-ui.js");
   ok(/id="psearch"/.test(ui) && /Where did you go\?/.test(ui) && /Tap places in order/.test(ui), "trip builder: tap places in order");
-  ok(/name="kids"/.test(ui) && /Who went\?/.test(ui) && /kidIds: \[k\.id\]/.test(ui), "Who went checklist, defaulting to the current person");
+  ok(/name="kids"/.test(ui) && /Who went\?/.test(ui) && /kidIds: opts\.all \? [^:]+: \[k\.id\]/.test(ui), "Who went checklist, defaulting to the current person");
   ok(/setMeta\("home"/.test(js2) && /state\.meta\.home/.test(js2), "home town saved on the device and prefilled");
   ok(/T\.MAX_POINTS/.test(ui) && /class="leg"/.test(ui), "up to 12 stops, with a leg between each");
   ok(/Object\.assign\(old \? copy\(old\) : \{\}/.test(ui), "editing a trip keeps fields this version doesn't know about");
@@ -764,6 +764,69 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(Y.summary([a, b], trips, 2025).parks === 1 && Y.summary([a], trips, 2025).trips === 0, "2025 counts its own park; a trip only counts for people on it");
   ok(s26.pick.length <= 9, "at most nine stamps on the card");
   ok(/year\.js/.test(read("index.html")) && /"year\.js"/.test(read("sw.js")) && /#\/year/.test(read("app.js")), "year card is loaded, cached offline and linked");
+}
+// ---- v1.6: home "+ Add a trip", "Did you fly? Which airports?", miles flown and time in the air ----
+{
+  const T = require("../travel-log/app/trips-core.js"), L = require("../travel-log/app/log-core.js");
+  const MCO = { code: "MCO", name: "Orlando International Airport", city: "Orlando", country: "USA", lat: 28.429, lon: -81.309 };
+  const EDI = { code: "EDI", name: "Edinburgh Airport", city: "Edinburgh", country: "GBR", lat: 55.95, lon: -3.373 };
+  const ORL = { name: "Orlando", kind: "city", lat: 28.538, lon: -81.379, country: "USA", region: "FL" };
+  const EDN = { name: "Edinburgh", kind: "city", lat: 55.953, lon: -3.189, country: "GBR", region: "SCT" };
+  const g = T.gcMiles(MCO, EDI);
+  ok(Math.abs(g - 4158) < 25, "MCO to EDI great circle is about 4,158 mi, got " + Math.round(g));
+  ok(Math.abs(T.gcMiles({ lat: 40.64, lon: -73.779 }, { lat: 51.47, lon: -0.454 }) - 3451) < 25, "JFK to LHR about 3,451 mi");
+  ok(T.airMinutes(g) > 7.5 * 60 && T.airMinutes(g) < 9 * 60, "MCO-EDI about 8 hours in the air: " + T.fmtAir(T.airMinutes(g)));
+  ok(T.fmtAir(45) === "45m" && T.fmtAir(120) === "2h" && T.fmtAir(487) === "8h 5m" && T.fmtAir(0) === "" && T.fmtAir(null) === "", "fmtAir formats");
+  ok(T.airMinutes(0) === null && T.airMinutes(null) === null, "no miles, no air time");
+  ok(T.crossesBorder([ORL, EDN]) && !T.crossesBorder([ORL, { name: "Miami", country: "USA" }]), "crossesBorder: abroad vs domestic");
+  ok(T.crossesBorder([{ name: "Home" }, EDN], "USA") && !T.crossesBorder([{ name: "Home" }, ORL], "USA"), "crossesBorder uses the saved home country when the start has none");
+  ok(!T.crossesBorder([ORL]) && !T.crossesBorder([]), "one stop or none is never abroad");
+  const fl = { route: [ORL, Object.assign({}, EDN, { mode: "plane", dep: MCO, arr: EDI })], roundTrip: true, kidIds: ["a"] };
+  const s = T.summary(fl);
+  ok(s.flights === 2 && Math.abs(s.flightMiles - 2 * g) < 2, "round trip: 2 flights, both ways flown");
+  ok(s.airMin === 2 * T.airMinutes(g), "time in the air adds up both ways");
+  ok(s.legs[1].home && s.legs[1].dep.code === "EDI" && s.legs[1].arr.code === "MCO", "flight home mirrors the way out");
+  ok(!s.legs[0].toAp && !s.legs[0].fromAp, "a short airport run isn't counted as a drive");
+  // a long drive to the airport counts as road miles
+  const GNV = { name: "Gainesville", kind: "city", lat: 29.652, lon: -82.325, country: "USA", region: "FL" };
+  const s2 = T.summary({ route: [GNV, Object.assign({}, EDN, { mode: "plane", dep: MCO, arr: EDI })], roundTrip: false });
+  ok(s2.legs[0].toAp > 100 && s2.legs[0].toAp < 140 && s2.roadMiles === Math.round(s2.legs[0].toAp) && s2.miles === Math.round(s2.legs[0].miles + s2.legs[0].toAp), "drive from Gainesville to MCO counts as road miles: " + Math.round(s2.legs[0].toAp));
+  ok(s2.flightMiles === Math.round(g), "flight miles stay airport to airport");
+  // a flight later in the trip, with its own way home
+  const MIA = { name: "Miami", kind: "city", lat: 25.774, lon: -80.194, country: "USA", region: "FL" };
+  const MIAap = { code: "MIA", name: "Miami International Airport", city: "Miami", country: "USA", lat: 25.795, lon: -80.29 };
+  const LON = { name: "London", kind: "city", lat: 51.507, lon: -0.128, country: "GBR", region: "ENG" };
+  const LHR = { code: "LHR", name: "Heathrow Airport", city: "London", country: "GBR", lat: 51.47, lon: -0.454 };
+  const t3 = { route: [ORL, Object.assign({}, MIA, { mode: "car" }), Object.assign({}, LON, { mode: "plane", dep: MIAap, arr: LHR })], roundTrip: true, back: { mode: "plane", dep: LHR, arr: MIAap } };
+  const s3 = T.summary(t3);
+  ok(s3.flights === 2 && s3.legs[2].mode === "plane" && s3.legs[2].dep.code === "LHR", "trip.back flies home from LHR instead of driving like the first leg");
+  ok(s3.legs[2].fromAp > 150, "and drives the last bit home from Miami's airport: " + Math.round(s3.legs[2].fromAp || 0));
+  ok(T.summary(Object.assign({}, t3, { back: null })).flights === 1, "without back, the way home copies the first leg (car)");
+  ok(T.cleanBack({ mode: "plane", dep: LHR, arr: { code: "bad" } }).dep.code === "LHR" && !T.cleanBack({ mode: "plane", dep: LHR, arr: { code: "bad" } }).arr, "cleanBack keeps good airports only");
+  ok(T.cleanBack({ mode: "rocket" }) === null && T.cleanBack(null) === null, "cleanBack drops nonsense");
+  // the answer is kept on the trip, through backup
+  const kid = L.newKid({ name: "Fake Kid" });
+  const tr = L.newTrip({ kidIds: [kid.id], place: "Edinburgh", route: fl.route, roundTrip: true, fly: "yes", back: { mode: "plane", dep: EDI, arr: MCO } });
+  ok(tr.fly === "yes" && tr.back && tr.back.dep.code === "EDI", "newTrip keeps fly + back");
+  ok(L.newTrip({ kidIds: [kid.id], place: "X", fly: "maybe" }).fly === "" && L.newTrip({ kidIds: [kid.id], place: "X" }).back === null, "bad fly answers are dropped");
+  const bk = L.readBackup(JSON.parse(JSON.stringify(L.makeBackup([kid], [tr], [], {}))));
+  ok(bk.trips[0].fly === "yes" && bk.trips[0].back.arr.code === "MCO", "fly + back survive a backup round trip");
+  // lifetime + badges
+  const life = T.lifetime(kid.id, [tr, tr, tr].map((x, i) => Object.assign({}, x, { id: "t" + i })));
+  ok(life.flights === 6 && Math.abs(life.flightMiles - 6 * g) < 5 && life.airMin === 6 * T.airMinutes(g), "lifetime flights, miles flown and time in the air");
+  const st = L.stats(kid, [0, 1, 2].map(i => Object.assign({}, tr, { id: "t" + i })), MAPS.world), bs = L.badges(st);
+  ok(st.flightMiles > 20000 && bs.find(b => b.id === "frequent-flyer").earned && bs.find(b => b.id === "sky-miles").earned, "Frequent flyer + Sky high earned");
+  ok(!L.badges(L.stats(kid, [tr], MAPS.world)).find(b => b.id === "frequent-flyer").earned, "2 flights isn't Frequent flyer yet");
+  // story mentions the time in the air, and the same trip still tells the same story
+  const story = T.makeStory(Object.assign({ id: "trip_x", date: "2025-07-01", done: true }, tr), { travelers: [{ id: kid.id, name: "Fake Kid" }] }, { style: "journal" });
+  ok(/in the air/.test(story.text), "story says how long they were in the air");
+  ok(T.makeStory(Object.assign({ id: "trip_x", date: "2025-07-01" }, tr), { travelers: [{ id: kid.id, name: "Fake Kid" }] }, { style: "journal" }).text === story.text, "story stays the same for the same trip");
+  // UI wiring
+  const ui = read("trips-ui.js"), app = read("app.js"), css = read("app.css");
+  ok(/Did you fly\?/.test(ui) && /Which airports\?/.test(ui) && /We didn\\'t fly/.test(ui) && /id="flyskip"/.test(ui), "builder asks Did you fly? with yes / didn't fly / skip");
+  ok(/nearAirports\(/.test(ui) && /crossesBorder\(/.test(ui), "suggests nearby airports when the trip goes abroad");
+  ok(/id="homeadd"/.test(app) && /whoWentSheet/.test(app) && /trips\/new" \+ \(all \? "\/all"/.test(ui) && /h\[4\] === "all"/.test(app), "home screen + Add a trip, with Who went? and Everyone went");
+  ok(/\.homeadd \.btn-big \{[^}]*min-height:56px/.test(css) && /\.apchip \{[^}]*min-height:44px/.test(css), "big tap targets for the new buttons");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

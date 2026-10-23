@@ -96,6 +96,13 @@
     list.forEach(function (a) { var d = T.gcMiles(p, a) * (a.size === "L" ? 0.6 : 1); if (d < bd) { bd = d; best = a; } });
     return best && bd < 250 ? airportObj(best) : null;
   }
+  /** The n closest airports to a place, big ones first when they're about as close (for "Which airports?"). */
+  function nearAirports(p, list, n) {
+    if (!T.hasLoc(p) || !list) return [];
+    return list.map(function (a) { var g = T.gcMiles(p, a); return { a: a, g: g, w: g * (a.size === "L" ? 0.6 : 1) }; })
+      .filter(function (x) { return x.g < 300; }).sort(function (x, y) { return x.w - y.w; }).slice(0, n || 3)
+      .map(function (x) { var o = airportObj(x.a); o.away = Math.round(x.g); return o; });
+  }
   function placeLine(p) { return p.sub ? p.name + ", " + p.sub : p.name; }
 
   // ---------- the route drawn on the map ----------
@@ -141,7 +148,7 @@
     var A_ = A(), age = k && M.isKid(k) ? M.ageOn(k.birthYear, t.date) : null, owner = k || A_.kidById(t.kidIds[0]), s = T.summary(t);
     var route = M.routeText(t), link = owner ? "#/p/" + esc(owner.id) + "/trip/" + esc(t.id) : "";
     var bits = [dateRange(t) || "", s.nights ? s.nights + (s.nights === 1 ? " night" : " nights") : "", age != null ? "age " + age : ""].filter(Boolean);
-    var miles = s.legs.length && s.miles ? '<span class="tmiles">' + (s.milesKnown ? "" : "at least ") + esc(dist(s.miles)) + '</span>' : "";
+    var miles = s.legs.length && s.miles ? '<span class="tmiles">' + (s.milesKnown ? "" : "at least ") + esc(dist(s.miles)) + '</span>' + (s.flights ? ' · <span class="tfly">✈️ ' + s.flights + (s.flights === 1 ? " flight" : " flights") + '</span>' : "") : "";
     return '<article class="trip">' + (t.photoId ? '<img alt="" data-photo="' + esc(t.photoId) + '">' : "") + '<div class="body"><h3>' + (link ? '<a class="tlink" href="' + link + '">' + esc(t.place) + '</a>' : esc(t.place)) + '</h3>' +
       (route !== t.place ? '<div class="route">' + esc(route) + '</div>' : "") +
       '<div class="when">' + esc(bits.join(" · ")) + (miles ? (bits.length ? " · " : "") + miles : "") + (t.mark && !s.legs.length ? " · 🖍 " + esc(areaName(t.mark.kind, t.mark.id)) : "") + '</div>' +
@@ -158,17 +165,20 @@
   var MODE_LABEL = { car: "Car", rv: "RV", plane: "Plane", train: "Train", boat: "Boat", walk: "Walk" };
   function modeIc(m) { return (T.MODE[m] || T.MODE.car).ic; }
   function adultOn(ids) { return people(ids).some(T.isAdult); }
-  function builder(k, tripId) {
+  function builder(k, tripId, opts) {
+    opts = opts || {};
     var A_ = A(), st = S(), old = tripId ? tripById(tripId) : null;
     if (tripId && !old) { location.hash = "#/p/" + k.id + "/trips"; return; }
     // Work on a copy of the whole trip, so fields this version doesn't know about ride along untouched.
-    var d = old ? copy(old) : { kidIds: [k.id], route: [], date: M.today(), endDate: "", nights: null, roundTrip: true, done: true, stays: [], favs: [], moments: {}, memory: "", who: "", title: "", mark: null };
+    var d = old ? copy(old) : { kidIds: opts.all ? st.kids.map(function (x) { return x.id; }) : [k.id], route: [], date: M.today(), endDate: "", nights: null, roundTrip: true, done: true, stays: [], favs: [], moments: {}, memory: "", who: "", title: "", mark: null };
     if (!d.route) d.route = [];
     if (!old && st.meta.homePoint) d.route = [copy(st.meta.homePoint)];
     else if (!old && st.meta.home) d.route = [{ name: st.meta.home, kind: "place" }];
     var newPhoto = null, removePhoto = false, saveHome = !st.meta.homePoint, places = null, airports = null;
     loadPlaces().then(function (x) { places = x; renderRoute(); }).catch(function () {});
-    loadAirports().then(function (x) { airports = x; }).catch(function () {});
+    loadAirports().then(function (x) { airports = x; renderFly(); }).catch(function () {});
+    // "Did you fly?": "" = not answered, "yes", "no" or "skip". Older trips that already have a flight count as yes.
+    var fly = d.fly || (old && (d.route || []).some(function (p) { return p.mode === "plane"; }) ? "yes" : ""), flyOpen = false, flyPick = { dep: null, arr: null, ti: 0 };
     var picks = st.kids.map(function (x) {
       return '<label style="' + A_.kidStyle(x) + '"><input type="checkbox" name="kids" value="' + esc(x.id) + '"' + (d.kidIds.indexOf(x.id) >= 0 ? " checked" : "") + '> <span class="dotp" aria-hidden="true">' + A_.initial(x.name) + '</span> ' + esc(x.name) + '</label>';
     }).join("");
@@ -179,7 +189,7 @@
       '<div class="addplace"><label for="psearch" id="pslabel">Add a stop</label><input id="psearch" type="search" autocomplete="off" placeholder="City, town or national park" aria-controls="presults">' +
       '<div class="results" id="presults" role="listbox"></div></div>' +
       '<label class="check small"><input type="checkbox" id="tround"' + (d.roundTrip ? " checked" : "") + '> Round trip (came back home at the end)</label>' +
-      '<div class="btotal" id="btotal"></div></div>' +
+      '<div class="btotal" id="btotal"></div><div id="bfly" class="bfly"></div></div>' +
       '<div class="bsec"><h3>When?</h3><div class="fields"><div class="field"><label for="tdate">Start</label><input id="tdate" type="date" value="' + esc(d.date || "") + '"></div>' +
       '<div class="field"><label for="tend">End <span class="muted small">(optional)</span></label><input id="tend" type="date" value="' + esc(d.endDate || "") + '"></div>' +
       '<div class="field"><label for="tnights">Or how many nights?</label><input id="tnights" type="number" inputmode="numeric" min="0" max="999" value="' + (typeof d.nights === "number" ? d.nights : "") + '" placeholder="e.g. 7"></div></div>' +
@@ -237,7 +247,100 @@
       var s = T.summary(Object.assign({}, d, { roundTrip: $("#tround").checked }));
       $("#btotal").innerHTML = s.legs.length ? '<span>Total: <b>' + (s.milesKnown ? "" : "at least ") + esc(dist(s.miles)) + '</b>' + (s.flights ? ' · ✈️ ' + s.flights : "") + '</span>' + unitToggle() : "";
       bindUnits($("#btotal"), renderRoute);
+      renderFly();
     }
+    // ---- "Did you fly? Which airports?" (asked when the trip leaves the home country; a quiet link otherwise) ----
+    function homeCountry() { var h = d.route[0]; return (h && h.country) || (st.meta.homePoint && st.meta.homePoint.country) || ""; }
+    function abroad() { return d.route.length > 1 && T.crossesBorder(d.route, homeCountry()); }
+    function flyTarget() {   // the leg the flight is on: into the first stop abroad, or the longest leg at home
+      var r = d.route, hc = homeCountry(), best = 1, bd = -1;
+      for (var i = 1; i < r.length; i++) if (r[i].country && hc && r[i].country !== hc) return i;
+      for (var j = 1; j < r.length; j++) { var g = T.gcMiles(r[j - 1], r[j]) || 0; if (g > bd) { bd = g; best = j; } }
+      return best;
+    }
+    function planes() { return d.route.filter(function (p, i) { return i > 0 && p.mode === "plane"; }).length; }
+    function apChip(w, a, on) {
+      return '<button type="button" class="chip apchip" data-flyap="' + w + '" data-code="' + esc(a.code) + '" aria-pressed="' + !!on + '"><b>' + esc(a.code) + '</b> <span>' + esc(a.city || a.name) + '</span>' +
+        (a.away != null ? ' <small>' + esc(dist(a.away)) + '</small>' : "") + '</button>';
+    }
+    function flySummary(s) {
+      var out = s.legs.filter(function (L) { return L.mode === "plane" && !L.home && L.dep && L.arr; }).map(function (L) { return L.dep.code + " → " + L.arr.code; }),
+        home = s.legs.some(function (L) { return L.mode === "plane" && L.home; });
+      return (out.length ? esc(out.join(", ")) + (home ? " and back" : "") + ': ' : "") + '<b>' + s.flights + (s.flights === 1 ? " flight" : " flights") + '</b> · ' + esc(dist(s.flightMiles)) + ' flown' + (s.airMin ? ' · about ' + esc(T.fmtAir(s.airMin)) + ' in the air' : "");
+    }
+    function renderFly() {
+      var box = $("#bfly"); if (!box) return;
+      var r = d.route, rt = $("#tround") && $("#tround").checked;
+      if (r.length < 2) { box.innerHTML = ""; return; }
+      var intl = abroad(), n = planes(), ask = flyOpen || (intl && !fly);
+      if (!ask) {
+        var s = T.summary(Object.assign({}, d, { roundTrip: rt }));
+        if (n) box.innerHTML = '<div class="flydone" id="flydone"><span aria-hidden="true">✈️</span><span>' + flySummary(s) + '</span><span class="flybtns"><button type="button" class="linkbtn sm" id="flyedit">Change airports</button><button type="button" class="linkbtn sm" id="flyno">We didn\'t fly</button></span></div>';
+        else box.innerHTML = '<p class="flylink small">' + (fly === "no" && intl ? '<span class="muted">No flights on this one. </span>' : "") + '<button type="button" class="linkbtn sm" id="flyedit">✈️ ' + (fly === "no" && intl ? "We did fly" : "Did you fly? Add airports") + '</button></p>';
+        return;
+      }
+      var ti = flyTarget(), a = r[ti - 1], b = r[ti], cur = b.mode === "plane" ? b : {};
+      if (flyPick.ti !== ti) flyPick = { ti: ti, dep: cur.dep || null, arr: cur.arr || null };
+      var depS = nearAirports(a, airports, 3), arrS = nearAirports(b, airports, 3);
+      if (!flyPick.dep && depS[0]) flyPick.dep = depS[0];
+      if (!flyPick.arr && arrS[0]) flyPick.arr = arrS[0];
+      function group(w, label, near, sugg) {
+        var pick = flyPick[w], list = sugg.slice();
+        if (pick && !list.some(function (x) { return x.code === pick.code; })) list.unshift(pick);
+        return '<div class="apgroup"><div class="aplabel" id="flyl-' + w + '">' + label + ' <span class="muted small">' + esc(near) + '</span></div>' +
+          (list.length ? '<div class="chips apchips" role="group" aria-labelledby="flyl-' + w + '">' + list.map(function (x) { return apChip(w, x, pick && pick.code === x.code); }).join("") + '</div>' : "") +
+          '<input type="search" autocomplete="off" id="flyq-' + w + '" data-flyq="' + w + '" placeholder="' + (list.length ? "Another airport: code or city" : "Airport code or city, e.g. " + (w === "dep" ? "MCO" : "EDI")) + '" aria-label="' + esc(label) + ': search airports"><div class="results" data-flyres="' + w + '"></div></div>';
+      }
+      var prev = "";
+      if (flyPick.dep && flyPick.arr) {
+        var g = T.gcMiles(flyPick.dep, flyPick.arr), air = T.airMinutes(g), gA = T.gcMiles(a, flyPick.dep);
+        prev = '<p class="flyprev" id="flyprev"><b>' + esc(flyPick.dep.code) + ' → ' + esc(flyPick.arr.code) + '</b> · ' + esc(dist(g)) + (air ? ' · about ' + esc(T.fmtAir(air)) + ' in the air' : "") + (rt ? ", each way" : "") +
+          (gA != null && gA >= T.GROUND_MIN_MI ? '<br><span class="small muted">Plus about ' + esc(dist(gA * T.MODE.car.factor)) + ' by car to ' + esc(flyPick.dep.code) + '</span>' : "") + '</p>';
+      }
+      box.innerHTML = '<section class="flyask" id="flyask" aria-labelledby="flyh"><h4 id="flyh">✈️ Did you fly? <span>Which airports?</span></h4>' +
+        '<p class="small muted">' + (intl ? "This trip goes abroad. " : "") + 'Pick the airports and Famstamp adds the flights, the miles flown and the time in the air.</p>' +
+        (airports ? group("dep", "Flew from", "near " + a.name, depS) + group("arr", "Landed at", "near " + b.name, arrS) : '<p class="small muted">Loading airports…</p>') + prev +
+        '<div class="actions flyacts"><button type="button" class="btn btn-primary" id="flyyes">✈️ Yes, add the flights</button><button type="button" class="btn btn-ghost" id="flyno">We didn\'t fly</button>' +
+        '<button type="button" class="btn btn-ghost" id="flyskip">Skip</button></div></section>';
+    }
+    function setFly(v) {
+      if (v === "yes") {
+        var ti = flyPick.ti || flyTarget(), b = d.route[ti];
+        if (!flyPick.dep || !flyPick.arr) return A_.toast("Pick both airports, or tap Skip");
+        if (flyPick.dep.code === flyPick.arr.code) return A_.toast("Those are the same airport");
+        b.mode = "plane"; b.dep = { code: flyPick.dep.code, name: flyPick.dep.name, city: flyPick.dep.city, country: flyPick.dep.country, lat: flyPick.dep.lat, lon: flyPick.dep.lon };
+        b.arr = { code: flyPick.arr.code, name: flyPick.arr.name, city: flyPick.arr.city, country: flyPick.arr.country, lat: flyPick.arr.lat, lon: flyPick.arr.lon };
+        // home again: the first leg backwards covers it; a flight later in the trip flies home from the same airport
+        d.back = ti > 1 ? { mode: "plane", dep: b.arr, arr: b.dep } : null;
+        A_.toast("Flights added ✈️");
+      } else if (v === "no") {
+        d.route.forEach(function (p, i) { if (i && p.mode === "plane") { p.mode = "car"; delete p.dep; delete p.arr; } });
+        d.back = null;
+      }
+      fly = v; flyOpen = false; renderRoute();
+      var f = v === "yes" ? $("#flydone") : $("#flyedit"); if (f && f.scrollIntoView) { try { f.focus({ preventScroll: true }); } catch (e) {} }
+    }
+    $("#bfly").addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      if (b.id === "flyyes") setFly("yes");
+      else if (b.id === "flyno") setFly("no");
+      else if (b.id === "flyskip") setFly("skip");
+      else if (b.id === "flyedit") { flyOpen = true; flyPick.ti = 0; renderFly(); var q = $("#flyask"); if (q && q.scrollIntoView) q.scrollIntoView({ block: "nearest" }); }
+      else if (b.dataset.flyap) {
+        var w = b.dataset.flyap, ti = flyPick.ti, near = nearAirports(w === "dep" ? d.route[ti - 1] : d.route[ti], airports, 3).concat(flyPick[w] ? [flyPick[w]] : []);
+        flyPick[w] = near.filter(function (x) { return x.code === b.dataset.code; })[0] || flyPick[w]; renderFly();
+        var again = $('[data-flyap="' + w + '"][data-code="' + b.dataset.code + '"]'); if (again) again.focus();
+      }
+    });
+    $("#bfly").addEventListener("input", function (e) {
+      var el = e.target, w = el.dataset.flyq; if (!w || !airports) return;
+      var box = $('[data-flyres="' + w + '"]');
+      if (el.value.trim().length < 2) { box.innerHTML = ""; return; }
+      showResults(box, searchAirports(el.value, airports).map(function (a) { return { label: a.code + " · " + a.city, sub: a.name, a: a }; }), function (x) {
+        if (!x) return; var o = airportObj(x.a), ref = w === "dep" ? d.route[flyPick.ti - 1] : d.route[flyPick.ti], g = T.gcMiles(ref, o); if (g != null) o.away = Math.round(g);
+        flyPick[w] = o; renderFly();
+      });
+    });
     function addPoint(p) {
       var c = T.cleanPoint(p, d.route.length === 0); if (!c) return;
       if (d.route.length >= T.MAX_POINTS) { A_.toast("That's the most stops one trip can hold (" + T.MAX_POINTS + ")"); return; }
@@ -260,9 +363,9 @@
     search.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); var b = $("[data-pick]", results); if (b) b.click(); } });
     routeEl.addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
-      if (b.dataset.mode) { var i = +b.closest(".leg").dataset.i, p = d.route[i]; p.mode = b.dataset.mode; if (p.mode === "plane") fillAirports(d.route[i - 1], p); else { delete p.dep; delete p.arr; } renderRoute(); }
+      if (b.dataset.mode) { var i = +b.closest(".leg").dataset.i, p = d.route[i]; p.mode = b.dataset.mode; if (p.mode === "plane") { fillAirports(d.route[i - 1], p); fly = "yes"; flyOpen = false; } else { delete p.dep; delete p.arr; if (!planes()) d.back = null; } renderRoute(); }
       else if (b.dataset.ni) { var q = d.route[+b.dataset.ni]; q.nights = Math.max(0, Math.min(366, (q.nights || 0) + (+b.dataset.n))); renderRoute(); }
-      else if (b.dataset.rm) { d.route.splice(+b.dataset.rm, 1); if (d.route[0]) { delete d.route[0].mode; delete d.route[0].miles; delete d.route[0].dep; delete d.route[0].arr; } renderRoute(); }
+      else if (b.dataset.rm) { d.route.splice(+b.dataset.rm, 1); if (d.route[0]) { delete d.route[0].mode; delete d.route[0].miles; delete d.route[0].dep; delete d.route[0].arr; } if (!planes()) d.back = null; flyPick.ti = 0; renderRoute(); }
       else if (b.dataset.realmi) { var box = $('[data-mi="' + b.dataset.realmi + '"]', routeEl); box.hidden = false; $("input", box).focus(); }
       else if (b.dataset.clearmi) { delete d.route[+b.dataset.clearmi].miles; renderRoute(); }
       else if (b.dataset.locate) { var l = $('[data-loc="' + b.dataset.locate + '"]', routeEl); l.hidden = !l.hidden; if (!l.hidden) $("input", l).focus(); }
@@ -278,7 +381,7 @@
         var i = +el.dataset.i, w = el.dataset.ap, box = $('[data-apres="' + w + i + '"]', routeEl);
         if (!airports) { loadAirports().then(function (x) { airports = x; el.dispatchEvent(new Event("input", { bubbles: true })); }).catch(function () {}); return; }
         if (!el.value.trim()) { delete d.route[i][w]; renderRoute(); return; }
-        showResults(box, searchAirports(el.value, airports).map(function (a) { return { label: a.code + " · " + a.city, sub: a.name, a: a }; }), function (x) { if (x) { d.route[i][w] = airportObj(x.a); renderRoute(); } });
+        showResults(box, searchAirports(el.value, airports).map(function (a) { return { label: a.code + " · " + a.city, sub: a.name, a: a }; }), function (x) { if (x) { d.route[i][w] = airportObj(x.a); fly = "yes"; flyPick.ti = 0; renderRoute(); } });
       }
       if (el.dataset.near) {
         var j = +el.dataset.near, box2 = $('[data-nearres="' + j + '"]', routeEl), m = el.value.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
@@ -293,7 +396,7 @@
         });
       }
     });
-    $("#tround").onchange = function () { d.roundTrip = this.checked; renderRoute(); };
+    $("#tround").onchange = function () { d.roundTrip = this.checked; if (!this.checked) d.back = null; renderRoute(); };
     renderRoute();
 
     // stays, favorites, moments
@@ -383,7 +486,7 @@
         var made = M.newTrip({ id: old ? old.id : undefined, createdAt: old ? old.createdAt : undefined, kidIds: ids,
           place: title || (d.route[d.route.length - 1] || {}).name, route: d.route, title: title, date: $("#tdate").value, endDate: end.value,
           nights: end.value ? null : (nightsV === "" ? null : +nightsV), roundTrip: d.route.length > 1 && $("#tround").checked, done: done.checked,
-          stays: d.stays, favs: d.favs.filter(function (f) { return grown || !T.FAV[f.cat].adult; }), moments: d.moments, story: d.story,
+          fly: fly, back: $("#tround").checked ? d.back : null, stays: d.stays, favs: d.favs.filter(function (f) { return grown || !T.FAV[f.cat].adult; }), moments: d.moments, story: d.story,
           who: $("#twho").value, memory: $("#tmem").value, mark: mv ? { kind: mv.split(":")[0], id: mv.split(":")[1] } : null, photoId: photoId });
         trip = Object.assign(old ? copy(old) : {}, made);
       } catch (x) { err.textContent = x.message; err.hidden = false; return; }
@@ -445,7 +548,7 @@
     people(t.kidIds).forEach(function (p) {
       var before = S().trips.filter(function (o) { return o.id !== t.id && o.kidIds.indexOf(p.id) >= 0 && order(o) < order(t); });
       var a = T.lifetime(null, before), b = T.lifetime(null, before.concat([t]));
-      M.BADGES.forEach(function (bd) { if (["miles", "flights", "bigRoad"].indexOf(bd.key) >= 0 && a[bd.key] < bd.need && b[bd.key] >= bd.need) out.push({ who: p.name, name: bd.name }); });
+      M.BADGES.forEach(function (bd) { if (["miles", "flights", "flightMiles", "bigRoad"].indexOf(bd.key) >= 0 && a[bd.key] < bd.need && b[bd.key] >= bd.need) out.push({ who: p.name, name: bd.name }); });
     });
     return group(out, function (x) { return x.name; });
   }
@@ -473,13 +576,15 @@
         ' · <b>' + (s.milesKnown ? "" : "at least ") + esc(dist(s.miles, true)) + '</b> ' + unitToggle() + '</p>' : "") +
       (T.routeMap(t) ? '<div class="mapbox routebox">' + routeSVG(t) + '</div>' : (s.legs.length ? '<p class="hint">Find each stop on the map (Edit) to see the route drawn here.</p>' : "")) +
       '<h3 class="sec">Trip stats</h3><div class="tstats">' + tstat("🧭", dist(s.miles), s.milesKnown || !s.legs.length ? "traveled" : "so far") +
-      (s.flights ? tstat("✈️", s.flights, s.flights === 1 ? "flight" : "flights") : "") + (s.roadMiles ? tstat("🚗", dist(s.roadMiles), "on the road") : "") +
+      (s.flights ? tstat("✈️", s.flights, s.flights === 1 ? "flight" : "flights") + (s.flightMiles ? tstat("🛫", dist(s.flightMiles), "flown") : "") + (s.airMin ? tstat("⏱️", "~" + T.fmtAir(s.airMin), "in the air") : "") : "") + (s.roadMiles ? tstat("🚗", dist(s.roadMiles), "on the road") : "") +
       (s.nights != null ? tstat("🌙", s.nights, s.nights === 1 ? "night" : "nights") : "") + (s.cities.length ? tstat("🏙️", s.cities.length, s.cities.length === 1 ? "town or city" : "towns & cities") : "") +
       (s.parks.length ? tstat("🌲", s.parks.length, s.parks.length === 1 ? "national park" : "national parks") : "") + (s.states.length ? tstat("🇺🇸", s.states.length, s.states.length === 1 ? "state" : "states") : "") +
       (s.countries.length ? tstat("🌍", s.countries.length, s.countries.length === 1 ? "country" : "countries") : "") + (s.ukNations.length ? tstat("🇬🇧", s.ukNations.length, "UK " + (s.ukNations.length === 1 ? "nation" : "nations")) : "") + '</div>' +
       (s.legs.length ? '<h3 class="sec">The way we went</h3><ol class="legs">' + s.legs.map(function (L) {
         var how = L.how === "manual" ? "real miles" : L.how === "flight" ? "flying distance" : L.how === "about" ? "about" : "";
-        return '<li><span class="lic" aria-hidden="true">' + modeIc(L.mode) + '</span><div><b>' + esc(L.from) + ' → ' + esc(L.home ? L.to + " (home)" : L.to) + '</b><span>' + esc([MODE_LABEL[L.mode], L.dep && L.arr ? L.dep.code + " → " + L.arr.code : "", how].filter(Boolean).join(" · ")) + '</span></div>' +
+        var gnd = [L.toAp ? "~" + dist(L.toAp) + " by car to " + (L.dep ? L.dep.code : "the airport") : "", L.fromAp ? "~" + dist(L.fromAp) + " by car from " + (L.arr ? L.arr.code : "the airport") : ""].filter(Boolean);
+        return '<li><span class="lic" aria-hidden="true">' + modeIc(L.mode) + '</span><div><b>' + esc(L.from) + ' → ' + esc(L.home ? L.to + " (home)" : L.to) + '</b><span>' + esc([MODE_LABEL[L.mode], L.dep && L.arr ? L.dep.code + " → " + L.arr.code : "", how, L.air ? "about " + T.fmtAir(L.air) + " in the air" : ""].filter(Boolean).join(" · ")) + '</span>' +
+          (gnd.length ? '<span class="gnd">🚗 ' + esc(gnd.join(" · ")) + '</span>' : "") + '</div>' +
           '<b class="lmi">' + (L.how === "about" ? "~" : "") + esc(dist(L.miles)) + '</b></li>'; }).join("") + '</ol>' : "") +
       seenBlock(t, s) +
       ((t.stays || []).length ? '<h3 class="sec">Where we stayed</h3><div class="cards">' + t.stays.map(function (x) {
@@ -737,7 +842,7 @@
       sub: s.kind === "park" ? (PARK_BY[s.area] ? PARK_BY[s.area].states.replace(/,\s*/g, " · ") + " · NATIONAL PARK" : "NATIONAL PARK") : "" });
   }
   function bookHTML(title, color, stamps, who, pid) {
-    var counts = { world: 0, states: 0, parks: 0 }; stamps.forEach(function (s) { counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : "world"]++; });
+    var life = T.lifetime(pid || null, S().trips), counts = { world: 0, states: 0, parks: 0 }; stamps.forEach(function (s) { counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : "world"]++; });
     var list = stamps.filter(function (s) { return inSection(s, psec); }), pages = P.pages(list, 4);
     var secName = { world: "Countries", states: "Domestic stamps", parks: "National parks" }[psec];
     var art = readArt(pid);
@@ -746,7 +851,8 @@
         '<p class="small muted arthint">Each state stamp shows its state bird, flower or animal. Press and hold a stamp to switch just that one.</p>' : "") +
       '<div class="pbook" style="--pc:' + esc(color) + '"><div class="pages" id="pages" tabindex="0" aria-label="Passport pages. Swipe to turn.">' +
       '<section class="ppage cover"><div class="crest" aria-hidden="true"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="3"/><ellipse cx="50" cy="50" rx="18" ry="40" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M10 50h80M16 30h68M16 70h68" stroke="currentColor" stroke-width="2.5" fill="none"/></svg></div>' +
-      '<p class="ptype">PASSPORT</p><h2>' + esc(title) + '</h2><p class="pcount">' + counts.world + (counts.world === 1 ? " country stamp" : " country stamps") + ' · ' + counts.states + ' states · ' + counts.parks + ' parks</p><p class="pswipe">Swipe to open →</p></section>' +
+      '<p class="ptype">PASSPORT</p><h2>' + esc(title) + '</h2><p class="pcount">' + counts.world + (counts.world === 1 ? " country stamp" : " country stamps") + ' · ' + counts.states + ' states · ' + counts.parks + ' parks</p>' +
+      (life.flights ? '<p class="pfly">✈️ ' + life.flights + (life.flights === 1 ? " flight" : " flights") + ' · ' + esc(dist(life.flightMiles)) + ' in the air</p>' : "") + '<p class="pswipe">Swipe to open →</p></section>' +
       (pages.length ? pages.map(function (pg, n) {
         return '<section class="ppage"><header><span>' + esc(secName.toUpperCase()) + '</span><span>' + (n + 1) + '</span></header>' + pg.map(function (c) {
           return '<button type="button" class="stamp" data-sid="' + esc(c.stamp.id) + '" style="left:' + (c.x / 3).toFixed(1) + '%;top:' + (c.y / 4).toFixed(1) + '%;--r:' + c.rot + 'deg" aria-label="' + esc(stampName(c.stamp) + (c.stamp.kind === "state" ? ", " + artFor(pid, c.stamp.area) : "") + (P.fmtDate(c.stamp.date) ? ", " + P.fmtDate(c.stamp.date) : "")) + '">' + stampSVG(c.stamp, pid) +
@@ -928,6 +1034,7 @@
     var lt = L.longest ? tripById(L.longest.id) : null, pid = personId || (lt ? lt.kidIds[0] : "");
     return '<h2>' + (personId ? "Miles and favorites" : "Family miles and favorites") + ' ' + unitToggle() + '</h2><div class="tstats life">' +
       tstat("🧭", dist(L.miles), "traveled") + tstat("🌍", (Math.round(L.aroundWorld * 100) / 100) + "×", "around the world") + tstat("✈️", L.flights, L.flights === 1 ? "flight" : "flights") +
+      (L.flightMiles ? tstat("🛫", dist(L.flightMiles), "flown") : "") + (L.airMin ? tstat("⏱️", "~" + T.fmtAir(L.airMin), "in the air") : "") +
       (L.bigRoad ? tstat("🚗", dist(L.bigRoad), "biggest road trip") : "") + (L.topState ? tstat("📍", areaName("state", L.topState.id), "most visited · " + L.topState.count + (L.topState.count === 1 ? " trip" : " trips")) : "") + '</div>' +
       (lt ? '<p class="small">Longest trip: <a href="#/p/' + esc(pid) + '/trip/' + esc(lt.id) + '">' + esc(lt.place) + '</a>, ' + esc(dist(L.longest.miles, true)) + '</p>' : "") +
       (L.restaurants.length ? '<h3 class="sec">Favorite restaurants</h3><ol class="rlist">' + L.restaurants.slice(0, 8).map(function (r) {
@@ -1061,7 +1168,20 @@
     };
   }
 
-  window.FS_UI = { builder: builder, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
+  // ---------- "+ Add a trip" on the home screen: one tap to the builder ----------
+  function addTripHref(p, all) { return "#/p/" + p.id + "/trips/new" + (all ? "/all" : ""); }
+  function whoWentSheet() {
+    var A_ = A(), kids = S().kids, me = S().meta.sync && S().meta.sync.myPerson;
+    if (!kids.length) { location.hash = "#/add"; return; }
+    if (kids.length === 1) { location.hash = addTripHref(kids[0]); return; }
+    var list = kids.slice().sort(function (a, b) { return (b.id === me ? 1 : 0) - (a.id === me ? 1 : 0); }), lead = A_.kidById(me) || list[0];
+    sheet('<div class="sheethead"><h3 id="wwh">Who went?</h3><button type="button" class="sheetx" data-close aria-label="Close">✕</button></div><p class="small muted">Pick one to start. You can check everyone else on the next screen.</p>' +
+      '<div class="whowent" role="group" aria-labelledby="wwh"><a class="wwall" href="' + esc(addTripHref(lead, true)) + '"><span aria-hidden="true">👨‍👩‍👧</span> Everyone went</a>' +
+      list.map(function (p) { return '<a class="wwone" href="' + esc(addTripHref(p)) + '" style="' + A_.kidStyle(p) + '"><span class="dotp" aria-hidden="true">' + A_.initial(p.name) + '</span> ' + esc(p.name) + (p.id === me ? ' <small>(you)</small>' : "") + '</a>'; }).join("") + '</div>' +
+      '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
+  }
+
+  window.FS_UI = { builder: builder, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
                    lifetimeHTML: lifetimeHTML, bindLifetime: bindLifetime, printExtra: printExtra, loadPlaces: loadPlaces, loadAirports: loadAirports, routeSVG: routeSVG,
                    searchPlaces: searchPlaces, searchAirports: searchAirports, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs };
 })();
