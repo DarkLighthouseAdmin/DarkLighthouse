@@ -264,6 +264,27 @@ ok(M.backupNudge("2999-01-01T00:00:00Z", [t1, t2, t1]) === 0, "no nudge right af
   ok(/\.backupnag/.test(css2) && /\.travelers/.test(css2) && /\.pairrow/.test(css2), "styles for the new parts");
 }
 
+// ---- Android download page + Digital Asset Links ----
+{
+  const ROOT = path.join(__dirname, "..");
+  const apk = path.join(APP, "download", "my-lifetime-travel-log.apk");
+  ok(fs.existsSync(apk), "APK is in /travel-log/app/download/");
+  const size = fs.statSync(apk).size, head = fs.readFileSync(apk).subarray(0, 4);
+  ok(size > 100e3 && size < 25e6, "APK size is sane and well under GitHub limits: " + size);
+  ok(head[0] === 0x50 && head[1] === 0x4b, "APK is a zip (PK header)");
+  const dl = fs.readFileSync(path.join(APP, "download", "index.html"), "utf8");
+  ok(/<meta name="robots" content="noindex/.test(dl), "download page is noindex");
+  ok(/href="my-lifetime-travel-log\.apk" download/.test(dl), "download button points at the APK");
+  ok((dl.match(/<li>/g) || []).length === 3 && /Allow from this source/.test(dl), "3 install steps incl. allow from this source");
+  ok(/iPhone/.test(dl) && /Add to Home Screen/.test(dl), "iPhone note");
+  ok(!/https?:\/\//.test(dl) && !/<script/.test(dl), "download page loads nothing from other sites, no scripts");
+  const al = JSON.parse(fs.readFileSync(path.join(ROOT, ".well-known", "assetlinks.json"), "utf8"));
+  ok(al[0].target.package_name === "com.darklighthousesolutions.travellog" && /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(al[0].target.sha256_cert_fingerprints[0]), "assetlinks.json has the package and a SHA-256 fingerprint");
+  ok(al[0].relation[0] === "delegate_permission/common.handle_all_urls", "assetlinks relation");
+  ok(fs.existsSync(path.join(ROOT, ".nojekyll")), ".nojekyll so GitHub Pages serves /.well-known/");
+  ok(/\/download\//.test(read("sw.js")), "service worker leaves the download page and APK alone");
+}
+
 // ---- the app shell: offline, private, no third parties ----
 const html = read("index.html"), js = read("app.js"), css = read("app.css"), sw = read("sw.js");
 const manifest = JSON.parse(read("manifest.webmanifest"));

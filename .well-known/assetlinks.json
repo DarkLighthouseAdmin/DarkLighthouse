@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.darklighthousesolutions.travellog",
+      "sha256_cert_fingerprints": ["1B:3A:4B:F0:CE:59:8B:2E:5E:DF:75:D9:1C:00:E9:B2:99:D5:15:75:66:7B:98:16:60:3F:F4:74:09:19:57:3E"]
+    }
+  }
+]
