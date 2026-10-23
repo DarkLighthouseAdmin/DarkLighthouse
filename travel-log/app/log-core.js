@@ -7,7 +7,7 @@
   "use strict";
 
   var APP_ID = "my-lifetime-travel-log";
-  var BACKUP_VERSION = 1;
+  var BACKUP_VERSION = 2;   // v2 added roles (kid / adult / grandparent). v1 files still restore; their profiles become kids.
 
   // All 64 US national parks as of October 2026 (Chiricahua became #64 on Oct 20, 2026). Same list as the book.
   var PARK_LIST = [["Acadia", "ME"], ["American Samoa", "AS"], ["Arches", "UT"], ["Badlands", "SD"], ["Big Bend", "TX"], ["Biscayne", "FL"],
@@ -31,6 +31,10 @@
   var US_STATE_TOTAL = 50;      // DC can be colored too, but it's a bonus, not one of the 50
   var COUNTRY_TOTAL = 195;      // 193 UN members + Vatican City + Palestine, as in the book
   var UK_NATIONS = ["ENG", "SCT", "WLS", "NIR"];
+  // Everyone in the family gets a profile. Kids come first, but grown-ups get the same maps, parks, stats and badges.
+  var ROLES = [{ id: "kid", label: "Kid" }, { id: "adult", label: "Parent/Adult" }, { id: "grand", label: "Grandparent/Other" }];
+  function validRole(r) { return r === "adult" || r === "grand" ? r : "kid"; }
+  function isKid(p) { return validRole(p && p.role) === "kid"; }
   var COLORS = ["#e8a54b", "#3f8f9f", "#c0607a", "#6f8f7a", "#7b6bb0", "#d0703c"];
 
   function uid(prefix) {
@@ -43,17 +47,19 @@
   }
 
   function clean(s, max) { return String(s == null ? "" : s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, max || 200); }
-  function validYear(y) { y = parseInt(y, 10); var now = new Date().getFullYear(); return y >= now - 25 && y <= now ? y : null; }
+  function validYear(y) { y = parseInt(y, 10); var now = new Date().getFullYear(); return y >= 1900 && y <= now ? y : null; }
   function validDate(d) { return typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(new Date(d + "T12:00:00").getTime()) ? d : ""; }
 
-  function newKid(opts) {
+  /** A person in the family. Stored in the "kids" store and backup key for v1 compatibility. */
+  function newPerson(opts) {
     opts = opts || {};
     var name = clean(opts.name, 40);
-    if (!name) throw new Error("A kid needs a name or nickname.");
+    if (!name) throw new Error("Add a name or nickname.");
     var now = opts.now || new Date().toISOString();
-    return { id: opts.id || uid("kid"), name: name, birthYear: validYear(opts.birthYear), color: COLORS.indexOf(opts.color) >= 0 ? opts.color : COLORS[0],
-             states: {}, places: {}, parks: {}, createdAt: now, updatedAt: now };
+    return { id: opts.id || uid("person"), name: name, role: validRole(opts.role), birthYear: validYear(opts.birthYear),
+             color: COLORS.indexOf(opts.color) >= 0 ? opts.color : COLORS[0], states: {}, places: {}, parks: {}, createdAt: now, updatedAt: now };
   }
+  var newKid = newPerson;
 
   /** Toggle a state / world place on a kid's map. Returns true if it's now colored. */
   function toggleArea(kid, kind, id, on, when) {
@@ -85,7 +91,7 @@
     var place = clean(opts.place, 80);
     if (!place) throw new Error("Where did you go? Add a place.");
     var kidIds = (opts.kidIds || []).filter(function (x) { return typeof x === "string" && x; });
-    if (!kidIds.length) throw new Error("Pick at least one kid for this trip.");
+    if (!kidIds.length) throw new Error("Pick at least one person for this trip.");
     var mark = null;
     if (opts.mark && /^(state|place|park)$/.test(opts.mark.kind) && opts.mark.id) mark = { kind: opts.mark.kind, id: clean(opts.mark.id, 40) };
     var now = opts.now || new Date().toISOString();
@@ -128,13 +134,14 @@
     var years = {}; dates.forEach(function (d) { years[d.slice(0, 4)] = 1; });
     var abroad = countries.filter(function (id) { return id !== "USA"; }).length;
     return {
+      role: validRole(kid.role), kid: isKid(kid), together: mine.filter(function (t) { return t.kidIds.length > 1; }).length,
       states: states, statesTotal: US_STATE_TOTAL, dc: !!kid.states.DC,
       countries: countries.length, countriesTotal: COUNTRY_TOTAL, abroad: abroad,
       ukNations: uk, ukTotal: UK_NATIONS.length, scotland: !!kid.places.SCT, otherPlaces: other,
       continents: Object.keys(conts).length, continentNames: Object.keys(conts).sort(),
       parks: parkIds.length, parksTotal: PARKS.length, juniorRanger: jr,
       trips: mine.length, photos: mine.filter(function (t) { return t.photoId; }).length,
-      years: Object.keys(years).length, firstTrip: dates[0] || "", firstTripAge: ageOn(kid.birthYear, dates[0] || "")
+      years: Object.keys(years).length, firstTrip: dates[0] || "", firstTripAge: isKid(kid) ? ageOn(kid.birthYear, dates[0] || "") : null
     };
   }
 
@@ -149,18 +156,53 @@
     { id: "abroad", name: "Passport power", desc: "Visit a country outside the US", need: 1, key: "abroad" },
     { id: "countries-5", name: "World explorer", desc: "Visit 5 countries", need: 5, key: "countries" },
     { id: "continents-3", name: "Three continents", desc: "Visit 3 continents", need: 3, key: "continents" },
-    { id: "scotland", name: "Wee explorer", desc: "Visit Scotland", need: 1, key: "scotlandN" },
+    { id: "scotland", name: "Wee explorer", adultName: "Scotland calling", desc: "Visit Scotland", need: 1, key: "scotlandN" },
     { id: "uk-4", name: "All four nations", desc: "England, Scotland, Wales and Northern Ireland", need: 4, key: "ukNations" },
     { id: "park-1", name: "Park ranger", desc: "Visit a national park", need: 1, key: "parks" },
     { id: "parks-10", name: "Trail blazer", desc: "Visit 10 national parks", need: 10, key: "parks" },
-    { id: "junior-ranger", name: "Junior Ranger", desc: "Earn a Junior Ranger badge", need: 1, key: "juniorRanger" }
+    { id: "together", name: "Better together", desc: "Take 3 trips with family", need: 3, key: "together" },
+    { id: "junior-ranger", name: "Junior Ranger", desc: "Earn a Junior Ranger badge", need: 1, key: "juniorRanger", kidsOnly: true }
   ];
   function badges(s) {
     var v = Object.assign({ scotlandN: s.scotland ? 1 : 0 }, s);
-    return BADGES.map(function (b) {
+    var kid = s.kid !== false;   // older callers (no role) are kids
+    return BADGES.filter(function (b) { return kid || !b.kidsOnly; }).map(function (b) {
       var have = Math.min(v[b.key] || 0, b.need);
-      return { id: b.id, name: b.name, desc: b.desc, earned: have >= b.need, have: have, need: b.need };
+      return { id: b.id, name: kid ? b.name : (b.adultName || b.name), desc: b.desc, earned: have >= b.need, have: have, need: b.need };
     });
+  }
+
+  // ---------- family ----------
+  /** The 195-list countries one person has been to (a UK nation counts as GBR, any state as USA). */
+  function countrySet(p, world) {
+    var byId = {}; (world.countries || []).forEach(function (c) { byId[c.id] = 1; });
+    var out = {};
+    Object.keys(p.places).forEach(function (id) { if (UK_NATIONS.indexOf(id) >= 0) out.GBR = 1; else if (byId[id]) out[id] = 1; });
+    if (Object.keys(p.states).length) out.USA = 1;
+    return out;
+  }
+  /** Who has been where: { id: [personId, ...] } for "state", "place" (map areas), "park" or "country". */
+  function whoBeen(people, kind, world) {
+    var out = {};
+    people.forEach(function (p) {
+      var bag = kind === "state" ? p.states : kind === "park" ? p.parks : kind === "country" ? countrySet(p, world) : p.places;
+      Object.keys(bag).forEach(function (id) { (out[id] = out[id] || []).push(p.id); });
+    });
+    return out;
+  }
+  /** Family totals for the chosen people. "Together" = places every chosen person has been, and trips they all went on. */
+  function familyStats(people, trips, world) {
+    var n = people.length, ids = people.map(function (p) { return p.id; });
+    function count(kind, skip) {
+      var w = whoBeen(people, kind, world), any = 0, all = 0;
+      Object.keys(w).forEach(function (id) { if (skip && skip(id)) return; any++; if (n > 1 && w[id].length === n) all++; });
+      return [any, all];
+    }
+    var st = count("state", function (id) { return id === "DC"; }), co = count("country"), pk = count("park", function (id) { return !PARKS.some(function (p) { return p.id === id; }); });
+    var together = n > 1 ? trips.filter(function (t) { return ids.every(function (id) { return t.kidIds.indexOf(id) >= 0; }); }).length : 0;
+    var anyTrips = trips.filter(function (t) { return t.kidIds.some(function (id) { return ids.indexOf(id) >= 0; }); }).length;
+    return { people: n, states: st[0], countries: co[0], parks: pk[0], togetherStates: st[1], togetherCountries: co[1], togetherParks: pk[1],
+             togetherTrips: together, trips: anyTrips };
   }
 
   // ---------- backup ----------
@@ -180,11 +222,12 @@
   /** Checks a parsed backup file and returns clean copies, or throws a friendly error. */
   function readBackup(obj) {
     if (!obj || typeof obj !== "object" || obj.app !== APP_ID) throw new Error("That file isn't a My Lifetime Travel Log backup.");
-    if (typeof obj.version !== "number" || obj.version > BACKUP_VERSION) throw new Error("This backup was made by a newer version of the app. Reload the app and try again.");
+    if (typeof obj.version !== "number" || obj.version < 1 || obj.version > BACKUP_VERSION) throw new Error("This backup was made by a newer version of the app. Reload the app and try again.");
     if (!Array.isArray(obj.kids) || !Array.isArray(obj.trips) || !Array.isArray(obj.photos || [])) throw new Error("The backup file looks damaged.");
     var idOk = /^[a-z]+_[A-Za-z0-9]{4,40}$/;
     var kids = obj.kids.filter(function (k) { return k && idOk.test(k.id) && clean(k.name, 40); }).map(function (k) {
-      var kid = newKid({ id: k.id, name: k.name, birthYear: k.birthYear, color: k.color, now: k.createdAt });
+      // v1 files have no role: everyone in them was a kid
+      var kid = newPerson({ id: k.id, name: k.name, role: obj.version >= 2 ? k.role : "kid", birthYear: k.birthYear, color: k.color, now: k.createdAt });
       kid.states = cleanArea(k.states, /^[A-Z]{2}$/); kid.places = cleanArea(k.places, /^[A-Z0-9]{3}$/); kid.parks = cleanArea(k.parks, /^[a-z0-9-]{2,40}$/);
       kid.createdAt = typeof k.createdAt === "string" ? k.createdAt.slice(0, 30) : kid.createdAt;
       kid.updatedAt = typeof k.updatedAt === "string" ? k.updatedAt.slice(0, 30) : kid.updatedAt;
@@ -220,7 +263,8 @@
     return since >= 3 ? since : 0;
   }
 
-  return { APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, COLORS: COLORS, UK_NATIONS: UK_NATIONS,
+  return { APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid,
+           newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,
            slug: slug, uid: uid, newKid: newKid, toggleArea: toggleArea, togglePark: togglePark, newTrip: newTrip, applyTripMark: applyTripMark,
            ageOn: ageOn, stats: stats, badges: badges, BADGES: BADGES, makeBackup: makeBackup, readBackup: readBackup, fitDims: fitDims,
