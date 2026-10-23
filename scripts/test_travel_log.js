@@ -416,6 +416,11 @@ ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view
   ok(ch.downloads.length === 1 && ch.downloads[0].path.endsWith(".webp"), "missing shared photo is queued to download");
   ok(S.planPush(local, sh, FID).trips.length === 0 && S.planPush(local, sh, FID).people.length === 0, "pulled rows don't echo back up");
   ok(S.planPush(local, sh, FID).visits.length === 0, "pulled visits don't echo back up");
+  {   // the cursor overlaps by 10s, so the same rows come back on the next pull: that must not count as a change (no redraw, no scroll jump)
+    const again = S.applyPull(local, sh, { people: [nana], visits: [{ person_id: lily.id, kind: "state", place_id: "TN", at: "2023-10-01", jr: false, updated_at: "2026-10-05T12:00:00+00:00", deleted: false }],
+      trips: [Object.assign(S.tripRow(gt, FID), { server_at: "2026-10-05T12:00:03+00:00" })] });
+    ok(again.people === 0 && again.visits === 0 && again.trips === 0 && !Object.keys(again.touched).length, "re-pulling rows we already have changes nothing");
+  }
   // conflicts: last write wins per record
   const gl = local.trips.find(t => t.id === "trip_gatl0001");
   gl.memory = "Matching hats (edited on this phone)"; gl.updatedAt = "2026-10-06T09:00:00.000Z";

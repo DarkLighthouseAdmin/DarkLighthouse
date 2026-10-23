@@ -5,7 +5,7 @@ var CACHE = "mltl-v16";
 var FILES = ["./", "index.html", "app.css", "app.js", "log-core.js", "trips-core.js", "state-signs.js", "state-symbols.js", "stamp-art.js", "passport-core.js", "trips-ui.js", "logo.js", "maps.js", "map-labels.js", "picklist.js", "mapzoom.js", "placepick.js", "map.css", "sync-core.js", "sync-config.js", "sync.js", "sync.css", "import-core.js", "import.js", "import.css", "import-worker.js", "manifest.webmanifest",
              "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png", "icon.svg"];
 self.addEventListener("install", function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); }));
+  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES.map(function (f) { return new Request(f, { cache: "reload" }); })); }).then(function () { return self.skipWaiting(); }));
 });
 self.addEventListener("activate", function (e) {
   e.waitUntil(caches.keys().then(function (keys) {
