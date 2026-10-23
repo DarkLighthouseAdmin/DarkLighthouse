@@ -1,4 +1,4 @@
-/* My Lifetime Travel Log: the app's logic with no browser parts, so it can be tested in Node
+/* Wanderkin (My Lifetime Travel Log app): the app's logic with no browser parts, so it can be tested in Node
    (node scripts/test_travel_log.js). Everything here works on plain objects; storage lives in app.js. */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -6,7 +6,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  var APP_ID = "my-lifetime-travel-log";
+  var APP_ID = "my-lifetime-travel-log";   // stays the same after the Wanderkin rename so every old backup still restores
   var BACKUP_VERSION = 3;   // v2 added roles (kid / adult / grandparent); v3 adds trip From / stops and the family's home town. v1 and v2 files still restore.
   var MAX_STOPS = 5;
 
@@ -257,7 +257,7 @@
   // ---------- backup ----------
   function makeBackup(kids, trips, photos, now, settings) {
     return { app: APP_ID, version: BACKUP_VERSION, exportedAt: now || new Date().toISOString(),
-             note: "My Lifetime Travel Log backup. Keep this file somewhere safe (email it to yourself, or save it to your cloud drive).",
+             note: "Wanderkin backup. Keep this file somewhere safe (email it to yourself, or save it to your cloud drive).",
              kids: kids, trips: trips, photos: photos, settings: { home: clean(settings && settings.home, 80) } };
   }
   function cleanArea(bag, idRe) {
@@ -270,7 +270,7 @@
   }
   /** Checks a parsed backup file and returns clean copies, or throws a friendly error. */
   function readBackup(obj) {
-    if (!obj || typeof obj !== "object" || obj.app !== APP_ID) throw new Error("That file isn't a My Lifetime Travel Log backup.");
+    if (!obj || typeof obj !== "object" || obj.app !== APP_ID) throw new Error("That file isn't a Wanderkin backup.");
     if (typeof obj.version !== "number" || obj.version < 1 || obj.version > BACKUP_VERSION) throw new Error("This backup was made by a newer version of the app. Reload the app and try again.");
     if (!Array.isArray(obj.kids) || !Array.isArray(obj.trips) || !Array.isArray(obj.photos || [])) throw new Error("The backup file looks damaged.");
     var idOk = /^[a-z]+_[A-Za-z0-9]{4,40}$/;

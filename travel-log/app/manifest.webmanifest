@@ -1,7 +1,7 @@
 {
-  "name": "My Lifetime Travel Log",
-  "short_name": "Travel Log",
-  "description": "Color in every state, country and national park your family visits, from the first road trip on. Saved on your device.",
+  "name": "Wanderkin",
+  "short_name": "Wanderkin",
+  "description": "Your family's travel story. Color in every state, country and national park your family visits, from the first road trip on. Saved on your device.",
   "id": "/travel-log/app/",
   "start_url": "/travel-log/app/",
   "scope": "/travel-log/app/",
