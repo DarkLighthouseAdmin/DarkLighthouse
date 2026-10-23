@@ -102,7 +102,7 @@ def head(path, title, desc, ld, cur, extra_head=""):
 FOOT = '''
   <footer class="wrap">
     <p><strong>Money:</strong> <a href="/money/">Money home</a> · <a href="/templates/">Templates &amp; planners</a> · <a href="/tools/">Free calculators</a> · <a href="/renewal-radar/">Renewal Radar</a></p>
-    <p style="margin-top:.4rem"><strong>Travel:</strong> <a href="/travel/">Travel home</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/gear/">Packing &amp; gear</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/">Travel calculators</a></p>
+    <p style="margin-top:.4rem"><strong>Travel:</strong> <a href="/travel/">Travel home</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/gear/">Packing &amp; gear</a> · <a href="/travel/gifts/">Holiday gift guides</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/">Travel calculators</a></p>
     <p style="margin-top:.4rem"><strong>Data:</strong> <a href="/data/">Data engineering kits</a> · <a href="/kits/">Kit guides</a></p>
     <p style="margin-top:.8rem">Made by <strong>Dark Lighthouse Solutions</strong> · Sold via Polar (merchant of record), which handles checkout and tax. <a href="/privacy/">Privacy</a> · Questions? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
   </footer>

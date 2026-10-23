@@ -63,7 +63,7 @@ TP_DRIVE = """  <script nowprocket data-noptimize="1" data-cfasync="false" data-
     })();
   </script>
 """
-NAV = [("/travel/", "Travel home"), ("/travel/scotland/", "Scotland guide"), ("/travel/ireland/", "Ireland guide"), ("/travel/england/", "England guide"), ("/travel/wales/", "Wales guide"), ("/travel/gear/", "Packing & gear"), ("/travel/planners/", "Planners"), ("/travel/tools/", "Travel tools")]
+NAV = [("/travel/", "Travel home"), ("/travel/scotland/", "Scotland guide"), ("/travel/ireland/", "Ireland guide"), ("/travel/england/", "England guide"), ("/travel/wales/", "Wales guide"), ("/travel/gear/", "Packing & gear"), ("/travel/gifts/", "Gift guides"), ("/travel/planners/", "Planners"), ("/travel/tools/", "Travel tools")]
 
 def crumbs(trail):
     """trail: [(name, path)], last item is the current page."""
@@ -113,7 +113,7 @@ def foot(aff=False):
          'We only link to things we\'d use ourselves. <a href="/privacy/#affiliate-links">How partner links work</a>.</p>\n') if aff else ""
     return f'''
   <footer class="wrap">
-    <p><a href="/travel/">Travel</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/ireland/">Ireland with kids guide</a> · <a href="/travel/england/">London &amp; England with kids guide</a> · <a href="/travel/wales/">Wales with kids guide</a> · <a href="/travel/gear/">Packing &amp; gear guides</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/travel-budget-calculator/">Travel budget calculator</a> · <a href="/travel/tools/daily-travel-budget-calculator/">Daily travel budget calculator</a> · <a href="/templates/">Money templates</a> · <a href="/tools/">Money calculators</a></p>
+    <p><a href="/travel/">Travel</a> · <a href="/travel/scotland/">Scotland trip planning guide</a> · <a href="/travel/ireland/">Ireland with kids guide</a> · <a href="/travel/england/">London &amp; England with kids guide</a> · <a href="/travel/wales/">Wales with kids guide</a> · <a href="/travel/gear/">Packing &amp; gear guides</a> · <a href="/travel/gifts/">Holiday gift guides</a> · <a href="/travel/planners/">Travel planners</a> · <a href="/travel/tools/travel-budget-calculator/">Travel budget calculator</a> · <a href="/travel/tools/daily-travel-budget-calculator/">Daily travel budget calculator</a> · <a href="/templates/">Money templates</a> · <a href="/tools/">Money calculators</a></p>
 {d}    <p style="margin-top:.4rem">Prices and rules change: check official sites before you book. Calculators are estimates for planning; nothing you type leaves your browser.</p>
     <p style="margin-top:.4rem"><strong>Dark Lighthouse Solutions</strong> · Planners sold via Polar (merchant of record). <a href="/privacy/">Privacy</a> · Questions? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
   </footer>
@@ -1270,6 +1270,233 @@ def build_gear_hub():
 def build_gear():
     build_gear_hub(); build_gear_wear(); build_gear_stroller(); build_gear_luggage()
 
+# ---------------------------------------------------------------- holiday gift guides (retail affiliate links)
+# Prices and product facts were checked on the brands' or retailers' own pages on 23 October 2026 (sources listed on each page).
+# Same rules as the gear pages: every product link goes through aff() (plain URL + data-affiliate key + rel="sponsored nofollow noopener"),
+# the FTC disclosure is the first thing in the hero, no Amazon, no alcohol. New keys live in AFF_SLOT and travel/affiliates.json as not-joined.
+GIFT_NEW_KEYS = ["patagonia-black-hole-duffel-40", "patagonia-infant-micro-d-bunting", "peakdesign-tech-pouch", "fjallraven-kanken",
+                 "osprey-daylite-plus", "bespokepost-grooming-tool-kit", "llbean-bean-boots-8", "darntough-mens-hiker-3-pack",
+                 "ridge-wallet-royal-black", "babylist-ergobaby-omni-deluxe", "babylist-hatch-baby-sound-machine",
+                 "babylist-skip-hop-forma", "babylist-frida-ultimate-baby-kit"]
+AFF_SLOT.update({k: "gift" for k in GIFT_NEW_KEYS})
+GIFT_CHECKED = "23 October 2026"
+GIFT_IMG = "/assets/money/holiday-gift-budget-planner/1.jpg"
+GIFT_PAGES = [("/travel/gifts/gifts-for-travelers/", "Gifts for travelers and families who travel", "Carry-on bags, packing cubes, a passport wallet and kids' backpacks, from $20 socks to a $295 suitcase, with real sizes and prices."),
+              ("/travel/gifts/gifts-for-him-outdoors/", "Gifts for him: outdoorsy and heritage", "A Barbour wax jacket, Bean Boots, merino base layers, hiking socks, a canvas weekender and a metal wallet, with real prices."),
+              ("/travel/gifts/gifts-for-new-parents/", "Gifts for new and expecting parents", "Travel strollers, a carrier, a sound machine, a diaper backpack and the small kit everyone ends up needing, with real prices.")]
+
+# (tier heading, [(key, name, price, facts, why)])
+GIFTS = {
+ "gifts-for-travelers": [
+  ("Under $100", [
+   ("darntough-kids-light-hiker", "Darn Tough Kids' Light Hiker Micro Crew Socks", "$20", "45% merino wool with cushioning underfoot; kids' shoe sizes 9–6.", "A stocking stuffer that gets used. Warm, dry feet make a long day of sightseeing a lot less whiny."),
+   ("bespokepost-sidecar-toiletry-kit", "Halfday Sidecar Toiletry Kit (Bespoke Post)", "$48", "8.75 × 3.5 × 6.75 in; 0.68 lb; water-resistant polyester; hanging loop; reusable liquids pouch included.", "Hangs on the back of a hotel door, and the clear liquids pouch pulls out at security without unpacking everything else."),
+   ("peakdesign-tech-pouch", "Peak Design Tech Pouch", "$49.95 (Small) or $59.95 (Regular)", "Origami-style inner pockets, elastic loops, a clamshell opening and an outside zip pocket with a cable pass-through, per Peak Design.", "For the person whose chargers, cables and battery packs end up loose at the bottom of every bag. The Small fits brick-style chargers and is the easier one to tuck into a backpack."),
+   ("peakdesign-packing-cube", "Peak Design Packing Cube", "$39.95 (Small) to $49.95 (Large)", "Small: 4.5–9 L, 110 g; Medium: 8–18 L, 144 g; both compress to 8 cm deep, per Peak Design.", "A zip squeezes soft clothes flat. One cube per family member keeps a shared suitcase from turning into a pile."),
+   ("osprey-daylite-plus", "Osprey Daylite Plus Daypack", "$80", "20 L everyday pack with a large panel-loading main compartment, per Osprey.", "A plain, simple daypack for a day of walking around a city. Panel loading means it unzips wide, so nobody has to dig for the snacks."),
+   ("fjallraven-kanken-mini", "Fjällräven Kånken Mini", "$85", "7 L; about 29 × 20 × 13 cm; about 220 g.", "A kid-sized version of the classic. Small enough for any airline's free under-seat bag and light enough for a five-year-old to carry their own stuff."),
+   ("fjallraven-kanken", "Fjällräven Kånken (classic 16 L)", "$95", "16 L; 36 × 27.5 × 12 cm; 300 g; Vinylon F fabric; removable seat pad; reflective logo, per Fjällräven.", "The square Swedish backpack, in dozens of colors. It's light, the fabric shrugs off dirt and rain, and there's a foam seat pad tucked in the back for sitting on damp benches."),
+  ]),
+  ("$100 to $300", [
+   ("bellroy-travel-wallet", "Bellroy Travel Wallet", "$145", "Leather, RFID-protected; holds a passport, 4 to 10+ cards, cash, tickets and a Micro Pen.", "Keeps passports, boarding passes and a pen for landing cards in one place. Bellroy says it fits most passports, though not German or Irish ones."),
+   ("patagonia-black-hole-duffel-40", "Patagonia Black Hole Duffel 40L", "$165", "19.7 × 12.5 × 8.5 in; 1,045 g; Patagonia says it fits most airline carry-on requirements.", "A soft duffel that goes from the car trunk to the overhead bin. On Patagonia's listed size it's inside the 22 × 14 × 9 in US carry-on guideline."),
+   ("cotopaxi-allpa-35", "Cotopaxi Allpa 35L Travel Pack", "$230", "22 × 12 × 10 in; 2 lb 15 oz; water-resistant TPU-coated shell.", "A backpack that opens like a suitcase. Handy for the parent who also has a stroller to push. It's 10 in deep, so don't overstuff it if the airline sizer is 9 in."),
+   ("ridge-carry-on", "Ridge Carry-On", "$295", "German Makrolon polycarbonate shell; exterior 22.5 × 14.5 × 9 in, interior 20.5 × 14 in, per Ridge.", "A hard-shell case with a lifetime warranty. The listed size is half an inch over the 22 × 14 in US guideline on two sides, so it's worth measuring against the airline's sizer."),
+  ]),
+ ],
+ "gifts-for-him-outdoors": [
+  ("Under $100", [
+   ("saxx-quest-boxer-brief", "SAXX Quest Quick-Dry Mesh Boxer Brief", "$36", "Quick-dry micro-mesh designed for travel and sink washing.", "Not exciting to unwrap, but the kind of gift that gets worn every week. Washes in a hotel sink and dries overnight."),
+   ("bespokepost-sidecar-toiletry-kit", "Halfday Sidecar Toiletry Kit (Bespoke Post)", "$48", "8.75 × 3.5 × 6.75 in; 0.68 lb; water-resistant polyester; hanging loop; reusable liquids pouch included.", "Replaces the plastic grocery bag of toiletries. The hanging loop is the part that wins people over in small bathrooms."),
+   ("bespokepost-grooming-tool-kit", "Men &amp; Nails Medium Grooming Tool Kit (Bespoke Post)", "$60", "12 stainless steel tools in a brown vegan leather case.", "Nail clippers, scissors and tweezers that live in one case instead of three drawers. A good add-on gift."),
+   ("bespokepost-weekender", "Line of Trade Weekender Bag (Bespoke Post)", "$75", "Cotton canvas on a metal frame, leather handles, removable shoulder strap; 21 × 13 × 7 in; laptop pocket fits up to 15 in.", "A canvas duffel that stays open while you pack. It fits the US carry-on guideline, so it works for a weekend away or a short work trip."),
+   ("darntough-mens-hiker-3-pack", "Darn Tough Men's Hiker Micro Crew 3-Pack", "$78", "Three pairs of Darn Tough's cushioned merino Hiker Micro Crew in classic colors; $26 a pair bought singly.", "Merino hiking socks are one of those things people don't buy for themselves. Three pairs means they're not saving them for best."),
+   ("ridge-wallet-royal-black", "Ridge Wallet, Royal Black", "$76 on sale (regular $95)", "Anodized aluminum plates, a scratch-resistant finish and a track that expands for 1 to 12 cards, per Ridge.", "For the guy with a fat leather wallet he keeps meaning to replace. It forces you down to the cards you actually use."),
+  ]),
+  ("$100 and up", [
+   ("smartwool-classic-thermal-crew", "Smartwool Men's Classic Thermal Merino Base Layer Crew", "$66–$125 depending on color and style", "100% merino, 250 g/m² midweight.", "A warm layer under a jacket for cold walks and early starts. Sale colors bring the price down a lot, so check a few."),
+   ("llbean-bean-boots-8", "L.L.Bean Men's Bean Boots, 8\"", "$150", "Made in Maine; L.L.Bean says to order a full size down from your usual shoe size.", "The classic duck boot for slush, mud and walking the dog. Do read L.L.Bean's sizing note before ordering, because most people get it wrong the first time."),
+   ("patagonia-black-hole-duffel-40", "Patagonia Black Hole Duffel 40L", "$165", "19.7 × 12.5 × 8.5 in; 1,045 g; Patagonia says it fits most airline carry-on requirements.", "The bag that ends up in the truck, at the gym and in the overhead bin. A safe pick if you don't know his clothing size."),
+   ("bespokepost-barbour-transport", "Barbour Transport Wax Jacket (Bespoke Post)", "$425", "6 oz waxed cotton with a cord collar, tartan lining and an inner storm skirt, in a roomier, more modern cut.", "The big one. A Barbour gets better with age and can be re-waxed for years. Bespoke Post calls it water-resistant, not waterproof, so it's a jacket for drizzle and wind rather than a downpour."),
+  ]),
+ ],
+ "gifts-for-new-parents": [
+  ("Under $100", [
+   ("patagonia-infant-micro-d-bunting", "Patagonia Infant Micro D Fleece Bunting", "$75", "164 g fleece one-piece with a hood, feet and convertible mitts, per Patagonia.", "A warm layer for stroller walks and winter errands. One of the few baby clothes that gets used all season."),
+   ("babylist-skip-hop-forma", "Skip Hop Forma Diaper Backpack (at Babylist)", "$78.99", "16 × 8 × 14 in; insulated bottle pockets, a changing pad and stroller straps.", "A backpack keeps both hands free, and that matters more than any feature list. Neutral enough that either parent will carry it."),
+   ("babylist-hatch-baby-sound-machine", "Hatch Baby Sound Machine (at Babylist)", "$79.99", "Sound machine and night light; includes 3 months of Hatch+; no backup battery, so it needs to stay plugged in.", "White noise and a dim light for the middle-of-the-night feeds."),
+   ("babylist-frida-ultimate-baby-kit", "Frida Baby Ultimate Baby Kit (at Babylist)", "$99.99", "NoseFrida the SnotSucker, Windi gas passers, a medicine pacifier, a rectal thermometer, nail clippers, a hairbrush and comb, a finger toothbrush, a teether and a case.", "Not glamorous. Everyone ends up buying most of this at 2 a.m. anyway, so it's a kind gift."),
+  ]),
+  ("$100 to $450", [
+   ("babylist-ergobaby-omni-deluxe", "Ergobaby Omni Deluxe Carrier (at Babylist)", "$219", "7 to 45 lb; four carry positions; machine washable.", "A carrier from the newborn weeks to toddlerhood. Great for airports, cobbled streets and anywhere a stroller is a pain."),
+   ("babylist-stokke-yoyo3", "Stokke YOYO³ (at Babylist)", "$399.20 on sale (regular $499)", "13.7 lb; folds to 52 × 44 × 18 cm (20.5 × 17.3 × 7.1 in); from 6 months to 48.5 lb with the 6+ seat.", "A small-fold travel stroller built for planes, buses and trains. The 6+ version is for babies who can sit up, so it's a gift for a family that's past the newborn stage."),
+   ("mockingbird-travel-stroller", "Mockingbird Travel Stroller", "$399", "17.7 lb; folds to 21.5 × 18 × 10 in; from birth to 50 lb; car seat adapter, cup holder and carry bag included.", "Good value from birth, with the adapter and bag already in the box rather than sold as extras."),
+   ("osprey-poco", "Osprey Poco Child Carrier", "$400", "7.69 lb (3.48 kg); 24 L of storage; maximum total load 48.5 lb (22 kg) including child and gear.", "A framed hiking carrier for later on (Osprey lists a minimum total load of 23.7 lb, so it's not for newborns). A gift for outdoorsy parents who want to keep doing the trails."),
+  ]),
+  ("Big-ticket (go in on it together)", [
+   ("mockingbird-single-to-double", "Mockingbird Single-to-Double Stroller 3.0", "$549", "28 lb as a single, 36 lb with the second seat; 34 × 26 × 18 in folded.", "An everyday stroller that grows into a double when a sibling arrives. It's full-size, so it lives in the car trunk rather than the plane."),
+   ("babylist-nuna-trvl-lx", "Nuna TRVL lx (at Babylist)", "$600", "14.6 lb without canopy and armbar; folds to 27 × 21 × 14.25 in; from birth to 50 lb.", "Our stroller guide's pick for naps on the go, and suitable from birth. A nice one for parents who'll travel a lot."),
+   ("doona-x", "Doona X", "$850", "19.6 lb; folds to 17.3 × 28.5 × 18 in; infant car seat for babies up to 30 lb and 17–32 in.", "An infant car seat with wheels that fold out. Brilliant for taxis and quick errands. Babies outgrow it at 30 lb or 32 in, so it's a splurge for the first year or so."),
+  ]),
+ ],
+}
+GIFT_SOURCES = {
+ "gifts-for-travelers": [("darntough.com/products/kids-merino-wool-light-hiker-micro-crew-cushioned-lightweight-hiking-socks", "Kids Light Hiker (Darn Tough)"), ("www.bespokepost.com/store/halfday-sidecar-toiletry-kit", "Halfday Sidecar Toiletry Kit (Bespoke Post)"),
+   ("www.peakdesign.com/products/tech-pouch", "Tech Pouch (Peak Design)"), ("www.peakdesign.com/products/packing-cube", "Packing Cube (Peak Design)"), ("www.osprey.com/daylite-plus-dayltpluss21-795", "Daylite Plus (Osprey)"),
+   ("www.fjallraven.com/us/en-us/bags-gear/kanken/kanken-bags/kanken-mini/", "Kånken Mini (Fjällräven)"), ("www.fjallraven.com/us/en-us/bags-gear/kanken/kanken-bags/kanken/", "Kånken (Fjällräven)"),
+   ("bellroy.com/products/travel-wallet-rfid", "Travel Wallet (Bellroy)"), ("www.patagonia.com/product/black-hole-duffel-bag-40-liters/49339.html", "Black Hole Duffel 40L (Patagonia)"),
+   ("www.cotopaxi.com/products/allpa-35l-travel-pack", "Allpa 35L (Cotopaxi)"), ("ridge.com/products/carry-on-matte-black", "Carry-On (Ridge)")],
+ "gifts-for-him-outdoors": [("www.saxxunderwear.com/products/sxbb65f_blk", "Quest Quick-Dry Mesh (SAXX)"), ("www.bespokepost.com/store/halfday-sidecar-toiletry-kit", "Halfday Sidecar Toiletry Kit (Bespoke Post)"),
+   ("www.bespokepost.com/store/men-nails-medium-luxury-grooming-tool-kit-brown", "Medium Grooming Tool Kit (Bespoke Post)"), ("www.bespokepost.com/store/line-of-trade-weekender-bag", "Line of Trade Weekender (Bespoke Post)"),
+   ("darntough.com/products/mens-hiker-micro-crew-3-pack", "Men's Hiker Micro Crew 3-Pack (Darn Tough)"), ("ridge.com/products/aluminum-black", "Ridge Wallet Royal Black (Ridge)"),
+   ("www.smartwool.com/en-us/products/mens-classic-thermal-merino-base-layer-crew-sw016349", "Classic Thermal Crew (Smartwool)"), ("www.llbean.com/llb/shop/129628?page=mens-bean-boot-8in-mens", "Men's Bean Boots 8\" (L.L.Bean)"),
+   ("www.patagonia.com/product/black-hole-duffel-bag-40-liters/49339.html", "Black Hole Duffel 40L (Patagonia)"), ("www.bespokepost.com/store/barbour-transport-wax-jacket", "Barbour Transport Wax Jacket (Bespoke Post)")],
+ "gifts-for-new-parents": [("www.patagonia.com/product/infant-micro-d-fleece-bunting/60175.html", "Infant Micro D Fleece Bunting (Patagonia)"), ("www.babylist.com/gp/skip-hop-baby-forma-pack-and-go-diaper-bag-backpack/12512/1930410", "Skip Hop Forma (Babylist)"),
+   ("www.babylist.com/gp/hatch-hatch-baby-sound-machine/75243/2583280", "Hatch Baby Sound Machine (Babylist)"), ("www.babylist.com/gp/fridababy-ultimate-baby-kit/36341/1388756", "Frida Baby Ultimate Baby Kit (Babylist)"),
+   ("www.babylist.com/gp/ergobaby-omni-deluxe-carrier/71197/2363793", "Ergobaby Omni Deluxe (Babylist)"), ("www.babylist.com/gp/stokke-yoyo-stroller-from-6-months/55557/2073006", "Stokke YOYO³ 6+ (Babylist)"),
+   ("hellomockingbird.com/products/mockingbird-travel-stroller", "Travel Stroller (Mockingbird)"), ("www.osprey.com/pocotm-child-carrier", "Poco Child Carrier (Osprey)"),
+   ("hellomockingbird.com/products/mockingbird-double-stroller", "Single-to-Double 3.0 (Mockingbird)"), ("www.babylist.com/gp/nuna-trvl-lx/46284/1871701", "Nuna TRVL lx (Babylist)"),
+   ("www.doona.com/en-us/car-seat-stroller/collections/doona-x-nitro-black", "Doona X (Doona)")],
+}
+GIFT_COMMON_FAQ = ("Are the prices current?", f"They're what each retailer's own page showed on {GIFT_CHECKED}. Holiday sales move prices up and down, sometimes daily, so the retailer's page is the final word. If something here looks wrong, it's probably changed since we checked.")
+GIFT_AFF_FAQ = ("Are these affiliate links?", "Some are. If you buy through a product link we may earn a commission, at no extra cost to you. It doesn't change the price you pay or which products we pick, and nobody paid to be on these lists.")
+GIFT_FAQ = {
+ "gifts-for-travelers": [
+  ("Which of these bags fit as a carry-on?", "On the makers' listed sizes, the Patagonia Black Hole 40L (19.7 × 12.5 × 8.5 in) and the Bespoke Post toiletry kit fit easily inside the 22 × 14 × 9 in guideline most US airlines use. The Ridge Carry-On is listed at 22.5 × 14.5 × 9 in and the Cotopaxi Allpa 35L is 10 in deep, so both are slightly over on paper. Europe's budget airlines are much stricter: check the airline before you fly."),
+  ("What's a good travel gift under $50?", "Merino socks ($20 for kids' Darn Tough), a Peak Design packing cube (from $39.95), the Small Tech Pouch ($49.95) or the Halfday toiletry kit ($48). They're all things people use on every trip and rarely buy for themselves."),
+  ("What do you get a kid who travels?", "Their own backpack. The Kånken Mini ($85) is small enough for any airline's free under-seat bag, and carrying their own snacks and toys gives kids a job on travel day."),
+  GIFT_COMMON_FAQ, GIFT_AFF_FAQ],
+ "gifts-for-him-outdoors": [
+  ("Is a Barbour wax jacket waterproof?", "Not fully. Bespoke Post describes the Barbour Transport as water-resistant: waxed cotton sheds drizzle and wind well, and it can be re-waxed to keep it that way. For a real downpour, a modern waterproof shell is drier."),
+  ("How do Bean Boots fit?", "Big. L.L.Bean's own product page says to order a full size down from your usual shoe size, and to go by the sizing advice there rather than guessing. If you're buying as a surprise, a gift receipt helps."),
+  ("What's a good outdoorsy gift under $100?", "Merino hiking socks (the Darn Tough 3-pack is $78), a canvas weekender ($75), the Ridge Wallet ($76 on sale when we checked), the SAXX Quest ($36) or a grooming kit ($60)."),
+  GIFT_COMMON_FAQ, GIFT_AFF_FAQ],
+ "gifts-for-new-parents": [
+  ("Should I buy off the registry?", "If there's a registry, use it first: the parents have often already picked a stroller and car seat, and two of the same is no fun to return. The smaller things here (a sound machine, a diaper backpack, the Frida kit) are safer picks when the registry is picked over."),
+  ("Which stroller is best for travel?", "For flights and trains, a small-fold stroller like the Stokke YOYO³, Mockingbird Travel Stroller or Nuna TRVL lx. The Doona X is an infant car seat with wheels, which is handy for taxis but outgrown in about a year. Our <a href=\"/travel/gear/best-travel-stroller-europe/\">travel stroller guide</a> compares them for cobbles, trains and plane cabins."),
+  ("What can a group chip in for?", "A stroller or the Ergobaby carrier ($219). The big-ticket picks here (the Single-to-Double, Nuna TRVL lx and Doona X) are $549 to $850, which is a lot for one person but reasonable split five ways."),
+  GIFT_COMMON_FAQ, GIFT_AFF_FAQ],
+}
+GIFT_HUB_FAQ = [
+ ("How did you pick these gifts?", "We started with things that are useful on a trip or in a busy first year with a baby, then checked every price and spec on the retailer's own page. We'd rather list ten good things than fifty."),
+ GIFT_COMMON_FAQ, GIFT_AFF_FAQ,
+]
+
+def gift_article(headline, path):
+    a = article(headline, path, GIFT_IMG); a["datePublished"] = a["dateModified"] = "2026-10-23"
+    return a
+def gift_head(path, title, desc, headline, faq, crumb_name, extra_ld=()):
+    trail = [("Travel", "/travel/"), ("Gift guides", "/travel/gifts/")] + ([(crumb_name, path)] if path != "/travel/gifts/" else [])
+    cr, crld = crumbs(trail)
+    page = head(path, title, desc, GIFT_IMG, [gift_article(headline, path), faq_ld(faq), crld, *extra_ld], "/travel/gifts/")
+    return page, cr
+def gift_planner_box():
+    return f'''    <aside class="packbox" id="holiday-planner">
+      <h3>Keeping track of it all</h3>
+      <p>If you're buying for a lot of people this year, our <a href="{URLS["holiday-gift-budget-planner"]}">Holiday Gift &amp; Budget Planner</a> ($9, Google Sheets or Excel) holds one budget for gifts, food, travel and decor, tracks every gift from idea to bought, shipped and wrapped, and counts down ship-by dates. <a href="/templates/#holiday-gift-budget-planner">See what's inside</a>.</p>
+    </aside>
+'''
+def gift_table(slug):
+    rows = "".join(f'<tr><td><a href="#p-{k}">{n}</a></td><td>{e(p)}</td><td>{e(t)}</td></tr>' for t, items in GIFTS[slug] for k, n, p, _, _ in items)
+    return f'    <div class="tablewrap"><table><thead><tr><th>Gift</th><th>Price when we checked</th><th>Group</th></tr></thead><tbody>{rows}</tbody></table></div>\n'
+def gift_picks(slug):
+    out = ""
+    for i, (tier, items) in enumerate(GIFTS[slug]):
+        out += f'    <h2 id="tier-{i + 1}">{e(tier)}</h2>\n'
+        out += "".join(prod(k, n.replace("&amp;", "&"), f"{f} <strong>{e(p)}</strong> when we checked.", w) for k, n, p, f, w in items)
+    return out
+def gift_sources(slug):
+    li = "".join(f'      <li><a href="https://{u.replace("&", "&amp;")}">{e(t)}</a></li>\n' for u, t in GIFT_SOURCES[slug])
+    return f'    <h2 id="sources">Sources</h2>\n    <ul class="src">\n{li}    </ul>\n    <p class="muted">Prices and stock checked on each retailer\'s own page on {GIFT_CHECKED}. Holiday prices change often; the retailer\'s page is the final word.</p>\n'
+def gift_related(skip):
+    return '    <h2 id="more-gifts">More gift guides</h2>\n    <div class="related">' + "".join(
+        f'<a href="{p}">{e(t)}</a>' for p, t, _ in GIFT_PAGES if p != skip) + '<a href="/travel/gifts/">All gift guides</a><a href="/travel/gear/">Packing &amp; gear guides</a></div>\n'
+def gift_count(slug): return sum(len(items) for _, items in GIFTS[slug])
+def gift_itemlist(slug, path):
+    items = [(k, n) for _, its in GIFTS[slug] for k, n, *_ in its]
+    return {"@context": "https://schema.org", "@type": "ItemList", "name": dict((p, t) for p, t, _ in GIFT_PAGES)[path], "numberOfItems": len(items),
+            "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": html.unescape(n), "url": f"{SITE}{path}#p-{k}"} for i, (k, n) in enumerate(items)]}
+
+GIFT_COPY = {
+ "gifts-for-travelers": dict(
+   title="Gifts for Travelers & Families Who Travel: {n} Useful Picks for 2026 | Dark Lighthouse Solutions",
+   desc="Holiday gift ideas for travelers and traveling families: carry-on bags, packing cubes, a passport wallet, kids' backpacks and merino socks, with real sizes and prices checked October 2026.",
+   h1="Gifts for travelers and families who travel",
+   lede="Good travel gifts are the things people use on every trip and never get round to buying for themselves. These are {n} we'd be happy to unwrap, from $20 socks to a $295 suitcase. Every size and price comes from the retailer's own page, checked October 23, 2026.",
+   after='''    <h2 id="tips">A few buying tips</h2>
+    <ul>
+      <li><strong>Check the airline, not just the bag.</strong> A bag that fits United's limit can still be too big for Ryanair. Our <a href="/travel/gear/best-carry-on-luggage-family-travel/">carry-on guide</a> has the limits side by side.</li>
+      <li><strong>Packing cubes make a good family gift.</strong> One per person, in different colors, and nobody has to dig through anyone else's clothes.</li>
+      <li><strong>Don't leave kids' sizes and popular colors too late.</strong> They can sell out close to the holidays.</li>
+    </ul>
+''', planner="family-travel-kids-planner", planner_note="Planning a trip as part of the gift? The Family Travel with Kids Planner covers passports, a jet-lag plan, packing by age and the budget."),
+ "gifts-for-him-outdoors": dict(
+   title="Gifts for Him: {n} Outdoorsy & Heritage Picks, from Barbour to Bean Boots (2026) | Dark Lighthouse Solutions",
+   desc="Holiday gift ideas for the outdoorsy man: a Barbour wax jacket, L.L.Bean Bean Boots, Smartwool merino, Darn Tough socks, a canvas weekender and the Ridge Wallet, with real prices checked October 2026.",
+   h1="Gifts for him: outdoorsy and heritage",
+   lede="For the man who already owns a good flashlight and three multitools. These {n} picks lean classic: waxed cotton, rubber boots, merino and canvas, things that get better with use. Prices come from each retailer's own page, checked October 23, 2026.",
+   after='''    <h2 id="tips">A few buying tips</h2>
+    <ul>
+      <li><strong>Sizing:</strong> boots and jackets are the gifts most likely to go back. L.L.Bean's Bean Boots run big, and Barbour cuts vary by style, so check the size guide on the product page.</li>
+      <li><strong>Socks and base layers are safe bets.</strong> Merino is easy to size and gets worn all winter.</li>
+      <li><strong>Bespoke Post sells single items too.</strong> You don't need a subscription to buy from its store.</li>
+    </ul>
+''', planner=None, planner_note=""),
+ "gifts-for-new-parents": dict(
+   title="Gifts for New & Expecting Parents: {n} Picks from Strollers to the Small Stuff (2026) | Dark Lighthouse Solutions",
+   desc="Holiday gift ideas for new and expecting parents: travel strollers, the Ergobaby Omni Deluxe carrier, a Hatch sound machine, a diaper backpack, the Frida Baby kit and more, with real prices checked October 2026.",
+   h1="Gifts for new and expecting parents",
+   lede="New parents need fewer cute outfits than people think, and more things that make the 3 a.m. feeds and the first trips out easier. Here are {n} picks, grouped by budget so a group can chip in for the big ones. Prices come from each retailer's own page, checked October 23, 2026.",
+   after='''    <h2 id="tips">A few buying tips</h2>
+    <ul>
+      <li><strong>Check the registry first.</strong> Strollers, car seats and carriers are personal choices, and parents have often already picked one.</li>
+      <li><strong>Car seats:</strong> if you're giving one, buy it new so its history is known, and let the parents pick the model if you're unsure.</li>
+      <li><strong>Gift receipts help.</strong> Babies grow out of things on their own schedule.</li>
+    </ul>
+''', planner="family-travel-kids-planner", planner_note="Expecting parents planning a first trip with the baby? The Family Travel with Kids Planner has a passport check, a jet-lag plan and packing lists by age."),
+}
+
+def build_gift_page(i):
+    path, short, _ = GIFT_PAGES[i]; slug = path.strip("/").split("/")[-1]; c = GIFT_COPY[slug]; n = gift_count(slug); faq = GIFT_FAQ[slug]
+    page, cr = gift_head(path, c["title"].format(n=n), c["desc"], short, faq, short, [gift_itemlist(slug, path)])
+    planner = (f'    <h2 id="planner">A planner to go with it</h2>\n    <p class="muted">{e(c["planner_note"])}</p>\n    <div class="cta">\n{card(c["planner"])}\n    </div>\n') if c["planner"] else ""
+    binder = (f'    <p>One more for expecting parents: <a href="{URLS["just-in-case-binder"]}">The Just-In-Case Binder</a> ($12) is a 62-page fillable and printable binder for the important stuff (insurance, accounts, medical details, who to call), with a Google Sheets companion. Not a cuddly gift, but a useful one when a family is growing. <a href="/templates/#just-in-case-binder">See what\'s inside</a>.</p>\n') if slug == "gifts-for-new-parents" else ""
+    page += f'''
+  <header class="wrap hero">
+{GEAR_DISCLOSE}    {cr}
+    <h1>{e(c["h1"])}</h1>
+    <p class="lede">{e(c["lede"].format(n=n))}</p>
+  </header>
+  <main class="wrap copy">
+    <h2 id="at-a-glance">At a glance</h2>
+{gift_table(slug)}{gift_planner_box()}{gift_picks(slug)}{c["after"]}{planner}{binder}{faq_html(faq)}{gift_related(path)}{gift_sources(slug)}  </main>
+''' + foot(aff=True) + "</body>\n</html>\n"
+    write(path, page)
+
+def build_gifts_hub():
+    path = "/travel/gifts/"
+    page, cr = gift_head(path, "Holiday Gift Guides 2026: Travelers, Outdoorsy Men & New Parents | Dark Lighthouse Solutions",
+        "Three short holiday gift guides with real prices checked October 2026: gifts for travelers and families who travel, outdoorsy and heritage gifts for him, and gifts for new and expecting parents.",
+        "Holiday gift guides 2026", GIFT_HUB_FAQ, "Gift guides")
+    cards = "".join(f'      <a href="{p}"><h2>{e(t)}</h2><p>{e(d)} {gift_count(p.strip("/").split("/")[-1])} picks.</p></a>\n' for p, t, d in GIFT_PAGES)
+    page += f'''
+  <header class="wrap hero">
+{GEAR_DISCLOSE}    {cr}
+    <h1>Holiday gift guides</h1>
+    <p class="lede">Three short lists of gifts people actually use, with every price checked on the retailer's own page on October 23, 2026.</p>
+  </header>
+  <main class="wrap">
+    <div class="hub">
+{cards}      <a href="/templates/#holiday-gift-budget-planner"><h2>Holiday Gift &amp; Budget Planner</h2><p>$9 Google Sheet: one budget for the season and a gift list from idea to wrapped.</p></a>
+    </div>
+{faq_html(GIFT_HUB_FAQ)}  </main>
+''' + foot(aff=True) + "</body>\n</html>\n"
+    write(path, page)
+
+def build_gifts():
+    build_gifts_hub()
+    for i in range(len(GIFT_PAGES)): build_gift_page(i)
+
 # ---------------------------------------------------------------- planners, hub, privacy
 PL_FAQ = [
  ("What do I need to use the planners?", "A free Google account for the Google Sheets version, or Excel for the .xlsx file that comes with every order. No add-ons, scripts or subscriptions."),
@@ -1335,6 +1562,7 @@ def build_hub():
       <a href="/travel/england/"><h2>London &amp; England with kids guide</h2><p>Free Tube rides for under-11s, free museums, the London Pass and English Heritage, plus Bath, the Cotswolds, York and the Lake District.</p></a>
       <a href="/travel/wales/"><h2>Wales with kids guide</h2><p>Eryri and the Snowdon railway, castles and the Cadw pass, Pembrokeshire beaches, Cardiff and the 20 mph rule.</p></a>
       <a href="/travel/gear/"><h2>Packing &amp; gear</h2><p>What to wear in Scotland month by month, travel strollers for Europe, and carry-on bags that fit the airlines' limits.</p></a>
+      <a href="/travel/gifts/"><h2>Holiday gift guides</h2><p>Gifts for travelers, outdoorsy and heritage gifts for him, and gifts for new and expecting parents, with real prices.</p></a>
       <a href="/travel/tools/travel-budget-calculator/"><h2>Travel budget calculator</h2><p>Trip total, cost per person and how much to save from each paycheck before you leave. Free.</p></a>
       <a href="/travel/tools/daily-travel-budget-calculator/"><h2>Daily travel budget</h2><p>Spending money per day for the group, per adult and per child, in your currency and the local one. Free.</p></a>
       <a href="/travel/planners/"><h2>Travel planners</h2><p>Google Sheets planners: Trip Planner &amp; Budget, Family Travel with Kids, and Scotland.</p></a>
@@ -1363,7 +1591,7 @@ def build_privacy():
     <p>Templates and planners are sold through <a href="https://polar.sh">Polar</a>, which acts as the merchant of record and handles payment, tax and your receipt. We receive your name, email and order details from Polar so we can deliver your purchase and answer questions.</p>
     <h2 id="affiliate-links">Partner (affiliate) links</h2>
     <p>Our travel pages (everything under <a href="/travel/">/travel/</a>) link to booking sites for tours, attraction tickets, car hire, eSIMs and hotels. Those pages, and the homepage, load a small script from Travelpayouts, an affiliate network, which may turn links to travel partners into affiliate links and set partner cookies so a booking can be credited to us. If you book through one, we may earn a small commission. It costs you nothing extra, it never changes the price you pay, and we only link to things we'd use ourselves.</p>
-    <p>Our packing and gear guides (under <a href="/travel/gear/">/travel/gear/</a>) and the "What to pack" boxes on the country guides also link to retailers and brands for clothing, luggage, strollers and other products. Those are plain links to the retailer's own page; once a retailer's affiliate program approves us, the link may carry a tracking code so a purchase can be credited to us, and the retailer or its affiliate network (such as Impact, CJ, Rakuten Advertising, Awin, AvantLink, Partnerize or FlexOffers) may set a cookie when you click. If you buy through one, we may earn a commission. It costs you nothing extra and never changes the price you pay. Product links are marked as sponsored in the page code, and every page with them says so at the top.</p>
+    <p>Our packing and gear guides (under <a href="/travel/gear/">/travel/gear/</a>), our holiday gift guides (under <a href="/travel/gifts/">/travel/gifts/</a>) and the "What to pack" boxes on the country guides also link to retailers and brands for clothing, luggage, strollers, baby gear and other products. Those are plain links to the retailer's own page; once a retailer's affiliate program approves us, the link may carry a tracking code so a purchase can be credited to us, and the retailer or its affiliate network (such as Impact, CJ, Rakuten Advertising, Awin, AvantLink, Partnerize or FlexOffers) may set a cookie when you click. If you buy through one, we may earn a commission. It costs you nothing extra and never changes the price you pay. Product links are marked as sponsored in the page code, and every page with them says so at the top.</p>
     <p>We pick products for what a trip actually needs, using the makers' own specifications. A commission never decides what we recommend, and we don't accept payment for placement.</p>
     <p>The Travelpayouts script only runs on travel pages and the homepage, not on the money templates, calculators or data kits.</p>
     <p>Official information (like GOV.UK, VisitScotland, the Met Office and airline baggage pages) is never a partner link.</p>
@@ -1376,5 +1604,5 @@ def build_privacy():
     write(path, page)
 
 if __name__ == "__main__":
-    build_hub(); build_scotland(); build_ireland(); build_england(); build_wales(); build_gear(); build_planners(); build_calcs(); build_privacy()
-    print("built /travel/ (hub, scotland, ireland, england, wales, gear, planners, tools + %d calculators) and /privacy/" % len(CALCS))
+    build_hub(); build_scotland(); build_ireland(); build_england(); build_wales(); build_gear(); build_gifts(); build_planners(); build_calcs(); build_privacy()
+    print("built /travel/ (hub, scotland, ireland, england, wales, gear, gifts, planners, tools + %d calculators) and /privacy/" % len(CALCS))
