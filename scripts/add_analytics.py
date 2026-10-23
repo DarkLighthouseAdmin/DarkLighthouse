@@ -51,6 +51,8 @@ def inject(text, is_templates=False):
 def pages():
     for p in sorted(ROOT.rglob("*.html")):
         rel = p.relative_to(ROOT).as_posix()
+        if rel.startswith("travel-log/app/"):  # kids' app: no analytics, nav or meta injection
+            continue
         if rel.startswith(".git/") or re.fullmatch(r"google[0-9a-f]+\.html", rel):
             continue
         if rel.startswith("scripts/") and rel != "scripts/templates_page.html":
