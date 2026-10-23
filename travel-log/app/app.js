@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v20" -> "v20").
-  var VERSION = "v20";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v21" -> "v21").
+  var VERSION = "v21";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -212,6 +212,8 @@
     document.getElementById("ksave").onclick = function () {
       var name = document.getElementById("kname").value, year = document.getElementById("kyear").value, err = document.getElementById("kerr");
       try {
+        var cap = !editing && window.MLTL_SYNC && window.MLTL_SYNC.peopleCap ? window.MLTL_SYNC.peopleCap() : 0;
+        if (cap && state.kids.length >= cap) throw new Error("Your Founders plan covers up to " + cap + " people. Remove someone to add someone new.");
         var kid = editing ? k : M.newPerson({ name: name, role: role, birthYear: year, color: color });
         if (editing) { var tmp = M.newPerson({ name: name, role: role, birthYear: year, color: color }); k.name = tmp.name; k.role = tmp.role; k.birthYear = tmp.birthYear; k.color = tmp.color; k.updatedAt = new Date().toISOString(); }
         saveKid(kid).then(function () { if (!editing) state.kids.push(kid); state.kids.sort(byRole); location.hash = "#/p/" + kid.id + (editing ? "/stats" : "/us"); toast(editing ? "Saved" : "Welcome aboard, " + kid.name + "!"); });
