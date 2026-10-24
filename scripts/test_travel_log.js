@@ -1444,3 +1444,23 @@ setTimeout(() => {
   ok(/isn\\'t saved in your log, isn\\'t synced and isn\\'t sent anywhere/.test(nj), "the permission explanation is on the page");
   ok(/near\.js/.test(read("index.html")) && /"near\.js"/.test(read("sw.js")) && /h\[0\] === "near"/.test(read("app.js")), "near.js is loaded, cached offline and routed");
 }
+
+// ---- v56: Family cup (friendly, on-device ranking) ----
+{
+  const W = { countries: [{ id: "USA", cont: "NA" }, { id: "ITA", cont: "EU" }, { id: "FRA", cont: "EU" }] };
+  const mk = (name, extra) => Object.assign(M.newKid({ name }), { states: {}, places: {}, parks: {} }, extra);
+  const a = mk("Zz Kid", { states: { WI: { at: "2026-06-01" }, IL: { at: "2026-06-02" }, MN: { at: "2020-01-01" } }, parks: { yellowstone: { at: "2026-07-04" } } });
+  const b = mk("Zz Cousin", { states: { WI: { at: "2019-06-01" }, IL: { at: "2019-06-01" }, MN: { at: "2019-01-01" } }, places: { ITA: { at: "2018-05-01" } } });
+  const c = mk("Zz Baby", {});
+  const trips = [{ id: "trip_zz1", kidIds: [a.id, b.id], date: "2026-06-01", title: "Zz Trip", place: "Zz", route: [] },
+                 { id: "trip_zz2", kidIds: [a.id], date: "2026-07-04", title: "Draft: Zz Photo trip", place: "Zz", route: [] }];
+  const cup = M.familyCup([a, b, c], trips, W, "2026");
+  const cat = id => cup.cats.find(x => x.id === id);
+  ok(cat("states").rows[0].rank === 1 && cat("states").rows[1].rank === 1 && cat("states").rows[2].rank === 3, "ties share a place (3 and 3 states are both #1, next is #3)");
+  ok(cat("year").rows[0].id === a.id && cat("year").rows[0].val === 3, "new stamps this year counts states and parks first stamped this year");
+  ok(cat("trips").rows.find(r => r.id === a.id).val === 1, "draft trips don't count in the cup");
+  ok(!cup.cats.some(x => x.id === "miles"), "a category nobody has yet is hidden");
+  ok(cup.cheers[a.id] === "Leads in new stamps this year and national parks" && cup.cheers[b.id] === "Leads in countries" && cup.cheers[c.id] === "Ready for a first stamp", "everyone gets a cheer: " + JSON.stringify(Object.values(cup.cheers)));
+  const app = read("app.js");
+  ok(/h\[1\] === "cup"\) return viewCup\(\)/.test(app) && /cupCard\(\) \+/.test(app) && /isn\\'t compared with anyone else/.test(app), "the cup page is routed, linked from Family, and says it stays in the family");
+}

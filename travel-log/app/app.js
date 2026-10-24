@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v55" -> "v55").
-  var VERSION = "v55";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v56" -> "v56").
+  var VERSION = "v56";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -148,6 +148,7 @@
     if (h[0] === "follow" && window.FS_FOLLOW) return window.FS_FOLLOW.view(h[1] || "");
     if (window.MLTL_SYNC && window.MLTL_SYNC.route(h)) return;
     if (h[0] === "family" && h[1] === "passport") return UI().passportFamily();
+    if (h[0] === "family" && h[1] === "cup") return viewCup();
     if (h[0] === "family" && h[1] === "signs") return UI().signs(null);
     if (h[0] === "family" && h[1] === "wishes" && window.FS_WISH) return window.FS_WISH.view();
     if (window.MLTL_IMPORT && window.MLTL_IMPORT.route(h)) return;
@@ -672,6 +673,35 @@
     if (people.length === state.kids.length) return "the whole family";
     return names(people.map(function (p) { return p.id; })).join(" & ");
   }
+  // v56: Family cup, a friendly ranking between the kids (siblings and cousins), or everyone. Worked out on this phone only.
+  var cupAll = null;
+  function cupPeople() { var kids = state.kids.filter(M.isKid); return (cupAll === null ? kids.length < 2 : cupAll) ? state.kids.slice() : kids; }
+  function cupCard() {
+    if (state.kids.length < 2) return "";
+    var c = M.familyCup(cupPeople(), state.trips, MAPS.world), lead = c.cats[0], who = lead ? lead.rows.filter(function (r) { return r.rank === 1; }).map(function (r) { return M.who(kidById(r.id)); }) : [];
+    return '<a class="panel familycard cupcard" href="#/family/cup"><span class="fam-ic" aria-hidden="true">🏆</span><span><h3>Family cup</h3><span class="small">' +
+      (lead ? esc(lead.label) + ": " + esc(who.join(" & ")) + " lead" + (who.length > 1 ? "" : "s") + " →" : "A friendly race once the stamps start →") + '</span></span></a>';
+  }
+  function viewCup() {
+    document.title = "Family cup · Famstamp";
+    var kids = state.kids.filter(M.isKid), people = cupPeople(), all = people.length !== kids.length || cupAll === true;
+    var c = M.familyCup(people, state.trips, MAPS.world), medal = ["🥇", "🥈", "🥉"];
+    var html = '<a class="back" href="#/family">← Family map</a><h1>🏆 Family cup</h1>' +
+      '<p class="lede small">A friendly race inside your family. It\'s worked out on this phone from your own log and isn\'t compared with anyone else.</p>' +
+      (kids.length >= 2 && kids.length < state.kids.length ? '<div class="seg" role="group" aria-label="Who\'s in the cup">' + [["kids", "Kids & cousins"], ["all", "Everyone"]].map(function (m) {
+        return '<button type="button" data-cup="' + m[0] + '" aria-pressed="' + ((m[0] === "all") === all) + '">' + m[1] + '</button>'; }).join("") + '</div>' : "") +
+      '<h2>Cheers</h2><div class="cheers">' + people.map(function (p) {
+        return '<a class="stat person" href="#/p/' + esc(p.id) + '" style="' + kidStyle(p) + '"><div class="v"><span class="dotp">' + initial(M.who(p)) + '</span> ' + esc(M.who(p)) + '</div><div class="k">' + esc(c.cheers[p.id]) + '</div></a>'; }).join("") + '</div>';
+    if (!c.cats.length) html += '<div class="panel"><p>No stamps yet. The first trip starts the race!</p></div>';
+    c.cats.forEach(function (cat) {
+      html += '<section class="panel cupcat"><h3>' + cat.icon + ' ' + esc(cat.label) + '</h3><ol class="cuprows">' + cat.rows.map(function (r) {
+        var p = kidById(r.id);
+        return '<li' + (r.rank === 1 && r.val > 0 ? ' class="lead"' : "") + '><span class="medal" aria-label="Place ' + r.rank + '">' + (r.val > 0 && medal[r.rank - 1] || "·") + '</span><span class="nm">' + esc(M.who(p)) + '</span><b>' + r.val.toLocaleString() + '</b></li>'; }).join("") + '</ol></section>';
+    });
+    html += '<p class="small muted">Ties share a place. "New stamps this year" counts states, countries and parks first stamped in ' + c.year + ', so a younger kid can win it too.</p>';
+    main.innerHTML = html;
+    main.querySelectorAll("[data-cup]").forEach(function (b) { b.onclick = function () { cupAll = b.dataset.cup === "all"; viewCup(); }; });
+  }
   function viewFamily() {
     document.title = "Family map · Famstamp";
     var people = famPeople(), n = people.length, together = famMode === "together" && n > 1;
@@ -727,7 +757,7 @@
       (n > 1 ? '<a class="stat person" href="#/together/fam" style="--kid:var(--sage-deep)"><div class="v">' + fs.togetherTrips + '</div><div class="k">Trips together · see them →</div></a>' + statBox(fs.togetherStates, 50, "States together") + statBox(fs.togetherCountries, 195, "Countries together") + statBox(fs.togetherParks, 64, "Parks together") : "") +
       statBox(fs.states, 50, "States, anyone") + statBox(fs.countries, 195, "Countries, anyone") + statBox(fs.parks, 64, "Parks, anyone") + statBox(fs.trips, 0, "Trips logged") + '</div>' +
       '<a class="panel familycard" href="#/year"><span class="fam-ic" aria-hidden="true">🎉</span><span><h3>Year in stamps</h3><span class="small">A card of the year to share →</span></span></a>' +
-      (window.FS_WISH ? window.FS_WISH.card() : "") +
+      cupCard() + (window.FS_WISH ? window.FS_WISH.card() : "") +
       '<a class="panel familycard" href="#/family/passport"><span class="fam-ic" aria-hidden="true">🛂</span><span><h3>Family passport</h3><span class="small">Every stamp, with who was there →</span></span></a>' +
       UI().lifetimeHTML(null) +
       '<h2>Everyone</h2><div class="stats">' + people.map(function (p) {

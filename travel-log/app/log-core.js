@@ -608,6 +608,41 @@
     return x.days === 1 ? n + " is tomorrow!" : n + " in " + x.days + " days";
   }
 
+  // ---------- Family cup (v56): a friendly, on-device ranking inside one family log. Nothing leaves the phone. ----------
+  /** Categories with competition ranks (ties share a rank), plus one cheer per person so everyone gets something.
+      people = the people to compare (usually the kids); year = "2026". */
+  function familyCup(people, trips, world, year) {
+    year = String(year || today().slice(0, 4));
+    function newThisYear(p) { var n = 0; ["states", "places", "parks"].forEach(function (bag) { Object.keys(p[bag] || {}).forEach(function (id) { var at = p[bag][id] && p[bag][id].at; if (typeof at === "string" && at.slice(0, 4) === year) n++; }); }); return n; }
+    function tripsThisYear(p) { return trips.filter(function (t) { return !t.deletedAt && !isDraft(t) && t.kidIds.indexOf(p.id) >= 0 && String(t.date || "").slice(0, 4) === year; }).length; }
+    var st = {}; people.forEach(function (p) { st[p.id] = stats(p, trips, world); });
+    var CATS = [
+      { id: "year", icon: "✨", label: "New stamps in " + year, short: "new stamps this year", val: newThisYear },
+      { id: "trips", icon: "🧳", label: "Trips in " + year, short: "trips this year", val: tripsThisYear },
+      { id: "states", icon: "🇺🇸", label: "States", short: "states", val: function (p) { return st[p.id].states; } },
+      { id: "countries", icon: "🌍", label: "Countries", short: "countries", val: function (p) { return st[p.id].countries; } },
+      { id: "parks", icon: "🏞️", label: "National parks", short: "national parks", val: function (p) { return st[p.id].parks; } },
+      { id: "miles", icon: "🛣️", label: "Miles traveled", short: "miles", val: function (p) { return Math.round(st[p.id].miles || 0); } }];
+    var cats = CATS.map(function (c) {
+      var rows = people.map(function (p) { return { id: p.id, val: c.val(p) || 0 }; }).sort(function (a, b) { return b.val - a.val; });
+      rows.forEach(function (r, i) { r.rank = i && rows[i - 1].val === r.val ? rows[i - 1].rank : i + 1; });
+      return { id: c.id, icon: c.icon, label: c.label, short: c.short, rows: rows };
+    }).filter(function (c) { return c.rows.some(function (r) { return r.val > 0; }); });
+    var cheers = {};
+    people.forEach(function (p) {
+      var mine = cats.map(function (c) { var r = c.rows.filter(function (x) { return x.id === p.id; })[0]; return { c: c, r: r }; }).filter(function (x) { return x.r.val > 0; });
+      var top = mine.filter(function (x) { return x.r.rank === 1; });
+      var sole = top.filter(function (x) { return x.c.rows.filter(function (r) { return r.rank === 1; }).length === 1; });
+      function list(xs) { return xs.slice(0, 2).map(function (x) { return x.c.short; }).join(" and "); }
+      if (sole.length) cheers[p.id] = "Leads in " + list(sole);
+      else if (top.length) cheers[p.id] = "Tied for the lead in " + list(top);
+      else if (mine.length) { mine.sort(function (a, b) { return a.r.rank - b.r.rank; }); var b = mine[0], ahead = b.c.rows.filter(function (r) { return r.rank === b.r.rank - 1 || r.rank < b.r.rank; }); var gap = ahead.length ? ahead[ahead.length - 1].val - b.r.val + 1 : 0;
+        cheers[p.id] = gap > 0 && gap <= 3 && b.c.id !== "miles" ? gap + " more " + b.c.short + " to move up" : "#" + b.r.rank + " in " + b.c.short; }
+      else cheers[p.id] = "Ready for a first stamp";
+    });
+    return { year: year, cats: cats, cheers: cheers };
+  }
+
   // ---------- Near a stamp (v55): what can be stamped around a point. The point is only used here, never saved. ----------
   var NEAR_MILES = 30;
   /** pt = { lat, lon }; d = the places list ({ rows, countries, admin }) or null; people = everyone in the log.
@@ -667,7 +702,7 @@
     return { trip: c, photo: ph };
   }
 
-  return { nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+  return { familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,

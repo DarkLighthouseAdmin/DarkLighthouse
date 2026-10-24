@@ -767,3 +767,8 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .nearlist { list-style:none; padding:0; margin:.5rem 0; } .nearitem { display:flex; gap:.6rem; padding:.55rem 0; border-bottom:1px solid rgba(31,42,51,.1); } .nearitem .nic { font-size:1.3rem; }
 .newstamp { display:inline-block; font-size:.75rem; font-weight:700; padding:.05rem .45rem; border-radius:999px; background:#e8f4ea; color:#2d6a3e; }
 .nearwhy .check { display:flex; gap:.4rem; margin-top:.6rem; } .nearlink { margin:.7rem 0 0; }
+
+/* v56: Family cup */
+.cheers { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.6rem; margin-bottom:1rem; }
+.cuprows { list-style:none; padding:0; margin:.4rem 0 0; } .cuprows li { display:flex; align-items:center; gap:.6rem; padding:.35rem 0; border-bottom:1px solid rgba(31,42,51,.08); }
+.cuprows li .nm { flex:1; } .cuprows li.lead .nm { font-weight:700; } .cuprows .medal { width:1.6rem; text-align:center; } .cupcat h3 { margin:0; }
