@@ -751,3 +751,6 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 
 /* v51: On this day */
 .onthisday { margin-top:.8rem; } .onthisday h3 { font-size:1rem; margin-bottom:.3rem; } .onthisday ul { margin:0; padding-left:1.1rem; } .onthisday li { margin:.25rem 0; }
+
+/* v52: year in review facts under the card */
+.yr-facts { list-style:none; padding:0; margin:.6rem 0 0; display:flex; flex-wrap:wrap; gap:.3rem .9rem; font-size:.92rem; color:var(--muted); }

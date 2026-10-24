@@ -37,8 +37,20 @@
     stamps.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     var n = { state: 0, place: 0, park: 0 }, states = {};
     stamps.forEach(function (s) { n[s.kind] = (n[s.kind] || 0) + 1; if (s.kind === "state") states[s.area] = 1; });
-    var tr = (trips || []).filter(function (t) { return String(t.date || "").slice(0, 4) === year && (t.kidIds || []).some(function (id) { return ids.indexOf(id) >= 0; }); });
+    var tr = (trips || []).filter(function (t) { return !t.deletedAt && String(t.date || "").slice(0, 4) === year && (t.kidIds || []).some(function (id) { return ids.indexOf(id) >= 0; }); });
+    // v52: miles, nights, flights, the farthest trip, and how many places were new to everyone (no earlier dated stamp)
+    var T = M && M.T, miles = 0, nights = 0, flights = 0, far = null;
+    tr.forEach(function (t) {
+      var s = T && T.summary ? T.summary(t) : null; if (!s) return;
+      miles += s.miles || 0; nights += s.nights || 0; flights += s.flights || 0;
+      if (s.miles && (!far || s.miles > far.miles)) far = { id: t.id, miles: s.miles, label: M.tripLabel ? M.tripLabel(t).replace(/^\s*draft:\s*/i, "") : t.place };
+    });
+    var earlier = {};
+    P.familyStamps(people, trips, CTX).forEach(function (s) { if (/^\d{4}/.test(s.date || "") && s.date.slice(0, 4) < year) earlier[s.kind + ":" + s.area] = 1; });
+    people.forEach(function (p) { [["park", p.parks], ["state", p.states], ["place", p.places]].forEach(function (b) { Object.keys(b[1] || {}).forEach(function (id) { var at = String((b[1][id] && b[1][id].at) || ""); if (/^\d{4}/.test(at) && at.slice(0, 4) < year) earlier[b[0] + ":" + id] = 1; }); }); });
+    var fresh = stamps.filter(function (s) { return !earlier[s.kind + ":" + s.area]; }).length;
     return { year: year, stamps: stamps, states: n.state, countries: n.place, parks: n.park, trips: tr.length, stateIds: Object.keys(states),
+             miles: Math.round(miles), nights: nights, flights: flights, farthest: far, newPlaces: fresh,
              pick: stamps.slice(-9).reverse() };   // the nine most recent
   }
 
@@ -68,6 +80,20 @@
     u.shapes.forEach(function (p) { s += '<path d="' + p.d + '" fill="' + (on[p.id] ? "#e8a54b" : "#e9e2d2") + '" stroke="#7b8a93" stroke-width="1"/>'; });
     return s + '</svg>';
   }
+  function km() { var a = A(); return a && a.state && a.state.meta && a.state.meta.units === "km"; }
+  function distNum(mi) { return Math.round(km() ? mi * 1.609344 : mi); }
+  function unitWord() { return km() ? "km" : "miles"; }
+  function shortNum(n) { return n >= 100000 ? Math.round(n / 1000) + "k" : n >= 10000 ? (Math.round(n / 100) / 10) + "k" : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+  function commas(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+  /** "12 nights away · 3 flights · 5 places new to us · Farthest: Rome" for the card and the page */
+  function extraLine(sum) {
+    var b = [];
+    if (sum.nights) b.push(plural(sum.nights, "night") + " away");
+    if (sum.flights) b.push(plural(sum.flights, "flight"));
+    if (sum.newPlaces) b.push(sum.newPlaces + (sum.newPlaces === 1 ? " place" : " places") + " new to us");
+    if (sum.farthest) b.push("Farthest: " + sum.farthest.label);
+    return b.join(" · ");
+  }
   function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 
   /** Draws the 1080x1350 card (a good size for phone sharing) and resolves with the canvas. */
@@ -90,8 +116,10 @@
     c.font = "700 72px Georgia, 'Times New Roman', serif"; c.fillText(title, W / 2, 140);
     c.font = "600 30px 'Helvetica Neue', Arial, sans-serif"; c.fillStyle = "#5b6b73";
     var bits = [[sum.trips, sum.trips === 1 ? "trip" : "trips"], [sum.states, sum.states === 1 ? "state" : "states"], [sum.countries, sum.countries === 1 ? "country" : "countries"], [sum.parks, sum.parks === 1 ? "park" : "parks"]];
+    if (sum.miles) bits.push([shortNum(distNum(sum.miles)), unitWord()]);
+    var colW = (W - 120) / bits.length;
     bits.forEach(function (b, i) {
-      var x = 150 + i * 260;
+      var x = 60 + colW * (i + 0.5);
       c.fillStyle = "#3f5f4c"; c.font = "700 76px Georgia, serif"; c.fillText(String(b[0]), x, 260);
       c.fillStyle = "#5b6b73"; c.font = "600 28px 'Helvetica Neue', Arial, sans-serif"; c.fillText(b[1], x, 300);
     });
@@ -111,7 +139,8 @@
       var mapTop = top + rows * (sz + 16) + 10, mapH = H - 130 - mapTop - (fl ? 70 : 0);
       if (map && mapH > 140) { var mw = Math.min(W - 160, mapH * 1000 / 620), mh = mw * 620 / 1000; c.drawImage(map, (W - mw) / 2, mapTop + (mapH - mh) / 2, mw, mh); }
       if (fl) { c.fillStyle = "#8a6a2f"; c.font = "800 22px 'Helvetica Neue', Arial, sans-serif"; c.fillText("⭐ FIRSTS THIS YEAR", W / 2, H - 186); c.fillStyle = "#3f5f4c"; c.font = "700 34px Georgia, serif"; c.fillText(fl, W / 2, H - 140); }
-      c.fillStyle = "#16283a"; c.font = "700 30px Georgia, serif"; c.fillText("FAMSTAMP · STAMP EVERY TRIP", W / 2, H - 70);
+      var extra = extraLine(sum); if (extra) { c.fillStyle = "#5b6b73"; c.font = "600 26px 'Helvetica Neue', Arial, sans-serif"; c.fillText(extra, W / 2, H - 104); }
+      c.fillStyle = "#16283a"; c.font = "700 30px Georgia, serif"; c.fillText("FAMSTAMP · STAMP EVERY TRIP", W / 2, H - 62);
       return cv;
     });
   }
@@ -143,6 +172,10 @@
         if (lastURL) URL.revokeObjectURL(lastURL);
         lastBlob = blob; lastURL = URL.createObjectURL(blob);
         var box = main.querySelector(".yr-card"); box.innerHTML = '<img src="' + lastURL + '" alt="' + esc(title) + ': ' + plural(sum.trips, "trip") + ', ' + plural(sum.states, "state") + ', ' + plural(sum.countries, "country", "countries") + ', ' + plural(sum.parks, "park") + '">';
+        var ex = extraLine(sum);
+        box.insertAdjacentHTML("afterend", '<ul class="yr-facts">' + (sum.miles ? '<li><b>' + commas(distNum(sum.miles)) + '</b> ' + unitWord() + ' traveled</li>' : "") +
+          (ex ? ex.split(" · ").map(function (x) { return '<li>' + esc(x) + '</li>'; }).join("") : "") +
+          (sum.firsts && sum.firsts.length ? '<li>⭐ ' + esc(sum.firsts.map(function (f) { return f.title; }).join(", ")) + '</li>' : "") + '</ul>');
         var fname = "famstamp-" + year + "-in-stamps.png", sh = document.getElementById("yr-share"), dl = document.getElementById("yr-dl");
         var file = typeof File === "function" ? new File([blob], fname, { type: "image/png" }) : null;
         var canShare = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));

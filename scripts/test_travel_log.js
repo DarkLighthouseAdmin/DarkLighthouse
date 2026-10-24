@@ -1359,3 +1359,23 @@ setTimeout(() => {
   ok(M.onThisDay([], "2026-10-24").length === 0 && M.onThisDay(null).length === 0, "no trips, no card");
   const aj = read("app.js"); ok(/onThisDayCard\(\)/.test(aj) && /On this day/.test(aj) && /if \(!hits\.length\) return ""/.test(aj), "ui: Home shows On this day only when there's something");
 })();
+
+// ---- v52: year in review: miles, nights, flights, farthest trip, places new to us ----
+{
+  const Y = require("../travel-log/app/year.js");
+  const z = M.newKid({ name: "Zz Test", birthYear: 2016 });
+  z.states = { WI: { at: "2024-05-01" } };
+  const city = (name, lat, lon, region) => ({ name, kind: "city", lat, lon, country: "USA", region });
+  const MAD = city("Zz Madison", 43.07, -89.4, "WI"), CHI = city("Zz Chicago", 41.88, -87.63, "IL"), YEL = city("Zz Yellowstone", 44.6, -110.5, "WY");
+  const trips = [M.newTrip({ id: "trip_zzyear00000001", kidIds: [z.id], place: "Zz Chicago", date: "2026-03-10", endDate: "2026-03-12", route: [MAD, CHI], roundTrip: true }),
+                 M.newTrip({ id: "trip_zzyear00000002", kidIds: [z.id], place: "Zz West", title: "Draft: Zz West", date: "2026-07-01", nights: 5, route: [MAD, YEL] }),
+                 Object.assign(M.newTrip({ id: "trip_zzyear00000003", kidIds: [z.id], place: "Zz Gone", date: "2026-08-01", route: [MAD, YEL] }), { deletedAt: "2026-09-01T00:00:00.000Z" })];
+  const s = Y.summary([z], trips, 2026);
+  ok(s.trips === 2, "year review skips trips in Recently deleted (" + s.trips + ")");
+  ok(s.miles > 1000 && s.miles < 1600, "miles add up across the year's trips (" + s.miles + ")");
+  ok(s.nights === 7, "nights add up: 2 + 5 (" + s.nights + ")");
+  ok(s.farthest && s.farthest.id === "trip_zzyear00000002" && s.farthest.label === "Zz West", "farthest trip named without 'Draft:' (" + JSON.stringify(s.farthest) + ")");
+  ok(s.newPlaces === s.stamps.filter(x => !(x.kind === "state" && x.area === "WI")).length && s.newPlaces >= 1, "WI colored in 2024 isn't new in 2026; the others are (" + s.newPlaces + ")");
+  const e = Y.summary([z], [], 2026); ok(e.miles === 0 && e.nights === 0 && e.farthest === null, "an empty year has no miles or farthest trip");
+  const yj = read("year.js"); ok(/extraLine\(sum\)/.test(yj) && /yr-facts/.test(yj) && /unitWord\(\)/.test(yj), "ui: card and page show miles and the extra facts");
+}
