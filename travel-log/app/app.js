@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v56" -> "v56").
-  var VERSION = "v56";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v57" -> "v57").
+  var VERSION = "v57";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -189,7 +189,7 @@
   }
   /** v51 On this day: trips from today's date in earlier years; nothing at all when there are none. */
   function onThisDayCard() {
-    var hits = M.onThisDay(state.trips, M.today()); if (!hits.length) return "";
+    var hits = M.onThisDay(state.trips, M.today()); if (!hits.length) return onThisMonthCard();
     var rows = hits.slice(0, 3).map(function (x) {
       var who = x.trip.kidIds.filter(kidById)[0];
       var line = esc(M.onThisDayLine(x));
@@ -198,6 +198,17 @@
     }).join("");
     return '<section class="panel onthisday" aria-label="On this day"><h3><span aria-hidden="true">🕰️</span> On this day</h3><ul>' + rows + '</ul>' +
       (hits.length > 3 ? '<p class="small muted">and ' + (hits.length - 3) + ' more from this date</p>' : "") + '</section>';
+  }
+  /** v57: nothing on today's date -> trips from this month in earlier years. Hidden only when the month is empty too. */
+  function onThisMonthCard() {
+    var hits = M.onThisMonth(state.trips, M.today()); if (!hits.length) return "";
+    var rows = hits.slice(0, 5).map(function (x) {
+      var who = x.trip.kidIds.filter(kidById)[0], line = esc(M.onThisMonthLine(x));
+      return '<li>' + (who ? '<a class="tapline" href="#/p/' + esc(who) + '/trip/' + esc(x.trip.id) + '">' + line + '</a>' : line) +
+        '<span class="muted small"> · ' + esc(travelerNames(x.trip.kidIds)) + '</span></li>';
+    }).join("");
+    return '<section class="panel onthisday onthismonth" aria-label="This month in past years"><h3><span aria-hidden="true">🗓️</span> This month in past years</h3><ul>' + rows + '</ul>' +
+      (hits.length > 5 ? '<p class="small muted">and ' + (hits.length - 5) + ' more from ' + esc(hits[0].month) + '</p>' : "") + '</section>';
   }
   /** v53: on a trip right now -> quick stamp; otherwise a countdown to the next planned trip. Nothing when neither. */
   function tripsAheadCard() {

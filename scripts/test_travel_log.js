@@ -1464,3 +1464,24 @@ setTimeout(() => {
   const app = read("app.js");
   ok(/h\[1\] === "cup"\) return viewCup\(\)/.test(app) && /cupCard\(\) \+/.test(app) && /isn\\'t compared with anyone else/.test(app), "the cup page is routed, linked from Family, and says it stays in the family");
 }
+
+// ---- v57: This month in past years (fallback when nothing matches today's date) ----
+{
+  const t = (id, date, title, endDate, extra) => Object.assign({ id: "trip_zz" + id, date, title, endDate: endDate || "", kidIds: ["person_zz1"], route: [], place: title }, extra || {});
+  const trips = [t("1", "2025-10-03", "Zz Poynette"), t("2", "2026-10-15", "Zz Bay Lake", "2026-10-17"), t("3", "2013-10-05", "Draft: Zz Old", "", { draft: true }),
+    t("4", "2021-09-28", "Zz Span", "2021-10-02"), t("5", "2022-11-01", "Zz Nov"), t("6", "2019-10-30", "Zz Gone", "", { deletedAt: "2026-01-01T00:00:00Z" }),
+    t("7", "2019-10-01", "Zz Early"), t("8", "2019-10-20", "Zz Late"), t("9", "", "Zz Undated")];
+  const m = M.onThisMonth(trips, "2026-10-24");
+  ok(M.onThisDay(trips, "2026-10-24").length === 0, "fixture: nothing on Oct 24 itself");
+  ok(m.map(M.onThisMonthLine).join("|") === "October 2025: Zz Poynette|October 2021: Zz Span|October 2019: Zz Late|October 2019: Zz Early|October 2013: Zz Old",
+     "newest year first, later trip first within a year: " + m.map(M.onThisMonthLine).join("|"));
+  ok(!m.some(x => x.trip.id === "trip_zz2"), "this year's October trip (Zz Bay Lake 2026) is not a past year");
+  ok(m.some(x => x.trip.id === "trip_zz3" && x.label === "Zz Old"), "draft trips count, shown without 'Draft:'");
+  ok(m.some(x => x.trip.id === "trip_zz4" && x.year === 2021), "a Sep 28 to Oct 2 trip counts for October");
+  ok(!m.some(x => /Nov|Gone|Undated/.test(x.label)), "other months, deleted and undated trips are left out");
+  const ny = M.onThisMonth([t("a", "2024-12-28", "Zz New Year", "2025-01-02")], "2026-01-10");
+  ok(ny.length === 1 && ny[0].year === 2025 && M.onThisMonthLine(ny[0]) === "January 2025: Zz New Year", "a trip over New Year counts for January of the next year");
+  ok(M.onThisMonth(trips, "2026-03-05").length === 0, "an empty month gives nothing (card hidden)");
+  const app = read("app.js");
+  ok(/if \(!hits\.length\) return onThisMonthCard\(\);/.test(app) && /hits\.slice\(0, 5\)/.test(app) && /This month in past years/.test(app), "Home falls back to the month card, capped at 5 with 'and N more'");
+}

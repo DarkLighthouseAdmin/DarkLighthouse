@@ -584,6 +584,20 @@
     var main = T && T.mainDest && Array.isArray(t.route) && t.route.length ? T.mainDest(t.route) : "";
     return title || main || String(t.place || "").replace(DRAFT_RE, "").trim() || "a trip";
   }
+  // v57: when nothing happened on this exact date, trips from this calendar month in earlier years (drafts count: they're real trips).
+  var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  /** [{ trip, year, label, month }] for trips with any day in today's month of an earlier year, newest year first (then latest start). */
+  function onThisMonth(trips, today) {
+    today = today || todayStr(); var y = +today.slice(0, 4), mm = today.slice(5, 7), out = [];
+    (trips || []).forEach(function (t) {
+      if (!t || t.deletedAt || !/^\d{4}-\d{2}-\d{2}$/.test(t.date || "")) return;
+      var start = t.date.slice(0, 7), end = tripEnd(t).slice(0, 7), hit = 0;
+      for (var yy = Math.min(+end.slice(0, 4), y - 1); yy >= +t.date.slice(0, 4) && !hit; yy--) { var m = yy + "-" + mm; if (m >= start && m <= end) hit = yy; }
+      if (hit) out.push({ trip: t, year: hit, month: MONTHS[+mm - 1], label: dayLabel(t) });
+    });
+    return out.sort(function (a, b) { return b.year - a.year || (a.trip.date < b.trip.date ? 1 : -1); });
+  }
+  function onThisMonthLine(x) { return x.month + " " + x.year + ": " + x.label; }
   function onThisDayLine(x) { return (x.years === 1 ? "1 year ago" : x.years + " years ago") + " today you were in " + x.label; }
 
   // ---------- Coming up / on a trip now (v53) ----------
@@ -702,7 +716,7 @@
     return { trip: c, photo: ph };
   }
 
-  return { familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+  return { onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,
