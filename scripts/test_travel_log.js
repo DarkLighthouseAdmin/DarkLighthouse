@@ -1401,3 +1401,26 @@ setTimeout(() => {
   ok(/tripsAheadCard\(\)/.test(aj) && /data-quickstamp/.test(aj) && /Stamp a stop/.test(aj) && /FS_FOCUS_STOP/.test(tu), "ui: Home countdown and Stamp a stop go to adding a stop");
   ok(/d\.date = ""; d\.plan = true/.test(tu) && /Home counts down/.test(tu), "ui: Plan this trip starts with no date and says Home counts down");
 }
+
+// ---- v54: kid milestones ----
+{
+  const F = require("../travel-log/app/firsts.js");
+  const kid = M.newKid({ name: "Zz Kid", birthYear: 2018 });
+  const st = ["WI", "IL", "MN", "IA", "MI", "OH", "IN"], dates = ["2019-06-01", "2020-07-01", "2021-07-01", "2022-07-01", "2022-08-01", "2023-07-01", "2026-07-01"];
+  kid.states = {}; st.forEach((id, i) => kid.states[id] = { at: dates[i] });
+  kid.parks = { yell: { at: "2022-07-04" }, "sp-zz": { at: "2021-01-01" } };
+  const fl = [{ id: "trip_zzms000000001", kidIds: [kid.id], place: "Zz Flight", date: "2021-03-01", route: [{ name: "A" }, { name: "B", mode: "plane" }] }];
+  const ms = F.milestones(kid, fl, { home: { country: "USA", region: "WI" } }, "2026-10-24");
+  const t = ms.done.map(x => x.text);
+  ok(t.indexOf("First national park at age 4") >= 0, "first national park at age 4 (" + t.join(" | ") + ")");
+  ok(t.indexOf("First flight at age 3") >= 0, "first flight at age 3");
+  ok(t.indexOf("5 states before 5!") >= 0 && ms.done.find(x => x.key === "state-5").at === "2022-08-01", "5 states before 5, reached on the 5th state's date");
+  ok(ms.next[0] && ms.next[0].text === "10 states before 10" && ms.next[0].have === 7 && ms.next[0].yearsLeft === 2, "next up: 10 states before 10, 7 of 10, 2 years to go (" + JSON.stringify(ms.next[0]) + ")");
+  ok(ms.next.some(x => x.text === "5 national parks before 5") === false && ms.next.some(x => x.text === "10 national parks before 10" && x.have === 1), "state parks don't count toward national parks; 5-before-5 is past");
+  const q = F.milestones(kid, [], { quests: () => [{ at: "2024-05-01" }], stamps: () => [{ kind: "state", area: "CA", date: "2025-01-01" }] }, "2026-10-24");
+  ok(q.done.some(x => x.text === "First quest finished at age 6") && q.next[0].have === 8, "quests and trip stamps count");
+  ok(F.milestones(Object.assign({}, kid, { role: "adult" }), [], {}, "2026-10-24").done.length === 0 && F.milestones(M.newKid({ name: "Zz NoYear" }), [], {}, "2026-10-24").next.length === 0, "no milestones for grown-ups or without a birth year");
+  const undated = Object.assign(M.newKid({ name: "Zz U", birthYear: 2020 }), { states: { WI: {}, IL: {}, MN: {}, IA: {}, MI: {} } });
+  ok(F.milestones(undated, [], {}, "2024-06-01").done.some(x => x.text === "5 states before 5!"), "undated states count while the kid is still under the age");
+  ok(/Milestones/.test(read("firsts.js")) && /msbar/.test(read("firsts.js")) && /Next: /.test(read("firsts.js")), "ui: milestones on the Firsts page and the badge card");
+}

@@ -77,7 +77,45 @@
   }
   function unmark(p, key) { if (p.firsts && p.firsts[key]) { p.firsts = clean(p.firsts); delete p.firsts[key]; p.updatedAt = new Date().toISOString(); return true; } return false; }
 
-  var core = { KINDS: KINDS, kindOf: kindOf, clean: clean, found: found, timeline: timeline, forYear: forYear, mark: mark, unmark: unmark };
+  // ---------- v54: kid milestones (age-based), built from the firsts timeline, the maps, trip stamps and finished quests ----------
+  var GOALS = [["state", "states", "📍", [5, 10, 13, 18]], ["park", "national parks", "🏞️", [5, 10, 18]]];
+  function isNP(id) { return !/^(sp|nm|mem)-/.test(id); }
+  /** First date each state / national park was stamped: { "state:WI": "2020-05-01" or "" (undated) } */
+  function firstDates(p, ctx) {
+    var out = {};
+    function add(kind, id, at) { if (kind === "park" && !isNP(id)) return; var k = kind + ":" + id, d = DATE.test(at || "") ? at : ""; if (!(k in out) || (d && (!out[k] || d < out[k]))) out[k] = d; }
+    Object.keys(p.states || {}).forEach(function (id) { add("state", id, p.states[id] && p.states[id].at); });
+    Object.keys(p.parks || {}).forEach(function (id) { add("park", id, p.parks[id] && p.parks[id].at); });
+    ((ctx && ctx.stamps && ctx.stamps(p)) || []).forEach(function (s) { if (s.kind === "state" || s.kind === "park") add(s.kind, s.area, s.date); });
+    return out;
+  }
+  function ageAt(by, at) { return by && DATE.test(at || "") ? +at.slice(0, 4) - by : null; }
+  function ageWords(n) { return n <= 0 ? "as a baby" : n === 1 ? "at age 1" : "at age " + n; }
+  /** { done: [{ emoji, text, at }], next: [{ emoji, text, have, need }] } for a kid with a birth year; empty otherwise. today = "YYYY-MM-DD" */
+  function milestones(p, trips, ctx, today) {
+    var out = { done: [], next: [] }, by = +(p && p.birthYear); if (!by || (p.role && p.role !== "kid")) return out;
+    today = DATE.test(today || "") ? today : new Date().toISOString().slice(0, 10);
+    var ageNow = +today.slice(0, 4) - by;
+    timeline(p, trips, ctx).forEach(function (r) { var a = ageAt(by, r.at); if (a == null || a < 0 || a > 25) return; out.done.push({ emoji: r.emoji, text: r.title + " " + ageWords(a), at: r.at, key: "first-" + r.key }); });
+    var fd = firstDates(p, ctx);
+    GOALS.forEach(function (g) {
+      var dates = Object.keys(fd).filter(function (k) { return k.indexOf(g[0] + ":") === 0; }).map(function (k) { return fd[k]; });
+      var shown = false;
+      g[3].forEach(function (x) {
+        // counts if stamped before the year they turned x; undated ones only count while they're still under x
+        var before = dates.filter(function (d) { return d ? ageAt(by, d) < x : ageNow < x; }).sort();
+        if (before.length >= x) { var dated = before.filter(Boolean); out.done.push({ emoji: "🏆", text: x + " " + g[1] + " before " + x + "!", at: dated.length >= x ? dated[x - 1] : "", key: g[0] + "-" + x }); }
+        else if (!shown && ageNow < x) { shown = true; out.next.push({ emoji: g[2], text: x + " " + g[1] + " before " + x, have: before.length, need: x, yearsLeft: x - ageNow }); }
+      });
+    });
+    var q = (ctx && ctx.quests && ctx.quests(p)) || [];
+    var qd = q.filter(function (e) { return DATE.test(e.at || ""); }).sort(function (a, b) { return a.at < b.at ? -1 : 1; })[0];
+    if (qd) out.done.push({ emoji: "🧭", text: "First quest finished " + ageWords(ageAt(by, qd.at)), at: qd.at, key: "quest" });
+    out.done.sort(function (a, b) { return (!a.at - !b.at) || (a.at < b.at ? -1 : a.at > b.at ? 1 : 0); });
+    return out;
+  }
+
+  var core = { milestones: milestones, KINDS: KINDS, kindOf: kindOf, clean: clean, found: found, timeline: timeline, forYear: forYear, mark: mark, unmark: unmark };
   if (typeof document === "undefined") return core;
 
   // ---------- browser: #/p/<id>/firsts, #/p/<id>/firsts/add, #/p/<id>/firsts/edit/<key> ----------
@@ -87,7 +125,9 @@
     var M = window.MLTL, maps = window.MLTL_MAPS || {}, st = A().state, hp = st.meta.homePoint || {};
     function find(list, id) { var x = (list || []).filter(function (s) { return s.id === id; })[0]; return x && x.name; }
     return { home: { country: hp.country || "USA", region: hp.region || "" }, park: function (id) { var p = M && M.parkById && M.parkById(id); return p ? p.name : find(M && M.PARKS, id); },
-             state: function (id) { return find(maps.us && maps.us.shapes, id); }, country: function (id) { return find(maps.world && maps.world.countries, id); } };
+             state: function (id) { return find(maps.us && maps.us.shapes, id); }, country: function (id) { return find(maps.world && maps.world.countries, id); },
+             stamps: function (p) { var P = window.WK_PASSPORT; try { return P && P.stampsFor ? P.stampsFor(p, st.trips, { parkStates: M && M.PARK_STATES }) : []; } catch (e) { return []; } },
+             quests: function (p) { try { return window.FS_QUESTS && window.FS_QUESTS.earned ? window.FS_QUESTS.earned(p) : []; } catch (e) { return []; } } };
   }
   function fmt(at) { if (!at) return "Date not set"; var d = new Date(at + "T12:00:00"); return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }); }
   function list(k) { return timeline(k, A().state.trips, ctx()); }
@@ -95,8 +135,12 @@
     var a = A(), main = a.main, base = "#/p/" + esc(k.id) + "/firsts";
     if (sub === "add" || sub === "edit") return form(k, sub === "edit" ? key : "");
     document.title = k.name + "'s firsts · Famstamp";
-    var rows = list(k);
-    main.innerHTML = a.shell(k, "stats", '<div class="qhead"><h2>⭐ ' + esc(k.name) + '\'s firsts</h2><p class="muted">The big travel moments, in order. We spot some from your maps and trips. Add the rest yourself: the first road trip, the first time at the ocean, the first snow.</p></div>' +
+    var rows = list(k), ms = milestones(k, A().state.trips, ctx(), window.MLTL.today());
+    var msHTML = ms.done.length || ms.next.length ? '<section class="panel milestones"><h3>🎂 Milestones</h3>' +
+      (ms.done.length ? '<ul class="mslist">' + ms.done.map(function (m) { return '<li><span aria-hidden="true">' + m.emoji + '</span> ' + esc(m.text) + (m.at ? ' <span class="muted small">' + esc(fmt(m.at)) + '</span>' : "") + '</li>'; }).join("") + '</ul>' : "") +
+      ms.next.map(function (m) { return '<div class="msnext"><p><span aria-hidden="true">' + m.emoji + '</span> Next up: <b>' + esc(m.text) + '</b> · ' + m.have + ' of ' + m.need + ' · ' + m.yearsLeft + (m.yearsLeft === 1 ? " year" : " years") + ' to go</p>' +
+        '<div class="msbar" role="progressbar" aria-valuemin="0" aria-valuemax="' + m.need + '" aria-valuenow="' + m.have + '"><i style="width:' + Math.round(100 * m.have / m.need) + '%"></i></div></div>'; }).join("") + '</section>' : "";
+    main.innerHTML = a.shell(k, "stats", msHTML + '<div class="qhead"><h2>⭐ ' + esc(k.name) + '\'s firsts</h2><p class="muted">The big travel moments, in order. We spot some from your maps and trips. Add the rest yourself: the first road trip, the first time at the ocean, the first snow.</p></div>' +
       '<div class="actions"><a class="btn btn-primary" href="' + base + '/add">+ Add a first</a></div>' +
       (rows.length ? '<ol class="ftl">' + rows.map(function (r) {
         return '<li class="fitem' + (r.auto ? " auto" : "") + '"><span class="fbadge" aria-hidden="true">' + r.emoji + '</span><div class="fbody"><p class="fdate">' + esc(fmt(r.at)) + '</p><h3>' + esc(r.title) + '</h3>' +
@@ -139,9 +183,9 @@
     };
   }
   function card(k) {
-    var n = list(k).length;
-    return '<a class="familycard qentry fentry" href="#/p/' + esc(k.id) + '/firsts"><span class="qemo" aria-hidden="true"><i>⭐</i></span><span><b>Firsts</b><span class="small muted">' +
-      (n ? n + " first" + (n === 1 ? "" : "s") + " so far" : "First flight, first park, first snow") + '</span></span><span class="qgo" aria-hidden="true">›</span></a>';
+    var n = list(k).length, nx = milestones(k, A().state.trips, ctx(), window.MLTL.today()).next[0];
+    return '<a class="familycard qentry fentry" href="#/p/' + esc(k.id) + '/firsts"><span class="qemo" aria-hidden="true"><i>⭐</i></span><span><b>Firsts & milestones</b><span class="small muted">' +
+      (n ? n + " first" + (n === 1 ? "" : "s") + " so far" : "First flight, first park, first snow") + (nx ? " · Next: " + esc(nx.text) + " (" + nx.have + "/" + nx.need + ")" : "") + '</span></span><span class="qgo" aria-hidden="true">›</span></a>';
   }
   core.view = view; core.card = card; core.ctx = ctx;
   return core;
