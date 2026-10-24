@@ -235,6 +235,7 @@
     kid.updatedAt = new Date().toISOString();
     return want;
   }
+  function todayStr() { return today(); }
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
   function newTrip(opts) {
@@ -556,6 +557,35 @@
     c.reviewedAt = now; c.updatedAt = now; return c;
   }
 
+  // ---------- On this day (v51): trips that were happening on today's date in an earlier year ----------
+  /** today = "YYYY-MM-DD". Returns [{ trip, years, label }], most recent year first. A trip counts on every day from its start to its end
+      (or start + nights). Feb 29 trips also show on Feb 28 in other years. */
+  function onThisDay(trips, today) {
+    today = today || todayStr(); var y = +today.slice(0, 4), md = today.slice(5);
+    var leapFix = md === "02-28" && !(y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0));
+    var out = [];
+    (trips || []).forEach(function (t) {
+      if (!t || t.deletedAt || !/^\d{4}-\d{2}-\d{2}$/.test(t.date || "")) return;
+      var ty = +t.date.slice(0, 4); if (ty >= y) return;
+      var end = /^\d{4}-\d{2}-\d{2}$/.test(t.endDate || "") && t.endDate >= t.date ? t.endDate : t.nights > 0 ? addDays(t.date, t.nights) : t.date;
+      var hit = false;
+      for (var yy = ty; yy <= +end.slice(0, 4) && !hit; yy++) {
+        var d = yy + "-" + md, d2 = leapFix ? yy + "-02-29" : "";
+        if ((d >= t.date && d <= end) || (d2 && d2 >= t.date && d2 <= end)) { hit = yy < y ? yy : 0; }
+      }
+      if (!hit) return;
+      out.push({ trip: t, years: y - hit, label: dayLabel(t) });
+    });
+    return out.sort(function (a, b) { return a.years - b.years || (a.trip.date < b.trip.date ? 1 : -1); });
+  }
+  function addDays(iso, n) { var d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  function dayLabel(t) {
+    var title = String(t.title || "").replace(DRAFT_RE, "").trim();
+    var main = T && T.mainDest && Array.isArray(t.route) && t.route.length ? T.mainDest(t.route) : "";
+    return title || main || String(t.place || "").replace(DRAFT_RE, "").trim() || "a trip";
+  }
+  function onThisDayLine(x) { return (x.years === 1 ? "1 year ago" : x.years + " years ago") + " today you were in " + x.label; }
+
   // ---------- Recently deleted (soft delete, kept in the trip itself so no cloud change is needed) ----------
   var BIN_DAYS = 30;
   function tripLabel(t) { return String((t && (t.title || t.place)) || "this trip").trim(); }
@@ -588,7 +618,7 @@
     return { trip: c, photo: ph };
   }
 
-  return { isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+  return { onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,

@@ -1333,5 +1333,29 @@ setTimeout(() => {
   ok(/To review \(/.test(aj) && /\/trips\/review/.test(aj) && /sub === "review"/.test(aj), "ui: Trips list has a To review filter");
   ok(/from your photos to review/.test(aj) && /reviewNudge\(\)/.test(aj), "ui: Home nudges when there are drafts");
   ok(/\[data-review\]/.test(aj) && /M\.reviewTrip\(t\)/.test(aj) && /put\("trips", u\)/.test(aj), "ui: Looks good saves the reviewed trip");
-  ok(/var VERSION = "v50"/.test(aj) && /mltl-v50/.test(read("sw.js")), "v50 in app.js and sw.js");
+  { const av = (aj.match(/var VERSION = "v(\d+)"/) || [])[1], sv = (read("sw.js").match(/mltl-v(\d+)/) || [])[1];
+    ok(av && av === sv && +av >= 50, "app.js VERSION and sw.js cache match (v" + av + " / mltl-v" + sv + ")"); }
+})();
+
+// ---- v51: On this day ----
+(() => {
+  const zid = "person_zz0000000000test";
+  const mk = (id, o) => Object.assign({ id, kidIds: [zid], place: "Zz Place", title: "", route: [], createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }, o);
+  const trips = [mk("trip_zzotd000000001", { date: "2023-10-22", endDate: "2023-10-26", title: "Zz Rome" }),
+    mk("trip_zzotd000000002", { date: "2019-10-20", nights: 4, place: "Zz Nights" }),
+    mk("trip_zzotd000000003", { date: "2026-10-24", place: "Zz This Year" }),
+    mk("trip_zzotd000000004", { date: "2024-10-24", place: "Zz Gone", deletedAt: "2026-01-01T00:00:00.000Z" }),
+    mk("trip_zzotd000000005", { date: "2016-02-29", place: "Zz Leap" }),
+    mk("trip_zzotd000000006", { date: "2020-12-30", endDate: "2021-01-02", place: "Zz NYE" }),
+    mk("trip_zzotd000000007", { date: "2025-10-24", title: "Draft: Zz Lake", draft: true }),
+    mk("trip_zzotd000000008", { date: "", place: "Zz Undated" })];
+  const h = M.onThisDay(trips, "2026-10-24");
+  ok(h.map(x => x.trip.id.slice(-1)).join() === "7,1,2", "on this day: past years only, most recent first, deleted/this-year/undated skipped (" + h.map(x => x.trip.id.slice(-1)).join() + ")");
+  ok(M.onThisDayLine(h[1]) === "3 years ago today you were in Zz Rome", "on this day line: '3 years ago today you were in Zz Rome'");
+  ok(M.onThisDayLine(h[0]) === "1 year ago today you were in Zz Lake", "one year, and a draft's name without 'Draft:'");
+  ok(M.onThisDay(trips, "2026-10-27").length === 0, "nothing when no trip was on that date");
+  ok(M.onThisDay(trips, "2026-02-28").length === 1 && M.onThisDay(trips, "2028-02-29").length === 1 && M.onThisDay(trips, "2028-02-28").length === 0, "Feb 29 trips show on Feb 28 in non-leap years");
+  ok(M.onThisDay(trips, "2027-01-01").some(x => x.trip.place === "Zz NYE" && x.years === 6), "a trip over New Year counts in the year it was on that date");
+  ok(M.onThisDay([], "2026-10-24").length === 0 && M.onThisDay(null).length === 0, "no trips, no card");
+  const aj = read("app.js"); ok(/onThisDayCard\(\)/.test(aj) && /On this day/.test(aj) && /if \(!hits\.length\) return ""/.test(aj), "ui: Home shows On this day only when there's something");
 })();
