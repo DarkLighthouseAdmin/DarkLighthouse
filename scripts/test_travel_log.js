@@ -1579,3 +1579,21 @@ setTimeout(() => {
   ok(/highlights-core\.js[\s\S]*highlights\.js/.test(ix) && /"highlights-core\.js", "highlights\.js"/.test(sw), "highlights scripts loaded and cached");
   ok(/e\.missing\) status = "missing"/.test(hj) && !/innerHTML = [^;]*it\.title/.test(hj), "highlights: missing table hides reactions; text escaped");
 }
+
+// ---------- v61: push notifications (opt-in, per-type) ----------
+{
+  const P = require("../travel-log/app/push.js");
+  ok(P.KINDS.map(k => k.id).join() === "reactions,grandkids,onthisday,countdown,nudge,recap", "push: the six types");
+  ok(P.cleanKinds(["nudge", "bogus", "nudge", "recap"]).join() === "nudge,recap", "push: unknown/duplicate types dropped");
+  ok(P.support({ ua: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)", push: false, sw: true, notif: false, standalone: false }) === "ios-home", "push: iPhone not on Home Screen gets the Add to Home Screen note");
+  ok(P.support({ ua: "Android Chrome", push: true, sw: true, notif: true }) === "ok" && P.support({ ua: "x", push: false, sw: false, notif: false }) === "no", "push: Android/Chrome supported, others not");
+  const pv = P.previews({ next: { place: "Zz Rome", days: 5 }, past: { place: "Zz Canyon", years: 3 } });
+  ok(pv.length === 6 && pv.find(x => x.kind === "countdown").title === "Zz Rome in 5 days 🧳 (preview)" && /Zz Canyon/.test(pv.find(x => x.kind === "onthisday").body), "push: previews use your own trips");
+  const pj = read("push.js"), sw = read("sw.js"), sy = read("sync.js"), cf = read("sync-config.js"), ap = read("app.js");
+  ok(/if \(!s\.on\) return h \+/.test(pj) && /kinds: \[\]/.test(pj) && !/requestPermission\(\)[\s\S]{0,40}load/.test(pj), "push: off until turned on, every type starts off");
+  ok(/requestPermission/.test(pj) && /id="pushon"/.test(pj) && pj.indexOf("requestPermission") > pj.indexOf("function turnOn"), "push: permission only asked from the Turn on button");
+  ok(/addEventListener\("push"/.test(sw) && /addEventListener\("notificationclick"/.test(sw) && /"push\.js"/.test(sw), "sw: shows pushes and opens the app on tap");
+  ok(/pushKey: "B[A-Za-z0-9_-]{86}"/.test(cf) && !/private/i.test(cf.replace(/private half lives only in Supabase Vault/, "")), "config: only the public VAPID key ships");
+  ok(/rpc\("push_save"/.test(sy) && /action: "test"/.test(sy), "sync: push_save + test call");
+  ok(/FS_PUSH\.panel\(\)/.test(ap) && /FS_PUSH\.bind\(\)/.test(ap), "settings page has the Notifications panel");
+}

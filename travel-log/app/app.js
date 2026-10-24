@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v60" -> "v60").
-  var VERSION = "v60";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v61" -> "v61").
+  var VERSION = "v61";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -916,11 +916,13 @@
       '<div class="field"><label for="b1file">Backup file (.json)</label><input id="b1file" type="file" accept="application/json,.json"></div><p class="err" id="b1err" hidden></p><div id="b1list" class="binlist"></div></div>' +
       '<div class="panel"><h3>Restore everything</h3><p class="muted small">Pick a backup file. Kids and trips in the file are added back; anything with the same name in both places is replaced by the file\'s copy.</p>' +
       '<div class="field"><label for="bfile">Backup file (.json)</label><input id="bfile" type="file" accept="application/json,.json"></div><p class="err" id="berr" hidden></p></div>' +
+      (window.FS_PUSH ? window.FS_PUSH.panel() : "") +
       (window.MLTL_SYNC && window.MLTL_SYNC.settingsPanel ? window.MLTL_SYNC.settingsPanel() : "") +
       '<div class="panel"><h3>Start over</h3><p class="muted small">Deletes everyone\'s maps, trips and photos from this device. Make a backup first if you might want them later.</p>' +
       '<div class="actions"><button class="btn btn-danger" id="bwipe">Delete everything on this device</button></div></div>' +
       '<p class="small muted appver" id="appver">Famstamp · Version ' + esc(VERSION) + '</p>';
     bindOneTrip();
+    if (window.FS_PUSH) window.FS_PUSH.bind();
     document.getElementById("bdown").onclick = function () { doBackup().then(function () { toast("Backup saved"); viewBackup(); }); };
     document.getElementById("bfile").onchange = function (e) {
       var f = e.target.files[0], err = document.getElementById("berr"); err.hidden = true; if (!f) return;

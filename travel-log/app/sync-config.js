@@ -13,5 +13,8 @@ window.MLTL_SYNC_CONFIG = {
   google: true,
   // Email sign-in codes: off until custom SMTP is set up (Supabase's built-in mail only reaches the project team).
   email: false,
-  price: "$24.99/yr for the whole family"
+  price: "$24.99/yr for the whole family",
+  // Web push (v61): the PUBLIC VAPID key. The private half lives only in Supabase Vault.
+  pushKey: "BFSPIJ_FrJAAveKMA7AYt3qMTOWyqNRlWVAJLe0HupDutg26w-ndct14PsjjKP44LtS2B2Zea0uteikY-29kKHU",
+  pushFunction: "famstamp-push"
 };

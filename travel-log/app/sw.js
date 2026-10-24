@@ -1,8 +1,8 @@
 /* Offline support for Famstamp (/travel-log/app/). Caches the app's own files only; your data lives in IndexedDB, never here.
    Family Sync talks to Supabase (another origin), which this worker never touches. vendor/*.js is cached the first time sync loads it,
    and the importer's place data (import-geo.js, import-towns.js) the first time someone imports. */
-var CACHE = "mltl-v60";
-var FILES = ["./", "index.html", "app.css", "app.js", "log-core.js", "trips-core.js", "weather-core.js", "wish-core.js", "wish.js", "near.js", "state-signs.js", "state-symbols.js", "stamp-art.js", "passport-core.js", "year.js", "quests.js", "firsts.js", "highlights-core.js", "highlights.js", "book.js", "follow-core.js", "follow.js", "stamp-who-core.js", "stamp-who.js", "ranger-badge.js", "spots-data.js", "spots.js", "trips-ui.js", "logo.js", "maps.js", "map-labels.js", "picklist.js", "mapzoom.js", "placepick.js", "map.css", "sync-core.js", "sync-config.js", "sync.js", "sync.css", "import-core.js", "import.js", "import.css", "import-worker.js", "manifest.webmanifest",
+var CACHE = "mltl-v61";
+var FILES = ["./", "index.html", "app.css", "app.js", "log-core.js", "trips-core.js", "weather-core.js", "wish-core.js", "wish.js", "near.js", "state-signs.js", "state-symbols.js", "stamp-art.js", "passport-core.js", "year.js", "quests.js", "firsts.js", "highlights-core.js", "highlights.js", "push.js", "book.js", "follow-core.js", "follow.js", "stamp-who-core.js", "stamp-who.js", "ranger-badge.js", "spots-data.js", "spots.js", "trips-ui.js", "logo.js", "maps.js", "map-labels.js", "picklist.js", "mapzoom.js", "placepick.js", "map.css", "sync-core.js", "sync-config.js", "sync.js", "sync.css", "import-core.js", "import.js", "import.css", "import-worker.js", "manifest.webmanifest",
              "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png", "icon.svg"];
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES.map(function (f) { return new Request(f, { cache: "reload" }); })); }).then(function () { return self.skipWaiting(); }));
@@ -12,6 +12,19 @@ self.addEventListener("activate", function (e) {
   e.waitUntil(caches.keys().then(function (keys) {
     return Promise.all(keys.filter(function (k) { return k.indexOf("mltl-") === 0 && k !== CACHE; }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
+});
+// Web push (v61): show what the famstamp-push function sent; a tap opens (or focuses) Famstamp at the right page.
+self.addEventListener("push", function (e) {
+  var d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(String(d.title || "Famstamp"), { body: String(d.body || ""), icon: "icon-192.png", badge: "icon-192.png", tag: d.tag || "famstamp", data: { url: d.url || "./" } }));
+});
+self.addEventListener("notificationclick", function (e) {
+  e.notification.close();
+  var url = new URL((e.notification.data && e.notification.data.url) || "./", self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
+    for (var i = 0; i < list.length; i++) { var c = list[i]; if (c.url.indexOf(self.registration.scope) === 0 && "focus" in c) { c.navigate && c.navigate(url).catch(function () {}); return c.focus(); } }
+    return self.clients.openWindow(url);
+  }));
 });
 self.addEventListener("fetch", function (e) {
   var req = e.request;

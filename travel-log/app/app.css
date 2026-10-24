@@ -786,3 +786,7 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .rx.on { background: #ffe9c7; border-color: #e0a14a; }
 .rx small { font-size: .75rem; }
 .rxwho { margin: 4px 0 0; }
+/* Notifications (v61) */
+.pushkinds { display: grid; gap: 6px; margin: 8px 0; }
+.pushk { display: flex; gap: 10px; align-items: flex-start; padding: 8px 4px; min-height: 44px; cursor: pointer; }
+.pushk input { width: 22px; height: 22px; margin-top: 2px; flex: none; accent-color: var(--beacon, #e0a14a); }

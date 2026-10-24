@@ -156,6 +156,14 @@
                     : sb.from("reactions").delete().eq("family_id", fid).eq("user_id", uid).eq("item_ref", ref).eq("emoji", emoji);
         return q.then(function (r) { if (r && r.error && r.error.code === "23505") return null; return rxChk(r); });
       },
+      // Web push: save this phone's subscription (RPC push_save) and ask the famstamp-push function for a test of each type.
+      pushSave: function (a) { return sb.rpc("push_save", a).then(rxChk); },
+      pushTest: function (endpoint) {
+        return sb.functions.invoke(CFG.pushFunction || "famstamp-push", { body: { action: "test", endpoint: endpoint } }).then(function (r) {
+          if (!r.error) return r.data;
+          var st = r.error.context && r.error.context.status, x = new Error(r.error.message || "push test failed"); x.status = st; x.missing = st === 404 || /not found|failed to send a request/i.test(r.error.message || ""); throw x;
+        });
+      },
       members: function (fid) { return sb.from("family_members").select("*").eq("family_id", fid).order("joined_at").then(chk); },
       allInvites: function (fid) { return sb.from("invites").select("*").eq("family_id", fid).order("created_at", { ascending: false }).limit(40).then(chk); },
       invites: function (fid) { return sb.from("invites").select("*").eq("family_id", fid).is("revoked_at", null).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).then(chk); },
@@ -1326,6 +1334,12 @@
       access: function () { var c = cfg(); return S.access(c && c.plan, FLAGS); },
       call: function (fn, args) { return remote().then(function (r) { return ensureSession(r).then(function () { return r.rpc(fn, args); }); }); },
       open: function (fn, args) { return remote().then(function (r) { return r.rpc(fn, args); }); }
+    },
+    // for push.js: notifications for this signed-in person
+    push: {
+      on: function () { return on(); }, key: function () { return CFG.pushKey || ""; },
+      save: function (a) { return remote().then(function (r) { return ensureSession(r).then(function () { return r.pushSave(a); }); }); },
+      test: function (endpoint) { return remote().then(function (r) { return ensureSession(r).then(function () { return r.pushTest(endpoint); }); }); }
     },
     // for highlights.js: reactions for this family, as the signed-in member
     hl: {
