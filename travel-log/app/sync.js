@@ -189,13 +189,34 @@
   }
 
   // ---------- status pill ----------
-  var status = "off", statusMsg = "";
+  var status = "off", statusMsg = "", pendingN = 0, pendT = null;
+  /** v64: count what's waiting (edits since the last sync + reactions queued offline), then redraw the pill. Quietly. */
+  function countPending(ms) {
+    clearTimeout(pendT);
+    pendT = setTimeout(function () {
+      if (!on()) { pendingN = 0; offlineChip(); return; }
+      var c = cfg(), rq = window.FS_HL && window.FS_HL.queued ? window.FS_HL.queued() : 0;
+      snapshot().then(function (local) { var pl = S.planPush(local, c.shadow, c.familyId); if (!S.allows(S.access(c.plan, FLAGS), "photos")) pl.uploads = []; return S.pendingCount(pl); }).catch(function () { return pendingN; })
+        .then(function (n) { var was = pendingN; pendingN = n + rq; if (was !== pendingN) setStatus(status, statusMsg); else offlineChip(); });
+    }, ms == null ? 400 : ms);
+  }
+  /** A small banner while there's no signal: everything still works and is saved on this phone. */
+  function offlineChip() {
+    var el = document.getElementById("offlinechip"), off = navigator.onLine === false;
+    if (!off) { if (el) el.hidden = true; return; }
+    if (!el) { el = document.createElement("div"); el.id = "offlinechip"; el.className = "offlinechip noprint"; el.setAttribute("role", "status"); document.body.appendChild(el); }
+    el.hidden = false;
+    el.textContent = "📴 No signal. Everything still works and is saved on this phone" + (on() ? (pendingN ? " · " + pendingN + (pendingN === 1 ? " change" : " changes") + " will sync when you're back online" : " · it syncs when you're back online") : "") + ".";
+  }
   function setStatus(s, msg) {
     status = s; statusMsg = msg || "";
     renderChip();
     var el = document.getElementById("syncpill"); if (!el) return;
     el.hidden = !on() && !CFG.showEntry;   // while sync is off it's the way in: "Family Sync" right next to Back up
     var L = { synced: ["✓", "Synced"], syncing: ["↻", "Syncing"], offline: ["☁", "Offline"], error: ["!", "Sync paused"], off: ["☁", entryLabel()] }[on() ? s : "off"] || ["", ""];
+    // v64: changes made on this phone that haven't reached the family's copy yet
+    if (on() && pendingN > 0 && s !== "syncing") L = [s === "synced" ? "↻" : L[0], (s === "synced" ? "" : L[1] + " · ") + pendingN + " to sync"];
+    offlineChip();
     el.className = "syncpill s-" + s;
     el.innerHTML = '<span aria-hidden="true">' + L[0] + '</span><span class="sl"> ' + esc(L[1]) + '</span>' + (on() ? "" : '<span class="ss" aria-hidden="true"> Sync</span>');   // "Sync" on the narrowest phones
     el.title = statusMsg || (s === "synced" && cfg() && cfg().lastSync ? "Last synced " + S.ago(cfg().lastSync) : L[1]);
@@ -239,10 +260,10 @@
     if (navigator.onLine === false) { setStatus("offline", "Changes are saved on this phone and will sync when you're back online."); return Promise.resolve(); }
     setStatus("syncing");
     running = doSync(opts || {}).then(function (ch) {
-      setStatus("synced"); return ch;
+      setStatus("synced"); countPending(0); return ch;
     }).catch(function (e) {
       var m = friendly(e).message;
-      setStatus(/offline/i.test(m) ? "offline" : "error", m);
+      setStatus(/offline/i.test(m) ? "offline" : "error", m); countPending(0);
       if (opts && opts.throwErrors) throw e;
     }).then(function (x) {
       running = null; if (again) { again = false; schedule(1000); } return x;
@@ -542,7 +563,7 @@
     }).join("");
     main.innerHTML = back("#/", "Home") + '<h1>' + esc(c.familyName || "Family log") + '</h1>' +
       '<div class="syncstate"><span class="syncpill s-' + esc(status) + '">' + (status === "synced" ? "✓ Synced" : status === "syncing" ? "↻ Syncing" : status === "offline" ? "☁ Offline" : status === "error" ? "! Sync paused" : "") + '</span>' +
-      '<span class="small muted">' + esc(statusMsg || (c.lastSync ? "Last synced " + S.ago(c.lastSync) : "Not synced yet")) + '</span><button type="button" class="linkbtn" id="snow">Sync now</button></div>' +
+      '<span class="small muted">' + esc(statusMsg || (c.lastSync ? "Last synced " + S.ago(c.lastSync) : "Not synced yet")) + (pendingN ? " · " + pendingN + (pendingN === 1 ? " change" : " changes") + " waiting to sync" : "") + '</span><button type="button" class="linkbtn" id="snow">Sync now</button></div>' +
       '<div class="actions">' + (grown ? '<a class="btn btn-beacon" href="#/sync/invite">＋ Invite someone</a>' : "") + '<a class="btn btn-primary" href="#/feed">📰 Family feed</a>' + (grown ? '<a class="btn" href="#/highlights">✨ Highlights</a><a hidden href="#/follow">👵 Grandparent follow-along</a>' : "") + '</div>' +
       '<h2>Who\'s in <span class="muted small">' + (c.members || []).length + '</span></h2><div class="panel members">' + (members || '<p class="muted">Just you so far.</p>') + '</div>' +
       mePanel(c) + logsPanel() +
@@ -1315,7 +1336,7 @@
   }
 
   // ---------- wiring ----------
-  window.MLTL_onChange = function (store) { if (store !== "meta") schedule(2500); };
+  window.MLTL_onChange = function (store) { if (store !== "meta") { schedule(2500); countPending(); } };
   window.MLTL_SYNC = {
     peopleCap: function () { var c = cfg(); return c && c.plan && c.plan.founder ? (c.plan.max_people || 10) : 0; },
     route: function (h) {
@@ -1324,7 +1345,8 @@
       if (h[0] === "feed") { viewFeed(); return true; }
       return false;
     },
-    homeCard: homeCard, homeTop: homeTop, settingsPanel: settingsPanel, isOn: on, syncNow: syncNow, status: function () { return status; }, tripExtra: tripExtra, backupTag: backupTag,
+    homeCard: homeCard, homeTop: homeTop, settingsPanel: settingsPanel, isOn: on, syncNow: syncNow, status: function () { return status; },
+    pending: function () { return pendingN; }, countPending: countPending, tripExtra: tripExtra, backupTag: backupTag,
     logs: reg, switchTo: switchTo,
     photoNote: function () { return on() ? "We shrink it and keep the full photo on this device. A small copy is shared with your family log. Location data is removed." : null; },
     storageNote: function () { return on() ? "Your maps are on this device and synced with " + (cfg().familyName || "your family log") + ". A backup file is still a good idea." : null; },
@@ -1357,8 +1379,8 @@
     if (m && f) try { sessionStorage.setItem("mltl-join-for", JSON.stringify({ code: S.normCode(decodeURIComponent(m[1])), pid: f[1] })); } catch (x) {}
     if (m) history.replaceState(null, "", location.pathname + "#/join/" + encodeURIComponent(S.normCode(decodeURIComponent(m[1]))));
   })();
-  window.addEventListener("online", function () { schedule(500); });
-  window.addEventListener("offline", function () { if (on()) setStatus("offline", "Changes are saved on this phone and will sync when you're back online."); });
+  window.addEventListener("online", function () { offlineChip(); schedule(500); if (window.FS_HL && window.FS_HL.flush) window.FS_HL.flush(); });
+  window.addEventListener("offline", function () { countPending(0); offlineChip(); if (on()) setStatus("offline", "Changes are saved on this phone and will sync when you're back online."); });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") schedule(800); });
   setInterval(function () { if (document.visibilityState === "visible") syncNow(); }, 90000);
   A.ready.then(function () {
@@ -1367,5 +1389,6 @@
     if (!on()) setStatus("off"); renderChip(); emptyTrash();
     if (/[?&#](code|error|error_description)=/.test(location.search + location.hash)) oauthReturn(); else checkGoogle();
     if (on()) { setStatus("syncing"); schedule(300); }
+    countPending(0); offlineChip();
   });
 })();

@@ -101,7 +101,7 @@
     var has = H.cached().some(function (r) { return r.item_ref === ref && r.emoji === emoji && r.user_id === c.userId; });
     if (!has) {
       var was = H.cached(), t = C.toggle(was, c.familyId, ref, emoji, c.userId); H.keep(t.rows);
-      window.MLTL_SYNC.hl.react(ref, emoji, true).then(function () { A().toast(C.EMO[emoji] + " Sent!"); }, function () { H.keep(was); A().toast("Couldn't save that reaction. Try again when you're online."); if (/^#\/recap/.test(location.hash)) H.rebar(A().main); });
+      window.MLTL_SYNC.hl.react(ref, emoji, true).then(function () { A().toast(C.EMO[emoji] + " Sent!"); }, function (e) { if (H.offlineErr(e)) { H.enqueue(ref, emoji, true); A().toast(C.EMO[emoji] + " Saved. It'll send when you're back online."); return; } H.keep(was); A().toast("Couldn't save that reaction. Try again when you're online."); if (/^#\/recap/.test(location.hash)) H.rebar(A().main); });
     }
     back();
   }

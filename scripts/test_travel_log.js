@@ -1686,3 +1686,30 @@ setTimeout(() => {
   const aj = read("app.js"), tu = read("trips-ui.js"), ix = read("index.html"), sw = read("sw.js");
   ok(/FS_ROUTES/.test(aj) && /FS_HOME_TOP/.test(aj) && /FS_REWARDS\.card/.test(aj) && /FS_TRIPX/.test(tu) && ["rewards", "games", "journal", "recap"].every(f => ix.indexOf(f + ".js") > 0 && sw.indexOf('"' + f + '.js"') > 0), "wired: routes, home cards, trip page, scripts, offline cache");
 }
+
+// ---- v64: offline-first (pending count, nothing lost when a push fails, reactions outbox) ----
+{
+  const S = require("../travel-log/app/sync-core.js"), FID = "fam_zz";
+  const zz = M.newPerson({ name: "Zz Kid" }); zz.states.TX = { at: "2026-10-24" };
+  const tz = M.newTrip({ kidIds: [zz.id], place: "Zz Lake" }); tz.photoId = "ph_zz1"; tz.journal = [{ id: "jzz", kid: zz.id, day: "2026-10-24", best: "Zz rocks", photoId: "ph_zz2", at: "2026-10-24T10:00:00Z" }];
+  const local = { people: [zz], trips: [tz], photoIds: ["ph_zz1", "ph_zz2"] };
+  ok(typeof S.pendingCount === "function" && S.pendingCount(null) === 0, "pendingCount exported and safe");
+  const sh = S.emptyShadow(), p1 = S.planPush(local, sh, FID, "2026-10-24T11:00:00Z");
+  ok(S.pendingCount(p1) === 1 + 1 + 1 + 2, "offline edits counted: person + visit + trip + 2 photos (trip + journal drawing): " + S.pendingCount(p1));
+  // a push that fails (no signal) never touches the shadow, so the same changes are still waiting next time
+  const p2 = S.planPush(local, sh, FID, "2026-10-24T12:00:00Z");
+  ok(S.pendingCount(p2) === S.pendingCount(p1) && JSON.stringify(sh) === JSON.stringify(S.emptyShadow()), "a failed push loses nothing: everything still pending");
+  p1.uploads.forEach(u => { sh.photos[u.id] = "image/jpeg"; }); S.afterPush(sh, p1);   // as sync.js does once each upload lands
+  ok(S.pendingCount(S.planPush(local, sh, FID, "2026-10-24T13:00:00Z")) === 0, "after the push lands, nothing is pending");
+  zz.states.UT = { at: "2026-10-25" }; zz.updatedAt = "2026-10-25T00:00:00Z";
+  ok(S.pendingCount(S.planPush(local, sh, FID, "2026-10-25T01:00:00Z")) === 2, "a new offline edit is pending again (person + new visit)");
+  const ssrc = read("sync.js"), hsrc = read("highlights.js"), rsrc = read("recap.js");
+  ok(/function countPending/.test(ssrc) && /pending: function \(\) \{ return pendingN; \}/.test(ssrc), "sync exposes the pending count");
+  ok(/to sync/.test(ssrc) && /waiting to sync/.test(ssrc), "pill and sync page show what's waiting");
+  ok(/id = "offlinechip"/.test(ssrc) && /navigator\.onLine === false/.test(ssrc), "offline banner when there's no signal");
+  ok(/MLTL_onChange[^\n]*countPending\(\)/.test(ssrc), "every local edit recounts what's pending");
+  ok(/addEventListener\("online"[^\n]*schedule\(500\)[^\n]*flush\(\)/.test(ssrc), "back online: sync and send queued reactions");
+  ok(/mltl-rxq-/.test(hsrc) && /function flush\(\)/.test(hsrc) && /withQueue\(/.test(hsrc) && /enqueue\(ref, b\.dataset\.emo, t\.on\)/.test(hsrc), "reactions made offline are queued, kept on screen and sent later");
+  ok(/H\.offlineErr\(e\)/.test(rsrc) && /H\.enqueue\(ref, emoji, true\)/.test(rsrc), "recap one-tap reactions queue offline too");
+  ok(/\.offlinechip/.test(read("app.css")), "offline banner styled");
+}

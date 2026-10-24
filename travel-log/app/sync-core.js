@@ -126,6 +126,11 @@
     });
     return out;
   }
+  /** v64: how many changes on this phone the family's cloud copy doesn't have yet (the pending-sync count). */
+  function pendingCount(plan) {
+    if (!plan) return 0;
+    return plan.people.length + plan.visits.length + plan.trips.length + plan.uploads.length + plan.photos.filter(function (r) { return r.deleted; }).length;
+  }
   /** After a push succeeds, remember what the cloud now has. */
   function afterPush(shadow, plan) {
     plan.people.forEach(function (r) { if (r.deleted) { delete shadow.people[r.id]; dropPersonVisits(shadow, r.id); } else shadow.people[r.id] = r.updated_at; });
@@ -350,7 +355,7 @@
   }
   function slug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30); }
 
-  return { tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
+  return { pendingCount: pendingCount, tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
            ms: ms, iso: iso, newer: newer, personRow: personRow, tripRow: tripRow, flatVisits: flatVisits, emptyShadow: emptyShadow,
            planPush: planPush, afterPush: afterPush, applyPull: applyPull, nextCursor: nextCursor, photoPath: photoPath,
            matchPeople: matchPeople, remapPeople: remapPeople, access: access, allows: allows, FREE: FREE,

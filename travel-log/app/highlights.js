@@ -15,6 +15,33 @@
     var fid = cfg().familyId || ""; if (fid !== fidSeen) { fidSeen = fid; rows = null; }
     if (rows) return rows; try { rows = JSON.parse(localStorage.getItem(key()) || "[]").filter(H.validRow); } catch (e) { rows = []; } return rows;
   }
+  // v64: reactions tapped with no signal wait here and go up when the phone is back online
+  function qkey() { return "mltl-rxq-" + (cfg().familyId || ""); }
+  function queue() { try { return JSON.parse(localStorage.getItem(qkey()) || "[]"); } catch (e) { return []; } }
+  function setQueue(q) { try { localStorage.setItem(qkey(), JSON.stringify(q.slice(-500))); } catch (e) {} }
+  function enqueue(ref, emoji, add) { var q = queue().filter(function (x) { return !(x.ref === ref && x.emoji === emoji); }); q.push({ ref: ref, emoji: emoji, add: add }); setQueue(q); }
+  function offlineErr(e) { return navigator.onLine === false || /offline|fetch|network|load failed/i.test(String(e && e.message)); }
+  var flushing = null;
+  function flush() {
+    var x = X(); if (!x || !x.on() || flushing) return flushing || Promise.resolve();
+    var q = queue(); if (!q.length) return Promise.resolve();
+    flushing = q.reduce(function (p, op) {
+      return p.then(function () { return x.react(op.ref, op.emoji, op.add); }).then(function () {
+        setQueue(queue().filter(function (y) { return !(y.ref === op.ref && y.emoji === op.emoji && y.add === op.add); }));
+      });
+    }, Promise.resolve()).catch(function () {}).then(function () { flushing = null; if (window.MLTL_SYNC && window.MLTL_SYNC.countPending) window.MLTL_SYNC.countPending(0); });
+    return flushing;
+  }
+  /** Server rows plus what's still waiting in the queue, so a reaction made offline doesn't blink away. */
+  function withQueue(r) {
+    var c = cfg();
+    queue().forEach(function (op) {
+      var has = r.some(function (x) { return x.item_ref === op.ref && x.emoji === op.emoji && x.user_id === c.userId; });
+      if (op.add && !has) r = r.concat([{ family_id: c.familyId, item_ref: op.ref, user_id: c.userId, emoji: op.emoji, created_at: new Date().toISOString() }]);
+      if (!op.add && has) r = r.filter(function (x) { return !(x.item_ref === op.ref && x.emoji === op.emoji && x.user_id === c.userId); });
+    });
+    return r;
+  }
   function keep(r) { rows = r; try { localStorage.setItem(key(), JSON.stringify(r.slice(0, 2000))); } catch (e) {} }
   function me() { var c = A().state.meta.sync; return c && c.myPerson ? A().kidById(c.myPerson) : null; }
   /** Is the person using this phone a grandparent in this family? */
@@ -67,7 +94,9 @@
       b.onclick = function () {
         var ref = b.closest("[data-rx]").dataset.rx, c = cfg(), was = cached(), t = H.toggle(was, c.familyId, ref, b.dataset.emo, c.userId);
         if (t.on == null) return; keep(t.rows); rebar(main);
-        X().react(ref, b.dataset.emo, t.on).catch(function (e) { keep(was); if (e && e.missing) status = "missing"; rebar(main); A().toast("Couldn't save that reaction. Try again when you're online."); });
+        X().react(ref, b.dataset.emo, t.on).catch(function (e) {
+          if (offlineErr(e) && !(e && e.missing)) { enqueue(ref, b.dataset.emo, t.on); A().toast("Saved. It'll send when you're back online."); if (window.MLTL_SYNC && window.MLTL_SYNC.countPending) window.MLTL_SYNC.countPending(0); return; }
+          keep(was); if (e && e.missing) status = "missing"; rebar(main); A().toast("Couldn't save that reaction. Try again when you're online."); });
       };
     });
   }
@@ -75,7 +104,7 @@
   /** Pull the family's reactions (quietly); re-draws open Highlights / trip pages. */
   function refresh() {
     var x = X(); if (!x || !x.on() || busy) return busy || Promise.resolve();
-    busy = x.list().then(function (r) { status = "ok"; keep((r || []).filter(H.validRow)); })
+    busy = flush().then(function () { return x.list(); }).then(function (r) { status = "ok"; keep(withQueue((r || []).filter(H.validRow))); })
       .catch(function (e) { if (e && e.missing) status = "missing"; })
       .then(function () { busy = null; var main = A().main, h = location.hash; if (/^#\/(highlights|recap)/.test(h)) rebar(main); else if (/\/trip\//.test(h)) tripFill(main); else if (h === "#/" || h === "") homeFill(main); });
     return busy;
@@ -103,5 +132,5 @@
   /** The extra tab a grandparent gets (first in the bottom tabs). */
   function tabs() { return ""; }
   function tab(cur) { return iAmGrand() ? '<a href="#/highlights"' + (cur ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">✨</span>Highlights</a>' : ""; }
-  window.FS_HL = { card: card, bindBars: bind, rebar: rebar, ctx: ctx, cached: cached, keep: keep, cfg: cfg, nameOf: nameOf, on: on, view: view, refresh: refresh, tripLine: tripLine, homeCard: homeCard, tab: tab, iAmGrand: iAmGrand, items: items };
+  window.FS_HL = { queued: function () { return on() ? queue().length : 0; }, flush: flush, enqueue: enqueue, offlineErr: offlineErr, card: card, bindBars: bind, rebar: rebar, ctx: ctx, cached: cached, keep: keep, cfg: cfg, nameOf: nameOf, on: on, view: view, refresh: refresh, tripLine: tripLine, homeCard: homeCard, tab: tab, iAmGrand: iAmGrand, items: items };
 })();

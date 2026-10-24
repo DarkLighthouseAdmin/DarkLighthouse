@@ -870,3 +870,6 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .bjdraw { max-width:45%; max-height:160px; border-radius:6px; }
 .rckid { margin:18px 0 6px; }
 .rcframe { width:100%; height:520px; border:1px solid var(--line, #ccc); border-radius:10px; background:#fff; }
+/* v64: offline banner */
+.offlinechip { position:fixed; left:50%; bottom:calc(70px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); z-index:50; max-width:min(92vw, 520px); background:#1d2b3a; color:#fff; padding:8px 14px; border-radius:18px; font-size:.85rem; box-shadow:0 4px 14px rgba(0,0,0,.2); text-align:center; }
+.offlinechip[hidden] { display:none; }
