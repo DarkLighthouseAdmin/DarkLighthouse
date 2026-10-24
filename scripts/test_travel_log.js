@@ -1522,3 +1522,20 @@ setTimeout(() => {
   ok(/id="etrip"/.test(sj) && /id="elink"/.test(sj) && /Goes with a stamp/.test(sj), "entry editor has Trip and Goes-with-stamp");
   ok(/\["hubs", "Travel hubs", "Hubs"\]/.test(app) && /c\.hubs, 0, "Travel hubs"/.test(app), "Parks tab has a Travel hubs segment and stat");
 }
+
+// ---- v59: every spot stamp has its own picture ----
+{
+  const SP = require("../travel-log/app/spots.js"), SAm = require("../travel-log/app/stamp-art.js");
+  const all = [].concat(SP.LIST.cities, SP.LIST.hubs, SP.LIST.food, SP.LIST.pubs, [SP.airportItem({ code: "BRU", name: "Brussels Airport" }), SP.airportItem({ code: "YUL", name: "Montréal-Trudeau" })]);
+  const seen = {}, dups = [];
+  all.forEach(it => { const a = SP.artFor(it, 7); if (seen[a]) dups.push(it.id + "=" + seen[a]); seen[a] = it.id; });
+  ok(dups.length === 0, "no two of the " + all.length + " city/hub/food/pub stamps share a picture: " + dups.slice(0, 5).join(", "));
+  const clash = []; Object.keys(SAm.GLYPHS).forEach(k => [0, 1, 2].forEach(v => { if (seen[SAm.GLYPHS[k](v)]) clash.push(k); }));
+  ok(clash.length === 0, "no spot stamp reuses a park, state or country picture: " + clash.join(","));
+  const D = require("../travel-log/app/spots-data.js"), arts = [].concat(D.CITIES, D.PUBS, D.FOOD, D.HUBS).map(r => r[6]);
+  ok(!arts.some(a => /^(x_|np_)|llama|giraffe|dragon|bison|bear|moose/.test(a)), "no park pictures or animal drawings on city/pub/food/hub stamps");
+  ok(SP.artFor(SP.airportItem({ code: "ORD" }), 1).includes(">ORD<") && SP.artFor(SP.airportItem({ code: "BRU", name: "x" }), 1).includes(">BRU<"), "airport stamps carry their own code");
+  const own = [0, 1, 2, 3].map(n => SP.artFor(SP.entryItem({ id: "e_zz" + n, name: "Zz", type: "food" }), 1000 + n * 7));
+  ok(new Set(own).size === 4 && own.every(a => !seen[a]), "your own finds get their own variants, never a catalog picture");
+  ok(/artFor\(it, h\)/.test(read("spots.js")), "stamps draw with artFor");
+}

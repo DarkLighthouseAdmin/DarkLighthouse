@@ -8,7 +8,7 @@
   "use strict";
   var US = "USA & Canada", UK = "UK & Ireland", EU = "Europe", AS = "Asia & Pacific", LA = "Latin America", MA = "Middle East & Africa";
   var CITIES = [
-    ["new-york", "New York City", "NY", US, 40.71, -74.01, "x_nm-statue-of-liberty"], ["washington-dc", "Washington", "DC", US, 38.9, -77.04, "x_mem-washington-monument"],
+    ["new-york", "New York City", "NY", US, 40.71, -74.01, "sky1"], ["washington-dc", "Washington", "DC", US, 38.9, -77.04, "columns"],
     ["boston", "Boston", "MA", US, 42.36, -71.06, "lighthouse"], ["philadelphia", "Philadelphia", "PA", US, 39.95, -75.17, "columns"],
     ["chicago", "Chicago", "IL", US, 41.88, -87.63, "sky2"], ["orlando", "Orlando", "FL", US, 28.54, -81.38, "palm"],
     ["miami", "Miami", "FL", US, 25.76, -80.19, "palm"], ["atlanta", "Atlanta", "GA", US, 33.75, -84.39, "sky1"],
@@ -25,14 +25,14 @@
     ["charleston", "Charleston", "SC", US, 32.78, -79.93, "palm"], ["savannah", "Savannah", "GA", US, 32.08, -81.09, "magnolia"],
     ["detroit", "Detroit", "MI", US, 42.33, -83.05, "sky2"], ["pittsburgh", "Pittsburgh", "PA", US, 40.44, -80, "bridge"],
     ["baltimore", "Baltimore", "MD", US, 39.29, -76.61, "ship"], ["memphis", "Memphis", "TN", US, 35.15, -90.05, "pyramid"],
-    ["charlotte", "Charlotte", "NC", US, 35.23, -80.84, "sky3"], ["san-juan", "San Juan", "PR", US, 18.47, -66.11, "x_nm-castillo-de-san-marcos"],
+    ["charlotte", "Charlotte", "NC", US, 35.23, -80.84, "sky3"], ["san-juan", "San Juan", "PR", US, 18.47, -66.11, "castle"],
     ["toronto", "Toronto", "ON, Canada", US, 43.65, -79.38, "needle"], ["montreal", "Montréal", "QC, Canada", US, 45.5, -73.57, "dome"],
     ["quebec-city", "Québec City", "QC, Canada", US, 46.81, -71.21, "castle"], ["vancouver", "Vancouver", "BC, Canada", US, 49.28, -123.12, "peaks"],
     ["london", "London", "England", UK, 51.51, -0.13, "clock"], ["edinburgh", "Edinburgh", "Scotland", UK, 55.95, -3.19, "castle"],
     ["glasgow", "Glasgow", "Scotland", UK, 55.86, -4.25, "sky3"], ["inverness", "Inverness", "Scotland", UK, 57.48, -4.22, "thistle"],
     ["dublin", "Dublin", "Ireland", UK, 53.35, -6.26, "shamrock"], ["galway", "Galway", "Ireland", UK, 53.27, -9.05, "ship"],
     ["cork", "Cork", "Ireland", UK, 51.9, -8.47, "shamrock"], ["belfast", "Belfast", "Northern Ireland", UK, 54.6, -5.93, "ship"],
-    ["cardiff", "Cardiff", "Wales", UK, 51.48, -3.18, "dragon"], ["manchester", "Manchester", "England", UK, 53.48, -2.24, "sky1"],
+    ["cardiff", "Cardiff", "Wales", UK, 51.48, -3.18, "castle"], ["manchester", "Manchester", "England", UK, 53.48, -2.24, "sky1"],
     ["liverpool", "Liverpool", "England", UK, 53.41, -2.98, "ship"], ["oxford", "Oxford", "England", UK, 51.75, -1.26, "dome"],
     ["cambridge", "Cambridge", "England", UK, 52.2, 0.12, "tower"], ["bath", "Bath", "England", UK, 51.38, -2.36, "columns"],
     ["york", "York", "England", UK, 53.96, -1.08, "castle"],
@@ -58,10 +58,10 @@
     ["mexico-city", "Mexico City", "Mexico", LA, 19.43, -99.13, "pyramid"], ["cancun", "Cancún", "Mexico", LA, 21.16, -86.85, "palm"],
     ["havana", "Havana", "Cuba", LA, 23.11, -82.37, "palm"], ["buenos-aires", "Buenos Aires", "Argentina", LA, -34.6, -58.38, "c_obelisco"],
     ["rio-de-janeiro", "Rio de Janeiro", "Brazil", LA, -22.91, -43.17, "peaks"], ["lima", "Lima", "Peru", LA, -12.05, -77.04, "ship"],
-    ["cusco", "Cusco", "Peru", LA, -13.53, -71.97, "llama"],
+    ["cusco", "Cusco", "Peru", LA, -13.53, -71.97, "peaks"],
     ["dubai", "Dubai", "UAE", MA, 25.2, 55.27, "sky2"], ["cairo", "Cairo", "Egypt", MA, 30.04, 31.24, "pyramid"],
     ["marrakech", "Marrakech", "Morocco", MA, 31.63, -7.99, "c_koutoubia"], ["cape-town", "Cape Town", "South Africa", MA, -33.92, 18.42, "peaks"],
-    ["nairobi", "Nairobi", "Kenya", MA, -1.29, 36.82, "giraffe"], ["jerusalem", "Jerusalem", "Israel", MA, 31.77, 35.21, "dome"]];
+    ["nairobi", "Nairobi", "Kenya", MA, -1.29, 36.82, "sky2"], ["jerusalem", "Jerusalem", "Israel", MA, 31.77, 35.21, "dome"]];
   var PUBS = [
     ["guinness-storehouse", "Guinness Storehouse", "Dublin, Ireland", UK, 53.342, -6.287, "kettle", "brewery"], ["the-temple-bar", "The Temple Bar", "Dublin, Ireland", UK, 53.345, -6.264, "pint", "pub"],
     ["the-brazen-head", "The Brazen Head", "Dublin, Ireland", UK, 53.345, -6.276, "pint", "pub"], ["the-long-hall", "The Long Hall", "Dublin, Ireland", UK, 53.342, -6.266, "pint", "pub"],
