@@ -1485,3 +1485,40 @@ setTimeout(() => {
   const app = read("app.js");
   ok(/if \(!hits\.length\) return onThisMonthCard\(\);/.test(app) && /hits\.slice\(0, 5\)/.test(app) && /This month in past years/.test(app), "Home falls back to the month card, capped at 5 with 'and N more'");
 }
+
+// ---- v58: food & drink tied to trips, travel hubs (airports + train stations) ----
+{
+  const SP = require("../travel-log/app/spots.js");
+  ok(SP.LIST.hubs.length >= 50 && SP.LIST.hubs.every(x => /^h-/.test(x.id) && x.cat === "hubs"), "hubs catalog: " + SP.LIST.hubs.length + " airports and stations");
+  ok(!SP.CATS.hubs.adult && SP.CATS.pubs.adult, "hubs are for everyone; pubs stay adults-only");
+  ok(SP.airportId("ord") === "h-air-ord" && SP.airportItem({ code: "ORD", name: "x" }).name === "O'Hare", "a curated airport resolves by code");
+  const dyn = SP.airportItem({ code: "BRU", name: "Brussels Airport", city: "Brussels" });
+  ok(dyn.id === "h-air-bru" && dyn.dyn && dyn.name === "Brussels airport" && /^BRU · Brussels/.test(dyn.sub), "any other airport becomes its own stamp: " + dyn.name);
+  const t = { id: "trip_zz58", date: "2026-03-10", kidIds: ["person_zz1"], route: [{ name: "Zz Madison", lat: 43.07, lon: -89.4, nights: 2 },
+    { name: "Zz Chicago", lat: 41.88, lon: -87.63, mode: "plane", nights: 1, dep: { code: "MSN", name: "Zz Field" }, arr: { code: "ORD", name: "Zz" } },
+    { name: "Zz Dublin", lat: 53.345, lon: -6.26, mode: "plane", dep: { code: "ORD" }, arr: { code: "BRU", name: "Brussels Airport" } }] };
+  const g = SP.tripStamps(t, true), ids = [].concat(...g.map(x => x.items.map(i => i.id)));
+  ok(["h-air-msn", "h-air-ord", "h-air-bru", "c-chicago", "c-dublin"].every(i => ids.includes(i)), "a trip offers its airports and cities as stamps");
+  ok(ids.filter(i => i === "h-air-ord").length === 1, "an airport used twice is offered once");
+  ok(ids.some(i => /^p-/.test(i)) && !SP.tripStamps(t, false).some(x => x.items.some(i => i.cat === "pubs")), "pubs offered on grown-up pages only");
+  ok(g.find(x => x.stop === "Zz Dublin").date === "2026-03-13", "a stop's day = trip start + nights before it");
+  ok(g.find(x => x.stop === "✈️ ORD → BRU").date === "2026-03-13" && g.find(x => x.stop === "✈️ MSN → ORD").date === "2026-03-12", "each flight is its own group on the day it lands");
+  const e = SP.cleanEntry({ name: "Zz Pie", type: "food", tripId: "trip_zz58", link: "c-chicago" });
+  ok(e.tripId === "trip_zz58" && e.link === "c-chicago", "an entry keeps its trip and its linked stamp");
+  ok(!SP.cleanEntry({ name: "Zz", tripId: "bad id", link: "javascript:x" }).tripId && !SP.cleanEntry({ name: "Zz", link: "javascript:x" }).link, "bad trip/link values are dropped");
+  const gr = SP.groupByTrip([{ id: "e_1", tripId: "trip_zz58" }, { id: "e_2" }, { id: "e_3", tripId: "trip_gone" }, { id: "e_4", tripId: "trip_zzold" }],
+    [t, { id: "trip_zzold", date: "2020-01-01" }]);
+  ok(gr.map(x => x.trip ? x.trip.id : "-").join() === "trip_zz58,trip_zzold,-" && gr[2].entries.length === 2, "list groups by trip, newest first; loose entries last");
+  // mergeRestore unions eats and spots
+  const mine = { id: "person_zz1", name: "Zz A", updatedAt: "2026-01-02", eats: [{ id: "e_aaaaaa", name: "Zz Mine" }, { id: "e_cccccc", name: "Zz Edited" }], spots: { "c-chicago": { at: "2026-03-12" } } };
+  const file = { id: "person_zz1", name: "Zz A", updatedAt: "2026-01-01", eats: [{ id: "e_bbbbbb", name: "Zz File" }, { id: "e_cccccc", name: "Zz Old" }], spots: { "c-dublin": { at: "" }, "c-chicago": { at: "" } } };
+  const r = M.mergeRestore(mine, file);
+  ok(r.eats.length === 3 && r.eats.find(x => x.id === "e_cccccc").name === "Zz Edited", "restore keeps food & drink from both sides; newer phone edit wins");
+  ok(r.spots["c-dublin"] && r.spots["c-chicago"].at === "2026-03-12", "restore keeps stamps from both sides");
+  const r2 = M.mergeRestore(Object.assign({}, mine, { updatedAt: "2025-01-01" }), file);
+  ok(r2.eats.find(x => x.id === "e_cccccc").name === "Zz Old" && r2.spots["c-chicago"].at === "", "when the file is newer, its version of the same entry wins");
+  const sj = read("spots.js"), tu = read("trips-ui.js"), app = read("app.js");
+  ok(/FS_SPOTS\.tripHTML\(k, t\)/.test(tu) && /FS_SPOTS\.bindTrip\(k, t,/.test(tu), "trip page shows its food & drink and stamps");
+  ok(/id="etrip"/.test(sj) && /id="elink"/.test(sj) && /Goes with a stamp/.test(sj), "entry editor has Trip and Goes-with-stamp");
+  ok(/\["hubs", "Travel hubs", "Hubs"\]/.test(app) && /c\.hubs, 0, "Travel hubs"/.test(app), "Parks tab has a Travel hubs segment and stat");
+}

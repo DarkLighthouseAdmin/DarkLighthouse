@@ -525,6 +525,18 @@
     (keys || Object.keys(incoming)).forEach(function (k) { if (k in incoming) out[k] = incoming[k]; });
     if (Array.isArray(existing.kidIds) && Array.isArray(incoming.kidIds))
       out.kidIds = existing.kidIds.concat(incoming.kidIds.filter(function (id) { return existing.kidIds.indexOf(id) < 0; }));
+    // v58: a person's food & drink list and spot stamps join up (by id / by spot), so restoring never loses one made on this phone.
+    // On the same entry, the side with the newer person wins.
+    var mineNewer = !!(existing.updatedAt && incoming.updatedAt && String(existing.updatedAt) > String(incoming.updatedAt));
+    if (Array.isArray(existing.eats) || Array.isArray(incoming.eats)) {
+      var ex = Array.isArray(existing.eats) ? existing.eats : [], inc = Array.isArray(incoming.eats) ? incoming.eats : [], byId = {}, order = [];
+      (mineNewer ? inc.concat(ex) : ex.concat(inc)).forEach(function (e) { if (!e || !e.id) return; if (!(e.id in byId)) order.push(e.id); byId[e.id] = e; });
+      out.eats = JSON.parse(JSON.stringify(order.map(function (id) { return byId[id]; })));
+    }
+    if ((existing.spots && typeof existing.spots === "object") || (incoming.spots && typeof incoming.spots === "object")) {
+      var a1 = existing.spots && typeof existing.spots === "object" ? existing.spots : {}, b1 = incoming.spots && typeof incoming.spots === "object" ? incoming.spots : {};
+      out.spots = JSON.parse(JSON.stringify(Object.assign({}, mineNewer ? b1 : a1, mineNewer ? a1 : b1)));
+    }
     return out;
   }
 

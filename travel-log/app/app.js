@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v57" -> "v57").
-  var VERSION = "v57";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v58" -> "v58").
+  var VERSION = "v58";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -518,7 +518,7 @@
   }
   /** Parks | Cities | Food & drink | Pubs: the Parks tab's top switch (Pubs only on grown-ups' pages). */
   function kindSeg(k, cur) {
-    var SP = window.FS_SPOTS, list = [["", "Parks", "Parks"], ["cities", "Cities", "Cities"], ["food", "Food & drink", "Food"]].concat(SP && !M.isKid(k) ? [["pubs", "Pubs & breweries", "Pubs"]] : []);
+    var SP = window.FS_SPOTS, list = [["", "Parks", "Parks"], ["cities", "Cities", "Cities"], ["hubs", "Travel hubs", "Hubs"], ["food", "Food & drink", "Food"]].concat(SP && !M.isKid(k) ? [["pubs", "Pubs & breweries", "Pubs"]] : []);
     if (!SP) return "";
     return '<div class="seg kindseg" role="group" aria-label="What to collect">' + list.map(function (x) {
       return '<a href="#/p/' + esc(k.id) + '/parks' + (x[0] ? "/" + x[0] : "") + '"' + (x[0] === cur ? ' class="on" aria-current="page"' : "") + '><span class="lg">' + esc(x[1]) + '</span><span class="sh">' + esc(x[2]) + '</span></a>'; }).join("") + '</div>';
@@ -657,7 +657,7 @@
     var s = M.stats(k, state.trips, MAPS.world), b = M.badges(s), earned = b.filter(function (x) { return x.earned; }).length;
     main.innerHTML = shell(k, "stats", '<h2>' + esc(M.who(k)) + '\'s travel stats</h2><div class="stats">' +
       statBox(s.states, 50, "States") + statBox(s.countries, 195, "Countries") + statBox(s.ukNations, 4, "UK nations") + statBox(s.parks, 64, "National parks") +
-      (s.kid ? statBox(s.juniorRanger, 0, "Junior Ranger") : "") + (window.FS_SPOTS ? (function (c) { return statBox(c.cities, 0, "Cities") + statBox(c.food, 0, "Food stamps") + (s.kid ? "" : statBox(c.pubs, 0, "Pubs & breweries")); })(window.FS_SPOTS.counts(k)) : "") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
+      (s.kid ? statBox(s.juniorRanger, 0, "Junior Ranger") : "") + (window.FS_SPOTS ? (function (c) { return statBox(c.cities, 0, "Cities") + statBox(c.hubs, 0, "Travel hubs") + statBox(c.food, 0, "Food stamps") + (s.kid ? "" : statBox(c.pubs, 0, "Pubs & breweries")); })(window.FS_SPOTS.counts(k)) : "") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
       (s.years ? statBox(s.years, 0, s.years === 1 ? "Year of trips" : "Years of trips") : "") + (s.firstTripAge != null ? statBox(s.firstTripAge, 0, "Age on first trip") : "") + '</div>' +
       UI().lifetimeHTML(k.id) + questsCard(k) + (window.FS_FIRSTS ? window.FS_FIRSTS.card(k) : "") + (window.FS_BOOK ? window.FS_BOOK.card(k) : "") +
       '<h2>Badges <span class="muted small">' + earned + ' of ' + b.length + '</span></h2><div class="badges">' + b.map(function (x) {

@@ -20,10 +20,31 @@
   var CATS = {
     cities: { key: "c", what: "cities", one: "city", label: "CITY", find: "Find a city or country", ph: "e.g. Edinburgh or Japan" },
     food: { key: "f", what: "famous food spots", one: "food spot", label: "FOOD & DRINK", find: "Find a food spot or place", ph: "e.g. beignets or Lisbon" },
-    pubs: { key: "p", what: "pubs & breweries", one: "pub", label: "PUB", find: "Find a pub, brewery or town", ph: "e.g. Dublin or Hofbräuhaus", adult: 1 } };
-  var BY = {}, LIST = { cities: [], food: [], pubs: [] };
+    pubs: { key: "p", what: "pubs & breweries", one: "pub", label: "PUB", find: "Find a pub, brewery or town", ph: "e.g. Dublin or Hofbräuhaus", adult: 1 },
+    hubs: { key: "h", what: "travel hubs", one: "hub", label: "TRAVEL HUB", find: "Find an airport, station or city", ph: "e.g. O'Hare or King's Cross" } };
+  var BY = {}, LIST = { cities: [], food: [], pubs: [], hubs: [] };
   function add(cat, rows) { rows.forEach(function (r) { var it = { id: CATS[cat].key + "-" + r[0], cat: cat, name: r[1], sub: r[2], region: r[3], lat: r[4], lon: r[5], art: r[6], extra: r[7] || "" }; BY[it.id] = it; LIST[cat].push(it); }); }
-  add("cities", D.CITIES); add("pubs", D.PUBS); add("food", D.FOOD);
+  add("cities", D.CITIES); add("pubs", D.PUBS); add("food", D.FOOD); add("hubs", D.HUBS || []);
+  // v58: any airport a trip flew through can be a hub stamp. Curated ones keep their entry; others are made from the flight's airport
+  // (code, name, city) and the name rides along in person.spots[id] so it shows on every device.
+  function airportId(code) { return /^[A-Za-z]{3}$/.test(code || "") ? "h-air-" + code.toLowerCase() : ""; }
+  function airportItem(a) {
+    var id = airportId(a && a.code); if (!id) return null; if (BY[id]) return BY[id]; if (DYN[id]) return DYN[id];
+    var nm = String(a.name || a.code).replace(/\s*(International|Intercontinental|Regional)?\s*Airport\b.*$/i, "").trim() || a.code.toUpperCase();
+    if (!/\b(airport|field|airfield)\b/i.test(nm)) nm += " airport";
+    return (DYN[id] = { id: id, cat: "hubs", name: nm.slice(0, 40), sub: (a.code.toUpperCase() + (a.city ? " · " + a.city : "")).slice(0, 40), region: "", art: "air", extra: "airport", dyn: 1 });
+  }
+  var DYN = {};
+  /** Any stamp id -> its item (curated, a flown-through airport saved on someone, or a list entry made into a stamp). */
+  function itemFor(id, people) {
+    if (BY[id]) return BY[id];
+    for (var i = 0; i < (people || []).length; i++) {
+      var p = people[i], v = spotsOf(p)[id];
+      if (v && /^h-air-[a-z]{3}$/.test(id)) return { id: id, cat: "hubs", name: v.name || id.slice(6).toUpperCase(), sub: v.sub || id.slice(6).toUpperCase(), region: "", art: "air", extra: "airport", dyn: 1 };
+      var e = eatsOf(p).filter(function (x) { return x.id === id; })[0]; if (e && e.stamp) return entryItem(e);
+    }
+    return DYN[id] || null;
+  }
   var TYPES = [["food", "Food"], ["drink", "Drink"], ["beer", "Beer, wine & spirits"], ["other", "Other"]];
   function isAdultType(t) { return t === "beer"; }
   function kidOf(k) { return k && (k.kid || k.role === "kid"); }
@@ -65,7 +86,7 @@
   }
 
   // ---------- the stamp: round engraved frame, name around the top, place around the bottom, date plate ----------
-  var INKS = { cities: ["#2b4f5e", "#5b4a2f", "#4a3b6b", "#2f5d3a", "#6b3a2a"], food: ["#7a3b1d", "#2f5d3a", "#6b3a2a", "#5b4a2f"], pubs: ["#5b4a2f", "#7a3b1d", "#2f5d3a", "#3a3a3a"] };
+  var INKS = { cities: ["#2b4f5e", "#5b4a2f", "#4a3b6b", "#2f5d3a", "#6b3a2a"], food: ["#7a3b1d", "#2f5d3a", "#6b3a2a", "#5b4a2f"], pubs: ["#5b4a2f", "#7a3b1d", "#2f5d3a", "#3a3a3a"], hubs: ["#1f3f66", "#2b4f5e", "#4a3b6b", "#3a3a3a"] };
   var cache = {}, MON = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"], uidN = 0;
   function stampDate(at) { var m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(at || ""); if (!m) return ""; return m[3] ? MON[+m[2] - 1] + " " + (+m[3]) + ", " + m[1] : MON[+m[2] - 1] + " " + m[1]; }
   function arcPath(id, r, a0, a1, sweep) { var p = function (a) { var t = a * Math.PI / 180; return (80 + r * Math.cos(t)).toFixed(2) + "," + (80 + r * Math.sin(t)).toFixed(2); };
@@ -101,10 +122,11 @@
   function earned(k, cat) {
     if (CATS[cat].adult && kidOf(k)) return [];
     var sp = spotsOf(k), out = LIST[cat].filter(function (it) { return sp[it.id]; }).map(function (it) { return { item: it, at: sp[it.id].at || "", with: sp[it.id].with || [] }; });
-    if (cat !== "cities") eatsOf(k, kidOf(k)).filter(function (e) { return e.stamp && entryItem(e).cat === cat; }).forEach(function (e) { out.push({ item: entryItem(e), at: e.at || "", with: e.with || [], entry: e }); });
+    if (cat === "hubs") Object.keys(sp).forEach(function (id) { if (!BY[id] && /^h-air-[a-z]{3}$/.test(id)) out.push({ item: itemFor(id, [k]), at: sp[id].at || "", with: sp[id].with || [] }); });
+    if (cat === "food" || cat === "pubs") eatsOf(k, kidOf(k)).filter(function (e) { return e.stamp && entryItem(e).cat === cat; }).forEach(function (e) { out.push({ item: entryItem(e), at: e.at || "", with: e.with || [], entry: e }); });
     return out.sort(function (a, b) { return (a.at || "9") < (b.at || "9") ? -1 : 1; });
   }
-  function counts(k) { return { cities: earned(k, "cities").length, food: earned(k, "food").length, pubs: earned(k, "pubs").length, list: eatsOf(k, kidOf(k)).length }; }
+  function counts(k) { return { cities: earned(k, "cities").length, hubs: earned(k, "hubs").length, food: earned(k, "food").length, pubs: earned(k, "pubs").length, list: eatsOf(k, kidOf(k)).length }; }
   function miles(a, b) { var r = Math.PI / 180, dl = (b.lat - a.lat) * r, dn = (b.lon - a.lon) * r, x = Math.sin(dl / 2) * Math.sin(dl / 2) + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dn / 2) * Math.sin(dn / 2); return 7918 * Math.asin(Math.min(1, Math.sqrt(x))); }
   /** Cities this person's trips went to (a stop within ~25 miles) that they don't have a stamp for yet: [{item, date}]. */
   function fromTrips(k, trips) {
@@ -125,7 +147,7 @@
     function touch(p) { if (res.changed.indexOf(p) < 0) { res.undo.push(snap(p)); res.changed.push(p); p.updatedAt = now; } }
     people.forEach(function (p) {
       var sp = p.spots = p.spots || {}, has = !!sp[id];
-      if (w[p.id] && !has) { touch(p); sp[id] = { at: opts.date || opts.today || "" }; res.added.push(p.id); }
+      if (w[p.id] && !has) { touch(p); sp[id] = { at: opts.date || opts.today || "" }; if (opts.item && opts.item.dyn) { sp[id].name = opts.item.name; sp[id].sub = opts.item.sub; } res.added.push(p.id); }
       else if (!w[p.id] && has) { touch(p); delete sp[id]; res.removed.push(p.id); }
     });
     var ids = people.filter(function (p) { return w[p.id]; }).map(function (p) { return p.id; });
@@ -137,7 +159,10 @@
     var t = TYPES.some(function (x) { return x[0] === e.type; }) ? e.type : "food", s = function (v, n) { return String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, n); };
     var o = { id: /^e_[a-z0-9]{6,20}$/.test(e.id || "") ? e.id : "e_" + Math.random().toString(36).slice(2, 12), name: s(e.name, 80), type: t, place: s(e.place, 40), placeName: s(e.placeName, 60),
       at: /^\d{4}-\d{2}(-\d{2})?$/.test(e.at || "") ? e.at : "", note: s(e.note, 300), rating: Math.max(0, Math.min(5, +e.rating || 0)) };
-    if (e.stamp) o.stamp = true; return o;
+    if (e.stamp) o.stamp = true;
+    if (/^trip_[A-Za-z0-9_-]{3,60}$/.test(e.tripId || "")) o.tripId = e.tripId;   // v58: the trip it was on
+    if (/^([cfph]-[a-z0-9-]{1,60}|h-air-[a-z]{3}|e_[a-z0-9]{6,20})$/.test(e.link || "") && e.link !== o.id) o.link = e.link;   // the day's pub, food, city or hub stamp
+    return o;
   }
   /** Put list entry e on exactly the people in want (same id everywhere); want = [] takes it off everyone. */
   function applyEntry(people, e, want, opts) {
@@ -153,11 +178,55 @@
     });
     return res;
   }
+  // ---------- v58: food & drink by trip, and stamps from a trip's stops ----------
+  function liveTrip(t) { return t && !t.deletedAt; }
+  /** [{ trip | null, entries }]: trips newest first, then the entries not from a trip (or from a trip that's gone). */
+  function groupByTrip(entries, trips) {
+    var by = {}, order = [], loose = [];
+    (trips || []).filter(liveTrip).forEach(function (t) { by[t.id] = t; });
+    entries.forEach(function (e) { var t = e.tripId && by[e.tripId]; if (!t) return loose.push(e); if (!order.some(function (g) { return g.trip === t; })) order.push({ trip: t, entries: [] }); order.filter(function (g) { return g.trip === t; })[0].entries.push(e); });
+    order.sort(function (a, b) { return (b.trip.date || "") < (a.trip.date || "") ? -1 : (b.trip.date || "") > (a.trip.date || "") ? 1 : 0; });
+    if (loose.length) order.push({ trip: null, entries: loose });
+    return order;
+  }
+  function addDay(iso, n) { if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || "") || !n) return iso || ""; var d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  /** The day each stop starts: the trip's start plus the nights spent at the stops before it. */
+  function stopDays(t) { var n = 0; return (t.route || []).map(function (p) { var d = addDay(t.date, n); n += (p && +p.nights) || 0; return d; }); }
+  function tripPoints(t) {
+    var days = stopDays(t), pts = (t.route || []).map(function (p, i) { return p && typeof p.lat === "number" && typeof p.lon === "number" ? { name: p.name || "", lat: p.lat, lon: p.lon, date: days[i] } : null; }).filter(Boolean);
+    if (!pts.length && typeof t.lat === "number") pts.push({ name: t.place || "", lat: t.lat, lon: t.lon, date: t.date || "" });
+    return pts;
+  }
+  var NEAR = { cities: 25, hubs: 3, food: 10, pubs: 10 };
+  /** Stamps a trip can give, stop by stop: [{ stop, date, items: [item] }]. Airports come from the flights; pubs only when adult. */
+  function tripStamps(t, adult) {
+    var out = [], seen = {};
+    function push(stop, date, it) { if (!it || seen[it.id]) return; seen[it.id] = 1; var g = out.filter(function (x) { return x.stop === stop; })[0]; if (!g) out.push(g = { stop: stop, date: date, items: [] }); g.items.push(it); }
+    var days = stopDays(t);
+    var r = t.route || [], last = r.length ? addDay(days[r.length - 1], (r[r.length - 1] && +r[r.length - 1].nights) || 0) : t.date;
+    r.concat(t.back ? [t.back] : []).forEach(function (p, i) {   // one group per flight, on the day it lands
+      if (!p || !(p.dep && p.dep.code || p.arr && p.arr.code)) return;
+      var lbl = "✈️ " + [p.dep, p.arr].map(function (a) { return a && a.code ? String(a.code).toUpperCase() : "?"; }).join(" → ");
+      [p.dep, p.arr].forEach(function (a) { if (a && a.code) push(lbl, i < r.length ? days[i] || t.date || "" : (t.endDate || last || ""), airportItem(a)); });
+    });
+    tripPoints(t).forEach(function (p) {
+      ["cities", "hubs", "food"].concat(adult ? ["pubs"] : []).forEach(function (cat) {
+        LIST[cat].filter(function (c) { return !(cat === "hubs" && c.extra === "airport") && miles(p, c) <= NEAR[cat]; }).forEach(function (c) { push(p.name, p.date, c); });
+      });
+    });
+    return out;
+  }
+  /** The stamps someone already has that a list entry can point at, newest first (the day's ones first when a date is given). */
+  function linkable(k, at) {
+    var cats = ["food", "cities", "hubs"].concat(kidOf(k) ? [] : ["pubs"]), all = [];
+    cats.forEach(function (c) { earned(k, c).forEach(function (x) { if (!x.entry || x.entry.stamp) all.push(x); }); });
+    return all.sort(function (a, b) { var da = at && a.at === at ? 1 : 0, db = at && b.at === at ? 1 : 0; return db - da || ((b.at || "") < (a.at || "") ? -1 : 1); });
+  }
   function restore(people, undo, now) {
     var by = {}; people.forEach(function (p) { by[p.id] = p; });
     return undo.map(function (u) { var p = by[u.id]; if (!p) return null; p.spots = u.spots; p.eats = u.eats; p.updatedAt = now || new Date().toISOString(); return p; }).filter(Boolean);
   }
-  var core = { CATS: CATS, LIST: LIST, BY: BY, TYPES: TYPES, stampSVG: stampSVG, earned: earned, counts: counts, fromTrips: fromTrips, applySpot: applySpot, applyEntry: applyEntry, cleanEntry: cleanEntry, restore: restore, entryItem: entryItem, stampDate: stampDate, isCat: function (c) { return !!CATS[c]; } };
+  var core = { groupByTrip: groupByTrip, tripStamps: tripStamps, linkable: linkable, airportItem: airportItem, airportId: airportId, itemFor: itemFor, NEAR: NEAR, CATS: CATS, LIST: LIST, BY: BY, TYPES: TYPES, stampSVG: stampSVG, earned: earned, counts: counts, fromTrips: fromTrips, applySpot: applySpot, applyEntry: applyEntry, cleanEntry: cleanEntry, restore: restore, entryItem: entryItem, stampDate: stampDate, isCat: function (c) { return !!CATS[c]; } };
   if (typeof window === "undefined") return core;
 
   // ---------- browser UI ----------
@@ -177,8 +246,9 @@
   function bindAll(box) { $("#spall", box).onclick = function () { var b = $$("input[data-who]", box), all = b.every(function (x) { return x.checked; }); b.forEach(function (x) { x.checked = !all; }); }; }
 
   /** "Who's been?" for a city, famous food spot or pub. */
-  function openSpot(page, id, after, date) {
-    var it = BY[id]; if (!it) return; var adult = !!CATS[it.cat].adult, list = pickList(adult), had = holdersOf(id), me = W().whoAmI().me, on = startOn(list, had, page);
+  function openSpot(page, id, after, date, who) {
+    var it = itemFor(id, A().state.kids); if (!it) return; var adult = !!CATS[it.cat].adult, list = pickList(adult), had = holdersOf(id), me = W().whoAmI().me, on = startOn(list, had, page);
+    if (!had.length && who) on = list.filter(function (p) { return who.indexOf(p.id) >= 0; }).map(function (p) { return p.id; });
     var el = U().sheet('<div class="sheethead"><h3>Who\'s been to ' + esc(it.name) + '?</h3><button type="button" class="sheetx" data-close aria-label="Close">✕</button></div>' +
       '<p class="small muted">Tick everyone who was there. They each get the stamp.' + (adult ? " Pubs are for grown-ups, so kids aren't listed." : "") + '</p>' + whoBlock(list, on, me) +
       '<p class="small muted wlabel">When? (optional)</p>' + U().dateFields(date || "") +
@@ -186,7 +256,7 @@
     var box = $(".sheetbox", el); box.classList.add("whosheet"); bindAll(box);
     $("#spok", box).onclick = function () {
       var want = W().picked(box); if (!want.length && !had.length) { var er = $("#sperr", box); er.hidden = false; er.textContent = "Tick who's been there."; return; }
-      var r = applySpot(list, id, want, { date: U().readDate(), today: today() });
+      var r = applySpot(list, id, want, { date: U().readDate(), today: today(), item: it });
       if (!r.changed.length) { U().closeSheet(); return; }
       saveAll(r.changed).then(function () {
         U().closeSheet(); if (after) after();
@@ -201,16 +271,50 @@
     o += '<optgroup label="US states">' + MP.us.shapes.map(function (s) { return '<option value="state:' + s.id + '"' + (v === "state:" + s.id ? " selected" : "") + '>' + esc(s.name) + '</option>'; }).join("") + '</optgroup>';
     return o + '<optgroup label="Countries">' + MP.world.countries.map(function (c) { return '<option value="place:' + c.id + '"' + (v === "place:" + c.id ? " selected" : "") + '>' + esc(c.name) + '</option>'; }).join("") + '</optgroup>';
   }
+  function tripOptions(page, cur) {
+    var l = A().state.trips.filter(function (t) { return liveTrip(t) && (t.kidIds || []).indexOf(page.id) >= 0 || t.id === cur; }).sort(function (a, b) { return (b.date || "") < (a.date || "") ? -1 : 1; });
+    return '<option value="">Not from a trip</option>' + l.map(function (t) { return '<option value="' + esc(t.id) + '"' + (t.id === cur ? " selected" : "") + '>' + esc(tripName(t) + (t.date ? " · " + niceAt(t.date) : "")) + '</option>'; }).join("");
+  }
+  function linkOptions(page, e) {
+    var l = linkable(page, e.at), o = '<option value="">None</option>', has = false;
+    l.forEach(function (x) { if (x.item.id === e.id) return; if (x.item.id === e.link) has = true; o += '<option value="' + esc(x.item.id) + '"' + (x.item.id === e.link ? " selected" : "") + '>' + esc(x.item.name + (x.at ? " · " + niceAt(x.at) : "")) + '</option>'; });
+    if (e.link && !has) { var it = itemFor(e.link, A().state.kids); if (it) o += '<option value="' + esc(it.id) + '" selected>' + esc(it.name) + '</option>'; }
+    return o;
+  }
+  // ---------- v58: on a trip's page: its food & drink, and the stamps its stops can give ----------
+  function tripHTML(k, t) {
+    var kid = kidOf(k), people = A().state.kids, seen = {}, eats = [];
+    people.forEach(function (p) { if ((t.kidIds || []).indexOf(p.id) < 0) return; eatsOf(p, kid).forEach(function (e) { if (e.tripId === t.id && !seen[e.id]) { seen[e.id] = 1; eats.push(e); } }); });
+    eats.sort(function (a, b) { return (a.at || "") < (b.at || "") ? -1 : 1; });
+    var sp = spotsOf(k), groups = tripStamps(t, !kid);
+    return '<section class="tripfood"><h3 class="sec">Food &amp; drink</h3>' +
+      (eats.length ? '<div class="elist parks">' + eats.map(eatRow).join("") + '</div>' : '<p class="small muted">What did you eat and drink? Add the dish, the drink and the place.</p>') +
+      '<div class="actions noprint"><button type="button" class="btn btn-ghost" id="tfadd">🍽️ Add food &amp; drink</button></div>' +
+      (groups.length ? '<h3 class="sec">Stamps from this trip</h3><div class="tstamps">' + groups.map(function (g) {
+        return '<div class="tstop"><b>' + esc(g.stop || "A stop") + '</b>' + (g.date ? ' <span class="muted small">' + esc(niceAt(g.date)) + '</span>' : "") + '<div class="echips">' + g.items.map(function (it) {
+          var on = !!sp[it.id]; return '<button type="button" class="chip' + (on ? " on" : "") + '" data-tspot="' + esc(it.id) + '" data-date="' + esc(g.date) + '" aria-pressed="' + on + '">' + (on ? "✓ " : "+ ") + ({ cities: "🏙️ ", hubs: it.extra === "airport" ? "✈️ " : "🚉 ", food: "🍽️ ", pubs: "🍺 " }[it.cat] || "") + esc(it.name) + '</button>'; }).join("") + '</div></div>';
+      }).join("") + '</div>' : "") + '</section>';
+  }
+  function bindTrip(k, t, main, again) {
+    var add = $("#tfadd", main); if (add) add.onclick = function () { openEntry(k, { type: "food", tripId: t.id, at: t.date || "" }, again); };
+    $$(".tripfood [data-eat]", main).forEach(function (b) { b.onclick = function () { var e = null; A().state.kids.some(function (p) { e = eatsOf(p).filter(function (x) { return x.id === b.dataset.eat; })[0]; return !!e; }); if (e) openEntry(k, e, again); }; });
+    $$("[data-tspot]", main).forEach(function (b) { b.onclick = function () { openSpot(k, b.dataset.tspot, again, b.dataset.date || "", t.kidIds); }; });
+    lazy(main, k);
+  }
   /** Add or edit a Food & drink list entry. e = existing entry (edit) or { type, stamp } defaults. */
   function openEntry(page, e, after) {
     e = e || {}; var editing = !!e.id, kid = kidOf(page), had = editing ? A().state.kids.filter(function (p) { return eatsOf(p).some(function (x) { return x.id === e.id; }); }).map(function (p) { return p.id; }) : [];
     var types = TYPES.filter(function (t) { return !(kid && isAdultType(t[0])); }), list = pickList(isAdultType(e.type)), me = W().whoAmI().me, on = startOn(list, had, page);
+    var tt = !editing && e.tripId ? A().state.trips.filter(function (t) { return t.id === e.tripId; })[0] : null;
+    if (tt) on = list.filter(function (p) { return tt.kidIds.indexOf(p.id) >= 0; }).map(function (p) { return p.id; });   // from a trip: its travelers
     var el = U().sheet('<div class="sheethead"><h3>' + (editing ? "Edit" : e.stamp ? "Add your own spot" : "Add to the list") + '</h3><button type="button" class="sheetx" data-close aria-label="Close">✕</button></div>' +
       '<div class="field"><label for="ename">What was it?</label><input id="ename" maxlength="80" placeholder="e.g. Fish tacos, a pint of stout, Luigi\'s" value="' + esc(e.name || "") + '"></div>' +
       '<div class="field"><label for="etype">Type</label><select id="etype">' + types.map(function (t) { return '<option value="' + t[0] + '"' + (e.type === t[0] ? " selected" : "") + '>' + t[1] + '</option>'; }).join("") + '</select></div>' +
       '<div class="field"><label for="eplace">Where?</label><select id="eplace">' + placeOptions(e.place || "") + '</select></div>' +
       '<div class="field"><label for="ewhere">Place name (optional)</label><input id="ewhere" maxlength="60" placeholder="e.g. a café in Galway" value="' + esc(e.placeName || "") + '"></div>' +
       '<p class="small muted wlabel">When? (optional)</p>' + U().dateFields(e.at || "") +
+      '<div class="field"><label for="etrip">Trip</label><select id="etrip">' + tripOptions(page, e.tripId) + '</select></div>' +
+      '<div class="field"><label for="elink">Goes with a stamp (optional)</label><select id="elink">' + linkOptions(page, e) + '</select></div>' +
       '<div class="field"><label for="erate">How was it?</label><select id="erate">' + ["No rating", "★", "★★", "★★★", "★★★★", "★★★★★"].map(function (t, i) { return '<option value="' + i + '"' + ((+e.rating || 0) === i ? " selected" : "") + '>' + t + '</option>'; }).join("") + '</select></div>' +
       '<div class="field"><label for="enote">Note (optional)</label><input id="enote" maxlength="300" value="' + esc(e.note || "") + '"></div>' +
       '<label class="check"><input type="checkbox" id="estamp"' + (e.stamp ? " checked" : "") + '> Make it a stamp</label>' +
@@ -223,7 +327,7 @@
       var name = $("#ename", box).value.trim(), want = W().picked(box), er = $("#eerr", box);
       if (!name) { er.hidden = false; er.textContent = "Give it a name."; return; }
       if (!want.length) { er.hidden = false; er.textContent = "Tick who was there."; return; }
-      var r = applyEntry(A().state.kids, { id: e.id, name: name, type: $("#etype", box).value, place: $("#eplace", box).value, placeName: $("#ewhere", box).value, at: U().readDate(), note: $("#enote", box).value, rating: $("#erate", box).value, stamp: $("#estamp", box).checked }, want);
+      var r = applyEntry(A().state.kids, { id: e.id, name: name, type: $("#etype", box).value, place: $("#eplace", box).value, placeName: $("#ewhere", box).value, at: U().readDate(), note: $("#enote", box).value, rating: $("#erate", box).value, stamp: $("#estamp", box).checked, tripId: $("#etrip", box).value, link: $("#elink", box).value }, want);
       done(r, name + (editing ? " updated" : " added for " + W().names(want)));
     };
     if (editing) $("#edel", box).onclick = function () { done(applyEntry(A().state.kids, e, []), e.name + " removed"); };
@@ -233,7 +337,7 @@
   var io = null;
   function lazy(main, k) {
     var els = $$("[data-sp]", main);
-    function fill(el) { var id = el.dataset.sp, at = el.dataset.at || ""; var it = BY[id] || (function () { var e = eatsOf(k).filter(function (x) { return x.id === id; })[0]; return e ? entryItem(e) : null; })(); el.innerHTML = it ? stampSVG(it, at) : ""; el.removeAttribute("data-sp"); }
+    function fill(el) { var id = el.dataset.sp, at = el.dataset.at || ""; var it = itemFor(id, [k].concat(A().state.kids)); el.innerHTML = it ? stampSVG(it, at) : ""; el.removeAttribute("data-sp"); }
     if (io) io.disconnect(); if (!window.IntersectionObserver) return els.forEach(fill);
     io = new IntersectionObserver(function (es) { es.forEach(function (x) { if (x.isIntersecting) { fill(x.target); io.unobserve(x.target); } }); }, { rootMargin: "600px 0px" });
     els.forEach(function (el) { io.observe(el); });
@@ -257,8 +361,10 @@
     return '<div class="row eat" data-name="' + esc(e.name + " " + (e.placeName || "") + " " + (e.note || "") + " " + (t ? t[1] : "")) + '" data-type="' + esc(e.type) + '">' +
       (e.stamp ? stampSpan(entryItem(e), { at: e.at }) : '<span class="eicon" aria-hidden="true">' + ({ food: "🍽️", drink: "☕", beer: "🍺", other: "⭐" }[e.type] || "🍽️") + '</span>') +
       '<div class="nm"><b data-hl>' + esc(e.name) + '</b><span>' + esc([t ? t[1] : "", e.placeName, niceAt(e.at), e.rating ? "★★★★★".slice(0, e.rating) : "", e.with && e.with.length > 1 ? "with " + W().names(e.with) : ""].filter(Boolean).join(" · ")) + '</span>' +
-      (e.note ? '<span class="enote">' + esc(e.note) + '</span>' : "") + '</div><button type="button" class="pill" data-eat="' + esc(e.id) + '">Edit</button></div>';
+      (e.note ? '<span class="enote">' + esc(e.note) + '</span>' : "") + linkLine(e) + '</div><button type="button" class="pill" data-eat="' + esc(e.id) + '">Edit</button></div>';
   }
+  function tripName(t) { return String(t.title || "").replace(/^\s*draft:\s*/i, "").trim() || String(t.place || "").replace(/^\s*draft:\s*/i, "").trim() || "A trip"; }
+  function linkLine(e) { var it = e.link ? itemFor(e.link, A().state.kids) : null; return it ? '<span class="elink small">🔗 ' + esc(it.name) + '</span>' : ""; }
   function listHTML(k, f) {
     var kid = kidOf(k), l = eatsOf(k, kid).slice(), sort = f.sort || "new";
     l.sort(function (a, b) { return sort === "rating" ? (b.rating || 0) - (a.rating || 0) : sort === "name" ? a.name.localeCompare(b.name) : (b.at || "") < (a.at || "") ? -1 : 1; });
@@ -267,22 +373,30 @@
       (l.length ? '<div class="field" style="margin-top:0"><label for="efind">Search the list</label><input id="efind" type="search" placeholder="e.g. tacos or Dublin" autocomplete="off"></div>' +
         '<div class="echips" role="group" aria-label="Show">' + [["", "All"]].concat(types).map(function (t) { return '<button type="button" class="chip' + ((f.type || "") === t[0] ? " on" : "") + '" data-etype="' + t[0] + '" aria-pressed="' + ((f.type || "") === t[0]) + '">' + t[1].replace(", wine & spirits", " & wine") + '</button>'; }).join("") +
         '<label class="esort">Sort <select id="esort"><option value="new"' + (sort === "new" ? " selected" : "") + '>Newest</option><option value="rating"' + (sort === "rating" ? " selected" : "") + '>Best rated</option><option value="name"' + (sort === "name" ? " selected" : "") + '>A–Z</option></select></label></div>' +
-        '<div class="elist parks">' + l.map(eatRow).join("") + '</div><p class="muted small" id="enone" hidden>Nothing matches.</p>'
+        groupByTrip(l, A().state.trips).map(function (g) {
+          var t = g.trip, head = t ? '<a class="tapline" href="#/p/' + esc(k.id) + '/trip/' + esc(t.id) + '">🧳 ' + esc(tripName(t)) + '</a>' + (t.date ? ' <span class="muted small">' + esc(niceAt(t.date)) + '</span>' : "") : "Not from a trip";
+          return '<div class="egroup" data-egroup><h4 class="eghead">' + head + ' <small class="muted">' + g.entries.length + '</small></h4><div class="elist parks">' + g.entries.map(eatRow).join("") + '</div></div>';
+        }).join("") + '<p class="muted small" id="enone" hidden>Nothing matches.</p>'
         : '<p class="muted">Jot down the good stuff: a dish, a drink, a little place you loved. Tick "Make it a stamp" for the ones worth a passport stamp.</p>') + '</div>';
   }
   /** The page body for one category (inside the Parks tab shell). */
   function html(k, cat, trips) {
     var c = CATS[cat], sp = spotsOf(k), n = LIST[cat].filter(function (it) { return sp[it.id]; }).length, mine = cat === "cities" ? [] : earned(k, cat).filter(function (x) { return x.entry; });
     var sug = cat === "cities" ? fromTrips(k, trips) : [];
+    if (cat === "hubs") { var hs = {}; (trips || []).filter(function (t) { return liveTrip(t) && (t.kidIds || []).indexOf(k.id) >= 0; }).forEach(function (t) {
+      tripStamps(t, false).forEach(function (g) { g.items.forEach(function (it) { if (it.cat === "hubs" && !sp[it.id] && !hs[it.id]) { hs[it.id] = 1; sug.push({ item: it, date: g.date }); } }); }); }); }
+    if (cat === "hubs") mine = earned(k, "hubs").filter(function (x) { return x.item.dyn; });
     return counterHTML(n, LIST[cat].length, c.what) +
-      (sug.length ? '<div class="panel spsug"><h3>From ' + esc(M().who(k)) + '\'s trips</h3><p class="small muted">These trips went to cities with a stamp. Tap one to stamp it.</p><div class="echips">' +
+      (sug.length ? '<div class="panel spsug"><h3>From ' + esc(M().who(k)) + '\'s trips</h3><p class="small muted">' + (cat === "hubs" ? "Airports and stations these trips went through." : "These trips went to cities with a stamp.") + ' Tap one to stamp it.</p><div class="echips">' +
         sug.slice(0, 12).map(function (s) { return '<button type="button" class="chip" data-spot="' + esc(s.item.id) + '" data-date="' + esc(s.date) + '">+ ' + esc(s.item.name) + '</button>'; }).join("") + '</div></div>' : "") +
       (cat === "food" ? '<div data-elist>' + listHTML(k, {}) + '</div>' : "") +
+      (cat === "hubs" && mine.length ? '<div class="panel"><h3>Other airports ' + esc(M().who(k)) + ' flew through <small class="muted">' + mine.length + '</small></h3><div class="spgrid">' +
+        mine.map(function (x) { return '<button type="button" class="spitem" data-spot="' + esc(x.item.id) + '">' + stampSpan(x.item, { at: x.at }, "spst") + '</button>'; }).join("") + '</div></div>' : "") +
       (cat === "pubs" ? '<div class="panel"><div class="ehead"><h3>Your own pubs &amp; breweries <small class="muted">' + mine.length + '</small></h3><button type="button" class="btn btn-beacon" id="padd">+ Add your own</button></div>' +
         (mine.length ? '<div class="spgrid">' + mine.map(function (x) { return '<button type="button" class="spitem" data-eat="' + esc(x.entry.id) + '">' + stampSpan(x.item, { at: x.at }, "spst") + '</button>'; }).join("") + '</div>' : '<p class="muted small">A local you love, a brewery tour, a beer garden. Add it and it gets its own stamp.</p>') + '</div>' : "") +
-      '<div class="panel parks plist" data-plist="spots-' + cat + ':' + esc(k.id) + '"><h3 class="plh">' + (cat === "food" ? "Famous food spots" : cat === "pubs" ? "Famous pubs & breweries" : "Cities & travel hubs") + '</h3>' +
+      '<div class="panel parks plist" data-plist="spots-' + cat + ':' + esc(k.id) + '"><h3 class="plh">' + (cat === "food" ? "Famous food spots" : cat === "pubs" ? "Famous pubs & breweries" : cat === "hubs" ? "Big airports & train stations" : "Big cities") + '</h3>' +
         window.FS_FIND.tools('<div class="field" style="margin-top:0"><label for="spfind">' + esc(c.find) + '</label><input id="spfind" type="search" placeholder="' + esc(c.ph) + '" autocomplete="off"></div>') + curatedHTML(k, cat) + '</div>' +
-      '<p class="hint">' + (cat === "cities" ? "Big cities and travel hubs around the world, each with its own stamp. A trip to one shows up above so you can stamp it." : cat === "pubs" ? "Famous old pubs, beer halls and brewery tours. Opening hours change, so check before you go. Only grown-ups see this page." : "Famous food spots get a stamp; your own finds go on the list above.") + '</p>';
+      '<p class="hint">' + (cat === "cities" ? "Big cities around the world, each with its own stamp. A trip to one shows up above so you can stamp it." : cat === "hubs" ? "Airports and great train stations. Any airport on a trip's flights can be stamped, even if it isn't on this list." : cat === "pubs" ? "Famous old pubs, beer halls and brewery tours. Opening hours change, so check before you go. Only grown-ups see this page." : "Famous food spots get a stamp; your own finds go on the list above.") + '</p>';
   }
   function bindList(k, main, f, again) {
     var host = $("[data-elist]", main); if (!host) return;
@@ -298,6 +412,7 @@
     function filt() {
       var q = $("#efind", host); f.q = q ? q.value : ""; var s = (f.q || "").toLowerCase().trim(), shown = 0;
       $$(".row.eat", host).forEach(function (r) { var ok = (!f.type || r.dataset.type === f.type) && (!s || r.dataset.name.toLowerCase().indexOf(s) >= 0); r.style.display = ok ? "" : "none"; if (ok) shown++; });
+      $$("[data-egroup]", host).forEach(function (g) { g.hidden = !$$(".row.eat", g).some(function (r) { return r.style.display !== "none"; }); });
       var no = $("#enone", host); if (no) no.hidden = shown > 0;
     }
     wire();
@@ -314,10 +429,10 @@
 
   // ---------- passport section ----------
   function sectionHTML(k) {
-    var kid = kidOf(k), cats = ["cities", "food"].concat(kid ? [] : ["pubs"]), any = false;
+    var kid = kidOf(k), cats = ["cities", "hubs", "food"].concat(kid ? [] : ["pubs"]), any = false;
     var body = cats.map(function (cat) {
       var l = earned(k, cat); if (!l.length) return ""; any = true;
-      return '<div class="spsec"><div class="bshead"><h3>' + (cat === "cities" ? "Cities" : cat === "food" ? "Food & drink" : "Pubs & breweries") + ' <small class="muted">' + l.length + '</small></h3><a class="tapline" href="#/p/' + esc(k.id) + '/parks/' + cat + '">See all ›</a></div>' +
+      return '<div class="spsec"><div class="bshead"><h3>' + (cat === "cities" ? "Cities" : cat === "hubs" ? "Travel hubs" : cat === "food" ? "Food & drink" : "Pubs & breweries") + ' <small class="muted">' + l.length + '</small></h3><a class="tapline" href="#/p/' + esc(k.id) + '/parks/' + cat + '">See all ›</a></div>' +
         '<div class="spgrid">' + l.map(function (x) { return '<button type="button" class="spitem" data-spd="' + esc(x.item.id) + '" aria-label="' + esc(x.item.name) + '">' + stampSpan(x.item, { at: x.at }, "spst") + '</button>'; }).join("") + '</div></div>';
     }).join("");
     return any ? '<section class="spots">' + body + '</section>' : "";
@@ -325,7 +440,7 @@
   function bindSection(k, main) {
     $$("[data-spd]", main).forEach(function (b) {
       b.onclick = function () {
-        var id = b.dataset.spd, all = earned(k, "cities").concat(earned(k, "food"), earned(k, "pubs")), x = all.filter(function (y) { return y.item.id === id; })[0]; if (!x) return;
+        var id = b.dataset.spd, all = earned(k, "cities").concat(earned(k, "hubs"), earned(k, "food"), earned(k, "pubs")), x = all.filter(function (y) { return y.item.id === id; })[0]; if (!x) return;
         var w = (x.with || []).filter(function (p) { return p !== k.id; });
         var el = U().sheet('<div class="sheethead"><h3>' + esc(x.item.name) + '</h3><button type="button" class="sheetx" data-close aria-label="Close">✕</button></div><div class="spbig">' + stampSVG(x.item, x.at) + '</div>' +
           '<p>' + esc(M().who(k)) + (x.at ? " was here on " + esc(niceAt(x.at)) : " has been here") + (w.length ? ", with " + esc(W().names(w)) : "") + '.</p>' +
@@ -336,6 +451,6 @@
     });
     lazy(main, k);
   }
-  core.html = html; core.bind = bind; core.sectionHTML = sectionHTML; core.bindSection = bindSection; core.openSpot = openSpot; core.openEntry = openEntry; core.kidOf = kidOf;
+  core.tripHTML = tripHTML; core.bindTrip = bindTrip; core.html = html; core.bind = bind; core.sectionHTML = sectionHTML; core.bindSection = bindSection; core.openSpot = openSpot; core.openEntry = openEntry; core.kidOf = kidOf;
   return core;
 });

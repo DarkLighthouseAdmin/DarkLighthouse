@@ -107,5 +107,35 @@
     ["pasteis-de-belem", "Pastéis de Belém", "Lisbon, Portugal", EU, 38.698, -9.203, "cup", "Custard tarts"], ["cafe-sacher", "Café Sacher", "Vienna, Austria", EU, 48.204, 16.369, "cup", "Sachertorte"],
     ["da-michele", "L'Antica Pizzeria da Michele", "Naples, Italy", EU, 40.85, 14.263, "plate", "Pizza margherita"], ["la-boqueria", "La Boqueria", "Barcelona, Spain", EU, 41.382, 2.172, "plate", "Tapas at the market"],
     ["tsukiji-outer", "Tsukiji Outer Market", "Tokyo, Japan", AS, 35.665, 139.77, "bowl", "Sushi breakfast"], ["maxwell", "Maxwell Food Centre", "Singapore", AS, 1.28, 103.845, "bowl", "Chicken rice"]];
-  return { CITIES: CITIES, PUBS: PUBS, FOOD: FOOD, REGIONS: [US, UK, EU, AS, LA, MA] };
+  // v58: travel hubs. Airports: id "air-<iata>" (the same id a trip's flight leg makes, so a flight can stamp it). extra = "airport" | "train".
+  var HUBS = [
+    ["air-atl", "Atlanta airport", "ATL · Atlanta, GA", US, 33.637, -84.428, "air", "airport"], ["air-ord", "O'Hare", "ORD · Chicago, IL", US, 41.979, -87.905, "air", "airport"],
+    ["air-dfw", "Dallas Fort Worth", "DFW · Texas", US, 32.897, -97.038, "air", "airport"], ["air-den", "Denver airport", "DEN · Denver, CO", US, 39.86, -104.674, "air", "airport"],
+    ["air-lax", "LAX", "LAX · Los Angeles, CA", US, 33.943, -118.408, "air", "airport"], ["air-jfk", "JFK", "JFK · New York, NY", US, 40.639, -73.779, "air", "airport"],
+    ["air-sfo", "SFO", "SFO · San Francisco, CA", US, 37.62, -122.375, "air", "airport"], ["air-sea", "Sea-Tac", "SEA · Seattle, WA", US, 47.448, -122.31, "air", "airport"],
+    ["air-mco", "Orlando airport", "MCO · Orlando, FL", US, 28.429, -81.309, "air", "airport"], ["air-las", "Las Vegas airport", "LAS · Las Vegas, NV", US, 36.083, -115.152, "air", "airport"],
+    ["air-mia", "Miami airport", "MIA · Miami, FL", US, 25.796, -80.29, "air", "airport"], ["air-bos", "Logan", "BOS · Boston, MA", US, 42.362, -71.008, "air", "airport"],
+    ["air-msp", "MSP", "MSP · Minneapolis, MN", US, 44.88, -93.222, "air", "airport"], ["air-dtw", "Detroit Metro", "DTW · Detroit, MI", US, 42.214, -83.354, "air", "airport"],
+    ["air-phl", "Philadelphia airport", "PHL · Philadelphia, PA", US, 39.872, -75.241, "air", "airport"], ["air-ewr", "Newark", "EWR · Newark, NJ", US, 40.689, -74.171, "air", "airport"],
+    ["air-clt", "Charlotte airport", "CLT · Charlotte, NC", US, 35.214, -80.943, "air", "airport"], ["air-phx", "Sky Harbor", "PHX · Phoenix, AZ", US, 33.435, -112.006, "air", "airport"],
+    ["air-iah", "Houston Intercontinental", "IAH · Houston, TX", US, 29.984, -95.341, "air", "airport"], ["air-slc", "Salt Lake airport", "SLC · Salt Lake City, UT", US, 40.789, -111.98, "air", "airport"],
+    ["air-mke", "Milwaukee airport", "MKE · Milwaukee, WI", US, 42.947, -87.897, "air", "airport"], ["air-msn", "Madison airport", "MSN · Madison, WI", US, 43.14, -89.338, "air", "airport"],
+    ["air-yyz", "Pearson", "YYZ · Toronto, ON", US, 43.676, -79.629, "air", "airport"], ["air-yvr", "Vancouver airport", "YVR · Vancouver, BC", US, 49.194, -123.184, "air", "airport"],
+    ["air-lhr", "Heathrow", "LHR · London", UK, 51.471, -0.46, "air", "airport"], ["air-dub", "Dublin airport", "DUB · Dublin", UK, 53.429, -6.262, "air", "airport"],
+    ["air-cdg", "Charles de Gaulle", "CDG · Paris", EU, 49.009, 2.554, "air", "airport"], ["air-ams", "Schiphol", "AMS · Amsterdam", EU, 52.309, 4.764, "air", "airport"],
+    ["air-fra", "Frankfurt airport", "FRA · Frankfurt", EU, 50.027, 8.558, "air", "airport"], ["air-kef", "Keflavík", "KEF · Iceland", EU, 63.985, -22.606, "air", "airport"],
+    ["air-dxb", "Dubai airport", "DXB · Dubai", MA, 25.25, 55.371, "air", "airport"], ["air-hnd", "Haneda", "HND · Tokyo", AS, 35.55, 139.787, "air", "airport"],
+    ["air-sin", "Changi", "SIN · Singapore", AS, 1.35, 103.994, "air", "airport"], ["air-syd", "Sydney airport", "SYD · Sydney", AS, -33.946, 151.177, "air", "airport"],
+    ["grand-central", "Grand Central", "New York, NY", US, 40.7527, -73.9772, "train", "train"], ["penn-station", "Penn Station", "New York, NY", US, 40.7506, -73.9935, "train", "train"],
+    ["union-dc", "Union Station", "Washington, DC", US, 38.8973, -77.0063, "train", "train"], ["union-chicago", "Union Station", "Chicago, IL", US, 41.8787, -87.6403, "train", "train"],
+    ["union-la", "Union Station", "Los Angeles, CA", US, 34.0562, -118.2365, "train", "train"], ["30th-street", "30th Street Station", "Philadelphia, PA", US, 39.9557, -75.182, "train", "train"],
+    ["south-station", "South Station", "Boston, MA", US, 42.3523, -71.0552, "train", "train"], ["union-denver", "Union Station", "Denver, CO", US, 39.753, -105.0002, "train", "train"],
+    ["union-toronto", "Union Station", "Toronto, ON", US, 43.6453, -79.3806, "train", "train"], ["kings-cross", "King's Cross", "London", UK, 51.532, -0.1233, "train", "train"],
+    ["st-pancras", "St Pancras", "London", UK, 51.5319, -0.1263, "train", "train"], ["waverley", "Waverley", "Edinburgh", UK, 55.952, -3.189, "train", "train"],
+    ["heuston", "Heuston", "Dublin", UK, 53.3464, -6.2943, "train", "train"], ["gare-du-nord", "Gare du Nord", "Paris", EU, 48.8809, 2.3553, "train", "train"],
+    ["amsterdam-centraal", "Amsterdam Centraal", "Amsterdam", EU, 52.3791, 4.9003, "train", "train"], ["antwerp-centraal", "Antwerpen-Centraal", "Antwerp, Belgium", EU, 51.2172, 4.4211, "train", "train"],
+    ["berlin-hbf", "Berlin Hauptbahnhof", "Berlin", EU, 52.5251, 13.3694, "train", "train"], ["zurich-hb", "Zürich HB", "Zürich", EU, 47.3782, 8.5402, "train", "train"],
+    ["milano-centrale", "Milano Centrale", "Milan", EU, 45.4862, 9.2045, "train", "train"], ["atocha", "Atocha", "Madrid", EU, 40.4065, -3.6895, "train", "train"],
+    ["tokyo-station", "Tokyo Station", "Tokyo", AS, 35.6812, 139.7671, "train", "train"], ["csmt", "Chhatrapati Shivaji Terminus", "Mumbai", AS, 18.9398, 72.8355, "train", "train"]];
+  return { CITIES: CITIES, PUBS: PUBS, FOOD: FOOD, HUBS: HUBS, REGIONS: [US, UK, EU, AS, LA, MA] };
 });
