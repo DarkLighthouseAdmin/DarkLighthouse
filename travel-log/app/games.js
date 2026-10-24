@@ -142,7 +142,7 @@
     var G = GAMES[kind], all = items(kind, "print:" + kind);
     return '<section class="gsheet"><h2>' + G.emoji + ' ' + esc(G.name) + '</h2><p class="gsub">' + esc(G.how) + '</p><div class="gprintgrid g-' + kind + '">' +
       all.map(function (it) { return '<span class="gbox"><i></i>' + esc(label(kind, it)) + '</span>'; }).join("") +
-      '</div><p class="gname">Name: ____________________ &nbsp; Date: ____________ &nbsp; Where to: ____________________</p><p class="gfoot">Famstamp · family travel log · darklighthousesolutions.com</p></section>';
+      '</div><p class="gname">Name: ____________________ &nbsp; Date: ____________ &nbsp; Where to: ____________________</p><p class="gfoot">' + esc(((typeof self !== "undefined" && self.FS_BRAND && self.FS_BRAND.NAME) || "Famstamp")) + ' · family travel log · darklighthousesolutions.com</p></section>';
   }
   function printView(kind) {
     document.title = "Printable road-trip games · Famstamp";

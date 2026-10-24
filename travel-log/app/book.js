@@ -30,6 +30,7 @@
     return ys[0] === ys[ys.length - 1] ? String(ys[0]) : ys[0] + "–" + ys[ys.length - 1];
   }
   function map(svg) { return '<div class="mapbox bookmap"><div>' + svg.replace(/ data-pz(init)?="[^"]*"/g, "") + '</div></div>'; }
+  function bn() { return (window.FS_BRAND && window.FS_BRAND.NAME) || "Famstamp"; }
   function page(cls, inner, n) { return '<section class="bpage ' + cls + '">' + inner + (n ? '<span class="bpn">' + n + '</span>' : "") + '</section>'; }
 
   /** All the pages of k's book as HTML. */
@@ -42,20 +43,29 @@
         (e.funny ? '<p>😂 “' + esc(e.funny) + '”' + (e.said ? ' (' + esc(e.said) + ')' : "") + '</p>' : "") + (e.photoId ? '<img class="bjdraw" alt="A drawing" data-photo="' + esc(e.photoId) + '">' : "") + '</div>';
     }).join("") + '</div>';
   }
+  /** v65: the stamps this trip gave k (a kid's own drawn stamp shows here too). */
+  function tripStampsHTML(k, t, stamps) {
+    var P = window.WK_PASSPORT, M = window.MLTL, l = stamps.filter(function (s) { return s.tripId === t.id; }).slice(0, 4);
+    return l.length ? '<div class="btstamps">' + l.map(function (x) { return '<figure>' + P.stampSVG(x, stampName(x), { holder: k.id, sub: x.kind === "park" ? M.parkSub(M.parkById(x.area)) : "" }) + '</figure>'; }).join("") + '</div>' : "";
+  }
   function pagesHTML(k) {
     var M = window.MLTL, P = window.WK_PASSPORT, T = window.WK_TRIPS, app = A(), who = M.who(k);
     var s = M.stats(k, app.state.trips, window.MLTL_MAPS.world), trips = tripsOf(k), stamps = stampsOf(k), n = 1, out = [];
     var cover = stamps.slice(-3);
-    out.push(page("bcover", '<div class="bcv"><span class="bkick">FAMSTAMP · TRAVEL BOOK</span><h1>' + esc(who) + '\'s<br>Travel Book</h1><p class="byrs">' + esc(years(k, trips, stamps)) + '</p>' +
+    out.push(page("bcover", '<div class="bcv">' + (window.FS_BRAND && window.FS_BRAND.logoSVG ? '<div class="blogo" aria-hidden="true">' + window.FS_BRAND.logoSVG(window.FS_BRAND.PAPER || "#fffdf8") + '</div>' : "") + '<span class="bkick">' + esc(bn().toUpperCase()) + ' · TRAVEL BOOK</span><h1>' + esc(who) + '\'s<br>Travel Book</h1><p class="byrs">' + esc(years(k, trips, stamps)) + '</p>' +
       '<div class="bcstamps" aria-hidden="true">' + cover.map(function (x) { return '<span>' + P.stampSVG(x, stampName(x), { sub: x.kind === "park" ? M.parkSub(M.parkById(x.area)) : "" }) + '</span>'; }).join("") + '</div>' +
       '<p class="bstat">' + [s.states + " states", s.countries + " countries", s.parks + " national parks", s.trips + " trips"].join(" · ") + '</p></div>'));
+    var crew = {}; trips.forEach(function (t) { t.kidIds.forEach(function (id) { if (id !== k.id) crew[id] = (crew[id] || 0) + 1; }); });
+    var crewL = Object.keys(crew).map(function (id) { return { p: app.kidById(id), n: crew[id] }; }).filter(function (x) { return x.p && !x.p.deletedAt; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 8);
+    if (crewL.length) out.push(page("bfamily", '<h2>' + esc(who) + '\'s travel crew</h2><p class="bsub">The people on the road with ' + esc(who) + '</p><ul class="bcrew">' +
+      [{ p: k, n: trips.length, me: 1 }].concat(crewL).map(function (x) { return '<li><span class="bav" style="' + app.kidStyle(x.p) + '">' + esc(M.who(x.p).slice(0, 1)) + '</span><b>' + esc(M.who(x.p)) + '</b><span>' + (x.me ? x.n + (x.n === 1 ? ' trip' : ' trips') + ' in this book' : x.n + (x.n === 1 ? ' trip' : ' trips') + ' together') + '</span></li>'; }).join("") + '</ul>', n++));
     out.push(page("bmap", '<h2>' + esc(who) + '\'s United States</h2><p class="bsub">' + s.states + ' of 50 states colored in</p>' + map(app.usSVG(k)), n++));
     out.push(page("bmap", '<h2>' + esc(who) + '\'s world</h2><p class="bsub">' + s.countries + ' ' + (s.countries === 1 ? "country" : "countries") + ' · ' + s.continents + ' ' + (s.continents === 1 ? "continent" : "continents") + '</p>' + map(app.worldSVG(k, "world")), n++));
     var shown = stamps.slice(0, MAX_STAMP_PAGES * PER_PAGE);
     for (var i = 0; i < shown.length; i += PER_PAGE) {
       var more = i + PER_PAGE >= shown.length && stamps.length > shown.length ? stamps.length - shown.length : 0;
       out.push(page("bstamps", '<h2>Passport stamps</h2><div class="bgrid">' + shown.slice(i, i + PER_PAGE).map(function (x) {
-        return '<figure>' + P.stampSVG(x, stampName(x), { sub: x.kind === "park" ? M.parkSub(M.parkById(x.area)) : "" }) + '</figure>'; }).join("") + '</div>' +
+        return '<figure>' + P.stampSVG(x, stampName(x), { holder: k.id, sub: x.kind === "park" ? M.parkSub(M.parkById(x.area)) : "" }) + '</figure>'; }).join("") + '</div>' +
         (more ? '<p class="bsub">…and ' + more + ' more stamps in the full book</p>' : ""), n++));
     }
     trips.slice(-MAX_TRIPS).forEach(function (t) {
@@ -65,18 +75,20 @@
         '<h2>' + esc(t.title || t.place) + '</h2><p class="bsub">' + esc([fmt(t.date), age != null ? "age " + age : ""].filter(Boolean).join(" · ")) + '</p>' +
         (route && route !== (t.title || t.place) ? '<p class="broute">' + esc(route) + '</p>' : "") +
         (t.memory ? '<p class="bnote">“' + esc(t.memory) + '”</p>' : "") +
-        (rows.length ? '<dl class="bmems">' + rows.map(function (p) { return '<div><dt>' + p[2] + ' ' + esc(p[1]) + '</dt><dd>' + esc(m[p[0]]) + '</dd></div>'; }).join("") + '</dl>' : "") + journalBits(k, t), n++));
+        (rows.length ? '<dl class="bmems">' + rows.map(function (p) { return '<div><dt>' + p[2] + ' ' + esc(p[1]) + '</dt><dd>' + esc(m[p[0]]) + '</dd></div>'; }).join("") + '</dl>' : "") + tripStampsHTML(k, t, stamps), n++));
+      var jb = journalBits(k, t);   // v65: the journal gets its own page so nothing is cut off when printed
+      if (jb) out.push(page("btrip bjpage", '<h2>' + esc(who) + '\'s journal</h2><p class="bsub">' + esc(t.title || t.place) + '</p>' + jb, n++));
     });
     var F = window.FS_FIRSTS, firsts = F ? F.timeline(k, app.state.trips, F.ctx()).filter(function (r) { return r.at; }) : [];
     if (firsts.length) out.push(page("bfirsts", '<h2>' + esc(who) + '\'s firsts</h2><ol>' + firsts.slice(0, 12).map(function (r) {
       return '<li><span class="bfe" aria-hidden="true">' + r.emoji + '</span><div><b>' + esc(r.title) + '</b><span>' + esc([fmt(r.at), r.place].filter(Boolean).join(" · ")) + '</span></div></li>'; }).join("") + '</ol>', n++));
-    out.push(page("bback", '<div class="bcv"><p class="bend">The end… until the next trip.</p><span class="bkick">MADE WITH FAMSTAMP</span></div>'));
+    out.push(page("bback", '<div class="bcv"><p class="bend">The end… until the next trip.</p><span class="bkick">MADE WITH ' + esc(bn().toUpperCase()) + '</span></div>'));
     return out;
   }
 
   function view(k, sub) {
     var app = A(), main = app.main, M = window.MLTL, who = M.who(k), pages = pagesHTML(k);
-    document.title = who + "'s travel book · Famstamp";
+    document.title = who + "'s travel book · " + bn();
     if (sub === "pdf") {   // just the pages, for printing the sample PDF
       document.body.classList.add("bookpdf");
       main.innerHTML = '<div class="bookpages" style="' + app.kidStyle(k) + '">' + pages.join("") + '</div>'; app.fillPhotos(); return;
@@ -85,7 +97,7 @@
       '<a class="back" href="#/p/' + esc(k.id) + '/stats">← Badges</a>' +
       '<div class="panel bookhero"><span class="pchip">Premium · coming soon</span><h2>A real printed book of ' + esc(who) + '\'s travels</h2>' +
       '<p>We\'re working on a hardcover book made from ' + esc(who) + '\'s maps, passport stamps, trips and trip memories. One to keep on the shelf, or to give to Grandma.</p>' +
-      '<p class="small muted">It\'ll be part of Famstamp Premium (Family Keeper). There\'s nothing to sign up for yet; when it\'s ready, you\'ll see it right here.</p>' +
+      '<p class="small muted">It\'ll be part of ' + esc(bn()) + ' Premium (Family Keeper). There\'s nothing to sign up for yet; when it\'s ready, you\'ll see it right here.</p>' +
       '<div class="actions"><a class="btn btn-primary" href="' + SAMPLE + '" target="_blank" rel="noopener">📘 See a sample book (PDF)</a>' +
       '<a class="btn btn-ghost" href="#/p/' + esc(k.id) + '/print">🖨 Print my map at home (free)</a></div></div>' +
       '<h2 class="bprevh">Your preview <span class="muted small">' + pages.length + ' pages</span></h2>' +

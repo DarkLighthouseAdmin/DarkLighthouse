@@ -916,3 +916,11 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
   body.stposterview .stposter { page:fsposter; border-width:2px; margin:0 auto; max-width:none; height:9.9in; box-sizing:border-box; overflow:hidden; padding:.3in; break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body.stposterview .stposter h1 { font-size:34pt; } body.stposterview .stqr svg { width:3.4in; } body.stposterview .ststamp svg { width:1.4in; }
 }
+.bpage .blogo svg { width:38cqw; height:auto; margin:0 auto 2cqw; display:block; }
+.bcrew { list-style:none; padding:0; display:grid; grid-template-columns:repeat(2, 1fr); gap:3cqw 4cqw; margin-top:5cqw; font-size:3.6cqw; }
+.bcrew li { display:grid; grid-template-columns:auto 1fr; column-gap:2cqw; align-items:center; }
+.bcrew .bav { grid-row:span 2; width:10cqw; height:10cqw; border-radius:50%; display:grid; place-items:center; color:#fff; font-weight:800; font-size:5cqw; background:var(--kid, #2c6e8f); }
+.bcrew span:last-child { color:#5b6670; font-size:3cqw; }
+.btstamps { display:flex; gap:3cqw; margin:2cqw 0; } .btstamps figure { margin:0; width:17cqw; } .btstamps svg { width:100%; height:auto; }
+.bjpage .bjournal h3 { display:none; } .bjpage .bjent { margin:0 0 4cqw; font-size:4.6cqw; line-height:1.35; } .bjpage .bjd { font-size:3.2cqw; text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
+.bjpage .bjdraw { max-width:40cqw; max-height:40cqw; border-radius:2cqw; }

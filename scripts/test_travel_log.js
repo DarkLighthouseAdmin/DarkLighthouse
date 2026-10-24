@@ -1717,7 +1717,12 @@ setTimeout(() => {
 // ---- v65: brand config, kid-drawn stamps, share cards, postcards, stamp stations, Cousin Cup ----
 {
   const app = f => fs.readFileSync(path.join(APP, f), "utf8");
-  ok(/var VERSION = "v65"/.test(read("app.js")) && /mltl-v65/.test(read("sw.js")), "v65: version and cache bumped");
+  ok(/var VERSION = "v6[5-9]"/.test(read("app.js")) && /mltl-v6[5-9]/.test(read("sw.js")), "v65: version and cache bumped");
+  ok(/var VERSION = "v66"/.test(read("app.js")) && /mltl-v66/.test(read("sw.js")), "v66: version and cache bumped");
+  ok(/FS_BRAND/.test(read("book.js")) && !/"FAMSTAMP/.test(read("book.js")), "v66: book takes its brand name from FS_BRAND");
+  ok(/FS_BRAND/.test(read("rewards.js")) && /FS_BRAND/.test(read("games.js")), "v66: certificate and game footer use FS_BRAND");
+  ok(/bfamily/.test(read("book.js")) && /travel crew/.test(read("book.js")), "v66: book has a travel crew page");
+  ok(/tripStampsHTML/.test(read("book.js")) && /bjpage/.test(read("book.js")) && /\.bjpage/.test(read("app.css")), "v66: trip stamps on trip pages and journal on its own page");
   ["brand.js", "stampx.js", "kidart.js", "sharecard.js", "postcard.js", "stations.js", "cup.js"].forEach(f => {
     ok(read("index.html").indexOf('src="' + f + '"') > 0 && read("sw.js").indexOf('"' + f + '"') > 0, f + " loaded and cached offline");
   });

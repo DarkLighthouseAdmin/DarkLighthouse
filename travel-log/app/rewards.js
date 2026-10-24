@@ -57,7 +57,7 @@
       '<polygon points="50,8 56,50 50,92 44,50" fill="' + c + '"/><polygon points="8,50 50,44 92,50 50,56" fill="' + c + '" opacity=".6"/><circle cx="50" cy="50" r="5" fill="#fff" stroke="' + c + '" stroke-width="2"/></svg>';
     var stars = '<span class="cstars" aria-hidden="true" style="color:' + c + '">★ ★ ★</span>';
     return '<div class="cert" style="--cc:' + c + '"><div class="cin">' +
-      '<div class="ctop">' + stars + '<span class="ckick">FAMSTAMP · FAMILY TRAVEL LOG</span>' + stars + '</div>' +
+      '<div class="ctop">' + stars + '<span class="ckick">' + esc(((typeof self !== "undefined" && self.FS_BRAND && self.FS_BRAND.NAME) || "Famstamp").toUpperCase()) + ' · FAMILY TRAVEL LOG</span>' + stars + '</div>' +
       '<h1 class="ctitle">Certificate of Adventure</h1><p class="cthis">This certifies that</p>' +
       '<p class="cname">' + esc(o.name) + '</p>' +
       '<p class="cline">' + esc(L.line) + ' and earned the rank of</p>' +
@@ -80,7 +80,7 @@
   function seen() { return (A().state.meta.rewardsSeen) || {}; }
   function markSeen(pid, n) { var s = Object.assign({}, seen()); if ((+s[pid] || 0) < n) { s[pid] = n; A().setMeta("rewardsSeen", s); } }
   function view(k) {
-    document.title = "Rewards · " + M().who(k) + " · Famstamp";
+    document.title = "Rewards · " + M().who(k) + " · " + ((typeof self !== "undefined" && self.FS_BRAND && self.FS_BRAND.NAME) || "Famstamp");
     var c = count(k), nx = next(k);
     var html = '<h2>🏅 Rewards</h2><p class="lede small">' + esc(M().who(k)) + ' has <b>' + c + '</b> ' + (c === 1 ? "stamp" : "stamps") + '. ' +
       (nx ? (nx.n - c) + ' more for <b>' + esc(nx.name) + '</b>.' : 'Every reward unlocked!') + ' Each reward comes with a certificate to print.</p><div class="rgrid">' +
