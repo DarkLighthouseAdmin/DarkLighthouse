@@ -586,6 +586,28 @@
   }
   function onThisDayLine(x) { return (x.years === 1 ? "1 year ago" : x.years + " years ago") + " today you were in " + x.label; }
 
+  // ---------- Coming up / on a trip now (v53) ----------
+  function dayDiff(a, b) { return Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 864e5); }
+  function tripEnd(t) { return /^\d{4}-\d{2}-\d{2}$/.test(t.endDate || "") && t.endDate >= t.date ? t.endDate : t.nights > 0 ? addDays(t.date, t.nights) : t.date; }
+  /** Trips that haven't started yet (not drafts, not deleted), soonest first: [{ trip, days }] */
+  function upcoming(trips, today) {
+    today = today || todayStr();
+    return (trips || []).filter(function (t) { return t && !t.deletedAt && !isDraft(t) && /^\d{4}-\d{2}-\d{2}$/.test(t.date || "") && t.date > today; })
+      .map(function (t) { return { trip: t, days: dayDiff(today, t.date) }; }).sort(function (a, b) { return a.days - b.days; });
+  }
+  /** Trips happening today: [{ trip, day, of }] ("day 3 of 7"). */
+  function onTripNow(trips, today) {
+    today = today || todayStr();
+    return (trips || []).filter(function (t) {
+      if (!t || t.deletedAt || isDraft(t) || !/^\d{4}-\d{2}-\d{2}$/.test(t.date || "")) return false;
+      var end = tripEnd(t); return t.date <= today && today <= end;
+    }).map(function (t) { return { trip: t, day: dayDiff(t.date, today) + 1, of: dayDiff(t.date, tripEnd(t)) + 1 }; });
+  }
+  function countdownLine(x) {
+    var n = dayLabel(x.trip);
+    return x.days === 1 ? n + " is tomorrow!" : n + " in " + x.days + " days";
+  }
+
   // ---------- Recently deleted (soft delete, kept in the trip itself so no cloud change is needed) ----------
   var BIN_DAYS = 30;
   function tripLabel(t) { return String((t && (t.title || t.place)) || "this trip").trim(); }
@@ -618,7 +640,7 @@
     return { trip: c, photo: ph };
   }
 
-  return { onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+  return { upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,

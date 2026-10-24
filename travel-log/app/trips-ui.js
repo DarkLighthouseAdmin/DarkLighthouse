@@ -241,7 +241,7 @@
     // v1.8: "Plan this trip" from the family wishlist: the dream place is the destination, the people who voted are going, not done yet
     var wishDest = null, fromWish = !old && window.FS_WISH && window.FS_WISH.take ? window.FS_WISH.take() : null;
     if (fromWish) {
-      var wd = copy(fromWish.stop); d.done = false; d.title = "Trip to " + wd.name;
+      var wd = copy(fromWish.stop); d.done = false; d.title = "Trip to " + wd.name; d.date = ""; d.plan = true;
       // the dream place is a stop, never the start: with no home saved yet, it's added right after they pick where they start
       if (d.route.length) { wd.mode = guessMode(d.route[0], wd); d.route.push(wd); }
       else { wishDest = wd; setTimeout(function () { A_.toast("Where do you start from? " + wd.name + " goes in next."); }, 400); }
@@ -265,7 +265,7 @@
       '<div class="results" id="presults" role="listbox"></div></div>' +
       '<label class="check small"><input type="checkbox" id="tround"' + (d.roundTrip ? " checked" : "") + '> Round trip (came back home at the end)</label>' +
       '<div class="btotal" id="btotal"></div><div id="bfly" class="bfly"></div></div>' +
-      '<div class="bsec"><h3>When?</h3><div class="fields"><div class="field"><label for="tdate">Start</label><input id="tdate" type="date" value="' + esc(d.date || "") + '"></div>' +
+      '<div class="bsec"><h3>When?</h3>' + (d.plan ? '<p class="small muted planhint">Pick your dates and Home counts down to the trip. While you\'re there, tap Stamp a stop.</p>' : "") + '<div class="fields"><div class="field"><label for="tdate">Start</label><input id="tdate" type="date" value="' + esc(d.date || "") + '"></div>' +
       '<div class="field"><label for="tend">End <span class="muted small">(optional)</span></label><input id="tend" type="date" value="' + esc(d.endDate || "") + '"></div>' +
       '<div class="field"><label for="tnights">Or how many nights?</label><input id="tnights" type="number" inputmode="numeric" min="0" max="999" value="' + (typeof d.nights === "number" ? d.nights : "") + '" placeholder="e.g. 7"></div></div>' +
       '<label class="check small"><input type="checkbox" id="tdone"' + (d.done || d.endDate ? " checked" : "") + '> We\'re home: this trip is done (unlocks its story)</label></div>' +
@@ -293,6 +293,8 @@
         '<div class="actions"><button type="button" class="btn btn-danger" id="tdel">Delete "' + esc(M.tripLabel(old)) + '"</button></div></div>' : "") + '</div>';
     A_.main.innerHTML = A_.shell(k, "trips", html);
     var routeEl = $("#broute"), search = $("#psearch"), results = $("#presults");
+    // v53 "Stamp a stop" from Home's on-a-trip card: straight to adding a stop
+    if (window.FS_FOCUS_STOP) { window.FS_FOCUS_STOP = false; if (search) setTimeout(function () { search.scrollIntoView({ block: "center" }); search.focus(); A_.toast("Type where you are now to stamp it"); }, 150); }
     function kidIds() { return $$("input[name=kids]:checked").map(function (c) { return c.value; }); }
 
     // route list

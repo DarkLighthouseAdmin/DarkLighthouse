@@ -754,3 +754,7 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 
 /* v52: year in review facts under the card */
 .yr-facts { list-style:none; padding:0; margin:.6rem 0 0; display:flex; flex-wrap:wrap; gap:.3rem .9rem; font-size:.92rem; color:var(--muted); }
+
+/* v53: countdown + on a trip now */
+.countdown .cd-n { font-family:Georgia, serif; font-weight:700; font-size:1.5rem; color:var(--navy, #16283a); }
+.tripnow { margin-top:.8rem; border:2px solid #e8a54b; } .tripnow h3 { font-size:1.05rem; } .tripnow .actions { margin-top:.4rem; }

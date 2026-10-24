@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v52" -> "v52").
-  var VERSION = "v52";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v53" -> "v53").
+  var VERSION = "v53";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -197,6 +197,23 @@
     return '<section class="panel onthisday" aria-label="On this day"><h3><span aria-hidden="true">🕰️</span> On this day</h3><ul>' + rows + '</ul>' +
       (hits.length > 3 ? '<p class="small muted">and ' + (hits.length - 3) + ' more from this date</p>' : "") + '</section>';
   }
+  /** v53: on a trip right now -> quick stamp; otherwise a countdown to the next planned trip. Nothing when neither. */
+  function tripsAheadCard() {
+    var today = M.today(), now = M.onTripNow(state.trips, today), next = M.upcoming(state.trips, today), html = "";
+    now.slice(0, 2).forEach(function (x) {
+      var who = x.trip.kidIds.filter(kidById)[0]; if (!who) return;
+      html += '<section class="panel tripnow" aria-label="On a trip now"><h3><span aria-hidden="true">🧳</span> ' + esc(M.tripLabel(x.trip)) + '</h3>' +
+        '<p class="small muted">' + (x.of > 1 ? "Day " + x.day + " of " + x.of + " · " : "Today · ") + esc(travelerNames(x.trip.kidIds)) + '</p>' +
+        '<div class="actions"><button type="button" class="btn btn-beacon" data-quickstamp="' + esc(who) + '|' + esc(x.trip.id) + '">📍 Stamp a stop</button>' +
+        '<a class="btn btn-ghost" href="#/p/' + esc(who) + '/trip/' + esc(x.trip.id) + '">Open trip</a></div></section>';
+    });
+    if (!now.length && next.length) {
+      var x = next[0], who = x.trip.kidIds.filter(kidById)[0];
+      html += '<a class="panel familycard countdown" href="' + (who ? "#/p/" + esc(who) + "/trip/" + esc(x.trip.id) : "#/") + '"><span class="fam-ic cd-n" aria-hidden="true">' + (x.days > 99 ? "✈️" : x.days) + '</span><span><h3>' + esc(M.countdownLine(x)) + '</h3>' +
+        '<span class="muted small">' + esc(M.prettyDate(x.trip.date) + " · " + travelerNames(x.trip.kidIds)) + (next.length > 1 ? " · " + (next.length - 1) + " more planned" : "") + '</span></span></a>';
+    }
+    return html;
+  }
   /** "Looks good" on a draft trip card. */
   function reviewDraft(id) {
     var t = state.trips.filter(function (x) { return x.id === id; })[0]; if (!t) return Promise.resolve();
@@ -214,7 +231,7 @@
     if (state.kids.length) html += '<div class="homeadd">' + (state.kids.length === 1 ? '<a class="btn btn-beacon btn-big" id="homeadd" href="' + esc(UI().addTripHref(state.kids[0])) + '">' : '<button type="button" class="btn btn-beacon btn-big" id="homeadd" aria-haspopup="dialog">') +
       '<span aria-hidden="true">＋</span> Add a trip' + (state.kids.length === 1 ? '</a>' : '</button>') + '<span class="small muted">Stops, flights and miles, and everyone on it gets the stamps</span></div>';
     if (window.MLTL_SYNC && window.MLTL_SYNC.homeTop) html += window.MLTL_SYNC.homeTop();
-    html += reviewNudge() + onThisDayCard();
+    html += reviewNudge() + tripsAheadCard() + onThisDayCard();
     html += '<h2>Who\'s traveling?</h2><div class="kids">';
     state.kids.forEach(function (k) {
       html += '<a class="kidcard" href="#/p/' + esc(k.id) + '" style="' + kidStyle(k) + '"><span class="avatar">' + initial(M.who(k)) + '</span>' +
@@ -886,6 +903,8 @@
 
   // ---------- boot ----------
   document.addEventListener("click", function (e) {
+    var qs = e.target.closest && e.target.closest("[data-quickstamp]");
+    if (qs) { var q = qs.dataset.quickstamp.split("|"); window.FS_FOCUS_STOP = true; location.hash = "#/p/" + q[0] + "/trips/edit/" + q[1]; return; }
     var rb = e.target.closest && e.target.closest("[data-review]");
     if (rb) { e.preventDefault(); rb.disabled = true; reviewDraft(rb.dataset.review); return; }
     var a = e.target.closest && e.target.closest("a[data-book]");

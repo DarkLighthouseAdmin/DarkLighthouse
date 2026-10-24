@@ -1379,3 +1379,25 @@ setTimeout(() => {
   const e = Y.summary([z], [], 2026); ok(e.miles === 0 && e.nights === 0 && e.farthest === null, "an empty year has no miles or farthest trip");
   const yj = read("year.js"); ok(/extraLine\(sum\)/.test(yj) && /yr-facts/.test(yj) && /unitWord\(\)/.test(yj), "ui: card and page show miles and the extra facts");
 }
+
+// ---- v53: plan next trip: countdown on Home, Stamp a stop while you're on it ----
+{
+  const zid = "person_zz0000000000test";
+  const mk = (id, o) => Object.assign({ id, kidIds: [zid], place: "Zz Place", title: "", route: [], createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }, o);
+  const trips = [mk("trip_zzplan00000001", { date: "2026-11-05", title: "Trip to Zz Rome" }),
+    mk("trip_zzplan00000002", { date: "2026-10-25", title: "Zz Tomorrow" }),
+    mk("trip_zzplan00000003", { date: "2026-10-22", endDate: "2026-10-28", title: "Zz Now" }),
+    mk("trip_zzplan00000004", { date: "2026-12-01", title: "Draft: Zz Draft", draft: true }),
+    mk("trip_zzplan00000005", { date: "2026-12-02", title: "Zz Deleted", deletedAt: "2026-10-01T00:00:00.000Z" }),
+    mk("trip_zzplan00000006", { date: "2026-10-20", nights: 2, title: "Zz Over" })];
+  const up = M.upcoming(trips, "2026-10-24");
+  ok(up.map(x => x.trip.id.slice(-1)).join() === "2,1", "upcoming: future trips soonest first, no drafts or deleted (" + up.map(x => x.trip.id.slice(-1)).join() + ")");
+  ok(M.countdownLine(up[1]) === "Trip to Zz Rome in 12 days" && M.countdownLine(up[0]) === "Zz Tomorrow is tomorrow!", "countdown lines");
+  const now = M.onTripNow(trips, "2026-10-24");
+  ok(now.length === 1 && now[0].trip.id.endsWith("3") && now[0].day === 3 && now[0].of === 7, "on a trip now: day 3 of 7");
+  ok(M.onTripNow(trips, "2026-10-22").map(x => x.trip.id.slice(-1)).sort().join() === "3,6", "a trip with nights counts until it ends");
+  ok(M.onTripNow([], "2026-10-24").length === 0 && M.upcoming(null).length === 0, "no trips, no cards");
+  const aj = read("app.js"), tu = read("trips-ui.js");
+  ok(/tripsAheadCard\(\)/.test(aj) && /data-quickstamp/.test(aj) && /Stamp a stop/.test(aj) && /FS_FOCUS_STOP/.test(tu), "ui: Home countdown and Stamp a stop go to adding a stop");
+  ok(/d\.date = ""; d\.plan = true/.test(tu) && /Home counts down/.test(tu), "ui: Plan this trip starts with no date and says Home counts down");
+}
