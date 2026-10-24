@@ -1284,7 +1284,7 @@ setTimeout(() => {
   const thin = { app: M.APP_ID, version: 4, kids: [{ id: pz.id, name: "Zz Test", role: "adult", states: { FL: { at: "2026-03-01" } } }], trips: [], photos: [] };
   const dt = M.readBackup(thin), m = M.mergeRestore(local, dt.kids[0], dt.present.kids[pz.id]);
   ok(m.relationship === "dad" && m.localOnly.keep && JSON.stringify(m.wishes) === JSON.stringify(pz.wishes) && m.wv.n === 3, "merge keeps local fields the file doesn't have");
-  ok(m.states.FL && !m.states.WI, "merge takes the fields the file does have");
+  ok(m.states.FL && (!pz.states.WI || m.states.WI), "merge takes the file's stamps and (v62) keeps the phone's own");
   ok(M.mergeRestore(null, dt.kids[0], dt.present.kids[pz.id]) === dt.kids[0], "a new person comes in whole");
   const same = M.readBackup(JSON.parse(JSON.stringify(file)));
   const again = M.mergeRestore(pz, same.kids[0], same.present.kids[pz.id]);
@@ -1596,4 +1596,37 @@ setTimeout(() => {
   ok(/pushKey: "B[A-Za-z0-9_-]{86}"/.test(cf) && !/private/i.test(cf.replace(/private half lives only in Supabase Vault/, "")), "config: only the public VAPID key ships");
   ok(/rpc\("push_save"/.test(sy) && /action: "test"/.test(sy), "sync: push_save + test call");
   ok(/FS_PUSH\.panel\(\)/.test(ap) && /FS_PUSH\.bind\(\)/.test(ap), "settings page has the Notifications panel");
+}
+
+// ---------- v62: "Where have you been?" + a visit from a photo ----------
+{
+  const W = require("../travel-log/app/where.js");
+  const a = { id: "person_zz0000000000test", name: "Zz Test", role: "adult", states: { CO: { at: "2020-05-01" } }, places: {}, parks: {} };
+  const k = { id: "person_zz00000000kid01", name: "Zz Kid", role: "kid", states: {}, places: {}, parks: {} };
+  const s = {};
+  let r = W.tap([a], "state", "FL", s);
+  ok(r.on && a.states.FL && a.states.FL.at === "" && !k.states.FL, "quick stamp: only the chosen person, no date (a past visit)");
+  r = W.tap([a, k], "state", "CO", s);
+  ok(r.ids.join() === k.id && a.states.CO.at === "2020-05-01", "quick stamp: someone who already has it keeps their dated stamp");
+  r = W.tap([a, k], "state", "CO", s);
+  ok(!r.on && r.ids.join() === k.id && a.states.CO && !k.states.CO, "tap again: takes back only what this session added");
+  W.tap([a], "park", "zion", s); W.tap([a], "place", "ITA", s);
+  ok(a.parks.zion.jr === false && a.places.ITA && W.added(s) === 3, "parks and countries; running count");
+  ok(W.tap([a], "state", "CO", {}).ids.length === 0, "an older stamp is never removed from the quick grid");
+  const pop = W.order([{ id: "AL", name: "Alabama" }, { id: "FL", name: "Florida" }, { id: "CA", name: "California" }], "state", "");
+  ok(pop.map(x => x.id).join() === "FL,CA,AL", "popular first, then A-Z");
+  ok(W.order([{ id: "AL", name: "Alabama" }, { id: "FL", name: "Florida" }], "state", "flo").map(x => x.id).join() === "FL", "search filters");
+  ok(W.POPULAR.park.every(id => M.parkById(id)), "every popular park is a real park id");
+  ok(JSON.stringify(W.stampsFrom({ country: "USA", region: "UT", park: "zion" })) === JSON.stringify([{ kind: "state", id: "UT" }, { kind: "park", id: "zion" }]) &&
+     JSON.stringify(W.stampsFrom({ country: "ITA", region: "" })) === JSON.stringify([{ kind: "place", id: "ITA" }]) && W.stampsFrom(null).length === 0, "photo GPS lookup -> stamps");
+  ok(W.exifDay({ ms: Date.UTC(2019, 6, 4, 15), wall: "2019-07-04" }) === "2019-07-04" && W.exifDay(null) === "", "photo date");
+  ok(W.total([a]) === 4, "stamp total (country USA not double counted)");
+  // restore joins maps: a quick stamp made after the backup survives, the file's stamps come in, dates win over no date
+  const phone = { id: a.id, name: "Zz Test", updatedAt: "2026-10-24T20:00:00Z", states: { FL: { at: "" }, CO: { at: "2020-05-01" } }, places: {}, parks: { zion: { at: "", jr: false } } };
+  const file = { id: a.id, name: "Zz Test", updatedAt: "2026-10-01T00:00:00Z", states: { WI: { at: "2026-03-01" }, FL: { at: "2018-02-02" } }, places: { CAN: { at: "" } }, parks: { zion: { at: "2017-07-07", jr: true } } };
+  const mg = M.mergeRestore(phone, file);
+  ok(mg.states.FL.at === "2018-02-02" && mg.states.CO && mg.states.WI && mg.places.CAN && mg.parks.zion.jr && mg.parks.zion.at === "2017-07-07", "restore: maps join up, a date beats no date, badges kept");
+  const wj = read("where.js"), aj = read("app.js"), ij = read("import.js"), ix = read("index.html"), sw = read("sw.js");
+  ok(/h\[0\] === "where"/.test(aj) && /FS_WHERE\.homeCard\(\)/.test(aj) && /geo: mainThreadGeo/.test(ij) && /where\.js/.test(ix) && /"where\.js"/.test(sw), "wired: route, home card, offline geo, script, cache");
+  ok(/I\.exif\(b\)/.test(wj) && /id="wpdate"/.test(wj) && /id="wpstate"/.test(wj) && /redacted/.test(wj), "photo: EXIF first, manual place/date otherwise");
 }

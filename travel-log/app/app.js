@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v61" -> "v61").
-  var VERSION = "v61";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v62" -> "v62").
+  var VERSION = "v62";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -146,6 +146,7 @@
     document.body.classList.remove("kidview"); document.body.classList.remove("bookpdf");
     document.body.classList.remove("followview");
     if (h[0] === "follow" && window.FS_FOLLOW) return window.FS_FOLLOW.view(h[1] || "");
+    if (h[0] === "where" && window.FS_WHERE) return window.FS_WHERE.view(h[1] || "");
     if (h[0] === "highlights" && window.FS_HL) { window.FS_HL.view(); main.insertAdjacentHTML("beforeend", homeTabs("highlights")); return; }
     if (window.MLTL_SYNC && window.MLTL_SYNC.route(h)) return;
     if (h[0] === "family" && h[1] === "passport") return UI().passportFamily();
@@ -246,6 +247,7 @@
       '<span aria-hidden="true">＋</span> Add a trip' + (state.kids.length === 1 ? '</a>' : '</button>') + '<span class="small muted">Stops, flights and miles, and everyone on it gets the stamps</span></div>';
     if (window.MLTL_SYNC && window.MLTL_SYNC.homeTop) html += window.MLTL_SYNC.homeTop();
     if (window.FS_HL) html += window.FS_HL.homeCard();
+    if (window.FS_WHERE) html += window.FS_WHERE.homeCard();
     html += reviewNudge() + tripsAheadCard() + onThisDayCard();
     if (state.kids.length && window.FS_NEAR && !M.onTripNow(state.trips, M.today()).length) html += '<p class="small nearlink"><a class="tapline" href="#/near">📍 What\'s near me? Parks and places to stamp nearby</a></p>';
     html += '<h2>Who\'s traveling?</h2><div class="kids">';
@@ -962,7 +964,7 @@
   // What sync.js needs from the app. Nothing here talks to the network.
   var readyRes; var ready = new Promise(function (r) { readyRes = r; });
   window.MLTL_APP = { version: VERSION, state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, setMeta: setMeta,
-                      kidById: kidById, doBackup: doBackup, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
+                      kidById: kidById, myPersonId: myPersonId, doBackup: doBackup, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
                       dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
                       // for trips-ui.js
                       main: main, badgeStrip: badgeStrip, bindBadgeStrip: bindBadgeStrip, shell: shell, placeName: placeName, saveKid: saveKid, kidStyle: kidStyle, initial: initial, avatars: avatars, travelerNames: travelerNames,

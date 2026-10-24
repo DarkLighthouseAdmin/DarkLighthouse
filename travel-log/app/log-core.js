@@ -533,6 +533,15 @@
       (mineNewer ? inc.concat(ex) : ex.concat(inc)).forEach(function (e) { if (!e || !e.id) return; if (!(e.id in byId)) order.push(e.id); byId[e.id] = e; });
       out.eats = JSON.parse(JSON.stringify(order.map(function (id) { return byId[id]; })));
     }
+    // v62: maps join up too (states, countries, parks): a stamp made on this phone after the backup (e.g. with "Where have you
+    // been?") stays, and the file adds its own. Same place on both: the newer person's entry wins (a date beats no date either way).
+    ["states", "places", "parks"].forEach(function (bk) {
+      var a = existing[bk] && typeof existing[bk] === "object" ? existing[bk] : null, b = incoming[bk] && typeof incoming[bk] === "object" ? incoming[bk] : null;
+      if (!a || !b || (keys && keys.indexOf(bk) < 0)) return;
+      var older = mineNewer ? b : a, newer = mineNewer ? a : b, m = JSON.parse(JSON.stringify(older));
+      Object.keys(newer).forEach(function (id) { var n = newer[id] || {}, o = m[id]; m[id] = JSON.parse(JSON.stringify(o && !n.at && o.at ? Object.assign({}, n, { at: o.at }) : n)); if (o && o.jr && m[id] && !m[id].jr && bk === "parks") m[id].jr = true; });
+      out[bk] = m;
+    });
     if ((existing.spots && typeof existing.spots === "object") || (incoming.spots && typeof incoming.spots === "object")) {
       var a1 = existing.spots && typeof existing.spots === "object" ? existing.spots : {}, b1 = incoming.spots && typeof incoming.spots === "object" ? incoming.spots : {};
       out.spots = JSON.parse(JSON.stringify(Object.assign({}, mineNewer ? b1 : a1, mineNewer ? a1 : b1)));

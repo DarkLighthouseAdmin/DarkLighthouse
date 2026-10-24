@@ -426,6 +426,7 @@
 
   // ---------- hooks for app.js ----------
   window.MLTL_IMPORT = {
+    geo: mainThreadGeo,   // for where.js (a visit from a photo): offline place lookup
     route: function (h) {
       if (main.dataset.imp) { main.onclick = main.onchange = main.oninput = null; delete main.dataset.imp; }
       if (h[0] !== "import") return false;
