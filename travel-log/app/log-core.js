@@ -454,6 +454,7 @@
     if (typeof obj.version !== "number" || obj.version < 1 || obj.version > BACKUP_VERSION) throw new Error("This backup was made by a newer version of the app. Reload the app and try again.");
     if (!Array.isArray(obj.kids) || !Array.isArray(obj.trips) || !Array.isArray(obj.photos || [])) throw new Error("The backup file looks damaged.");
     var idOk = /^[a-z]+_[A-Za-z0-9]{4,40}$/;
+    var present = { kids: {}, trips: {}, photos: {} };
     var kids = obj.kids.filter(function (k) { return k && idOk.test(k.id) && clean(k.name, 40); }).map(function (k) {
       // v1 files have no role: everyone in them was a kid
       var kid = newPerson({ id: k.id, name: k.name, role: obj.version >= 2 ? k.role : "kid", birthYear: k.birthYear, color: k.color, now: k.createdAt, relationship: k.relationship, nickname: k.nickname });
@@ -466,38 +467,58 @@
       if (Array.isArray(k.eats)) { var je = JSON.stringify(k.eats.slice(0, 500)); if (je.length < 200000) kid.eats = JSON.parse(je); }
       kid.createdAt = typeof k.createdAt === "string" ? k.createdAt.slice(0, 30) : kid.createdAt;
       kid.updatedAt = typeof k.updatedAt === "string" ? k.updatedAt.slice(0, 30) : kid.updatedAt;
+      // v49: a file with no relationship stays that way (relOf() still shows the default); a set one is kept as is
+      if (k.relationship == null) delete kid.relationship;
+      // v49: fields this version doesn't rebuild (wish lists, newer features, Family Sync extras) come back too, not dropped
+      kid = keepUnknown(k, kid, BIG);
+      present.kids[kid.id] = presentKeys(k, kid);
       return kid;
     });
     var kidIds = kids.map(function (k) { return k.id; });
     var photos = (obj.photos || []).filter(function (p) {
       return p && idOk.test(p.id) && typeof p.dataUrl === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p.dataUrl) && p.dataUrl.length < 4e6;
-    }).map(function (p) { return { id: p.id, dataUrl: p.dataUrl }; });
+    }).map(function (p) { var o = keepUnknown(p, { id: p.id, dataUrl: p.dataUrl }, BIG); present.photos[o.id] = presentKeys(p, o); return o; });
     var photoIds = photos.map(function (p) { return p.id; });
     var trips = obj.trips.filter(function (t) { return t && idOk.test(t.id) && (Array.isArray(t.kidIds) || typeof t.kidId === "string"); }).map(function (t) {
-      var v4 = obj.version >= 4; if (!v4) { t = JSON.parse(JSON.stringify(t)); delete t.route; }
+      var src0 = t, v4 = obj.version >= 4; if (!v4) { t = JSON.parse(JSON.stringify(t)); delete t.route; }
       t = migrateTrip(JSON.parse(JSON.stringify(t)));
       var ids = t.kidIds.filter(function (id) { return kidIds.indexOf(id) >= 0; });
       if (!ids.length || !clean(t.place, 80)) return null;
-      return keepUnknown(t, newTrip({ id: t.id, kidIds: ids, place: t.place, from: obj.version >= 3 ? t.from : "", stops: obj.version >= 3 ? t.stops : [], date: t.date, who: t.who, memory: t.memory, mark: t.mark,
+      return withKeys(src0, keepUnknown(t, newTrip({ id: t.id, kidIds: ids, place: t.place, from: obj.version >= 3 ? t.from : "", stops: obj.version >= 3 ? t.stops : [], date: t.date, who: t.who, memory: t.memory, mark: t.mark,
                        photoId: photoIds.indexOf(t.photoId) >= 0 ? t.photoId : null, createdAt: t.createdAt, now: t.updatedAt,
                        route: v4 ? t.route : [], title: v4 ? t.title : "", endDate: v4 ? t.endDate : "", nights: v4 ? t.nights : null, roundTrip: v4 && t.roundTrip, done: v4 && t.done, fly: v4 ? t.fly : "", back: v4 ? t.back : null,
-                       stays: v4 ? t.stays : [], favs: v4 ? t.favs : [], moments: v4 ? t.moments : {}, story: v4 ? t.story : null, memories: v4 ? t.memories : {} }));
+                       stays: v4 ? t.stays : [], favs: v4 ? t.favs : [], moments: v4 ? t.moments : {}, story: v4 ? t.story : null, memories: v4 ? t.memories : {} }), BIG), present.trips);
     }).filter(Boolean);
     var home = obj.version >= 3 && obj.settings && typeof obj.settings === "object" ? clean(obj.settings.home, 80) : "";
     var settings = { home: home };
     if (obj.version >= 4 && obj.settings && typeof obj.settings === "object") { var hp = T.cleanPoint(obj.settings.homePoint, true); if (hp) settings.homePoint = hp; if (obj.settings.units === "km") settings.units = "km"; }
-    return { kids: kids, trips: trips, photos: photos, settings: settings, exportedAt: typeof obj.exportedAt === "string" ? obj.exportedAt : "" };
+    return { kids: kids, trips: trips, photos: photos, settings: settings, present: present, exportedAt: typeof obj.exportedAt === "string" ? obj.exportedAt : "" };
   }
 
-  /** Fields a newer app version (or Family Sync, e.g. copiedFrom) added that this version doesn't know: keep them as plain JSON, small ones only. */
-  function keepUnknown(src, built) {
+  /** Fields a newer app version (or Family Sync, e.g. copiedFrom) added that this version doesn't know: keep them as plain JSON.
+      max = longest field kept (default 2000; restore passes BIG so wish lists and the like survive). */
+  var BIG = 500000;
+  function keepUnknown(src, built, max) {
     var out = {};
     Object.keys(src || {}).forEach(function (k) {
       if (k in built || k === "kidId" || !/^[A-Za-z][A-Za-z0-9]{0,29}$/.test(k)) return;
       var j; try { j = JSON.stringify(src[k]); } catch (e) { return; }
-      if (j && j.length <= 2000) out[k] = JSON.parse(j);
+      if (j && j.length <= (max || 2000)) out[k] = JSON.parse(j);
     });
     return Object.assign(out, built);
+  }
+  /** The fields of a cleaned record that were really in the file (so a restore only overwrites those). */
+  function presentKeys(src, built) { return Object.keys(built).filter(function (k) { return k === "id" || (src && Object.prototype.hasOwnProperty.call(src, k)); }); }
+  function withKeys(src, built, bag) { bag[built.id] = presentKeys(src, built); return built; }
+  /** Restore everything, one record: a record that isn't on this phone comes in whole; one that is keeps every field it has
+      and takes only the fields the file really has (people on a trip are added, never removed). */
+  function mergeRestore(existing, incoming, keys) {
+    if (!existing) return incoming;
+    var out = JSON.parse(JSON.stringify(existing));
+    (keys || Object.keys(incoming)).forEach(function (k) { if (k in incoming) out[k] = incoming[k]; });
+    if (Array.isArray(existing.kidIds) && Array.isArray(incoming.kidIds))
+      out.kidIds = existing.kidIds.concat(incoming.kidIds.filter(function (id) { return existing.kidIds.indexOf(id) < 0; }));
+    return out;
   }
 
   /** Long edge capped at max px, keeping the shape. */
@@ -553,7 +574,7 @@
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,
            slug: slug, uid: uid, newKid: newKid, toggleArea: toggleArea, togglePark: togglePark, newTrip: newTrip, applyTripMark: applyTripMark,
-           ageOn: ageOn, stats: stats, badges: badges, BADGES: BADGES, makeBackup: makeBackup, readBackup: readBackup, fitDims: fitDims,
+           ageOn: ageOn, stats: stats, badges: badges, BADGES: BADGES, makeBackup: makeBackup, readBackup: readBackup, mergeRestore: mergeRestore, fitDims: fitDims,
            esc: esc, prettyDate: prettyDate, validDate: validDate, today: today, backupNudge: backupNudge,
            MAX_STOPS: MAX_STOPS, migrateTrip: migrateTrip, routeText: routeText, joinNames: joinNames, tripsTogether: tripsTogether, pairCounts: pairCounts,
            backupDue: backupDue, BACKUP_DAYS: BACKUP_DAYS, SNOOZE_DAYS: SNOOZE_DAYS, PARK_STATES: PARK_STATES, T: T, P: P };

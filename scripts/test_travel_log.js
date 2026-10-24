@@ -1260,3 +1260,38 @@ setTimeout(() => {
   const sj = read("spots.js"); ok(!/del\(\s*"trips"/.test(sj) && !/state\.trips\s*=/.test(sj), "ui: pubs/food code never touches trips");
   const aj = read("app.js"); ok(/viewDeleted/.test(aj) && /bindOneTrip/.test(aj) && /M\.splitTrips/.test(aj), "ui: Recently deleted page and restore-one-trip are wired");
 })();
+
+// ---- v49: Restore everything keeps every field (wish lists, newer features) and never loses fields already on the phone ----
+(() => {
+  const pz = { id: "person_zz0000000000test", name: "Zz Test", role: "adult", birthYear: null, color: M.COLORS[1], states: { WI: { at: "2020-01-01" } }, places: {}, parks: {},
+    createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-02T00:00:00.000Z", wv: { n: 3 }, wishes: [{ id: "w1", place: "Zz Test Town" }] };
+  const pk = { id: "person_zz0000000000kidd", name: "Zz Test Kid", role: "kid", relationship: "kid", birthYear: 2018, color: M.COLORS[2], states: {}, places: {}, parks: {},
+    createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", nickname: "Zz" };
+  const tz = Object.assign(M.newTrip({ id: "trip_zz0000000000test", kidIds: [pz.id], place: "Zz Test Town", date: "2026-02-02", now: "2026-02-02T00:00:00.000Z" }), { zzExtra: { big: "x".repeat(5000) } });
+  const ph = { id: "photo_zz0000000000test", dataUrl: px, caption: "Zz Test" };
+  const file = { app: M.APP_ID, version: 4, exportedAt: "2026-02-03T00:00:00.000Z", kids: [pz, pk], trips: [tz], photos: [ph], settings: {} };
+  const d = M.readBackup(JSON.parse(JSON.stringify(file)));
+  const P = d.kids.find(k => k.id === pz.id);
+  ok(JSON.stringify(P.wishes) === JSON.stringify(pz.wishes) && P.wv.n === 3, "restore keeps wishes and wv on a person");
+  ok(!("relationship" in P), "restore doesn't invent a relationship the file didn't have");
+  ok(M.relOf(P) === "parent", "a person with no relationship still shows the default");
+  ok(d.kids.find(k => k.id === pk.id).relationship === "kid" && d.kids.find(k => k.id === pk.id).nickname === "Zz", "a set relationship and nickname come back as they were");
+  ok(d.trips[0].zzExtra && d.trips[0].zzExtra.big.length === 5000, "big unknown trip fields come back");
+  ok(d.photos[0].caption === "Zz Test", "unknown photo fields come back");
+  ok(d.present && d.present.kids[pz.id].indexOf("wishes") >= 0 && d.present.kids[pz.id].indexOf("relationship") < 0, "readBackup says which fields the file really had");
+  // merge onto what's on the phone
+  const local = Object.assign(JSON.parse(JSON.stringify(pz)), { relationship: "dad", localOnly: { keep: true } });
+  const thin = { app: M.APP_ID, version: 4, kids: [{ id: pz.id, name: "Zz Test", role: "adult", states: { FL: { at: "2026-03-01" } } }], trips: [], photos: [] };
+  const dt = M.readBackup(thin), m = M.mergeRestore(local, dt.kids[0], dt.present.kids[pz.id]);
+  ok(m.relationship === "dad" && m.localOnly.keep && JSON.stringify(m.wishes) === JSON.stringify(pz.wishes) && m.wv.n === 3, "merge keeps local fields the file doesn't have");
+  ok(m.states.FL && !m.states.WI, "merge takes the fields the file does have");
+  ok(M.mergeRestore(null, dt.kids[0], dt.present.kids[pz.id]) === dt.kids[0], "a new person comes in whole");
+  const same = M.readBackup(JSON.parse(JSON.stringify(file)));
+  const again = M.mergeRestore(pz, same.kids[0], same.present.kids[pz.id]);
+  ok(JSON.stringify(Object.keys(again).sort().map(k => [k, again[k]])) === JSON.stringify(Object.keys(pz).sort().map(k => [k, pz[k]])), "restoring the same backup changes nothing about a person");
+  const lt = Object.assign(JSON.parse(JSON.stringify(tz)), { kidIds: [pz.id, pk.id] });
+  const mt = M.mergeRestore(lt, Object.assign({}, d.trips[0], { kidIds: [pz.id] }), d.present.trips[tz.id]);
+  ok(mt.kidIds.join() === [pz.id, pk.id].join(), "merge never takes people off a trip");
+  const aj = read("app.js"); ok(/M\.mergeRestore\(/.test(aj) && /data\.present/.test(aj), "ui: Restore everything merges instead of overwriting");
+  ok(/var VERSION = "v49"/.test(aj) && /mltl-v49/.test(read("sw.js")), "v49 in app.js and sw.js");
+})();

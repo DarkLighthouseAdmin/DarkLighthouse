@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v48" -> "v48").
-  var VERSION = "v48";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v49" -> "v49").
+  var VERSION = "v49";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -830,8 +830,12 @@
       f.text().then(function (txt) {
         var data; try { data = M.readBackup(JSON.parse(txt)); } catch (x) { throw new Error(x instanceof SyntaxError ? "That file isn't a backup (it couldn't be read)." : x.message); }
         if (!confirm("Restore " + data.kids.length + (data.kids.length === 1 ? " person, " : " people, ") + data.trips.length + " trip(s) and " + data.photos.length + " photo(s) from this backup?")) return null;
+        // v49: someone or something already on this phone keeps every field it has; only the fields in the file overwrite
         return tx(["kids", "trips", "photos"], "readwrite", function (s) {
-          data.kids.forEach(function (k) { s[0].put(k); }); data.trips.forEach(function (t) { s[1].put(t); }); data.photos.forEach(function (p) { s[2].put(p); });
+          [["kids", 0], ["trips", 1], ["photos", 2]].forEach(function (x) {
+            var keys = (data.present && data.present[x[0]]) || {};
+            data[x[0]].forEach(function (rec) { var g = s[x[1]].get(rec.id); g.onsuccess = function () { s[x[1]].put(M.mergeRestore(g.result, rec, keys[rec.id])); }; });
+          });
         }).then(function () { return data.settings.home && !state.meta.home ? setMeta("home", data.settings.home) : null; })
           .then(function () { return data.settings.homePoint && !state.meta.homePoint ? setMeta("homePoint", data.settings.homePoint) : null; })
           .then(function () { return data.settings.units && !state.meta.units ? setMeta("units", data.settings.units) : null; })
