@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v54" -> "v54").
-  var VERSION = "v54";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v55" -> "v55").
+  var VERSION = "v55";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -152,6 +152,7 @@
     if (h[0] === "family" && h[1] === "wishes" && window.FS_WISH) return window.FS_WISH.view();
     if (window.MLTL_IMPORT && window.MLTL_IMPORT.route(h)) return;
     if (h[0] === "year" && window.FS_YEAR && window.FS_YEAR.view) return window.FS_YEAR.view(h[1] && kidById(h[1]) ? h[1] : "");
+    if (h[0] === "near" && window.FS_NEAR) return window.FS_NEAR.view();
     if (h[0] === "family") return viewFamily();
     if (h[0] === "together") return viewTogether(h[1]);
     if ((h[0] === "p" || h[0] === "kid") && kidById(h[1])) {
@@ -205,7 +206,7 @@
       html += '<section class="panel tripnow" aria-label="On a trip now"><h3><span aria-hidden="true">🧳</span> ' + esc(M.tripLabel(x.trip)) + '</h3>' +
         '<p class="small muted">' + (x.of > 1 ? "Day " + x.day + " of " + x.of + " · " : "Today · ") + esc(travelerNames(x.trip.kidIds)) + '</p>' +
         '<div class="actions"><button type="button" class="btn btn-beacon" data-quickstamp="' + esc(who) + '|' + esc(x.trip.id) + '">📍 Stamp a stop</button>' +
-        '<a class="btn btn-ghost" href="#/p/' + esc(who) + '/trip/' + esc(x.trip.id) + '">Open trip</a></div></section>';
+        '<a class="btn btn-ghost" href="#/p/' + esc(who) + '/trip/' + esc(x.trip.id) + '">Open trip</a><a class="btn btn-ghost" href="#/near">📍 What\'s near me</a></div><p class="small" id="nearline"></p></section>';
     });
     if (!now.length && next.length) {
       var x = next[0], who = x.trip.kidIds.filter(kidById)[0];
@@ -232,6 +233,7 @@
       '<span aria-hidden="true">＋</span> Add a trip' + (state.kids.length === 1 ? '</a>' : '</button>') + '<span class="small muted">Stops, flights and miles, and everyone on it gets the stamps</span></div>';
     if (window.MLTL_SYNC && window.MLTL_SYNC.homeTop) html += window.MLTL_SYNC.homeTop();
     html += reviewNudge() + tripsAheadCard() + onThisDayCard();
+    if (state.kids.length && window.FS_NEAR && !M.onTripNow(state.trips, M.today()).length) html += '<p class="small nearlink"><a class="tapline" href="#/near">📍 What\'s near me? Parks and places to stamp nearby</a></p>';
     html += '<h2>Who\'s traveling?</h2><div class="kids">';
     state.kids.forEach(function (k) {
       html += '<a class="kidcard" href="#/p/' + esc(k.id) + '" style="' + kidStyle(k) + '"><span class="avatar">' + initial(M.who(k)) + '</span>' +
@@ -259,6 +261,7 @@
     // a tap that's only closing the family menu (dropdown on wide screens) shouldn't also start a trip
     var ha = document.getElementById("homeadd"); if (ha) ha.onclick = function (e) { if (document.getElementById("fammenu")) { e.preventDefault(); return; } if (ha.tagName === "BUTTON") UI().whoWentSheet(); };
     document.title = "Famstamp: stamp every trip";
+    if (window.FS_NEAR) window.FS_NEAR.homeAuto();
   }
 
   // ---------- add / edit a person ----------

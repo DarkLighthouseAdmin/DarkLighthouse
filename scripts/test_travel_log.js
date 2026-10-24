@@ -1424,3 +1424,23 @@ setTimeout(() => {
   ok(F.milestones(undated, [], {}, "2024-06-01").done.some(x => x.text === "5 states before 5!"), "undated states count while the kid is still under the age");
   ok(/Milestones/.test(read("firsts.js")) && /msbar/.test(read("firsts.js")) && /Next: /.test(read("firsts.js")), "ui: milestones on the Firsts page and the badge card");
 }
+
+// ---- v55: What's near me (opt-in, foreground only, location never stored) ----
+{
+  const places = require("../travel-log/app/data/places.json");
+  const d = { rows: places.rows.split("\n").map(l => { const c = l.split("\t"); return { name: c[0], lat: +c[2], lon: +c[3], country: c[4], admin1: c[5] }; }), countries: places.countries, admin: places.admin };
+  const zz = Object.assign(M.newKid({ name: "Zz Test" }), { parks: { yellowstone: { at: "2020-01-01" } }, states: {} });
+  const r = M.nearby({ lat: 44.43, lon: -110.59 }, d, [zz], 30, () => "WY");
+  ok(r.items.some(x => x.kind === "park" && x.id === "yellowstone" && x.who.join() === zz.id && x.miles <= 30), "near Old Faithful: Yellowstone, already stamped by Zz Test");
+  ok(r.items[0].kind === "state" && r.items[0].id === "WY" && r.items[0].who.length === 0, "the state comes from the map shape when known (WY, not the nearest town's MT)");
+  ok(M.nearby({ lat: 44.43, lon: -110.59 }, d, [zz], 30).items[0].id === "MT", "without map shapes it falls back to the nearest town's state");
+  const rome = M.nearby({ lat: 41.9, lon: 12.5 }, d, [], 30);
+  ok(rome.items.length === 1 && rome.items[0].id === "ITA" && rome.items[0].name === "Italy", "abroad: the country");
+  ok(M.nearby({ lat: 30, lon: -40 }, d, [zz]).items.length === 0 && M.nearby(null, d, []).items.length === 0, "mid-ocean or no point: nothing");
+  ok(M.nearby({ lat: 44.43, lon: -110.59 }, null, [zz]).items.some(x => x.id === "yellowstone"), "parks work even before the place list loads");
+  const nj = read("near.js");
+  ok(/getCurrentPosition/.test(nj) && !/watchPosition/.test(nj) && !/setMeta\("near(Last|Point|Loc)/.test(nj) && !/localStorage|sessionStorage|fetch\(/.test(nj), "near.js asks once per tap, never watches, saves or sends the location");
+  ok(/permissions\.query/.test(nj) && /p\.state !== "granted"/.test(nj) && /visibilityState !== "visible"/.test(nj) && /nearAuto/.test(nj), "auto check is opt-in, foreground, and never prompts on its own");
+  ok(/isn\\'t saved in your log, isn\\'t synced and isn\\'t sent anywhere/.test(nj), "the permission explanation is on the page");
+  ok(/near\.js/.test(read("index.html")) && /"near\.js"/.test(read("sw.js")) && /h\[0\] === "near"/.test(read("app.js")), "near.js is loaded, cached offline and routed");
+}

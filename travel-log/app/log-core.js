@@ -608,6 +608,33 @@
     return x.days === 1 ? n + " is tomorrow!" : n + " in " + x.days + " days";
   }
 
+  // ---------- Near a stamp (v55): what can be stamped around a point. The point is only used here, never saved. ----------
+  var NEAR_MILES = 30;
+  /** pt = { lat, lon }; d = the places list ({ rows, countries, admin }) or null; people = everyone in the log.
+      stateAt (optional) = function (pt) -> US state id the point is inside. Returns { here: { name, region, country, countryName, miles } | null, items: [{ kind, id, name, miles, who: [ids that have it] }] } */
+  function nearby(pt, d, people, radius, stateAt) {
+    radius = radius || NEAR_MILES; people = people || [];
+    if (!pt || typeof pt.lat !== "number" || typeof pt.lon !== "number" || !T || !T.gcMiles) return { here: null, items: [] };
+    function who(bag, id) { return people.filter(function (p) { return p[bag] && p[bag][id]; }).map(function (p) { return p.id; }); }
+    var here = null, best = Infinity;
+    ((d && d.rows) || []).forEach(function (r) { if (typeof r.lat !== "number") return; if (Math.abs(r.lat - pt.lat) > 1 || Math.abs(r.lon - pt.lon) > 1.5) return;
+      var m = T.gcMiles(pt, r); if (m < best && m <= radius) { best = m; here = r; } });
+    var items = [];
+    if (here) {
+      var cn = (d.countries && d.countries[here.country]) || here.country;
+      // stateAt(pt) = the state the point is really inside (map shapes, in the browser); the nearest town can be over a state line
+      var inState = stateAt ? stateAt(pt) : "";
+      if (inState && here.country === "USA") here = Object.assign({}, here, { admin1: inState });
+      if (here.country === "USA" && /^[A-Z]{2}$/.test(here.admin1 || "")) items.push({ kind: "state", id: here.admin1, name: (d.admin && d.admin["USA." + here.admin1]) || here.admin1, miles: 0, who: who("states", here.admin1) });
+      else if (here.country === "GBR" && /^(ENG|SCT|WLS|NIR)$/.test(here.admin1 || "")) items.push({ kind: "place", id: here.admin1, name: (d.admin && d.admin["GBR." + here.admin1]) || here.admin1, miles: 0, who: who("places", here.admin1) });
+      if (here.country && here.country !== "USA" && here.country !== "GBR") items.push({ kind: "place", id: here.country, name: cn, miles: 0, who: who("places", here.country) });
+      here = { name: here.name, region: here.admin1 || "", country: here.country, countryName: cn, miles: Math.round(best) };
+    }
+    ALL_PARKS.forEach(function (p) { if (typeof p.lat !== "number") return; var m = T.gcMiles(pt, p); if (m <= radius) items.push({ kind: "park", id: p.id, name: p.full || p.name, miles: Math.round(m), who: who("parks", p.id) }); });
+    items.sort(function (a, b) { return (a.kind === "park") - (b.kind === "park") || a.miles - b.miles; });
+    return { here: here, items: items };
+  }
+
   // ---------- Recently deleted (soft delete, kept in the trip itself so no cloud change is needed) ----------
   var BIN_DAYS = 30;
   function tripLabel(t) { return String((t && (t.title || t.place)) || "this trip").trim(); }
@@ -640,7 +667,7 @@
     return { trip: c, photo: ph };
   }
 
-  return { upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+  return { nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,

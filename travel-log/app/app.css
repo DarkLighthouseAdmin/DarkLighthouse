@@ -762,3 +762,8 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 /* v54: kid milestones */
 .milestones { margin-bottom:.9rem; } .milestones h3 { font-size:1rem; } .mslist { list-style:none; padding:0; margin:.3rem 0; } .mslist li { margin:.3rem 0; }
 .msnext p { margin:.5rem 0 .25rem; font-size:.92rem; } .msbar { height:10px; border-radius:6px; background:#ece5d6; overflow:hidden; } .msbar i { display:block; height:100%; background:#e8a54b; }
+
+/* v55: What's near me */
+.nearlist { list-style:none; padding:0; margin:.5rem 0; } .nearitem { display:flex; gap:.6rem; padding:.55rem 0; border-bottom:1px solid rgba(31,42,51,.1); } .nearitem .nic { font-size:1.3rem; }
+.newstamp { display:inline-block; font-size:.75rem; font-weight:700; padding:.05rem .45rem; border-radius:999px; background:#e8f4ea; color:#2d6a3e; }
+.nearwhy .check { display:flex; gap:.4rem; margin-top:.6rem; } .nearlink { margin:.7rem 0 0; }
