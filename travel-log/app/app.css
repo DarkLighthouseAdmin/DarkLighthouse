@@ -740,3 +740,11 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .binlink { margin-top: 1rem; text-align: center; }
 .tdelzone { margin-top: 2rem; border: 1px solid rgba(180,40,40,.25); }
 .tdelzone .btn-danger { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+
+/* v50: trips made from photos that still need a look */
+.drafttag { display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.02em; text-transform:uppercase; padding:.1rem .5rem; border-radius:999px; background:#fff3cd; color:#7a5a00; border:1px solid #e8c766; margin-bottom:.2rem; }
+.trip.isdraft { box-shadow:inset 3px 0 0 #e8c766; }
+.btn-small { min-height:40px; padding:.3rem .9rem; font-size:.88rem; }
+.tripfilter { margin:.2rem 0 .8rem; } .tripfilter .chip { text-decoration:none; padding:.35rem .85rem; }
+.reviewnudge { margin:.6rem 0 0; font-weight:600; }
+.draftzone { margin-bottom:.8rem; }

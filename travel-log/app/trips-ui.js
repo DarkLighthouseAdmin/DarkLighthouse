@@ -210,12 +210,15 @@
     var route = M.routeText(t), link = owner ? "#/p/" + esc(owner.id) + "/trip/" + esc(t.id) : "";
     var bits = [dateRange(t) || "", s.nights ? s.nights + (s.nights === 1 ? " night" : " nights") : "", age != null ? "age " + age : ""].filter(Boolean);
     var miles = s.legs.length && s.miles ? '<span class="tmiles">' + (s.milesKnown ? "" : "at least ") + esc(dist(s.miles)) + '</span>' + (s.flights ? ' · <span class="tfly">✈️ ' + s.flights + (s.flights === 1 ? " flight" : " flights") + '</span>' : "") : "";
-    return '<article class="trip">' + (t.photoId ? '<img alt="" data-photo="' + esc(t.photoId) + '">' : "") + '<div class="body"><h3>' + (link ? '<a class="tlink" href="' + link + '">' + esc(t.place) + '</a>' : esc(t.place)) + '</h3>' +
+    var draft = M.isDraft(t);
+    return '<article class="trip' + (draft ? " isdraft" : "") + '">' + (t.photoId ? '<img alt="" data-photo="' + esc(t.photoId) + '">' : "") + '<div class="body">' +
+      (draft ? '<span class="drafttag">Needs review</span>' : "") + '<h3>' + (link ? '<a class="tlink" href="' + link + '">' + esc(t.place) + '</a>' : esc(t.place)) + '</h3>' +
       (route !== t.place ? '<div class="route">' + esc(route) + '</div>' : "") +
       '<div class="when">' + esc(bits.join(" · ")) + (miles ? (bits.length ? " · " : "") + miles : "") + (t.mark && !s.legs.length ? " · 🖍 " + esc(areaName(t.mark.kind, t.mark.id)) : "") + '</div>' +
       (t.memory ? '<p class="mem">' + esc(t.memory) + '</p>' : "") +
       '<div class="travelers"><span class="dots">' + A_.avatars(t.kidIds) + '</span><span>' + esc(A_.travelerNames(t.kidIds)) + '</span></div>' +
       (t.who ? '<div class="who">Also along: ' + esc(t.who) + '</div>' : "") +
+      (draft ? '<div class="tactions noprint"><button type="button" class="btn btn-primary btn-small" data-review="' + esc(t.id) + '">✓ Looks good</button></div>' : "") +
       (owner ? '<div class="tactions noprint"><a href="' + link + '">Open trip' + (t.story ? " & story" : "") + ' →</a><a class="edit" href="#/p/' + esc(owner.id) + '/trips/edit/' + esc(t.id) + '">Edit</a></div>' : "") + syncExtra(t) + '</div></article>';
   }
 
@@ -280,6 +283,8 @@
       '<div class="field"><label for="ttitle">Trip name (optional)</label><input id="ttitle" type="text" maxlength="80" value="' + esc(d.title || "") + '" placeholder="e.g. Scotland 2026, Smokies RV trip"></div>' +
       '<div class="field"><label for="twho">Anyone else along?</label><input id="twho" type="text" maxlength="120" value="' + esc(d.who || "") + '" placeholder="e.g. cousins, the Smiths, the dog"></div>' +
       '<div class="field"><label for="tmark">Color in one more place on the map? <span class="muted small">Stops above color in on their own</span></label><select id="tmark">' + A_.markOptions(d.mark) + '</select></div></details>' +
+      (old && M.isDraft(old) ? '<div class="panel draftzone"><h3>From your photos</h3><p class="small muted">We made this trip from your photo dates and places. Fix anything that\'s off, then mark it reviewed.</p>' +
+        '<div class="actions"><button type="button" class="btn btn-primary" id="treview">✓ Mark as reviewed</button></div></div>' : "") +
       '<p class="err" id="terr" hidden></p><div class="actions sticky"><button class="btn btn-primary" id="tsave">Save trip</button>' +
       '<a class="btn btn-ghost" href="' + (old ? "#/p/" + esc(k.id) + "/trip/" + esc(old.id) : "#/p/" + esc(k.id) + "/trips") + '">Cancel</a>' + '</div>' +
       // Kept out of the pinned Save bar on purpose: on a phone that bar floats over the stays and favorites, and a tap meant for
@@ -595,7 +600,9 @@
     var rmp = $("#trmphoto"); if (rmp) rmp.onclick = function () { removePhoto = true; newPhoto = null; prev.hidden = true; rmp.hidden = true; };
 
     // save
-    var saving = false;
+    var saving = false, reviewing = false;
+    // Mark as reviewed = take "Draft:" off the name and save, keeping anything else changed on this screen
+    var rv = $("#treview"); if (rv) rv.onclick = function () { var ti = $("#ttitle"); ti.value = ti.value.replace(/^\s*draft:\s*/i, "").trim(); reviewing = true; $("#tsave").onclick(); };
     $("#tsave").onclick = function () {
       if (saving) return;   // a double tap mustn't add the trip twice
       var err = $("#terr"); err.hidden = true;
@@ -615,7 +622,8 @@
           fly: fly, back: $("#tround").checked ? d.back : null, stays: d.stays, favs: d.favs.filter(function (f) { return grown || !T.FAV[f.cat].adult; }), moments: d.moments, story: d.story, memories: memVals(), wx: d.wx,
           who: $("#twho").value, memory: $("#tmem").value, mark: mv ? { kind: mv.split(":")[0], id: mv.split(":")[1] } : null, photoId: photoId });
         trip = Object.assign(old ? copy(old) : {}, made);
-      } catch (x) { err.textContent = x.message; err.hidden = false; return; }
+        if (reviewing) trip = M.reviewTrip(trip);
+      } catch (x) { reviewing = false; err.textContent = x.message; err.hidden = false; return; }
       if (trip.endDate && trip.endDate <= M.today()) trip.done = true;
       saving = true; $("#tsave").disabled = true;
       if (newPhoto) jobs.push(A_.put("photos", { id: photoId, dataUrl: newPhoto }));
@@ -629,7 +637,7 @@
       var fresh = newStamps(before, ids);
       Promise.all(jobs).then(function () {
         location.hash = "#/p/" + (trip.kidIds.indexOf(k.id) >= 0 ? k.id : trip.kidIds[0]) + "/trip/" + trip.id;
-        A_.toast(old ? "Trip saved" : "Trip added!");
+        A_.toast(reviewing ? M.tripLabel(trip) + " reviewed ✓" : old ? "Trip saved" : "Trip added!");
         if (fresh.length) setTimeout(function () { celebrate(fresh); }, 350);
       }).catch(function () { saving = false; $("#tsave").disabled = false; err.textContent = "Couldn't save. Is the device out of space?"; err.hidden = false; });
     };

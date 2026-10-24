@@ -1293,5 +1293,45 @@ setTimeout(() => {
   const mt = M.mergeRestore(lt, Object.assign({}, d.trips[0], { kidIds: [pz.id] }), d.present.trips[tz.id]);
   ok(mt.kidIds.join() === [pz.id, pk.id].join(), "merge never takes people off a trip");
   const aj = read("app.js"); ok(/M\.mergeRestore\(/.test(aj) && /data\.present/.test(aj), "ui: Restore everything merges instead of overwriting");
-  ok(/var VERSION = "v49"/.test(aj) && /mltl-v49/.test(read("sw.js")), "v49 in app.js and sw.js");
+
+})();
+
+// ---- v50: reviewing trips made from photos (drafts) ----
+(() => {
+  const zid = "person_zz0000000000test", now0 = "2026-10-24T13:00:00.000Z";
+  const mk = (o) => Object.assign(M.newTrip({ id: o.id, kidIds: [zid], place: o.place || "Zz Test Town", title: o.title || "", date: "2020-05-01", now: now0 }), o.extra || {});
+  const flag = mk({ id: "trip_zzdraft000000001", title: "Zz Test Beach", extra: { draft: true } });
+  const named = mk({ id: "trip_zzdraft000000002", title: "Draft: Zz Test Lake" });
+  const lower = mk({ id: "trip_zzdraft000000003", title: "  draft:Zz Test Hill" });
+  const plain = mk({ id: "trip_zzdraft000000004", title: "Zz Test Drafty Cabin" });
+  const gone = mk({ id: "trip_zzdraft000000005", title: "Draft: Zz Gone", extra: { deletedAt: now0 } });
+  ok(M.isDraft(flag) && M.isDraft(named) && M.isDraft(lower), "draft:true or a 'Draft:' name is a draft");
+  ok(!M.isDraft(plain) && !M.isDraft(gone) && !M.isDraft(null) && !M.isDraft(Object.assign({}, flag, { draft: false })), "plain, deleted and reviewed trips aren't drafts");
+  ok(M.draftTrips([flag, named, lower, plain, gone]).length === 3, "draftTrips counts 3");
+  const r = M.reviewTrip(named, "2026-10-25T10:00:00.000Z");
+  ok(r.draft === false && r.title === "Zz Test Lake" && !M.isDraft(r), "Looks good clears draft and the 'Draft:' prefix");
+  ok(r.updatedAt === "2026-10-25T10:00:00.000Z" && r.reviewedAt === r.updatedAt, "Looks good bumps updatedAt so it syncs");
+  ok(named.title === "Draft: Zz Test Lake", "review returns a copy, original untouched");
+  ok(M.reviewTrip(lower).title === "Zz Test Hill" && M.reviewTrip(flag).title === "Zz Test Beach", "prefix trimmed in any case; titles without one stay");
+  const dp = M.reviewTrip(mk({ id: "trip_zzdraft000000006", place: "Draft: Zz Place", title: "Draft: Zz Place" }));
+  ok(dp.place === "Zz Place" && dp.title === "Zz Place", "a 'Draft:' place is cleaned too");
+  // the same photo file restored again must not undo a review
+  const fileTrip = Object.assign({}, named, { draft: true });
+  const file = { app: M.APP_ID, version: 4, kids: [{ id: zid, name: "Zz Test", role: "adult" }], trips: [fileTrip], photos: [] };
+  const d = M.readBackup(JSON.parse(JSON.stringify(file)));
+  const local = M.reviewTrip(Object.assign({}, named, { draft: true, memory: "Zz Test edit" }), "2026-10-25T10:00:00.000Z");
+  const m = M.mergeRestore(local, d.trips[0], d.present.trips[named.id]);
+  ok(!M.isDraft(m) && m.title === "Zz Test Lake" && m.memory === "Zz Test edit" && m.updatedAt === local.updatedAt, "restoring the draft file again keeps the reviewed trip");
+  const local2 = Object.assign({}, local, { kidIds: [] });
+  ok(M.mergeRestore(local2, d.trips[0], d.present.trips[named.id]).kidIds.join() === zid, "a newer local trip can still gain people from the file");
+  const older = Object.assign({}, local, { updatedAt: "2026-01-01T00:00:00.000Z" });
+  ok(M.isDraft(M.mergeRestore(older, d.trips[0], d.present.trips[named.id])), "a file newer than the phone's copy still wins (v49 behaviour)");
+  // UI wiring
+  const aj = read("app.js"), tu = read("trips-ui.js");
+  ok(/Needs review/.test(tu) && /data-review=/.test(tu) && /Looks good/.test(tu), "ui: draft cards show Needs review and Looks good");
+  ok(/id="treview"/.test(tu) && /Mark as reviewed/.test(tu) && /M\.reviewTrip\(trip\)/.test(tu), "ui: trip editor has Mark as reviewed");
+  ok(/To review \(/.test(aj) && /\/trips\/review/.test(aj) && /sub === "review"/.test(aj), "ui: Trips list has a To review filter");
+  ok(/from your photos to review/.test(aj) && /reviewNudge\(\)/.test(aj), "ui: Home nudges when there are drafts");
+  ok(/\[data-review\]/.test(aj) && /M\.reviewTrip\(t\)/.test(aj) && /put\("trips", u\)/.test(aj), "ui: Looks good saves the reviewed trip");
+  ok(/var VERSION = "v50"/.test(aj) && /mltl-v50/.test(read("sw.js")), "v50 in app.js and sw.js");
 })();

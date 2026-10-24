@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v49" -> "v49").
-  var VERSION = "v49";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v50" -> "v50").
+  var VERSION = "v50";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -177,6 +177,23 @@
   window.addEventListener("hashchange", function () { route(); window.scrollTo(0, 0); });
 
   // ---------- home ----------
+  /** Home's one-line nudge to the trips made from photos that still need a look; goes to the person with the most of them. */
+  function reviewNudge() {
+    var drafts = M.draftTrips(state.trips); if (!drafts.length) return "";
+    var by = {}; drafts.forEach(function (t) { t.kidIds.forEach(function (id) { by[id] = (by[id] || 0) + 1; }); });
+    var mine = myPersonId(), who = by[mine] ? mine : Object.keys(by).filter(kidById).sort(function (a, b) { return by[b] - by[a]; })[0];
+    if (!who) return "";
+    return '<p class="reviewnudge"><a class="tapline" href="#/p/' + esc(who) + '/trips/review">📷 ' + drafts.length + (drafts.length === 1 ? " trip" : " trips") + ' from your photos to review →</a></p>';
+  }
+  /** "Looks good" on a draft trip card. */
+  function reviewDraft(id) {
+    var t = state.trips.filter(function (x) { return x.id === id; })[0]; if (!t) return Promise.resolve();
+    var u = M.reviewTrip(t);
+    return put("trips", u).then(function () {
+      state.trips = state.trips.map(function (x) { return x.id === id ? u : x; });
+      toast(M.tripLabel(u) + " reviewed ✓"); routeView();
+    }).catch(function () { toast("Couldn't save. Is the device out of space?"); });
+  }
   function viewHome() {
     var html = '<h1>Color in every place your family goes, from the first road trip on.</h1>' +
       '<p class="lede">A travel map for each kid, and for the grown-ups too: states, countries and national parks, plus the little stories from every trip. ' +
@@ -185,6 +202,7 @@
     if (state.kids.length) html += '<div class="homeadd">' + (state.kids.length === 1 ? '<a class="btn btn-beacon btn-big" id="homeadd" href="' + esc(UI().addTripHref(state.kids[0])) + '">' : '<button type="button" class="btn btn-beacon btn-big" id="homeadd" aria-haspopup="dialog">') +
       '<span aria-hidden="true">＋</span> Add a trip' + (state.kids.length === 1 ? '</a>' : '</button>') + '<span class="small muted">Stops, flights and miles, and everyone on it gets the stamps</span></div>';
     if (window.MLTL_SYNC && window.MLTL_SYNC.homeTop) html += window.MLTL_SYNC.homeTop();
+    html += reviewNudge();
     html += '<h2>Who\'s traveling?</h2><div class="kids">';
     state.kids.forEach(function (k) {
       html += '<a class="kidcard" href="#/p/' + esc(k.id) + '" style="' + kidStyle(k) + '"><span class="avatar">' + initial(M.who(k)) + '</span>' +
@@ -302,7 +320,7 @@
     document.title = k.name + " · Famstamp";
     if (tab === "world") return viewWorld(k);
     if (tab === "parks") return viewParks(k, sub);
-    if (tab === "trips") return viewTrips(k);
+    if (tab === "trips") return viewTrips(k, sub === "review");
     if (tab === "stats") return viewStats(k);
     return viewUS(k);
   }
@@ -521,12 +539,16 @@
       (window.MLTL_SYNC && window.MLTL_SYNC.tripExtra ? window.MLTL_SYNC.tripExtra(t) : "") + '</div></article>';
   }
   function fillPhotos() { main.querySelectorAll("img[data-photo]").forEach(function (img) { photoURL(img.dataset.photo).then(function (u) { if (u) img.src = u; }); }); }
-  function viewTrips(k) {
-    var list = kidTrips(k);
+  function viewTrips(k, review) {
+    var all = kidTrips(k), drafts = all.filter(M.isDraft), list = review ? drafts : all;
+    var base = "#/p/" + esc(k.id) + "/trips";
+    var filt = drafts.length || review ? '<div class="chips tripfilter" role="group" aria-label="Show"><a class="chip" href="' + base + '" aria-pressed="' + !review + '">All (' + all.length + ')</a>' +
+      '<a class="chip" href="' + base + '/review" aria-pressed="' + !!review + '">To review (' + drafts.length + ')</a></div>' : "";
     main.innerHTML = shell(k, "trips", '<div class="actions"><a class="btn btn-beacon" href="#/p/' + esc(k.id) + '/trips/new">+ Add a trip</a>' +
-      (state.kids.length > 1 ? '<a class="btn btn-ghost" href="#/together/' + esc(k.id) + '">🤝 Trips together</a>' : "") + '</div>' +
+      (state.kids.length > 1 ? '<a class="btn btn-ghost" href="#/together/' + esc(k.id) + '">🤝 Trips together</a>' : "") + '</div>' + filt +
+      (review && !drafts.length ? '<div class="panel"><h3>All reviewed 🎉</h3><p class="muted">Every trip from your photos has been checked. <a class="tapline" href="' + base + '">See all trips</a></p></div>' : "") +
       (list.length ? '<div class="trips">' + list.map(function (t) { return tripCard(t, k); }).join("") + '</div>'
-                   : '<div class="panel"><h3>No trips yet</h3><p class="muted">A weekend at Grandma\'s counts just as much as a plane to the other side of the world. Add the first one!</p>' +
+                   : review ? "" : '<div class="panel"><h3>No trips yet</h3><p class="muted">A weekend at Grandma\'s counts just as much as a plane to the other side of the world. Add the first one!</p>' +
                      (window.MLTL_IMPORT ? '<div class="actions">' + window.MLTL_IMPORT.emptyButton(k) + '</div>' : "") + '</div>') +
       (state.bin.length ? '<p class="small binlink"><a class="tapline" href="#/deleted">🗑 Recently deleted (' + state.bin.length + ')</a></p>' : ""));
     fillPhotos();
@@ -852,6 +874,8 @@
 
   // ---------- boot ----------
   document.addEventListener("click", function (e) {
+    var rb = e.target.closest && e.target.closest("[data-review]");
+    if (rb) { e.preventDefault(); rb.disabled = true; reviewDraft(rb.dataset.review); return; }
     var a = e.target.closest && e.target.closest("a[data-book]");
     if (a && !BOOK_URL) { e.preventDefault(); toast("The paperback is on its way to Amazon. Check back soon!"); }
   });

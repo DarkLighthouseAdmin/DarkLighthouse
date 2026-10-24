@@ -514,6 +514,12 @@
       and takes only the fields the file really has (people on a trip are added, never removed). */
   function mergeRestore(existing, incoming, keys) {
     if (!existing) return incoming;
+    // v50: a trip edited on this phone after the file was saved (e.g. a draft marked reviewed) stays as it is; the file can only add people
+    if (Array.isArray(existing.kidIds) && Array.isArray(incoming.kidIds) && existing.updatedAt && incoming.updatedAt && String(existing.updatedAt) > String(incoming.updatedAt)) {
+      var keep = JSON.parse(JSON.stringify(existing));
+      keep.kidIds = existing.kidIds.concat(incoming.kidIds.filter(function (id) { return existing.kidIds.indexOf(id) < 0; }));
+      return keep;
+    }
     var out = JSON.parse(JSON.stringify(existing));
     (keys || Object.keys(incoming)).forEach(function (k) { if (k in incoming) out[k] = incoming[k]; });
     if (Array.isArray(existing.kidIds) && Array.isArray(incoming.kidIds))
@@ -535,6 +541,19 @@
   function backupNudge(lastBackupAt, trips) {
     var since = trips.filter(function (t) { return !lastBackupAt || t.updatedAt > lastBackupAt; }).length;
     return since >= 3 ? since : 0;
+  }
+
+  // ---------- Drafts (trips made from photos, waiting for a "Looks good") ----------
+  var DRAFT_RE = /^\s*draft:\s*/i;
+  function isDraft(t) { return !!t && !t.deletedAt && (t.draft === true || DRAFT_RE.test(String(t.title || ""))); }
+  function draftTrips(trips) { return (trips || []).filter(isDraft); }
+  /** Mark a draft reviewed: draft off, "Draft:" taken off the name, and a fresh updatedAt so it syncs and wins over the file it came from. */
+  function reviewTrip(t, now) {
+    now = now || new Date().toISOString(); var c = JSON.parse(JSON.stringify(t));
+    c.draft = false;
+    ["title", "place"].forEach(function (f) { if (typeof c[f] === "string" && DRAFT_RE.test(c[f])) c[f] = c[f].replace(DRAFT_RE, "").trim(); });
+    if (!c.place) c.place = c.title || "Trip";
+    c.reviewedAt = now; c.updatedAt = now; return c;
   }
 
   // ---------- Recently deleted (soft delete, kept in the trip itself so no cloud change is needed) ----------
@@ -569,7 +588,7 @@
     return { trip: c, photo: ph };
   }
 
-  return { BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+  return { isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,
