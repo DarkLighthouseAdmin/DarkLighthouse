@@ -1539,3 +1539,43 @@ setTimeout(() => {
   ok(new Set(own).size === 4 && own.every(a => !seen[a]), "your own finds get their own variants, never a catalog picture");
   ok(/artFor\(it, h\)/.test(read("spots.js")), "stamps draw with artFor");
 }
+
+// ---------- v60: Highlights for grandparents + reactions ----------
+{
+  const H = require("../travel-log/app/highlights-core.js");
+  const kid = { id: "person_zz00000000kid01", name: "Zz Kid", role: "kid", states: { CO: { at: "2026-07-02" } }, parks: { yell: { at: "2026-07-03", jr: true } },
+    spots: { "p-zzpub": { at: "2026-07-03" }, e_zzbar: { at: "2026-07-03" }, den: { at: "2026-07-02" } } };
+  const dad = { id: "person_zz0000000000test", name: "Zz Test", role: "adult", states: { NV: { at: "2026-07-09" } } };
+  const gma = { id: "person_zz00000000gma01", name: "Zz Gma", role: "adult", relationship: "grandparent" };
+  const trips = [{ id: "trip_zzhl0000000001", place: "Zz Yellowstone", date: "2026-07-04", kidIds: [kid.id, dad.id], photoId: "ph_zz1" },
+    { id: "trip_zzhl0000000002", place: "Zz later", title: "Draft: Zz later", date: "2026-07-08", kidIds: [kid.id] }, { id: "trip_zzhl0000000003", place: "Zz gone", date: "2026-07-08", kidIds: [kid.id], deletedAt: "2026-07-09" },
+    { id: "trip_zzhl0000000004", place: "Zz grown-ups", date: "2026-07-08", kidIds: [dad.id] }];
+  const ctx = { name: (k, id) => "N:" + id, quests: () => [{ q: { id: "zzq", name: "Zz Quest", emoji: "🏅" }, at: "2026-07-04" }],
+    firsts: () => [{ key: "flight", at: "2026-07-01", emoji: "✈️", title: "First flight" }], milestones: () => ({ done: [{ key: "first-flight", at: "2026-07-01", text: "dup" }, { key: "parks-1", at: "2026-07-03", emoji: "🏞️", text: "First park" }] }) };
+  const f = H.feed([kid, dad, gma], trips, ctx);
+  const refs = f.map(x => x.ref), all = JSON.stringify(f);
+  ok(H.isGrand(gma) && H.isGrand({ role: "grand" }) && !H.isGrand(dad) && !H.isGrand(kid), "isGrand: relationship grandparent or role grand");
+  ok(f.every(x => x.kidIds.every(id => id === kid.id)), "highlights: kids only, never grown-ups' stamps or trips");
+  ok(!/p-zzpub|e_zzbar|N:p-|N:e_|NV/.test(all) && /N:den/.test(all), "highlights: pubs and your own finds never show; other stamps do");
+  ok(refs.indexOf("t:trip_zzhl0000000001") >= 0 && !/zzhl0000000002|zzhl0000000003|zzhl0000000004/.test(refs.join()), "highlights: trips with kids, no drafts, deleted or adults-only");
+  ok(f.find(x => x.ref === "t:trip_zzhl0000000001").photoId === "ph_zz1", "highlights: trip carries its cover photo");
+  ok(refs.indexOf("jr:" + kid.id + ":yell") >= 0 && refs.indexOf("q:" + kid.id + ":zzq") >= 0 && refs.indexOf("f:" + kid.id + ":flight") >= 0 && refs.indexOf("m:" + kid.id + ":parks-1") >= 0 && !refs.some(r => /first-flight/.test(r)), "highlights: badges, quests, firsts, milestones (not duplicate firsts)");
+  ok(f.every((x, i) => !i || f[i - 1].at >= x.at), "highlights: newest first");
+  ok(H.feed([kid], trips, ctx, { since: "2026-07-04" }).every(x => x.at >= "2026-07-04"), "highlights: since filter");
+  let rows = [], t = H.toggle(rows, "fam", "t:trip_zzhl0000000001", "heart", "u1", "2026-07-05T00:00:00Z");
+  ok(t.on === true && t.rows.length === 1, "react: toggle on");
+  rows = H.toggle(t.rows, "fam", "t:trip_zzhl0000000001", "clap", "u2").rows;
+  rows = H.toggle(rows, "fam", "t:trip_zzhl0000000001", "heart", "u2").rows;
+  const m = H.byItem(rows)["t:trip_zzhl0000000001"];
+  ok(m.heart.length === 2 && m.clap.length === 1, "react: one per emoji per person, counts by emoji");
+  ok(H.whoLine(m, u => ({ u1: "Grandma", u2: "Pop" })[u]) === "Grandma ❤️ · Pop ❤️👏", "react: who reacted with what");
+  t = H.toggle(rows, "fam", "t:trip_zzhl0000000001", "heart", "u1");
+  ok(t.on === false && !t.rows.some(r => r.user_id === "u1"), "react: toggle off removes only your own");
+  ok(H.toggle(rows, "fam", "bad ref", "heart", "u1").on === null && H.toggle(rows, "fam", "t:trip_zz1", "poop", "u1").on === null, "react: bad ref/emoji refused");
+  const sy = read("sync.js"), hj = read("highlights.js"), ix = read("index.html"), sw = read("sw.js");
+  ok(/from\("reactions"\)\.delete\(\)\.eq\("family_id", fid\)\.eq\("user_id", uid\)/.test(sy), "reactions: delete is scoped to your own row");
+  ok(/data-irole="grand"/.test(sy) && /&rel=grandparent/.test(sy) && /mltl-join-rel/.test(sy) && /role === "kid" \? "kid" : "adult"/.test(sy), "invite: grandparent option, sent as a grown-up invite + rel");
+  ok(/href="#\/highlights">✨ Highlights/.test(sy), "family page links Highlights");
+  ok(/highlights-core\.js[\s\S]*highlights\.js/.test(ix) && /"highlights-core\.js", "highlights\.js"/.test(sw), "highlights scripts loaded and cached");
+  ok(/e\.missing\) status = "missing"/.test(hj) && !/innerHTML = [^;]*it\.title/.test(hj), "highlights: missing table hides reactions; text escaped");
+}

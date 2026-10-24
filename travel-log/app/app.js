@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v59" -> "v59").
-  var VERSION = "v59";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v60" -> "v60").
+  var VERSION = "v60";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -146,6 +146,7 @@
     document.body.classList.remove("kidview"); document.body.classList.remove("bookpdf");
     document.body.classList.remove("followview");
     if (h[0] === "follow" && window.FS_FOLLOW) return window.FS_FOLLOW.view(h[1] || "");
+    if (h[0] === "highlights" && window.FS_HL) { window.FS_HL.view(); main.insertAdjacentHTML("beforeend", homeTabs("highlights")); return; }
     if (window.MLTL_SYNC && window.MLTL_SYNC.route(h)) return;
     if (h[0] === "family" && h[1] === "passport") return UI().passportFamily();
     if (h[0] === "family" && h[1] === "cup") return viewCup();
@@ -244,6 +245,7 @@
     if (state.kids.length) html += '<div class="homeadd">' + (state.kids.length === 1 ? '<a class="btn btn-beacon btn-big" id="homeadd" href="' + esc(UI().addTripHref(state.kids[0])) + '">' : '<button type="button" class="btn btn-beacon btn-big" id="homeadd" aria-haspopup="dialog">') +
       '<span aria-hidden="true">＋</span> Add a trip' + (state.kids.length === 1 ? '</a>' : '</button>') + '<span class="small muted">Stops, flights and miles, and everyone on it gets the stamps</span></div>';
     if (window.MLTL_SYNC && window.MLTL_SYNC.homeTop) html += window.MLTL_SYNC.homeTop();
+    if (window.FS_HL) html += window.FS_HL.homeCard();
     html += reviewNudge() + tripsAheadCard() + onThisDayCard();
     if (state.kids.length && window.FS_NEAR && !M.onTripNow(state.trips, M.today()).length) html += '<p class="small nearlink"><a class="tapline" href="#/near">📍 What\'s near me? Parks and places to stamp nearby</a></p>';
     html += '<h2>Who\'s traveling?</h2><div class="kids">';
@@ -270,6 +272,7 @@
             '<h3>Like paper too?</h3><p class="small muted">The matching paperback, My Lifetime Travel Log, has the same maps to color, all 64 parks and 40 trip pages, for the shelf. ' +
             '<a href="' + (BOOK_URL ? esc(BOOK_URL) : "#book") + '" class="tapline" data-book' + (BOOK_URL ? ' target="_blank" rel="noopener"' : "") + '>See the book</a></p></div></div>';
     main.innerHTML = html + homeTabs();
+    if (window.FS_HL) window.FS_HL.refresh();
     // a tap that's only closing the family menu (dropdown on wide screens) shouldn't also start a trip
     var ha = document.getElementById("homeadd"); if (ha) ha.onclick = function (e) { if (document.getElementById("fammenu")) { e.preventDefault(); return; } if (ha.tagName === "BUTTON") UI().whoWentSheet(); };
     document.title = "Famstamp: stamp every trip";
@@ -337,7 +340,7 @@
   function shell(k, tab, inner) {
     var cur = tab === "trip" ? "trips" : tab;
     return (tab === "trips" ? backupBanner() : "") + '<div style="' + kidStyle(k) + '"><a class="back" href="#/">← Everyone</a><div class="kidhead"><span class="avatar">' + initial(M.who(k)) + '</span><h1>' + esc(M.who(k)) + ' <span class="role">' + esc(roleLabel(k)) + '</span>' + (M.realName(k) ? ' <span class="muted small realname">' + esc(M.realName(k)) + '</span>' : "") + '</h1></div>' + whoBar(k, cur) +
-      '<nav class="tabs" aria-label="Sections" style="' + kidStyle(k) + '"><div class="wrap">' + TABS.map(function (t) {
+      '<nav class="tabs" aria-label="Sections" style="' + kidStyle(k) + '"><div class="wrap">' + (window.FS_HL ? window.FS_HL.tab(false) : "") + TABS.map(function (t) {
         return '<a href="#/p/' + esc(k.id) + '/' + t[0] + '"' + (t[0] === cur ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">' + t[2] + '</span>' + t[1] + '</a>';
       }).join("") + '</div></nav>' + inner + '</div>';
   }
@@ -353,10 +356,10 @@
       }).join("") + '</nav></div>';
   }
   /** The bottom tabs on the home screen go to your own pages (or the first person's when this phone isn't linked to anyone). */
-  function homeTabs() {
+  function homeTabs(cur) {
     if (!state.kids.length) return "";
     var p = kidById(myPersonId()) || state.kids[0];
-    return '<nav class="tabs hometabs" aria-label="' + esc(M.who(p)) + '\'s sections"><div class="wrap">' + TABS.map(function (t) {
+    return '<nav class="tabs hometabs" aria-label="' + esc(M.who(p)) + '\'s sections"><div class="wrap">' + (window.FS_HL ? window.FS_HL.tab(cur === "highlights") : "") + TABS.map(function (t) {
       return '<a href="#/p/' + esc(p.id) + '/' + t[0] + '"><span class="ic" aria-hidden="true">' + t[2] + '</span>' + t[1] + '</a>';
     }).join("") + '</div></nav>';
   }

@@ -56,6 +56,8 @@ textarea { min-height:6rem; resize:vertical; }
 .back { display:inline-block; margin-top:.9rem; font-weight:600; text-decoration:none; }
 .tabs { position:fixed; left:0; right:0; bottom:0; z-index:20; background:var(--navy); padding-bottom:env(safe-area-inset-bottom); }
 .tabs .wrap { display:grid; grid-template-columns:repeat(6,1fr); padding:0 .1rem; }
+.tabs .wrap:has(> a:nth-child(7)) { grid-template-columns:repeat(7,1fr); }
+.tabs .wrap:has(> a:nth-child(7)) a { font-size:.7rem; }
 .tabs a { color:#c9d5e2; text-decoration:none; text-align:center; font-size:.78rem; font-weight:600; padding:.45rem .1rem .55rem; display:flex; flex-direction:column; align-items:center; gap:.1rem; min-height:56px; justify-content:center; }
 .tabs a .ic { font-size:1.25rem; line-height:1; }
 .tabs a[aria-current=page] { color:var(--beacon); box-shadow:inset 0 3px 0 var(--beacon); }
@@ -772,3 +774,15 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .cheers { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.6rem; margin-bottom:1rem; }
 .cuprows { list-style:none; padding:0; margin:.4rem 0 0; } .cuprows li { display:flex; align-items:center; gap:.6rem; padding:.35rem 0; border-bottom:1px solid rgba(31,42,51,.08); }
 .cuprows li .nm { flex:1; } .cuprows li.lead .nm { font-weight:700; } .cuprows .medal { width:1.6rem; text-align:center; } .cupcat h3 { margin:0; }
+/* Highlights (v60) */
+.hlfeed { display: grid; gap: 12px; }
+.hlitem h3 { margin: 6px 0 2px; font-size: 1.05rem; }
+.hlhead { display: flex; align-items: center; gap: 8px; }
+.hlhead .dots { display: inline-flex; }
+.hlhead .dotp { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; font-size: .8rem; font-weight: 700; color: #fff; background: var(--kid, #2c6e8f); margin-right: -4px; border: 2px solid #fff; }
+.hlphoto { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; margin-top: 8px; }
+.rxbar { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.rx { min-width: 48px; min-height: 40px; border-radius: 20px; border: 1px solid rgba(0,0,0,.15); background: #fff; font-size: 1.1rem; cursor: pointer; }
+.rx.on { background: #ffe9c7; border-color: #e0a14a; }
+.rx small { font-size: .75rem; }
+.rxwho { margin: 4px 0 0; }

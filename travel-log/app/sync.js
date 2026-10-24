@@ -80,6 +80,10 @@
   }
   // One-time codes and tokens from Google or Supabase never reach the screen.
   function scrub(t) { return String(t || "").replace(/\b\d\/0[\w.\/-]*/g, "").replace(/[\w-]{24,}/g, "").replace(/[\w.-]+\.[\w-]+\.[\w-]{10,}/g, "").replace(/\s{2,}/g, " ").trim(); }
+  function rxChk(r) {
+    if (r && r.error) { var e = r.error, x = new Error(e.message || "reactions"); x.code = e.code; x.missing = e.code === "PGRST205" || e.code === "42P01" || /schema cache|does not exist/i.test(e.message || ""); throw x; }
+    return r ? r.data : null;
+  }
   function chk(r) { if (r && r.error) throw friendly(r.error); return r ? r.data : null; }
   function sbAdapter(sb) {
     var B = CFG.bucket || "trip-photos";
@@ -144,6 +148,14 @@
       },
       family: function (fid) { return sb.from("families").select("*").eq("id", fid).maybeSingle().then(chk); },
       myFamilies: function (uid) { return sb.from("family_members").select("family_id, role, families(name)").eq("user_id", uid).then(chk); },
+      // Highlights reactions (table public.reactions; RLS: family members read, people add/remove only their own).
+      // A missing table comes back as {missing:true} so the app can hide the buttons until it exists.
+      reactions: function (fid) { return sb.from("reactions").select("item_ref, user_id, emoji, created_at, family_id").eq("family_id", fid).order("created_at", { ascending: false }).limit(2000).then(rxChk); },
+      react: function (fid, uid, ref, emoji, add) {
+        var q = add ? sb.from("reactions").insert({ family_id: fid, user_id: uid, item_ref: ref, emoji: emoji })
+                    : sb.from("reactions").delete().eq("family_id", fid).eq("user_id", uid).eq("item_ref", ref).eq("emoji", emoji);
+        return q.then(function (r) { if (r && r.error && r.error.code === "23505") return null; return rxChk(r); });
+      },
       members: function (fid) { return sb.from("family_members").select("*").eq("family_id", fid).order("joined_at").then(chk); },
       allInvites: function (fid) { return sb.from("invites").select("*").eq("family_id", fid).order("created_at", { ascending: false }).limit(40).then(chk); },
       invites: function (fid) { return sb.from("invites").select("*").eq("family_id", fid).is("revoked_at", null).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).then(chk); },
@@ -523,7 +535,7 @@
     main.innerHTML = back("#/", "Home") + '<h1>' + esc(c.familyName || "Family log") + '</h1>' +
       '<div class="syncstate"><span class="syncpill s-' + esc(status) + '">' + (status === "synced" ? "✓ Synced" : status === "syncing" ? "↻ Syncing" : status === "offline" ? "☁ Offline" : status === "error" ? "! Sync paused" : "") + '</span>' +
       '<span class="small muted">' + esc(statusMsg || (c.lastSync ? "Last synced " + S.ago(c.lastSync) : "Not synced yet")) + '</span><button type="button" class="linkbtn" id="snow">Sync now</button></div>' +
-      '<div class="actions">' + (grown ? '<a class="btn btn-beacon" href="#/sync/invite">＋ Invite someone</a>' : "") + '<a class="btn btn-primary" href="#/feed">📰 Family feed</a>' + (grown ? '<a class="btn" href="#/follow">👵 Grandparent follow-along</a>' : "") + '</div>' +
+      '<div class="actions">' + (grown ? '<a class="btn btn-beacon" href="#/sync/invite">＋ Invite someone</a>' : "") + '<a class="btn btn-primary" href="#/feed">📰 Family feed</a>' + (grown ? '<a class="btn" href="#/highlights">✨ Highlights</a><a hidden href="#/follow">👵 Grandparent follow-along</a>' : "") + '</div>' +
       '<h2>Who\'s in <span class="muted small">' + (c.members || []).length + '</span></h2><div class="panel members">' + (members || '<p class="muted">Just you so far.</p>') + '</div>' +
       mePanel(c) + logsPanel() +
       '<div class="panel"><h3>Plan</h3><p class="small">' + esc(acc.label) + '</p><p class="small muted">' + (acc.tier === "founder" ? "Everyone you invite into this family gets every feature free, on every device, up to " + (c.plan.max_people || 10) + " people." : 'Family Keeper (' + esc(CFG.price || "") + ') will cover everyone you invite with one subscription. Nothing is charged today.') + '</p></div>' +
@@ -559,7 +571,7 @@
     var c = cfg(); if (!c) { location.hash = "#/sync"; return; }
     document.title = "Invite · Famstamp";
     main.innerHTML = back("#/sync", "Family") + '<h1>Invite the crew</h1><p class="lede small">Send the link, or let them scan the code. It works for 7 days, up to 10 people.</p>' +
-      '<div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" data-irole="adult" aria-pressed="true">A grown-up</button><button type="button" data-irole="kid" aria-pressed="false">A kid with their own phone</button></div>' +
+      '<div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" data-irole="adult" aria-pressed="true">A grown-up</button><button type="button" data-irole="grand" aria-pressed="false">A grandparent</button><button type="button" data-irole="kid" aria-pressed="false">A kid with their own phone</button></div>' +
       (A.state.kids.length ? '<div class="field"><label for="ifor">Who is it for?</label><select id="ifor"><option value="">Anyone (they pick themselves)</option>' +
         A.state.kids.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(M.who(k)) + '</option>'; }).join("") + '</select></div>' : "") +
       '<div class="panel invite" id="invbox"><p class="muted">Making a code…</p></div><p class="err" id="ierr" hidden></p>' +
@@ -567,11 +579,14 @@
     var role = "adult", lastRows = [];
     // Reuse an open invite for this role when there is one (opening this screen used to make a new code every time,
     // and a family can only have 10 open). At the cap, turn off the oldest unused one and make a fresh code.
-    function usable(i) { return i.role === role && i.uses < i.max_uses && Date.parse(i.expires_at) > Date.now() + 2 * 864e5; }
+    // "A grandparent" is a grown-up invite on the server; the link adds &rel=grandparent so the join screen picks Grandparent,
+    // which gives them the Highlights tab.
+    function srole() { return role === "kid" ? "kid" : "adult"; }
+    function usable(i) { return i.role === srole() && i.uses < i.max_uses && Date.parse(i.expires_at) > Date.now() + 2 * 864e5; }
     function make(fresh) {
       var box = document.getElementById("invbox"); box.innerHTML = '<p class="muted">Making a code…</p>'; err("ierr");
       Promise.all([remote().then(function (r) {
-        function create() { return r.rpc("create_invite", { p_family: c.familyId, p_role: role, p_days: 7, p_max_uses: 10 }); }
+        function create() { return r.rpc("create_invite", { p_family: c.familyId, p_role: srole(), p_days: 7, p_max_uses: 10 }); }
         return (fresh ? Promise.resolve([]) : r.invites(c.familyId).catch(function () { return []; })).then(function (rows) {
           var have = (rows || []).filter(usable)[0]; if (have) return have;
           return create().catch(function (e) {
@@ -597,7 +612,7 @@
     }
     function showInvite(inv) {
       var forSel = document.getElementById("ifor"), forPid = forSel ? forSel.value : "";
-      var link = S.inviteLink(location.origin + location.pathname, inv.code) + (forPid ? "&for=" + encodeURIComponent(forPid) : ""), title = S.familyTitle(c.familyName);
+      var link = S.inviteLink(location.origin + location.pathname, inv.code) + (forPid ? "&for=" + encodeURIComponent(forPid) : "") + (role === "grand" ? "&rel=grandparent" : ""), title = S.familyTitle(c.familyName);
       document.getElementById("invbox").innerHTML = '<div class="code" aria-label="Invite code">' + esc(inv.code) + '</div>' + qrSVG(link) +
         '<p class="small muted">Scan with a phone camera, or open the link. ' + (inv.role === "kid" ? "They'll join as a kid." : "They'll join as a grown-up.") + '</p>' +
         '<div class="actions center"><button class="btn btn-beacon" id="ishare">Share invite</button><button class="btn btn-ghost" id="icopy">Copy link</button></div>' +
@@ -719,6 +734,7 @@
   function okAvatar(u) { return /^https:\/\/lh3\.googleusercontent\.com\/[^"'\s<>]+$/.test(String(u || "")); }
   function firstName(n) { return S.cleanName(String(n || "").split(/\s+/)[0], 40); }
   /** Who an invite link was made for (?join=CODE&for=PERSON), remembered for this tab. */
+  function joinRel(code) { try { var j = JSON.parse(sessionStorage.getItem("mltl-join-rel") || "null"); return j && j.code === S.normCode(code) && M.RELATIONS.some(function (x) { return x.id === j.rel; }) ? j.rel : ""; } catch (x) { return ""; } }
   function joinFor(code) { try { var j = JSON.parse(sessionStorage.getItem("mltl-join-for") || "null"); return j && j.code === code ? j.pid : ""; } catch (x) { return ""; } }
 
   /** Login = identity. A signed-in account that's already in any family never sees "Which one is you?":
@@ -775,7 +791,7 @@
       (fam.length ? peoplePicker("jme", fam, match ? match.id : "", '<label><input type="radio" name="jme" value=""' + (match ? "" : " checked") + '> I\'m new to the log</label>') : "") + '</div>' +
       '<div class="field" id="jnamebox"' + (match ? " hidden" : "") + '><label for="jname">Your name or nickname</label><input id="jname" type="text" maxlength="40" placeholder="e.g. Grandma, Pop, Lily" value="' + esc(gFirst) + '">' +
         '<label for="jnick" style="margin-top:10px">Nickname (optional)</label><input id="jnick" type="text" maxlength="' + M.NICK_MAX + '" placeholder="e.g. Nana, Papa">' +
-        '<label for="jrel" style="margin-top:10px">You are the family\'s…</label><select id="jrel">' + M.RELATIONS.map(function (x) { var d = M.defaultRel(inv.role === "kid" ? "kid" : "adult"); return '<option value="' + x.id + '"' + (x.id === d ? " selected" : "") + '>' + esc(x.label) + '</option>'; }).join("") + '</select></div>' +
+        '<label for="jrel" style="margin-top:10px">You are the family\'s…</label><select id="jrel">' + M.RELATIONS.map(function (x) { var d = (inv.role !== "kid" && joinRel(code)) || M.defaultRel(inv.role === "kid" ? "kid" : "adult"); return '<option value="' + x.id + '"' + (x.id === d ? " selected" : "") + '>' + esc(x.label) + '</option>'; }).join("") + '</select></div>' +
       (hasLocal ? '<div class="field"><label>This phone already has a log (' + mine.length + (mine.length === 1 ? " person" : " people") + ', ' + A.state.trips.length + ' trips)</label>' +
         '<div class="seg col" role="radiogroup"><label class="opt"><input type="radio" name="jmerge" value="combine" checked> <span><b>Put them together</b><br><span class="small muted">Your maps and trips join the family log. Same names become one person.</span></span></label>' +
         '<label class="opt"><input type="radio" name="jmerge" value="separate"> <span><b>Keep them separate</b><br><span class="small muted">This phone\'s log stays as it is, and ' + esc(title) + ' gets its own log. Switch between them any time.</span></span></label>' +
@@ -1311,11 +1327,19 @@
       call: function (fn, args) { return remote().then(function (r) { return ensureSession(r).then(function () { return r.rpc(fn, args); }); }); },
       open: function (fn, args) { return remote().then(function (r) { return r.rpc(fn, args); }); }
     },
+    // for highlights.js: reactions for this family, as the signed-in member
+    hl: {
+      on: function () { return on(); }, cfg: function () { return cfg(); },
+      list: function () { var c = cfg(); return remote().then(function (r) { return ensureSession(r).then(function () { return r.reactions(c.familyId); }); }); },
+      react: function (ref, emoji, add) { var c = cfg(); return remote().then(function (r) { return ensureSession(r).then(function () { return r.react(c.familyId, c.userId, ref, emoji, add); }); }); }
+    },
     _core: S, _confetti: confetti, _cheer: cheer
   };
   // ?join=CODE links: turn them into the in-app join screen
   (function () {
     var m = /[?&]join=([^&#]+)/.exec(location.search), f = /[?&]for=([\w-]{1,64})/.exec(location.search);
+    var rl = /[?&]rel=(grandparent|auntuncle|friend|parent|other)\b/.exec(location.search);
+    if (m && rl) try { sessionStorage.setItem("mltl-join-rel", JSON.stringify({ code: S.normCode(decodeURIComponent(m[1])), rel: rl[1] })); } catch (x) {}
     if (m && f) try { sessionStorage.setItem("mltl-join-for", JSON.stringify({ code: S.normCode(decodeURIComponent(m[1])), pid: f[1] })); } catch (x) {}
     if (m) history.replaceState(null, "", location.pathname + "#/join/" + encodeURIComponent(S.normCode(decodeURIComponent(m[1]))));
   })();
