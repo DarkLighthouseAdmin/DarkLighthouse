@@ -81,6 +81,12 @@
   function emptyShadow() { return { people: {}, visits: {}, trips: {}, photos: {} }; }
 
   /** What this phone needs to send. local = { people, trips, photoIds }. Returns rows per table plus photo ids to upload. */
+  /** A trip's photos: its main one plus (v63) the kids' journal drawings. */
+  function tripPhotos(t) {
+    var ids = t && t.photoId ? [t.photoId] : [];
+    ((t && Array.isArray(t.journal)) ? t.journal : []).forEach(function (j) { if (j && typeof j.photoId === "string" && j.photoId && ids.indexOf(j.photoId) < 0) ids.push(j.photoId); });
+    return ids;
+  }
   function planPush(local, shadow, fid, now) {
     shadow = shadow || emptyShadow(); now = iso(now);
     var out = { people: [], visits: [], trips: [], photos: [], uploads: [], removes: [] };
@@ -109,12 +115,12 @@
     local.trips.forEach(function (t) {
       tripIds[t.id] = 1;
       if (!shadow.trips[t.id] || shadow.trips[t.id] !== iso(t.updatedAt)) out.trips.push(tripRow(t, fid));
-      if (t.photoId && !shadow.photos[t.photoId] && (local.photoIds || []).indexOf(t.photoId) >= 0) out.uploads.push({ id: t.photoId, tripId: t.id });
+      tripPhotos(t).forEach(function (pid) { if (!shadow.photos[pid] && (local.photoIds || []).indexOf(pid) >= 0) out.uploads.push({ id: pid, tripId: t.id }); });
     });
     Object.keys(shadow.trips).forEach(function (id) {
       if (!tripIds[id]) out.trips.push({ family_id: fid, id: id, data: {}, traveler_ids: [], from_place: "", to_place: "", trip_date: null, photo_id: null, updated_at: now, deleted: true });
     });
-    var used = {}; local.trips.forEach(function (t) { if (t.photoId) used[t.photoId] = 1; });
+    var used = {}; local.trips.forEach(function (t) { tripPhotos(t).forEach(function (pid) { used[pid] = 1; }); });
     Object.keys(shadow.photos).forEach(function (id) {
       if (!used[id]) { out.photos.push({ family_id: fid, id: id, path: photoPath(fid, id, shadow.photos[id]), updated_at: now, deleted: true }); out.removes.push(photoPath(fid, id, shadow.photos[id])); }
     });
@@ -344,7 +350,7 @@
   }
   function slug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30); }
 
-  return { WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
+  return { tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
            ms: ms, iso: iso, newer: newer, personRow: personRow, tripRow: tripRow, flatVisits: flatVisits, emptyShadow: emptyShadow,
            planPush: planPush, afterPush: afterPush, applyPull: applyPull, nextCursor: nextCursor, photoPath: photoPath,
            matchPeople: matchPeople, remapPeople: remapPeople, access: access, allows: allows, FREE: FREE,

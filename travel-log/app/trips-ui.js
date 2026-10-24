@@ -734,12 +734,13 @@
       favBlock(favs.filter(function (f) { return T.FAV[f.cat].adult; }), "🍻 For the grown-ups", " adultbox") +
       (hiddenAdult ? '<p class="small muted adultnote">The grown-ups\' picks (pub, pint, coffee) are hidden on kids\' pages. <button type="button" class="linkbtn sm" data-adultkid="1">Show them here too</button></p>' : "") +
       (grownTrip && !T.isAdult(k) && S().meta.adultInKid && (t.favs || []).some(function (f) { return T.FAV[f.cat].adult; }) ? '<p class="small muted adultnote"><button type="button" class="linkbtn sm" data-adultkid="0">Hide grown-up picks on kids\' pages</button></p>' : "") +
-      (window.FS_HL ? window.FS_HL.tripLine(t) : "") + momentsBlock(t) + (window.FS_SPOTS ? window.FS_SPOTS.tripHTML(k, t) : "") + storyBlock(t) +
+      (window.FS_HL ? window.FS_HL.tripLine(t) : "") + (window.FS_TRIPX || []).map(function (x) { try { return x.html(k, t) || ""; } catch (e) { return ""; } }).join("") + momentsBlock(t) + (window.FS_SPOTS ? window.FS_SPOTS.tripHTML(k, t) : "") + storyBlock(t) +
       '<div class="actions noprint"><a class="btn btn-primary" href="#/p/' + esc(k.id) + '/trips/edit/' + esc(t.id) + '">Edit trip</a><a class="btn btn-ghost" href="#/p/' + esc(k.id) + '/passport">🛂 Passport</a></div>' + syncExtra(t) + '</article>';
     A_.main.innerHTML = A_.shell(k, "trips", html);
     A_.fillPhotos();
     bindUnits(A_.main, function () { detail(k, tid); });
     if (window.FS_HL) window.FS_HL.refresh();
+    (window.FS_TRIPX || []).forEach(function (x) { if (x.bind) try { x.bind(k, t, A_.main); } catch (e) {} });
     if (window.FS_SPOTS) window.FS_SPOTS.bindTrip(k, t, A_.main, function () { var y = window.scrollY; detail(k, tid); window.scrollTo(0, y); });
     $$("[data-adultkid]").forEach(function (b) { b.onclick = function () { A_.setMeta("adultInKid", b.dataset.adultkid === "1").then(function () { detail(k, tid); }); }; });
     var storyRender = bindStory(k, t);

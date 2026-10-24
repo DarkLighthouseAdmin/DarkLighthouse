@@ -9,7 +9,7 @@
   "use strict";
   var EMOJI = [["heart", "❤️", "Love it"], ["wow", "😮", "Wow"], ["clap", "👏", "Bravo"], ["laugh", "😂", "Ha!"]], EMO = {};
   EMOJI.forEach(function (e) { EMO[e[0]] = e[1]; });
-  var DATE = /^\d{4}-\d{2}-\d{2}$/, REF = /^(s|jr|q|f|m|t):[A-Za-z0-9_:.-]{3,116}$/;
+  var DATE = /^\d{4}-\d{2}-\d{2}$/, REF = /^(s|jr|q|f|m|t|r|g|j):[A-Za-z0-9_:.-]{3,116}$/;
   function isKid(p) { return !!p && p.role === "kid"; }
   /** A grandparent is marked by their relationship (picked when they join with the family invite) or the Grandparent role. */
   function isGrand(p) { return !!p && (p.relationship === "grandparent" || p.role === "grand"); }
@@ -37,6 +37,14 @@
         var l = days[at];
         out.push({ ref: "s:" + k.id + ":" + at, kind: "stamps", kidIds: [k.id], at: at, emoji: "🛂", title: l.length === 1 ? "New stamp: " + l[0] : l.length + " new stamps", detail: l.length === 1 ? "" : l.slice(0, 6).join(", ") + (l.length > 6 ? " and " + (l.length - 6) + " more" : "") });
       });
+      // v63: reward levels (3, 5, 10, 20 stamps) and road-trip game stamps
+      safe(ctx.rewards, k, []).forEach(function (r) {
+        if (r && ok(r.at)) out.push({ ref: "r:" + k.id + ":" + r.n, kind: "badge", kidIds: [k.id], at: r.at, emoji: "🏅", title: r.n + " stamps: " + r.name + "!", detail: "Reward unlocked" });
+      });
+      Object.keys(k.games || {}).forEach(function (gk) {
+        var g = k.games[gk] || {}, nm2 = { plates: "License plate hunt", alpha: "Road-sign alphabet", hunt: "Scavenger hunt" }[g.kind];
+        if (nm2 && ok(g.at)) out.push({ ref: "g:" + k.id + ":" + gk, kind: "badge", kidIds: [k.id], at: g.at, emoji: "🚗", title: "Game stamp: " + nm2, detail: g.place || "" });
+      });
       safe(ctx.quests, k, []).forEach(function (e) {
         if (e && e.q && ok(e.at))
           out.push({ ref: "q:" + k.id + ":" + e.q.id, kind: "badge", kidIds: [k.id], at: e.at, emoji: e.q.emoji || "🧭", title: "Badge: " + (e.q.badge || e.q.name), detail: e.q.name || "" });
@@ -49,9 +57,15 @@
     (trips || []).forEach(function (t) {
       if (!t || t.deletedAt || draft(t) || !ok(t.date)) return;
       var ks = (t.kidIds || []).filter(function (id) { return kidIds[id]; }); if (!ks.length) return;
+      // v63: the kids' journal pages (best part of the day, a funny quote, a drawing)
+      (Array.isArray(t.journal) ? t.journal : []).forEach(function (j) {
+        if (!j || !kidIds[j.kid] || !ok(j.day) || !/^[A-Za-z0-9_-]{3,40}$/.test(j.id || "")) return;
+        var txt = j.best ? "🌟 " + j.best : j.funny ? "😂 “" + j.funny + "”" + (j.said ? " (" + j.said + ")" : "") : "";
+        out.push({ ref: "j:" + t.id + ":" + j.id, kind: "journal", kidIds: [j.kid], at: j.day, emoji: "📓", title: "Journal: " + String(t.place || t.title || "a trip"), detail: txt + (j.best && j.funny ? " · 😂 “" + j.funny + "”" : ""), tripId: t.id, photoId: j.photoId || null });
+      });
       out.push({ ref: "t:" + t.id, kind: "trip", kidIds: ks, at: t.date, emoji: "🧳", title: String(t.place || t.title || "A trip"), detail: t.memory || "", tripId: t.id, photoId: t.photoId || null });
     });
-    var order = { trip: 0, first: 1, milestone: 2, badge: 3, stamps: 4 };
+    var order = { trip: 0, journal: 1, first: 2, milestone: 3, badge: 4, stamps: 5 };
     return out.filter(function (x) { return REF.test(x.ref); })
       .sort(function (a, b) { return a.at < b.at ? 1 : a.at > b.at ? -1 : (order[a.kind] - order[b.kind]) || (a.ref < b.ref ? -1 : 1); }).slice(0, o.limit || 80);
   }

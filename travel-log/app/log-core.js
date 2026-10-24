@@ -238,6 +238,10 @@
   function todayStr() { return today(); }
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
+  /** v63: photos a trip holds besides its main one (the kids' journal drawings). */
+  function extraPhotoIds(t) {
+    return ((t && Array.isArray(t.journal)) ? t.journal : []).map(function (j) { return j && j.photoId; }).filter(function (id, i, a) { return typeof id === "string" && id && a.indexOf(id) === i; });
+  }
   function newTrip(opts) {
     opts = opts || {};
     var place = clean(opts.place, 80);
@@ -535,7 +539,7 @@
     }
     // v62: maps join up too (states, countries, parks): a stamp made on this phone after the backup (e.g. with "Where have you
     // been?") stays, and the file adds its own. Same place on both: the newer person's entry wins (a date beats no date either way).
-    ["states", "places", "parks"].forEach(function (bk) {
+    ["states", "places", "parks", "games"].forEach(function (bk) {   // v63: road-trip game stamps join up too
       var a = existing[bk] && typeof existing[bk] === "object" ? existing[bk] : null, b = incoming[bk] && typeof incoming[bk] === "object" ? incoming[bk] : null;
       if (!a || !b || (keys && keys.indexOf(bk) < 0)) return;
       var older = mineNewer ? b : a, newer = mineNewer ? a : b, m = JSON.parse(JSON.stringify(older));
@@ -737,7 +741,7 @@
     return { trip: c, photo: ph };
   }
 
-  return { onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+  return { extraPhotoIds: extraPhotoIds, onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,

@@ -33,6 +33,15 @@
   function page(cls, inner, n) { return '<section class="bpage ' + cls + '">' + inner + (n ? '<span class="bpn">' + n + '</span>' : "") + '</section>'; }
 
   /** All the pages of k's book as HTML. */
+  /** v63: this person's journal pages from a trip (best part, funny quote, a drawing). */
+  function journalBits(k, t) {
+    var J = window.FS_JOURNAL, l = J ? J.list(t).filter(function (e) { return e && e.kid === k.id; }).slice(0, 4) : [];
+    if (!l.length) return "";
+    return '<div class="bjournal"><h3>📓 From the journal</h3>' + l.map(function (e) {
+      return '<div class="bjent"><span class="bjd">' + esc(fmt(e.day)) + '</span>' + (e.best ? '<p>🌟 ' + esc(e.best) + '</p>' : "") +
+        (e.funny ? '<p>😂 “' + esc(e.funny) + '”' + (e.said ? ' (' + esc(e.said) + ')' : "") + '</p>' : "") + (e.photoId ? '<img class="bjdraw" alt="A drawing" data-photo="' + esc(e.photoId) + '">' : "") + '</div>';
+    }).join("") + '</div>';
+  }
   function pagesHTML(k) {
     var M = window.MLTL, P = window.WK_PASSPORT, T = window.WK_TRIPS, app = A(), who = M.who(k);
     var s = M.stats(k, app.state.trips, window.MLTL_MAPS.world), trips = tripsOf(k), stamps = stampsOf(k), n = 1, out = [];
@@ -56,7 +65,7 @@
         '<h2>' + esc(t.title || t.place) + '</h2><p class="bsub">' + esc([fmt(t.date), age != null ? "age " + age : ""].filter(Boolean).join(" · ")) + '</p>' +
         (route && route !== (t.title || t.place) ? '<p class="broute">' + esc(route) + '</p>' : "") +
         (t.memory ? '<p class="bnote">“' + esc(t.memory) + '”</p>' : "") +
-        (rows.length ? '<dl class="bmems">' + rows.map(function (p) { return '<div><dt>' + p[2] + ' ' + esc(p[1]) + '</dt><dd>' + esc(m[p[0]]) + '</dd></div>'; }).join("") + '</dl>' : ""), n++));
+        (rows.length ? '<dl class="bmems">' + rows.map(function (p) { return '<div><dt>' + p[2] + ' ' + esc(p[1]) + '</dt><dd>' + esc(m[p[0]]) + '</dd></div>'; }).join("") + '</dl>' : "") + journalBits(k, t), n++));
     });
     var F = window.FS_FIRSTS, firsts = F ? F.timeline(k, app.state.trips, F.ctx()).filter(function (r) { return r.at; }) : [];
     if (firsts.length) out.push(page("bfirsts", '<h2>' + esc(who) + '\'s firsts</h2><ol>' + firsts.slice(0, 12).map(function (r) {

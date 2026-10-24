@@ -1630,3 +1630,59 @@ setTimeout(() => {
   ok(/h\[0\] === "where"/.test(aj) && /FS_WHERE\.homeCard\(\)/.test(aj) && /geo: mainThreadGeo/.test(ij) && /where\.js/.test(ix) && /"where\.js"/.test(sw), "wired: route, home card, offline geo, script, cache");
   ok(/I\.exif\(b\)/.test(wj) && /id="wpdate"/.test(wj) && /id="wpstate"/.test(wj) && /redacted/.test(wj), "photo: EXIF first, manual place/date otherwise");
 }
+
+// ---------- v63: rewards & certificates, road-trip games, kids' journal, weekly recap ----------
+{
+  const R = require("../travel-log/app/rewards.js"), G = require("../travel-log/app/games.js"), J = require("../travel-log/app/journal.js"), RC = require("../travel-log/app/recap.js");
+  const HC = require("../travel-log/app/highlights-core.js"), SC = require("../travel-log/app/sync-core.js"), Y = require("../travel-log/app/year.js");
+  const kid = { id: "person_zz00000000kid01", name: "Zz Kid", role: "kid", states: { FL: { at: "2026-06-01" }, CA: { at: "2026-06-03" } }, places: { USA: { at: "" }, ITA: { at: "2026-06-20" } }, parks: {}, spots: { "p-zzpub": { at: "2026-06-04" } } };
+  const grand = { id: "person_zz0000000grand1", name: "Zz Test", role: "adult", relationship: "grandparent", states: {}, places: {}, parks: {} };
+  // rewards
+  ok(R.count(kid) === 3 && R.earned(kid).length === 1 && R.earned(kid)[0].name === "Explorer" && R.earned(kid)[0].at === "2026-06-20", "rewards: 3 stamps = Explorer, dated by the 3rd stamp (USA and pubs don't count)");
+  ok(R.next(kid).n === 5 && R.LEVELS.map(l => l.n).join() === "3,5,10,20", "rewards: levels 3, 5, 10, 20");
+  ok(R.fresh([kid], {}).length === 1 && R.fresh([kid], { [kid.id]: 3 }).length === 0, "rewards: a new level shows once per phone");
+  const cert = R.certHTML({ name: "Zz Kid", n: 10, date: "Jun 20, 2026" });
+  ok(/Certificate of Adventure/.test(cert) && /Zz Kid/.test(cert) && /Globetrotter/.test(cert) && !/National Park Service|NPS|Eastern National|bear|moose|eagle|wolf|deer|fox|owl|elk/i.test(cert), "certificate: original, no park-service marks, no animals");
+  ok(/@media print[\s\S]*certview/.test(read("app.css")) && /window\.print\(\)/.test(read("rewards.js")), "certificate prints (or saves as PDF)");
+  // games
+  const t = { id: "trip_zzgames0000001", date: "2026-07-01", endDate: "2026-07-03", kidIds: [kid.id], place: "Zz Road Trip" }, d = "2026-07-02";
+  G.STATES.slice(0, 9).forEach(s => G.tap(t, "plates", d, s, "2026-07-02T10:00:00Z"));
+  ok(!G.board(t, "plates", d).done && G.award(t, "plates", d, [kid]).length === 0, "plates: 9 states isn't done yet");
+  G.tap(t, "plates", d, "WY", "2026-07-02T11:00:00Z");
+  ok(G.board(t, "plates", d).done && G.award(t, "plates", d, [kid], "Zz Road Trip").length === 1 && G.award(t, "plates", d, [kid]).length === 0, "plates: 10 states earns one stamp, once");
+  ok(kid.games["plates:" + t.id + ":" + d].at === d && R.count(kid) === 4, "the game stamp is dated to the trip day and counts toward rewards");
+  G.tap(t, "alpha", d, "C"); G.tap(t, "alpha", d, "A"); G.tap(t, "alpha", d, "B"); G.tap(t, "alpha", d, "A");
+  ok(G.board(t, "alpha", d).found.join("") === "AB", "alphabet: in order only; only the last letter can be taken back");
+  ok(G.huntList(t.id + ":" + d).length === 12 && JSON.stringify(G.huntList("a")) === JSON.stringify(G.huntList("a")) && JSON.stringify(G.huntList("a")) !== JSON.stringify(G.huntList("b")), "hunt: 12 things, same list on every phone, new list per day");
+  ok(!/deer|cow|horse|bird|dog|eagle|bear/i.test(JSON.stringify(G.HUNT)), "hunt: no animals (the wildlife list isn't part of this)");
+  ok(G.playDay(t, "2026-07-02", "2026-07-03") === "2026-07-02" && G.playDay(t, "2026-09-01", "2026-07-03") === "2026-07-01", "games: today on a trip, else its first day");
+  ok(/games\/print/.test(read("games.js")) && /page:portrait/.test(read("app.css")), "printable game sheets");
+  // journal
+  const e = J.upsert(t, kid.id, d, { best: "  Zz saw the big bridge ", funny: "Zz said the car is a spaceship", said: "Zz Test" }, "2026-07-02T20:00:00Z", "jzz0001");
+  ok(e && e.best === "Zz saw the big bridge" && J.entry(t, kid.id, d) === e && J.list(t).length === 1, "journal: one page per kid per day");
+  J.upsert(t, kid.id, d, { best: "Zz bridge", photoId: "photo_zzdraw01" });
+  ok(J.list(t).length === 1 && J.entry(t, kid.id, d).photoId === "photo_zzdraw01" && !J.entry(t, kid.id, d).funny, "journal: editing keeps one page");
+  ok(SC.tripPhotos(Object.assign({ photoId: "photo_zzmain" }, t)).join() === "photo_zzmain,photo_zzdraw01" && M.extraPhotoIds(t).join() === "photo_zzdraw01", "journal drawings sync and are cleaned up with the trip");
+  const plan = SC.planPush({ people: [], trips: [t], photoIds: ["photo_zzdraw01"] }, SC.emptyShadow(), "fam_zz");
+  ok(plan.uploads.some(u => u.id === "photo_zzdraw01") && !plan.photos.some(p => p.deleted), "sync uploads a journal drawing and never deletes it");
+  ok(J.yearBits([kid], [t], 2026).pages === 1 && J.yearBits([kid], [t], 2025).pages === 0, "journal feeds the year in review");
+  J.upsert(t, kid.id, "2026-07-03", { funny: "Zz: are we there yet" }, "x", "jzz0002");
+  ok(Y.summary([kid], [t], 2026).journal.pages === 2 && Y.summary([kid], [t], 2026).journal.quotes.length === 1, "year summary has the journal pages and quotes");
+  ok(/journalBits\(k, t\)/.test(read("book.js")), "journal feeds the travel book");
+  ok(J.days(t, M).join() === "2026-07-01,2026-07-02,2026-07-03", "journal: the trip's days");
+  ok(J.upsert(t, kid.id, d, { best: "" }) === null && J.list(t).length === 1, "journal: clearing a page removes it");
+  // weekly recap
+  const rc = RC.build(HC, [kid, grand], [t], {}, "2026-07-03");
+  ok(rc.since === "2026-06-27" && rc.kids.length === 1 && rc.items.some(x => x.kind === "journal") && rc.items.some(x => x.ref.indexOf("g:") === 0), "recap: the week's journal pages and game stamps");
+  ok(!rc.items.some(x => x.at < "2026-06-27" || x.at > "2026-07-03") && !rc.items.some(x => /zzpub/.test(x.ref + x.title)), "recap: only that week, no pubs");
+  const html = RC.renderHTML(rc, { appUrl: "https://example.test/app/", emoji: HC.EMOJI, who: p => p.name });
+  ok(/This week with the grandkids/.test(html) && /#\/recap\/r\/heart\/j%3Atrip_zzgames0000001%3Ajzz0002/.test(html) && !/<script/i.test(html) && !/<style/i.test(html), "recap email HTML: inline styles, one-tap reaction links");
+  ok(rc.items.every(x => HC.REF.test(x.ref) && x.ref.length <= 120), "recap items can take reactions (fits public.reactions)");
+  ok(/emailPayload/.test(read("recap.js")) && !/fetch\(|sendmail|smtp|resend|sendgrid/i.test(read("recap.js")), "recap: ready for an email sender, sends nothing");
+  // restore keeps game stamps made on this phone
+  const ph = { id: kid.id, updatedAt: "2026-07-05T00:00:00Z", states: {}, places: {}, parks: {}, games: { "hunt:x:2026-07-04": { at: "2026-07-04", kind: "hunt" } } };
+  const fl = { id: kid.id, updatedAt: "2026-07-01T00:00:00Z", states: {}, places: {}, parks: {}, games: { "alpha:x:2026-06-30": { at: "2026-06-30", kind: "alpha" } } };
+  ok(Object.keys(M.mergeRestore(ph, fl).games).length === 2, "restore: game stamps join up");
+  const aj = read("app.js"), tu = read("trips-ui.js"), ix = read("index.html"), sw = read("sw.js");
+  ok(/FS_ROUTES/.test(aj) && /FS_HOME_TOP/.test(aj) && /FS_REWARDS\.card/.test(aj) && /FS_TRIPX/.test(tu) && ["rewards", "games", "journal", "recap"].every(f => ix.indexOf(f + ".js") > 0 && sw.indexOf('"' + f + '.js"') > 0), "wired: routes, home cards, trip page, scripts, offline cache");
+}

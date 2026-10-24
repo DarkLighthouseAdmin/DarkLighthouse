@@ -6,8 +6,8 @@
   function UI() { return window.FS_UI; }   // trips-ui.js: trip builder, trip pages, stories and passports (v1.4)
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
-  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v62" -> "v62").
-  var VERSION = "v62";
+  // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v63" -> "v63").
+  var VERSION = "v63";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -55,7 +55,7 @@
       var sp = M.splitTrips(r[1].map(function (t) { return M.migrateTrip(t); }));
       state.trips = sp.live.filter(function (t) { return t.kidIds.length; });
       state.bin = sp.bin;
-      if (sp.purge.length) setTimeout(function () { sp.purge.forEach(function (t) { del("trips", t.id); if (t.photoId) del("photos", t.photoId); }); }, 0);
+      if (sp.purge.length) setTimeout(function () { sp.purge.forEach(function (t) { del("trips", t.id); if (t.photoId) del("photos", t.photoId); M.extraPhotoIds(t).forEach(function (id) { del("photos", id); }); }); }, 0);
       state.meta = {}; r[2].forEach(function (m) { state.meta[m.key] = m.value; });
     });
   }
@@ -148,6 +148,8 @@
     if (h[0] === "follow" && window.FS_FOLLOW) return window.FS_FOLLOW.view(h[1] || "");
     if (h[0] === "where" && window.FS_WHERE) return window.FS_WHERE.view(h[1] || "");
     if (h[0] === "highlights" && window.FS_HL) { window.FS_HL.view(); main.insertAdjacentHTML("beforeend", homeTabs("highlights")); return; }
+    // v63: feature pages (recap, rewards & certificates, road-trip games, kid journal) register here: f(h) -> true if it drew the page
+    var xr = window.FS_ROUTES || []; for (var xi = 0; xi < xr.length; xi++) if (xr[xi](h)) return;
     if (window.MLTL_SYNC && window.MLTL_SYNC.route(h)) return;
     if (h[0] === "family" && h[1] === "passport") return UI().passportFamily();
     if (h[0] === "family" && h[1] === "cup") return viewCup();
@@ -248,6 +250,7 @@
     if (window.MLTL_SYNC && window.MLTL_SYNC.homeTop) html += window.MLTL_SYNC.homeTop();
     if (window.FS_HL) html += window.FS_HL.homeCard();
     if (window.FS_WHERE) html += window.FS_WHERE.homeCard();
+    (window.FS_HOME_TOP || []).forEach(function (f) { try { html += f() || ""; } catch (e) {} });   // v63: today's journal, games on a trip, weekly recap
     html += reviewNudge() + tripsAheadCard() + onThisDayCard();
     if (state.kids.length && window.FS_NEAR && !M.onTripNow(state.trips, M.today()).length) html += '<p class="small nearlink"><a class="tapline" href="#/near">📍 What\'s near me? Parks and places to stamp nearby</a></p>';
     html += '<h2>Who\'s traveling?</h2><div class="kids">';
@@ -328,7 +331,7 @@
         if (t.kidIds.indexOf(k.id) < 0) return;
         t.kidIds = t.kidIds.filter(function (x) { return x !== k.id; });
         if (t.kidIds.length) jobs.push(put("trips", t));
-        else { jobs.push(del("trips", t.id)); if (t.photoId) jobs.push(del("photos", t.photoId)); state.trips = state.trips.filter(function (x) { return x !== t; }); }
+        else { jobs.push(del("trips", t.id)); if (t.photoId) jobs.push(del("photos", t.photoId)); M.extraPhotoIds(t).forEach(function (id) { jobs.push(del("photos", id)); }); state.trips = state.trips.filter(function (x) { return x !== t; }); }
       });
       state.kids = state.kids.filter(function (x) { return x !== k; });
       Promise.all(jobs).then(function () { location.hash = "#/"; toast("Removed"); });
@@ -664,7 +667,7 @@
       statBox(s.states, 50, "States") + statBox(s.countries, 195, "Countries") + statBox(s.ukNations, 4, "UK nations") + statBox(s.parks, 64, "National parks") +
       (s.kid ? statBox(s.juniorRanger, 0, "Junior Ranger") : "") + (window.FS_SPOTS ? (function (c) { return statBox(c.cities, 0, "Cities") + statBox(c.hubs, 0, "Travel hubs") + statBox(c.food, 0, "Food stamps") + (s.kid ? "" : statBox(c.pubs, 0, "Pubs & breweries")); })(window.FS_SPOTS.counts(k)) : "") + statBox(s.continents, 7, "Continents") + statBox(s.trips, 0, "Trips") + statBox(s.together, 0, "Trips together") + statBox(s.photos, 0, "Photos") +
       (s.years ? statBox(s.years, 0, s.years === 1 ? "Year of trips" : "Years of trips") : "") + (s.firstTripAge != null ? statBox(s.firstTripAge, 0, "Age on first trip") : "") + '</div>' +
-      UI().lifetimeHTML(k.id) + questsCard(k) + (window.FS_FIRSTS ? window.FS_FIRSTS.card(k) : "") + (window.FS_BOOK ? window.FS_BOOK.card(k) : "") +
+      UI().lifetimeHTML(k.id) + questsCard(k) + (window.FS_REWARDS ? window.FS_REWARDS.card(k) : "") + (window.FS_FIRSTS ? window.FS_FIRSTS.card(k) : "") + (window.FS_BOOK ? window.FS_BOOK.card(k) : "") +
       '<h2>Badges <span class="muted small">' + earned + ' of ' + b.length + '</span></h2><div class="badges">' + b.map(function (x) {
         return '<div class="badge' + (x.earned ? "" : " locked") + '"><div class="medal" aria-hidden="true">' + (MEDALS[x.id] || "★") + '</div><b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span>' +
           (x.earned ? "" : '<span>' + x.have + ' / ' + x.need + '</span>') + '</div>';

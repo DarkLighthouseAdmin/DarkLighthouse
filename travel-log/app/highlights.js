@@ -29,7 +29,8 @@
     return {
       name: function (kind, id) { if (kind === "spot") { var it = SP && SP.itemFor(id, st.kids); return it && it.name; } var f = c[kind]; return (f && f(id)) || id; },
       quests: function (p) { return window.FS_QUESTS ? window.FS_QUESTS.earned(p) : []; }, firsts: function (p) { return F ? F.timeline(p, st.trips, c) : []; },
-      milestones: function (p) { return F ? F.milestones(p, st.trips, c, M().today()) : { done: [] }; }
+      milestones: function (p) { return F ? F.milestones(p, st.trips, c, M().today()) : { done: [] }; },
+      rewards: function (p) { return window.FS_REWARDS ? window.FS_REWARDS.earned(p) : []; }
     };
   }
   function items() { return H.feed(A().state.kids, A().state.trips, ctx(), { limit: 80 }); }
@@ -54,6 +55,7 @@
     var main = A().main, list = items(), grand = iAmGrand();
     main.innerHTML = '<a class="back" href="#/">← Home</a><h1>✨ Highlights</h1><p class="lede small">' + (grand ? "The grandkids' newest stamps, badges, milestones, firsts and trips. Tap an emoji to cheer them on." :
       "The kids' newest stamps, badges, milestones and trips, and who cheered.") + '</p>' +
+      '<p class="small"><a class="tapline" href="#/recap">📬 This week\'s recap →</a></p>' +
       (on() ? "" : '<div class="panel"><p class="small">Reactions work once this phone is in a family log. <a href="#/sync">Family Sync →</a></p></div>') +
       '<p class="small muted" id="rxnote"' + (status === "missing" ? "" : " hidden") + '>Reactions aren\'t switched on for this family log yet.</p>' +
       (list.length ? '<div class="hlfeed">' + list.map(card).join("") + '</div>' : '<div class="panel"><p class="muted">Nothing yet. When the kids get new stamps, badges or trips, they show up here.</p></div>') + tabs();
@@ -75,7 +77,7 @@
     var x = X(); if (!x || !x.on() || busy) return busy || Promise.resolve();
     busy = x.list().then(function (r) { status = "ok"; keep((r || []).filter(H.validRow)); })
       .catch(function (e) { if (e && e.missing) status = "missing"; })
-      .then(function () { busy = null; var main = A().main, h = location.hash; if (/^#\/highlights/.test(h)) rebar(main); else if (/\/trip\//.test(h)) tripFill(main); else if (h === "#/" || h === "") homeFill(main); });
+      .then(function () { busy = null; var main = A().main, h = location.hash; if (/^#\/(highlights|recap)/.test(h)) rebar(main); else if (/\/trip\//.test(h)) tripFill(main); else if (h === "#/" || h === "") homeFill(main); });
     return busy;
   }
   /** On a trip page: who reacted to it. */
@@ -101,5 +103,5 @@
   /** The extra tab a grandparent gets (first in the bottom tabs). */
   function tabs() { return ""; }
   function tab(cur) { return iAmGrand() ? '<a href="#/highlights"' + (cur ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">✨</span>Highlights</a>' : ""; }
-  window.FS_HL = { view: view, refresh: refresh, tripLine: tripLine, homeCard: homeCard, tab: tab, iAmGrand: iAmGrand, items: items };
+  window.FS_HL = { card: card, bindBars: bind, rebar: rebar, ctx: ctx, cached: cached, keep: keep, cfg: cfg, nameOf: nameOf, on: on, view: view, refresh: refresh, tripLine: tripLine, homeCard: homeCard, tab: tab, iAmGrand: iAmGrand, items: items };
 })();
