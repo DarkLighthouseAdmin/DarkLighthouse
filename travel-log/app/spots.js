@@ -35,11 +35,15 @@
     return (DYN[id] = { id: id, cat: "hubs", name: nm.slice(0, 40), sub: (a.code.toUpperCase() + (a.city ? " · " + a.city : "")).slice(0, 40), region: "", art: "air", extra: "airport", dyn: 1 });
   }
   var DYN = {};
+  // v65: QR stamp stations (stations.js). The station's name and place ride along in person.spots[id] like airports.
+  var STATION = /^c-st-[a-z0-9]{8}$/;
+  function stationItem(id, v) { return { id: id, cat: "cities", name: String(v.name || "Stamp station").slice(0, 40), sub: String(v.sub || "").slice(0, 40), region: "", art: "station", extra: "station", dyn: 1 }; }
   /** Any stamp id -> its item (curated, a flown-through airport saved on someone, or a list entry made into a stamp). */
   function itemFor(id, people) {
     if (BY[id]) return BY[id];
     for (var i = 0; i < (people || []).length; i++) {
       var p = people[i], v = spotsOf(p)[id];
+      if (v && STATION.test(id)) return stationItem(id, v);
       if (v && /^h-air-[a-z]{3}$/.test(id)) return { id: id, cat: "hubs", name: v.name || id.slice(6).toUpperCase(), sub: v.sub || id.slice(6).toUpperCase(), region: "", art: "air", extra: "airport", dyn: 1 };
       var e = eatsOf(p).filter(function (x) { return x.id === id; })[0]; if (e && e.stamp) return entryItem(e);
     }
@@ -59,6 +63,8 @@
   function wins(x, y, w, h) { var s = ""; for (var yy = y + 2; yy < y + h - 2; yy += 3.2) for (var xx = x + 1.2; xx < x + w - 1; xx += 2.6) s += R(xx.toFixed(1), yy.toFixed(1), 1.1, 1.4, PAPER); return s; }
   function skyline(bs) { var s = R(0, 35, 40, 1.6); bs.forEach(function (b) { s += R(b[0], 35 - b[2], b[1], b[2]) + wins(b[0], 35 - b[2], b[1], b[2]); if (b[3]) s += S("M" + (b[0] + b[1] / 2) + " " + (35 - b[2]) + " v-" + b[3], 0.9); }); return s; }
   var MINE = {
+    // a stamp station: a signpost with a star (our own simple drawing)
+    station: function () { return R(18.6, 8, 2.8, 30) + P("M6 9 H30 L34 13 L30 17 H6 Z") + P("M34 20 H10 L6 24 L10 28 H34 Z") + R(10, 37, 20, 2) + P("M20 0.6l1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z"); },
     sky1: function () { return skyline([[1, 6, 12], [7, 7, 20], [15, 6, 27, 5], [22, 7, 17], [30, 5, 23], [35, 5, 10]]); },
     sky2: function () { return skyline([[0, 5, 9], [5, 6, 18], [12, 5, 30, 4], [18, 7, 22], [26, 6, 26, 3], [33, 6, 14]]); },
     sky3: function () { return skyline([[2, 6, 15], [8, 5, 11], [13, 8, 24], [21, 5, 18, 2], [27, 7, 28], [34, 5, 12]]) + P("M13 11 L17 6 L21 11Z"); },
@@ -259,6 +265,7 @@
     if (CATS[cat].adult && kidOf(k)) return [];
     var sp = spotsOf(k), out = LIST[cat].filter(function (it) { return sp[it.id]; }).map(function (it) { return { item: it, at: sp[it.id].at || "", with: sp[it.id].with || [] }; });
     if (cat === "hubs") Object.keys(sp).forEach(function (id) { if (!BY[id] && /^h-air-[a-z]{3}$/.test(id)) out.push({ item: itemFor(id, [k]), at: sp[id].at || "", with: sp[id].with || [] }); });
+    if (cat === "cities") Object.keys(sp).forEach(function (id) { if (STATION.test(id)) out.push({ item: stationItem(id, sp[id]), at: sp[id].at || "", with: sp[id].with || [] }); });
     if (cat === "food" || cat === "pubs") eatsOf(k, kidOf(k)).filter(function (e) { return e.stamp && entryItem(e).cat === cat; }).forEach(function (e) { out.push({ item: entryItem(e), at: e.at || "", with: e.with || [], entry: e }); });
     return out.sort(function (a, b) { return (a.at || "9") < (b.at || "9") ? -1 : 1; });
   }
@@ -522,7 +529,10 @@
     if (cat === "hubs") { var hs = {}; (trips || []).filter(function (t) { return liveTrip(t) && (t.kidIds || []).indexOf(k.id) >= 0; }).forEach(function (t) {
       tripStamps(t, false).forEach(function (g) { g.items.forEach(function (it) { if (it.cat === "hubs" && !sp[it.id] && !hs[it.id]) { hs[it.id] = 1; sug.push({ item: it, date: g.date }); } }); }); }); }
     if (cat === "hubs") mine = earned(k, "hubs").filter(function (x) { return x.item.dyn; });
+    var sts = cat === "cities" ? earned(k, "cities").filter(function (x) { return x.item.extra === "station"; }) : [];   // v65 stamp stations
     return counterHTML(n, LIST[cat].length, c.what) +
+      (sts.length ? '<div class="panel"><h3>📍 Stamp stations <small class="muted">' + sts.length + '</small></h3><div class="spgrid">' +
+        sts.map(function (x) { return '<button type="button" class="spitem" data-spot="' + esc(x.item.id) + '">' + stampSpan(x.item, { at: x.at }, "spst") + '</button>'; }).join("") + '</div></div>' : "") +
       (sug.length ? '<div class="panel spsug"><h3>From ' + esc(M().who(k)) + '\'s trips</h3><p class="small muted">' + (cat === "hubs" ? "Airports and stations these trips went through." : "These trips went to cities with a stamp.") + ' Tap one to stamp it.</p><div class="echips">' +
         sug.slice(0, 12).map(function (s) { return '<button type="button" class="chip" data-spot="' + esc(s.item.id) + '" data-date="' + esc(s.date) + '">+ ' + esc(s.item.name) + '</button>'; }).join("") + '</div></div>' : "") +
       (cat === "food" ? '<div data-elist>' + listHTML(k, {}) + '</div>' : "") +

@@ -1713,3 +1713,103 @@ setTimeout(() => {
   ok(/H\.offlineErr\(e\)/.test(rsrc) && /H\.enqueue\(ref, emoji, true\)/.test(rsrc), "recap one-tap reactions queue offline too");
   ok(/\.offlinechip/.test(read("app.css")), "offline banner styled");
 }
+
+// ---- v65: brand config, kid-drawn stamps, share cards, postcards, stamp stations, Cousin Cup ----
+{
+  const app = f => fs.readFileSync(path.join(APP, f), "utf8");
+  ok(/var VERSION = "v65"/.test(read("app.js")) && /mltl-v65/.test(read("sw.js")), "v65: version and cache bumped");
+  ["brand.js", "stampx.js", "kidart.js", "sharecard.js", "postcard.js", "stations.js", "cup.js"].forEach(f => {
+    ok(read("index.html").indexOf('src="' + f + '"') > 0 && read("sw.js").indexOf('"' + f + '"') > 0, f + " loaded and cached offline");
+  });
+  ok(read("index.html").indexOf('src="brand.js"') < read("index.html").indexOf('src="app.js"'), "brand config loads before the app");
+  // brand: the app name lives in one place
+  const brandSrc = read("brand.js");
+  ok(/NAME: "Famstamp"/.test(brandSrc) && (brandSrc.match(/NAME:/g) || []).length === 1, "app name configured once in brand.js");
+  ["sharecard.js", "postcard.js", "stations.js", "cup.js"].forEach(f => ok(/FS_BRAND|brand\(\)/.test(read(f)), f + " takes the name from the brand config"));
+  ok(!/national park service|\bNPS\b|eastern national/i.test(["brand.js", "sharecard.js", "postcard.js", "stations.js", "kidart.js", "cup.js"].map(read).join("\n")), "no NPS / Eastern National branding in new files");
+
+  // kid-drawn stamps
+  const KA = require("../travel-log/app/kidart.js");
+  const img = "data:image/jpeg;base64," + "A".repeat(400);
+  const kid = { id: "person_zz00000000kid01", name: "Zz Kid" };
+  ok(KA.key("state", "TX") === "state:TX" && KA.key("bogus", "TX") === "" && KA.key("park", "a b") === "", "kid art keys");
+  ok(KA.set(kid, "state", "TX", img) && KA.get(kid, "state", "TX") === img && KA.count(kid) === 1, "kid art saved on the person (syncs with them)");
+  ok(!KA.set(kid, "state", "UT", "javascript:alert(1)") && !KA.set(kid, "state", "UT", "data:image/svg+xml;base64,AAAA") && !KA.set(kid, "state", "UT", "data:image/jpeg;base64," + "A".repeat(KA.MAX_LEN)), "only small JPEG/PNG data is accepted");
+  const ksvg = KA.svg(img, "Zz <Texas>", "Oct 24, 2026");
+  ok(/<svg/.test(ksvg) && /clipPath/.test(ksvg) && ksvg.indexOf(img) > 0 && /Zz &lt;Texas&gt;/.test(ksvg) && !/<script/i.test(ksvg), "kid stamp svg: drawing clipped to the circle, text escaped");
+  ok(KA.set(kid, "state", "TX", "") && KA.get(kid, "state", "TX") === "" && KA.count(kid) === 0, "removing kid art goes back to the regular stamp");
+  const big = { id: "x" }; for (let i = 0; i < KA.MAX; i++) KA.set(big, "park", "p" + i, img);
+  ok(KA.count(big) === KA.MAX && !KA.set(big, "park", "extra", img), "kid art capped per person");
+  const cr = KA.cropRect(400, 200, 1, 0, 0); ok(cr && cr.s === 200 && cr.x === 100 && cr.y === 0, "crop is square and fits the photo");
+  ok(/self\.FS_KIDART/.test(read("passport-core.js")) && /KA\.svgFor\(/.test(read("passport-core.js")) && /holder: personId \|\| s\.holder/.test(read("trips-ui.js")) && /FS_SX\.buttons\(s, holder\)/.test(read("trips-ui.js")), "passport (and printed book) uses the kid's stamp art");
+
+  // share card: no name unless opted in
+  const SC = require("../travel-log/app/sharecard.js");
+  const l1 = SC.lines({ kind: "state", name: "Texas", date: "Oct 24, 2026", who: "Zz Kid" });
+  ok(l1.who === "" && !/Zz/.test(JSON.stringify(l1)), "share card leaves the name off by default");
+  ok(SC.lines({ kind: "state", name: "Texas", who: "Zz Kid", includeName: true }).who === "Zz's passport", "name only when the toggle is on (first name only)");
+  ok(/Famstamp/.test(l1.footer) && SC.W === 1080 && SC.H === 1920, "story-size card with the brand footer");
+  ok(SC.wrap("A very long national park name that goes on and on", 16).length <= 3, "share card title wraps to 3 lines");
+  ok(/^famstamp-[a-z0-9-]+\.png$/.test(SC.fileName("Zz Test Park!")), "share card file name");
+  ok(/type="checkbox" id="scname">/.test(read("sharecard.js")), "name toggle starts unchecked");
+  ok(/navigator\.share/.test(read("stampx.js")) && /canShare/.test(read("stampx.js")), "Web Share with a download fallback");
+
+  // postcards
+  const PC = require("../travel-log/app/postcard.js");
+  const addr = { name: "Zz Grandma", line1: "1 Zz Test Ln", city: "Zz Town", state: "tx", zip: "75001" };
+  const r0 = PC.newRequest({ message: "", to: {} });
+  ok(r0.errors && r0.errors.length >= 5 && /message/i.test(r0.errors[0]), "postcard needs a message and an address");
+  ok(PC.newRequest({ message: "hi", to: Object.assign({}, addr, { zip: "7500" }) }).errors[0].indexOf("ZIP") >= 0, "bad ZIP caught");
+  ok(PC.newRequest({ message: "hi", to: Object.assign({}, addr, { state: "ZZ" }) }).errors[0].indexOf("state") >= 0, "bad state caught");
+  const r1 = PC.newRequest({ pid: "person_zz00000000kid01", kind: "state", area: "TX", place: "Texas", message: "We saw a huge rock!\nLove, Zz", from: "Zz Kid", to: addr }, "2026-10-24T12:00:00Z", "pc_zz000001");
+  ok(r1.request && r1.request.to.state === "TX" && r1.request.status === "saved" && r1.request.front === "stamp", "postcard request saved (stamp front by default)");
+  ok(PC.newRequest({ message: "x".repeat(900), to: addr }).request.message.length === PC.MSG_MAX, "message capped to fit the card");
+  let lst = []; for (let i = 0; i < PC.KEEP + 5; i++) lst = PC.keep(lst, Object.assign({}, r1.request, { id: "pc_" + i }));
+  ok(lst.length === PC.KEEP && lst[0].id === "pc_" + (PC.KEEP + 4), "saved postcards capped, newest first");
+  ok(PC.addressBook([r1.request, r1.request]).length === 1, "address book de-duplicates grandparents");
+  const back = PC.backSVG({ message: "<b>hi</b>", from: "Zz", to: r1.request.to, place: "Texas" });
+  ok(/viewBox="0 0 600 400"/.test(back) && /&lt;b&gt;hi/.test(back) && /Zz Grandma/.test(back) && /75001/.test(back), "postcard back: message + address, escaped");
+  ok(/viewBox="0 0 600 400"/.test(PC.frontSVG({ stampSVG: "<svg viewBox='0 0 10 10'><circle r='5'/></svg>", name: "Texas" })), "postcard front from the stamp");
+  const pcs = read("postcard.js");
+  ok(/Coming soon/.test(pcs) && /disabled/.test(pcs) && !/lob\.com|postgrid|click2mail|stripe|\$\d/i.test(pcs), "mail-it option is 'coming soon': no vendor, no price");
+  ok(/@page fspc \{ size:6in 4in/.test(read("app.css")), "postcards print at 6x4 in");
+
+  // stamp stations
+  const ST = require("../travel-log/app/stations.js");
+  const st = ST.make({ id: "zzst0001", name: "Zz Test Station", place: "Zz Town", lat: 30.1, lon: -97.2, r: 400 });
+  const code = ST.encode(st), back2 = ST.decode(code);
+  ok(code && back2 && back2.name === "Zz Test Station" && back2.lat === 30.1 && back2.r === 400, "station code round-trips");
+  ok(ST.decode(code.replace(/.\./, m => (m[0] === "A" ? "B" : "A") + ".")) === null && ST.decode("junk") === null && ST.decode(code.slice(0, -1) + (code.slice(-1) === "a" ? "b" : "a")) === null, "tampered station codes are rejected");
+  ok(ST.make({ id: "BAD", name: "x" }) === null && ST.make({ id: "zzst0001", name: "" }) === null, "station needs an id and name");
+  ok(/#\/st\//.test(ST.link(st, "https://x.test/app/#/home")) && !/#\/home/.test(ST.link(st, "https://x.test/app/#/home")), "station link");
+  ok(ST.near(st, { lat: 30.1001, lon: -97.2001, acc: 10 }) && !ST.near(st, { lat: 31, lon: -97.2, acc: 10 }) && !ST.near(st, null), "location check");
+  ok(ST.near(ST.make({ id: "zzst0002", name: "Zz Anywhere" }), null), "stations without a spot skip the location check");
+  const zp = { id: "person_zz0000000000test" };
+  ok(ST.award(zp, st, "2026-10-24") === "new" && ST.award(zp, st, "2026-10-24") === "today" && ST.award(zp, st, "2026-10-25") === "again", "once per person per day");
+  ok(ST.visits(zp, st) === 2 && zp.spots["c-st-zzst0001"].at === "2026-10-24" && ST.award(zp, st, "bad") === "", "visits counted");
+  const SP = require("../travel-log/app/spots.js");
+  ok(typeof SP.itemFor === "function" ? (SP.itemFor("c-st-zzst0001", [zp]) || {}).cat === "cities" : /stationItem/.test(read("spots.js")), "station stamp shows with city stamps");
+  ok(/@page fsposter/.test(read("app.css")) && /stposterview/.test(read("stations.js")), "printable station poster");
+
+  // Cousin Cup
+  const CU = require("../travel-log/app/cup.js");
+  ok(CU.normCode(" abcd-2345 ") === "ABCD2345" && CU.isCode("ABCD2345") && !CU.isCode("ABCD1234") && !CU.isCode("ABC"), "cup codes");
+  const fam = [{ role: "kid", states: { TX: { at: "2026-10-24" }, UT: { at: "2026-01-01" } }, spots: { "c-st-zzst0001": { at: "2026-10-25" }, "p-x": { at: "2026-10-25" } } }, { role: "adult", states: { CA: { at: "2026-10-24" } } }];
+  ok(CU.count(fam, "2026-10-01", "") === 2, "cup counts the kids' stamps since the cup started (stations count, pubs don't)");
+  ok(CU.count(fam, "2026-10-01", "2026-10-24") === 1, "cup end date respected");
+  ok(CU.count([{ states: { CA: { at: "2026-10-24" } } }], "2026-10-01", "") === 1, "no kids: everyone's stamps count");
+  ok(CU.progress(37, 50).pct === 74 && CU.progress(60, 50).done && CU.progress(60, 50).pct === 100, "team progress");
+  ok(CU.missing({ code: "PGRST202" }) && CU.missing({ message: "Could not find the function public.my_cups" }) && !CU.missing({ message: "network" }), "missing cup functions detected");
+  const cus = read("cup.js");
+  ok(/almost ready/i.test(cus) && /missing\(e\)/.test(cus), "cup page waits gracefully until the SQL is in");
+  ok(!/rank|leader|winner|loser/i.test(cus.replace(/no rankings, no losers/gi, "")), "no rankings or losers");
+  ok(/cupRpc/.test(read("sync.js")) && /PGRST202/.test(read("sync.js")) && /FS_CUP\.report/.test(read("sync.js")), "sync: cup calls + report after sync");
+  // the SQL applied by hand is additive only
+  const sqlPath = "/workspace/famstamp-v65/cousin-cup.sql";
+  if (fs.existsSync(sqlPath)) {
+    const sql = fs.readFileSync(sqlPath, "utf8").replace(/--[^\n]*/g, "");
+    ok(!/\b(drop|truncate|delete\s+from|alter\s+table\s+public\.(families|family_members|people|trips))\b/i.test(sql), "cup SQL is additive only");
+    ok(/create table if not exists public\.cups/.test(sql) && /enable row level security/.test(sql) && /security definer/.test(sql) && /revoke all/.test(sql), "cup SQL: RLS on, access only through functions");
+    ok(!/\bjsonb_build_object\([^)]*'stamps'/.test(sql), "per-family counts never returned");
+  }
+}

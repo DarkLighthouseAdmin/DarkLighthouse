@@ -168,6 +168,11 @@
       No date means no date line at all (never a placeholder). */
   function stampSVG(s, name, opts) {
     opts = opts || {};
+    // v65: a kid's own drawn stamp for this place (kidart.js), when the stamp is one person's
+    var KA = typeof self !== "undefined" && self.FS_KIDART;
+    if (KA && KA.svgFor && opts.kid !== false && (opts.holder || s.holder || (s.who && s.who.length === 1))) {
+      var own = KA.svgFor(opts.holder ? Object.assign({}, s, { holder: opts.holder }) : s, name || s.area, fmtDate(s.date)); if (own) return own;
+    }
     return SA.stampSVG(s, { name: name || s.area, date: fmtDate(s.date), end: fmtDate(s.end), sub: opts.sub || "" },
       { art: opts.art, flag: opts.flag === false || s.kind === "park" ? "" : flag(s.kind, s.area) });
   }

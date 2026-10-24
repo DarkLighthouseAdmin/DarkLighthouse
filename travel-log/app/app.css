@@ -873,3 +873,46 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 /* v64: offline banner */
 .offlinechip { position:fixed; left:50%; bottom:calc(70px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); z-index:50; max-width:min(92vw, 520px); background:#1d2b3a; color:#fff; padding:8px 14px; border-radius:18px; font-size:.85rem; box-shadow:0 4px 14px rgba(0,0,0,.2); text-align:center; }
 .offlinechip[hidden] { display:none; }
+
+/* ---- v65: stamp sheet extras, kid-drawn stamps, share cards, postcards, stamp stations, Cousin Cup ---- */
+.stampx { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.8rem; }
+.stampx .btn { min-height:44px; }
+.fxshare { display:inline-block; margin-top:.6rem; padding:.5rem 1rem; border-radius:999px; background:#fff; color:var(--ink); font-weight:700; text-decoration:none; pointer-events:auto; }
+.kagrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; align-items:start; margin:1rem 0; }
+.kagrid figure { margin:0; text-align:center; } .kagrid figcaption { font-size:.85rem; color:var(--muted); margin-top:.3rem; }
+.kastamp svg { width:100%; max-width:240px; height:auto; }
+.kacrop canvas { width:100%; max-width:300px; aspect-ratio:1; border-radius:50%; touch-action:none; cursor:grab; background:#f4efe4; box-shadow:0 0 0 3px var(--sage, #6b8f71); }
+.kacrop input[type=range] { width:100%; max-width:300px; }
+.scwrap { text-align:center; margin:1rem 0; } .scwrap img { width:min(270px, 70vw); height:auto; aspect-ratio:9/16; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.18); background:#eee; }
+.pcprev { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; margin:1rem 0; }
+.pccard { background:#fff; border-radius:8px; box-shadow:0 3px 14px rgba(0,0,0,.15); overflow:hidden; aspect-ratio:3/2; }
+.pccard svg { display:block; width:100%; height:100%; }
+.pcrow { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:.6rem; }
+.pcorder { display:grid; gap:.6rem; } .pcopt { display:flex; justify-content:space-between; align-items:center; gap:.8rem; flex-wrap:wrap; }
+.pcopt.soon { opacity:.75; } .pcerr, .sterr { color:#a3321e; font-weight:600; }
+.pclist { list-style:none; padding:0; display:grid; gap:.6rem; } .pclist a { display:flex; gap:.8rem; align-items:center; text-decoration:none; color:var(--ink); }
+.pclist .pcsvg { width:96px; flex:none; } .pclist .pcsvg svg { width:100%; height:auto; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+.stlist { list-style:none; padding:0; display:grid; gap:.6rem; }
+.stbig { text-align:center; } .stbig svg { width:min(220px, 60vw); height:auto; }
+.stposter { max-width:640px; margin:1rem auto; padding:1.5rem; text-align:center; border:3px dashed var(--ink); border-radius:18px; background:#fff; }
+.stposter h1 { font-size:2.2rem; margin:.4rem 0; } .stwhere { font-size:1.4rem; font-weight:800; } .stwhere span { font-size:1rem; font-weight:500; color:var(--muted); }
+.stlogo svg { width:220px; height:auto; } .stqr svg { width:min(320px, 70vw); height:auto; } .ststamp svg { width:150px; height:auto; display:block; margin:.5rem auto; }
+.ststeps { text-align:left; max-width:440px; margin:1rem auto; font-size:1.05rem; } .stfoot { color:var(--muted); font-size:.9rem; }
+.cupbar { height:22px; border-radius:999px; background:#e6efe8; overflow:hidden; margin:.5rem 0 .3rem; }
+.cupbar span { display:block; height:100%; background:linear-gradient(90deg, var(--sage, #6b8f71), #e0a83a); border-radius:999px; min-width:4px; transition:width .6s; }
+.cupline { font-weight:700; margin:0; } .cupbig.done .cupbar span { background:linear-gradient(90deg, #e0a83a, #c8553d); }
+.cupcard { display:block; text-decoration:none; color:var(--ink); } .cupteam { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:1rem; } .cupteam .chip { cursor:default; color:var(--ink); }
+.cupcode { font-size:1.4rem; letter-spacing:.15em; font-family:ui-monospace, monospace; }
+@page fspc { size:6in 4in; margin:0; }
+@page fsposter { size:letter portrait; margin:.5in; }
+@media print {
+  body.pcprintview header, body.pcprintview nav, body.pcprintview footer, body.pcprintview #main > :not(.pcpages), body.pcprintview .noprint { display:none !important; }
+  body.pcprintview .pcpages { display:block; margin:0; }
+  body.pcprintview > :not(main), body.stposterview > :not(main) { display:none !important; }
+  body.pcprintview, body.pcprintview main, body.stposterview main { margin:0 !important; padding:0 !important; min-height:0 !important; }
+  body.pcprintview .pcpage { page:fspc; width:6in; height:4in; overflow:hidden; box-shadow:none; border-radius:0; aspect-ratio:auto; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body.pcprintview .pcpage + .pcpage { break-before:page; }
+  body.stposterview header, body.stposterview nav, body.stposterview footer, body.stposterview #main > :not(.stposter), body.stposterview .noprint { display:none !important; }
+  body.stposterview .stposter { page:fsposter; border-width:2px; margin:0 auto; max-width:none; height:9.9in; box-sizing:border-box; overflow:hidden; padding:.3in; break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body.stposterview .stposter h1 { font-size:34pt; } body.stposterview .stqr svg { width:3.4in; } body.stposterview .ststamp svg { width:1.4in; }
+}

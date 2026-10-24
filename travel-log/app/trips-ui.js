@@ -1072,7 +1072,7 @@
     return '<p class="small symline">State ' + mode + ': <b>' + esc(x.name) + '</b>' + (x.fallback ? ' <span class="muted">(' + esc(areaName("state", s.area)) + ' has no official state animal, so this shows its bird)</span>' : "") + '</p>';
   }
   function stampSVG(s, personId) {
-    return P.stampSVG(s, stampName(s), { art: s.kind === "state" ? artFor(personId, s.area) : "",
+    return P.stampSVG(s, stampName(s), { art: s.kind === "state" ? artFor(personId, s.area) : "", holder: personId || s.holder || "",
       sub: s.kind === "park" ? M.parkSub(PARK_BY[s.area]) : "" });
   }
   function bookHTML(title, color, stamps, who, pid) {
@@ -1195,6 +1195,7 @@
       html += (s.note ? '<p class="small">' + esc(s.note) + '</p>' : "") + '<p class="small muted">' + (s.source === "map" ? "Colored in on the map. When were you there?" : "Change the date:") + '</p>' + dateFields(s.date) +
         '<div class="actions"><button type="button" class="btn btn-primary" id="sok">Save date</button><button type="button" class="btn btn-ghost" id="swho2">👥 Change who has it</button><button type="button" class="btn btn-danger" id="sdel">Remove from ' + esc(M.who(holder)) + '\'s passport</button><button type="button" class="btn btn-ghost" data-close>Close</button></div>';
     } else html += '<div class="actions"><button type="button" class="btn btn-ghost" id="swho2">👥 Change who has it</button><button type="button" class="btn btn-ghost" data-close>Close</button></div>';
+    if (window.FS_SX && holder) html += window.FS_SX.buttons(s, holder);   // v65: share card, postcard, draw your own stamp
     sheet(html);
     var sw = $("#swho2");
     if (sw && window.FS_WHO) sw.onclick = function () { window.FS_WHO.open({ kind: s.kind, area: s.area, page: owner, mode: "edit", date: s.date || "", visitDate: s.source === "hand" ? s.date || "" : null, after: function () { again(); } }); };
@@ -1270,11 +1271,12 @@
     el.innerHTML = s.newSign
       ? '<div class="fxbox"><div class="fxsign">' + P.signSVG(s.area, areaName("state", s.area), { first: s.date, visits: 1 }) + '</div><b>Sign collected: ' + esc(areaName("state", s.area)) + '!</b><span>' +
         (s.signOnly ? "It's in your State Signs." : "Plus a new passport stamp" + (more ? " and " + more + " more" : "") + ".") + '</span></div>'
-      : '<div class="fxbox"><div class="fxstamp">' + stampSVG(s, s.holder) + '</div><b>New stamp: ' + esc(stampName(s)) + '</b>' + (more ? '<span>+ ' + more + ' more in the passport</span>' : "") + '</div>';
+      : '<div class="fxbox"><div class="fxstamp">' + stampSVG(s, s.holder) + '</div><b>New stamp: ' + esc(stampName(s)) + '</b>' + (more ? '<span>+ ' + more + ' more in the passport</span>' : "") +
+        (window.FS_SHARECARD && s.holder && /^(state|place|park)$/.test(s.kind) ? '<a class="btn btn-sm fxshare" href="#/sharecard/' + window.FS_SX.path(s, s.holder) + '">📲 Make a share card</a>' : "") + '</div>';
     document.body.appendChild(el);
     setTimeout(function () { thunk(); if (navigator.vibrate) try { navigator.vibrate(reduced() ? 20 : [18, 40, 28]); } catch (e) {} }, reduced() ? 0 : 260);
     el.onclick = function () { el.remove(); };
-    setTimeout(function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 400); }, 2300);
+    setTimeout(function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 400); }, el.querySelector(".fxshare") ? 4200 : 2300);
   }
 
   // ---------- lifetime stats ----------

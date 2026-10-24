@@ -81,7 +81,7 @@
   // One-time codes and tokens from Google or Supabase never reach the screen.
   function scrub(t) { return String(t || "").replace(/\b\d\/0[\w.\/-]*/g, "").replace(/[\w-]{24,}/g, "").replace(/[\w.-]+\.[\w-]+\.[\w-]{10,}/g, "").replace(/\s{2,}/g, " ").trim(); }
   function rxChk(r) {
-    if (r && r.error) { var e = r.error, x = new Error(e.message || "reactions"); x.code = e.code; x.missing = e.code === "PGRST205" || e.code === "42P01" || /schema cache|does not exist/i.test(e.message || ""); throw x; }
+    if (r && r.error) { var e = r.error, x = new Error(e.message || "reactions"); x.code = e.code; x.missing = e.code === "PGRST205" || e.code === "PGRST202" || e.code === "42P01" || e.code === "42883" || /schema cache|does not exist|Could not find the function/i.test(e.message || ""); throw x; }
     return r ? r.data : null;
   }
   function chk(r) { if (r && r.error) throw friendly(r.error); return r ? r.data : null; }
@@ -131,6 +131,7 @@
         });
       },
       rpc: function (fn, args) { return sb.rpc(fn, args || {}).then(chk); },
+      cupRpc: function (fn, args) { return sb.rpc(fn, args || {}).then(rxChk); },   // v65 Cousin Cup: a missing function comes back as {missing:true}
       pull: function (table, fid, since) {
         var out = [];
         function page(from) {
@@ -260,7 +261,7 @@
     if (navigator.onLine === false) { setStatus("offline", "Changes are saved on this phone and will sync when you're back online."); return Promise.resolve(); }
     setStatus("syncing");
     running = doSync(opts || {}).then(function (ch) {
-      setStatus("synced"); countPending(0); return ch;
+      setStatus("synced"); countPending(0); if (window.FS_CUP && window.FS_CUP.report) window.FS_CUP.report(); return ch;
     }).catch(function (e) {
       var m = friendly(e).message;
       setStatus(/offline/i.test(m) ? "offline" : "error", m); countPending(0);
@@ -1088,6 +1089,7 @@
       '<div class="fmsep" role="separator"></div>' +
       (grown ? '<a role="menuitem" class="fmitem add" href="' + (on() ? "#/sync/invite" : "#/sync") + '">✉︎ Invite someone</a>' : "") +
       '<a role="menuitem" class="fmitem add" href="#/sync/addjoin">＋ Join another family</a><a role="menuitem" class="fmitem add" href="#/sync/new">＋ Start another family log</a>' +
+      '<a role="menuitem" class="fmitem add" href="#/cup">🏆 Cousin Cup</a><a role="menuitem" class="fmitem add" href="#/stations">📍 Stamp stations</a><a role="menuitem" class="fmitem add" href="#/postcards">💌 Postcards</a>' +
       '<a role="menuitem" class="fmitem add" href="#/sync">⚙︎ ' + esc(entryLabel()) + ' settings</a>' +
       menuGoogle();
     var scrim = document.createElement("div"); scrim.id = "fmscrim"; scrim.className = "fmscrim";
@@ -1368,6 +1370,11 @@
       on: function () { return on(); }, cfg: function () { return cfg(); },
       list: function () { var c = cfg(); return remote().then(function (r) { return ensureSession(r).then(function () { return r.reactions(c.familyId); }); }); },
       react: function (ref, emoji, add) { var c = cfg(); return remote().then(function (r) { return ensureSession(r).then(function () { return r.react(c.familyId, c.userId, ref, emoji, add); }); }); }
+    },
+    // for cup.js: Cousin Cup calls, as the signed-in member (missing functions are flagged so the page can say "almost ready")
+    cup: {
+      on: function () { return on(); }, cfg: function () { return cfg(); },
+      rpc: function (fn, args) { return remote().then(function (r) { return ensureSession(r).then(function () { return r.cupRpc ? r.cupRpc(fn, args) : r.rpc(fn, args); }); }); }
     },
     _core: S, _confetti: confetti, _cheer: cheer
   };
