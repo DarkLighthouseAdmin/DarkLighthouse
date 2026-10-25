@@ -285,7 +285,7 @@
     if (d < 864e5) { var h = Math.round(d / 36e5); return h + (h === 1 ? " hour ago" : " hours ago"); }
     if (d < 2 * 864e5) return "yesterday";
     if (d < 30 * 864e5) return Math.round(d / 864e5) + " days ago";
-    return new Date(ms(t)).toISOString().slice(0, 10);
+    var x = new Date(ms(t)); return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0");
   }
   /** Family feed: newest trips first (by when they were added), with who added them when we know. */
   function feed(trips, authors, limit) {

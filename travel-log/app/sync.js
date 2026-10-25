@@ -1117,7 +1117,7 @@
       '<div class="fmsep" role="separator"></div>' +
       (grown ? '<a role="menuitem" class="fmitem add" href="' + (on() ? "#/sync/invite" : "#/sync") + '">✉︎ Invite someone</a>' : "") +
       '<a role="menuitem" class="fmitem add" href="#/sync/addjoin">＋ Join another family</a><a role="menuitem" class="fmitem add" href="#/sync/new">＋ Start another family log</a>' +
-      '<a role="menuitem" class="fmitem add" href="#/cup">🏆 Cousin Cup</a><a role="menuitem" class="fmitem add" href="#/stations">📍 Stamp stations</a><a role="menuitem" class="fmitem add" href="#/postcards">💌 Postcards</a><a role="menuitem" class="fmitem add" href="#/help">💬 Help &amp; feedback</a>' +
+      '<a role="menuitem" class="fmitem add" href="#/search">🔎 Search</a><a role="menuitem" class="fmitem add" href="#/cup">🏆 Cousin Cup</a><a role="menuitem" class="fmitem add" href="#/stations">📍 Stamp stations</a><a role="menuitem" class="fmitem add" href="#/postcards">💌 Postcards</a><a role="menuitem" class="fmitem add" href="#/help">💬 Help &amp; feedback</a>' +
       '<a role="menuitem" class="fmitem add" href="#/sync">⚙︎ ' + esc(entryLabel()) + ' settings</a>' +
       menuGoogle();
     var scrim = document.createElement("div"); scrim.id = "fmscrim"; scrim.className = "fmscrim";
@@ -1391,7 +1391,9 @@
     push: {
       on: function () { return on(); }, key: function () { return CFG.pushKey || ""; },
       save: function (a) { return remote().then(function (r) { return ensureSession(r).then(function () { return r.pushSave(a); }); }); },
-      test: function (endpoint) { return remote().then(function (r) { return ensureSession(r).then(function () { return r.pushTest(endpoint); }); }); }
+      test: function (endpoint) { return remote().then(function (r) { return ensureSession(r).then(function () { return r.pushTest(endpoint); }); }); },
+      // v68: quiet hours for this phone (push_set_quiet in famstamp-v68/notify-quiet.sql); {missing:true} until that SQL is applied
+      quiet: function (a) { return remote().then(function (r) { return ensureSession(r).then(function () { return r.cupRpc("push_set_quiet", a); }); }); }
     },
     // for highlights.js: reactions for this family, as the signed-in member
     hl: {

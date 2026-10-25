@@ -12,7 +12,7 @@
   function addDays(iso, n) { var d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
   /** The week ending on `end` (7 days, inclusive). H = FS_HL_CORE. Returns { since, until, items, kids: [{ kid, items }], counts } */
   function build(H, people, trips, ctx, end) {
-    var until = DAY.test(end || "") ? end : new Date().toISOString().slice(0, 10), since = addDays(until, -6);
+    var until = DAY.test(end || "") ? end : (function () { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })(), since = addDays(until, -6);
     var items = H.feed(people, trips, ctx, { since: since, limit: 200 }).filter(function (x) { return x.at <= until; });
     var kids = (people || []).filter(H.isKid).map(function (k) { return { kid: k, items: items.filter(function (x) { return x.kidIds.indexOf(k.id) >= 0; }) }; }).filter(function (g) { return g.items.length; });
     var counts = { stamps: 0, badges: 0, trips: 0, journal: 0, milestones: 0 };

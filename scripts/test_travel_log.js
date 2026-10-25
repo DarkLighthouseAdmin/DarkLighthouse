@@ -1256,7 +1256,7 @@ setTimeout(() => {
   const tu = read("trips-ui.js");
   const bar = tu.slice(tu.indexOf('<div class="actions sticky">'), tu.indexOf('tdelzone'));
   ok(!/id="tdel"/.test(bar), "ui: Delete trip is not in the sticky Save bar");
-  ok(/Delete the whole trip/.test(tu) && /M\.tripLabel\(old\)/.test(tu) && /A_\.trashTrip\(old\)/.test(tu) && !/A_\.del\("trips", old\.id\)/.test(tu), "ui: confirm names the trip and the delete is a soft delete");
+  ok(/moved to Recently deleted/.test(tu) && /M\.tripLabel\(old\)/.test(tu) && /A_\.trashTrip\(old\)/.test(tu) && !/A_\.del\("trips", old\.id\)/.test(tu), "ui: confirm names the trip and the delete is a soft delete");
   const sj = read("spots.js"); ok(!/del\(\s*"trips"/.test(sj) && !/state\.trips\s*=/.test(sj), "ui: pubs/food code never touches trips");
   const aj = read("app.js"); ok(/viewDeleted/.test(aj) && /bindOneTrip/.test(aj) && /M\.splitTrips/.test(aj), "ui: Recently deleted page and restore-one-trip are wired");
 })();
@@ -1823,7 +1823,7 @@ setTimeout(() => {
 {
   const ROOTDIR = path.join(__dirname, "..");
   const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
-  ok(/var VERSION = "v67"/.test(read("app.js")) && /mltl-v67/.test(read("sw.js")), "v67: version and cache bumped");
+  ok(/var VERSION = "v6[7-9]"/.test(read("app.js")) && /mltl-v6[7-9]/.test(read("sw.js")), "v67: version and cache bumped");
   const idx = read("index.html");
   ok(idx.indexOf('src="launch.js"') > idx.indexOf('src="brand.js"') && idx.indexOf('src="launch.js"') < idx.indexOf('src="app.js"') && /"launch\.js"/.test(read("sw.js")), "v67: launch.js loads right after brand.js and is cached");
   // one config spot for contacts and page links
@@ -1895,4 +1895,71 @@ setTimeout(() => {
     ok(!/\bdrop\s+(table|function|policy|schema|column)|\btruncate\b|alter\s+table\s+\S+\s+drop/i.test(sql), "v67: launch SQL has no DROP or TRUNCATE");
     ok(/security definer/.test(sql) && /member_role\(p_family\) is distinct from 'owner'|<> 'owner'|!= 'owner'/.test(sql), "v67: delete function is owner-only");
   }
+}
+
+// ---------- v68: Utah stamp, time zones, search, what's new, rating limits, undo, sound off, lazy photos, notify times ----------
+{
+  const ROOTDIR = path.join(__dirname, "..");
+  const X = require(path.join(APP, "extras.js"));
+  const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
+  ok(/var VERSION = "v6[8-9]"/.test(read("app.js")) && /mltl-v6[8-9]/.test(read("sw.js")), "v68: version and cache bumped");
+  ok(/"extras\.js"/.test(read("sw.js")) && /<script src="extras\.js"><\/script>/.test(read("index.html")), "v68: extras.js cached and loaded");
+  ok(read("index.html").indexOf("launch.js") < read("index.html").indexOf("extras.js"), "v68: extras loads after launch");
+  // Utah: the gull now fills the glyph box like the other states, on the set's 1.6 ground line; no new animal art
+  const SA = read("stamp-art.js"), gl = SA.slice(SA.indexOf("gull: function"), SA.indexOf("\n", SA.indexOf("gull: function")));
+  ok(/scale\(1\.06 1\.5\)/.test(gl) && /, 1\.6\)/.test(gl) && !/, 1\.[45]\)/.test(gl), "v68: Utah gull drawn at the set's size and stroke");
+  const ART = require(path.join(APP, "stamp-art.js"));
+  const ut = ART.stampSVG ? ART.stampSVG("state", "UT", {}) : "";
+  ok(typeof ut === "string" && /viewBox="0 0 160 160"/.test(ut), "v68: Utah renders in the same 160x160 frame as every state");
+  // time zones: a valid date is valid everywhere (it was rejected east of UTC+12)
+  const PC = require(path.join(APP, "passport-core.js"));
+  if (PC.cleanDate) ok(PC.cleanDate("2026-07-10") === "2026-07-10" && PC.cleanDate("2026-02-30") === "" && PC.cleanDate("2026-12-31") === "2026-12-31", "v68: passport dates validate the same in every time zone (TZ=" + (process.env.TZ || "local") + ")");
+  ok(!/toISOString\(\)\.slice\(0, 10\)/.test(read("firsts.js")) && !/new Date\(\)\.toISOString\(\)\.slice\(0, 10\)/.test(read("recap.js")), "v68: firsts and recap use the phone's own date");
+  // search
+  const kids = [{ id: "zz_k1", name: "Zz Test Kid", states: { UT: { date: "2026-07-01" } }, places: {}, parks: {} }, { id: "zz_k2", name: "Zz Test Mom", states: { UT: {} }, places: {}, parks: {} }];
+  const trips = [
+    { id: "zz_t1", kidIds: ["zz_k1"], title: "Zz Test Desert Trip", place: "Moab", date: "2026-07-01", memory: "Arches at sunset", journal: [{ kid: "zz_k1", day: "2026-07-01", best: "Pancakes with Grandpa Zz", photoId: "zz_photo" }] },
+    { id: "zz_t2", kidIds: ["zz_k2"], title: "Zz Test Beach", place: "Outer Banks", date: "2025-06-01" }
+  ];
+  const nm = { state: id => ({ UT: "Utah" })[id] || id };
+  let r = X.search("pancakes", kids, trips, nm);
+  ok(r.trips.length === 1 && r.trips[0].id === "zz_t1" && /Pancakes/.test(r.trips[0].snip), "v68: search finds journal text");
+  ok(X.search("utah", kids, trips, nm).stamps.length === 1 && X.search("utah", kids, trips, nm).stamps[0].who.length === 2, "v68: search finds a stamp and who has it");
+  ok(X.search("zz test", kids, trips, nm).people.length === 2 && X.search("moab arches", kids, trips, nm).trips.length === 1, "v68: search finds people and matches all words");
+  ok(X.search("zz_photo", kids, trips, nm).trips.length === 0 && X.search("2026-07-01", kids, trips, nm).trips.length === 1, "v68: search skips ids but matches dates");
+  ok(X.search("u", kids, trips, nm).trips.length === 0 && X.search("café", [{ id: "a", name: "Cafe Zz" }], [], nm).people.length === 1, "v68: short queries return nothing, accents ignored");
+  ok(X.search("beach", kids, trips, nm).trips[0].kid === "zz_k2", "v68: trip result links to its traveler");
+  // what's new
+  ok(X.notesSince("v67").length === 1 && X.notesSince("v66").length === 2 && X.notesSince("v68").length === 0, "v68: what's new shows only newer notes");
+  // rating prompt limits
+  const D = 864e5, now = Date.parse("2026-10-24T20:00:00Z");
+  ok(!X.shouldAsk({ first: now - 3 * D }, now) && X.shouldAsk({ first: now - 8 * D }, now), "v68: rating waits 7 days after first use");
+  ok(!X.shouldAsk({ first: now - 200 * D, last: now - 30 * D, asks: 1 }, now) && X.shouldAsk({ first: now - 200 * D, last: now - 91 * D, asks: 1 }, now), "v68: rating at most once per 90 days");
+  ok(!X.shouldAsk({ first: now - 900 * D, last: now - 300 * D, asks: 3 }, now) && !X.shouldAsk({ first: now - 90 * D, done: "yes" }, now) && !X.shouldAsk({ first: now - 90 * D, done: "no" }, now), "v68: rating stops after 3 asks or an answer");
+  ok(X.fmtBytes(1500) === "2 KB" && X.fmtBytes(2.5e6) === "2.5 MB" && X.fmtBytes(3e9) === "3.0 GB", "v68: storage sizes read nicely");
+  const EX = read("extras.js");
+  ok(/fs:stamp/.test(EX) && /total >= 10/.test(EX) && /fs:stamp/.test(read("trips-ui.js")), "v68: rating is asked after a happy moment (10+ stamps)");
+  // stamp moment: sound off by default, vibrate + animation kept
+  const TU = read("trips-ui.js"), th = TU.slice(TU.indexOf("function thunk()"), TU.indexOf("function thunk()") + 200);
+  ok(/FS_EXTRAS\.soundOn\(\)\) return/.test(th) && /ls\("fs-sound"\) === "on"/.test(EX), "v68: stamp sound is off unless switched on");
+  ok(/navigator\.vibrate/.test(TU) && /stampfx/.test(TU), "v68: stamp animation and haptic kept");
+  // undo bars instead of confirm dialogs
+  ok(!/confirm\("Delete this postcard/.test(read("postcard.js")) && /undoToast\("Postcard deleted"/.test(read("postcard.js")), "v68: postcard delete has Undo, no confirm");
+  ok(!/confirm\("Delete this station/.test(read("stations.js")) && /undoToast\("Station deleted/.test(read("stations.js")), "v68: station delete has Undo, no confirm");
+  ok(!/confirm\("Delete the whole trip/.test(TU) && /restoreTrip\(old\.id\)/.test(TU), "v68: trip delete has Undo, no confirm");
+  // lazy photos + print safety
+  const AP = read("app.js");
+  ok(/IntersectionObserver/.test(AP) && /beforeprint/.test(AP) && /bookpages, \.slide/.test(AP), "v68: photos load lazily, book/slideshow/print load all");
+  // notifications: send hour + quiet hours
+  const PU = read("push.js");
+  ok(/p_hour: times\(\)\.hour/.test(PU) && !/p_hour: 9/.test(PU) && /push_set_quiet/.test(read("sync.js")), "v68: reminder hour and quiet hours reach the server");
+  const PUSH = require(path.join(APP, "push.js"));
+  ok(typeof PUSH.cleanKinds === "function", "v68: push.js still loads in node");
+  // kids' privacy wording
+  const PR = site("privacy/index.html");
+  ok(/The parent owns the account/.test(PR) && /Kids never sign up/.test(PR) && /never asked to type personal information/.test(PR), "v68: privacy page says the parent owns the account and kids never sign up");
+  // SQL additive
+  const q = "/workspace/famstamp-v68/notify-quiet.sql";
+  if (fs.existsSync(q)) { const sql = fs.readFileSync(q, "utf8").replace(/--.*$/gm, ""); ok(!/\bdrop\b|\btruncate\b|\bdelete\s+from\b/i.test(sql) && /add column if not exists/.test(sql), "v68: quiet-hours SQL is additive"); }
+  ok(!/Zz/.test(JSON.stringify(X.NOTES)), "v68: release notes contain no test names");
 }

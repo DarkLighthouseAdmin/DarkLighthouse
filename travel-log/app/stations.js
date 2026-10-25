@@ -136,7 +136,14 @@
     needQR().then(function () { var el = $("#stqr"); if (el) el.innerHTML = qrSVG(url); }, function () { var el = $("#stqr"); if (el) el.textContent = "The QR code needs a connection the first time. Try again when you're online."; });
     $("#stprint").onclick = function () { window.print(); };
     $("#stcopy").onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { A().toast("Link copied"); }, function () { prompt("Copy this link", url); }); };
-    $("#stdel").onclick = function () { if (!confirm("Delete this station from this phone? Posters already printed keep working.")) return; A().setMeta("stations", mine().filter(function (x) { return x.id !== id; })).then(function () { location.hash = "#/stations"; }); };
+    $("#stdel").onclick = function () {   // v68: undo bar instead of a confirm dialog
+      var before = mine();
+      A().setMeta("stations", before.filter(function (x) { return x.id !== id; })).then(function () {
+        location.hash = "#/stations";
+        var u = function () { A().setMeta("stations", before).then(function () { A().toast("Station is back"); A().route(); }); };
+        if (window.FS_WHO && window.FS_WHO.undoToast) window.FS_WHO.undoToast("Station deleted. Printed posters keep working.", u); else A().toast("Station deleted");
+      });
+    };
   }
   var PEND = "fs-st-pending";
   function scanView(code) {

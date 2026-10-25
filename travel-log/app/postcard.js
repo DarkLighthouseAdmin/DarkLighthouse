@@ -147,7 +147,14 @@
     frontFor(r, F, function (svg) { A().main.querySelector("#pcfront").innerHTML = svg; });
     A().main.querySelector("#pcback").innerHTML = backSVG(r);
     A().main.querySelector("#pcprint").onclick = function () { document.body.classList.add("pcprintview"); setTimeout(function () { window.print(); }, 60); };
-    A().main.querySelector("#pcdel").onclick = function () { if (!confirm("Delete this postcard?")) return; A().setMeta("postcards", saved().filter(function (x) { return x.id !== id; })).then(function () { location.hash = "#/postcards"; }); };
+    A().main.querySelector("#pcdel").onclick = function () {   // v68: undo bar instead of a confirm dialog
+      var before = saved();
+      A().setMeta("postcards", before.filter(function (x) { return x.id !== id; })).then(function () {
+        location.hash = "#/postcards";
+        var u = function () { A().setMeta("postcards", before).then(function () { A().toast("Postcard is back"); A().route(); }); };
+        if (window.FS_WHO && window.FS_WHO.undoToast) window.FS_WHO.undoToast("Postcard deleted", u); else A().toast("Postcard deleted");
+      });
+    };
   }
   function list() {
     var l = saved(), esc_ = M().esc; document.title = "Postcards";

@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v67";
+  var VERSION = "v68";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -590,7 +590,17 @@
       (owner ? '<a class="edit noprint" href="#/p/' + esc(owner.id) + '/trips/edit/' + esc(t.id) + '">Edit</a>' : "") +
       (window.MLTL_SYNC && window.MLTL_SYNC.tripExtra ? window.MLTL_SYNC.tripExtra(t) : "") + '</div></article>';
   }
-  function fillPhotos() { main.querySelectorAll("img[data-photo]").forEach(function (img) { photoURL(img.dataset.photo).then(function (u) { if (u) img.src = u; }); }); }
+  // v68 speed pass: photos load from the phone's database only as they come near the screen (the book, slideshows and
+  // printing still load every photo at once so nothing prints blank).
+  var photoIO = null;
+  function fillOne(img) { if (img.dataset.filled) return; img.dataset.filled = "1"; photoURL(img.dataset.photo).then(function (u) { if (u) img.src = u; }); }
+  function fillPhotos() {
+    var imgs = main.querySelectorAll("img[data-photo]:not([data-filled])");
+    var eager = typeof IntersectionObserver === "undefined" || /^#\/book|^#\/p\/[^/]+\/book/.test(location.hash) || main.querySelector(".bookpages, .slide");
+    if (!eager && !photoIO) photoIO = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { photoIO.unobserve(e.target); fillOne(e.target); } }); }, { rootMargin: "800px 0px" });
+    imgs.forEach(function (img) { img.decoding = "async"; if (eager) fillOne(img); else photoIO.observe(img); });
+  }
+  window.addEventListener("beforeprint", function () { main.querySelectorAll("img[data-photo]:not([data-filled])").forEach(fillOne); });
   function viewTrips(k, review) {
     var all = kidTrips(k), drafts = all.filter(M.isDraft), list = review ? drafts : all;
     var base = "#/p/" + esc(k.id) + "/trips";

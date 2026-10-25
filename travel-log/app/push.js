@@ -58,12 +58,21 @@
   function getSub() { return swReg().then(function (r) { return r.pushManager ? r.pushManager.getSubscription() : null; }).catch(function () { return null; }); }
   function tz() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York"; } catch (e) { return "America/New_York"; } }
   /** Push the current choices to the server (only for Family Sync, only once a subscription exists). */
+  /** v68: send time and quiet hours, picked in Help & settings (extras.js). */
+  function times() { var t = null; try { t = JSON.parse(localStorage.getItem("fs-push-times") || "null"); } catch (e) {} t = t || {}; var h = +t.hour; return { hour: h >= 0 && h <= 23 ? h : 9, quiet: !!t.quiet, qs: +t.qs || 0, qe: +t.qe || 0 }; }
+  function saveTimes() {
+    var s = st(), x = X(); if (!s.on || !x || !x.on()) return Promise.resolve("local");
+    return save(s, true).then(function (r) {
+      if (r !== "saved" || !x.quiet) return r;
+      return getSub().then(function (sub) { var t = times(); return sub ? x.quiet({ p_endpoint: sub.toJSON().endpoint, p_start: t.quiet ? t.qs : null, p_end: t.quiet ? t.qe : null }).then(function (q) { return q && q.missing ? "saved" : "saved+quiet"; }) : r; }).catch(function () { return r; });
+    });
+  }
   function save(s, enabled) {
     var x = X(); if (!x || !x.on()) return Promise.resolve("local");
     return getSub().then(function (sub) {
       if (!sub) return "nosub";
       var j = sub.toJSON(), k = j.keys || {};
-      return x.save({ p_endpoint: j.endpoint, p_p256dh: k.p256dh, p_auth: k.auth, p_tz: tz(), p_kinds: s.kinds, p_enabled: enabled !== false, p_hour: 9 })
+      return x.save({ p_endpoint: j.endpoint, p_p256dh: k.p256dh, p_auth: k.auth, p_tz: tz(), p_kinds: s.kinds, p_enabled: enabled !== false, p_hour: times().hour })
         .then(function () { s.pending = false; keep(s); return "saved"; })
         .catch(function (e) { s.pending = true; keep(s); return e && e.missing ? "missing" : "error"; });
     });
@@ -135,6 +144,6 @@
     };
     var s = st(); if (s.on && s.pending) save(s, true).then(function (r) { if (r === "saved") msg(""); });
   }
-  core.panel = panel; core.bind = bind; core.state = st;
+  core.panel = panel; core.bind = bind; core.state = st; core.saveTimes = saveTimes; core.times = times;
   return core;
 });

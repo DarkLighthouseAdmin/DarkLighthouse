@@ -20,7 +20,7 @@
   /** "2026-07-10", "2026-07", "2026" or "" (not sure). */
   function cleanDate(d) {
     d = String(d || "").trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) { var t = new Date(d + "T12:00:00"); return isNaN(t.getTime()) || t.toISOString().slice(0, 10) !== d ? "" : d; }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) { var t = new Date(d + "T12:00:00Z"); return isNaN(t.getTime()) || t.toISOString().slice(0, 10) !== d ? "" : d; }
     if (/^\d{4}-\d{2}$/.test(d)) { var m = +d.slice(5); return m >= 1 && m <= 12 && +d.slice(0, 4) >= 1900 ? d : ""; }
     if (/^\d{4}$/.test(d)) return +d >= 1900 && +d <= 2100 ? d : "";
     return "";

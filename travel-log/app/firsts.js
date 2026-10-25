@@ -94,7 +94,7 @@
   /** { done: [{ emoji, text, at }], next: [{ emoji, text, have, need }] } for a kid with a birth year; empty otherwise. today = "YYYY-MM-DD" */
   function milestones(p, trips, ctx, today) {
     var out = { done: [], next: [] }, by = +(p && p.birthYear); if (!by || (p.role && p.role !== "kid")) return out;
-    today = DATE.test(today || "") ? today : new Date().toISOString().slice(0, 10);
+    today = DATE.test(today || "") ? today : (function () { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();   // v68: the phone's own date, not UTC
     var ageNow = +today.slice(0, 4) - by;
     timeline(p, trips, ctx).forEach(function (r) { var a = ageAt(by, r.at); if (a == null || a < 0 || a > 25) return; out.done.push({ emoji: r.emoji, text: r.title + " " + ageWords(a), at: r.at, key: "first-" + r.key }); });
     var fd = firstDates(p, ctx);
@@ -176,7 +176,7 @@
       var kk = key || kind.value, lab = main.querySelector("#flabel"), err = main.querySelector("#ferr");
       if ((kk === "other" || /^x/.test(kk)) && !(lab && lab.value.trim())) { err.textContent = "Say what the first was, like “ski lesson”."; err.hidden = false; lab.focus(); return; }
       var at = main.querySelector("#fat").value;
-      if (at && at > new Date().toISOString().slice(0, 10)) { err.textContent = "That date is in the future. Pick the day it happened."; err.hidden = false; return; }
+      if (at && at > (function () { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })()) { err.textContent = "That date is in the future. Pick the day it happened."; err.hidden = false; return; }
       var saved = mark(k, kk, { at: at, place: main.querySelector("#fplace").value, note: main.querySelector("#fnote").value, label: lab ? lab.value : "" });
       if (!saved) { err.textContent = "That didn't save. Try again?"; err.hidden = false; return; }
       a.saveKid(k); a.toast("⭐ Added to " + k.name + "'s firsts"); location.hash = base;

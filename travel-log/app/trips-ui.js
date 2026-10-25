@@ -646,7 +646,7 @@
     var del = $("#tdel");
     if (del) del.onclick = function () {
       var name = M.tripLabel(old);
-      if (!confirm("Delete the whole trip \"" + name + "\"" + (old.date ? " (" + M.prettyDate(old.date) + ")" : "") + "?\n\nIt moves to Recently deleted for " + M.BIN_DAYS + " days, and you can restore it from there. The map stays colored in.")) return;
+      // v68: no confirm dialog. The trip goes to Recently deleted, with an Undo bar right away.
       A_.trashTrip(old).then(function () {
         location.hash = "#/p/" + k.id + "/trips";
         var undo = function () { A_.restoreTrip(old.id).then(function () { A_.toast(name + " is back"); A_.route(); }); };
@@ -1254,6 +1254,7 @@
   }
   var audio = null;
   function thunk() {
+    if (!window.FS_EXTRAS || !window.FS_EXTRAS.soundOn()) return;   // v68: sound is off unless turned on in Help & settings
     try {
       var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
       audio = audio || new AC(); var t0 = audio.currentTime, o = audio.createOscillator(), g = audio.createGain();
@@ -1274,6 +1275,7 @@
       : '<div class="fxbox"><div class="fxstamp">' + stampSVG(s, s.holder) + '</div><b>New stamp: ' + esc(stampName(s)) + '</b>' + (more ? '<span>+ ' + more + ' more in the passport</span>' : "") +
         (window.FS_SHARECARD && s.holder && /^(state|place|park)$/.test(s.kind) ? '<a class="btn btn-sm fxshare" href="#/sharecard/' + window.FS_SX.path(s, s.holder) + '">📲 Make a share card</a>' : "") + '</div>';
     document.body.appendChild(el);
+    try { document.dispatchEvent(new CustomEvent("fs:stamp", { detail: { n: list.length, holder: s.holder && s.holder.id } })); } catch (e) {}
     setTimeout(function () { thunk(); if (navigator.vibrate) try { navigator.vibrate(reduced() ? 20 : [18, 40, 28]); } catch (e) {} }, reduced() ? 0 : 260);
     el.onclick = function () { el.remove(); };
     setTimeout(function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 400); }, el.querySelector(".fxshare") ? 4200 : 2300);
