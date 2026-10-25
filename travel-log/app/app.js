@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v70";
+  var VERSION = "v71";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -919,12 +919,31 @@
   }
 
   // ---------- backup / restore ----------
+  /** v71 (B9): restore a read backup (a file, or one of the automatic copies on this phone) after a preview of exactly
+      what comes back, what gets replaced and what stays. Nothing on the phone is deleted by a restore. */
+  function restoreBackup(data) {
+    var ask = window.FS_ROBUST && window.FS_ROBUST.askRestore ? window.FS_ROBUST.askRestore(data) :
+      Promise.resolve(confirm("Restore " + data.kids.length + (data.kids.length === 1 ? " person, " : " people, ") + data.trips.length + " trip(s) and " + data.photos.length + " photo(s) from this backup?"));
+    return ask.then(function (ok) {
+      if (!ok) return null;
+      // v49: someone or something already on this phone keeps every field it has; only the fields in the file overwrite
+      return tx(["kids", "trips", "photos"], "readwrite", function (s) {
+        [["kids", 0], ["trips", 1], ["photos", 2]].forEach(function (x) {
+          var keys = (data.present && data.present[x[0]]) || {};
+          data[x[0]].forEach(function (rec) { var g = s[x[1]].get(rec.id); g.onsuccess = function () { s[x[1]].put(M.mergeRestore(g.result, rec, keys[rec.id])); }; });
+        });
+      }).then(function () { return data.settings.home && !state.meta.home ? setMeta("home", data.settings.home) : null; })
+        .then(function () { return data.settings.homePoint && !state.meta.homePoint ? setMeta("homePoint", data.settings.homePoint) : null; })
+        .then(function () { return data.settings.units && !state.meta.units ? setMeta("units", data.settings.units) : null; })
+        .then(load).then(function () { photoCache = {}; toast("Restored!"); location.hash = "#/"; return true; });
+    });
+  }
   function viewBackup() {
     var last = state.meta.lastBackupAt;
     main.innerHTML = '<a class="back" href="#/">← Home</a><h1>Back up and restore</h1>' +
       '<p class="lede">' + esc((window.MLTL_SYNC && window.MLTL_SYNC.storageNote()) || "Your maps live only on this device. A backup file keeps them safe if the phone is lost, replaced or cleared.") + '</p>' +
       '<div class="panel"><h3>Back up</h3><p class="muted small">Saves one file with everyone\'s maps, trips and photos. Email it to yourself or save it to your cloud drive.</p>' +
-      '<p class="small">' + (last ? "Last backup: " + esc(M.prettyDate(last.slice(0, 10))) : "No backup yet.") + '</p>' +
+      '<p class="small" id="lastbk">' + (last ? "Last backup file: " + esc(M.prettyDate(last.slice(0, 10))) : "No backup file yet.") + '</p>' +
       '<div class="actions"><button class="btn btn-primary" id="bdown">Save a backup file</button></div></div>' +
       (window.MLTL_IMPORT ? window.MLTL_IMPORT.backupCard() : "") +
       '<div class="panel" id="binpanel"><h3>Recently deleted</h3><p class="muted small">Deleted trips wait ' + M.BIN_DAYS + ' days before they\'re gone for good.</p><div class="actions"><a class="btn btn-ghost" href="#/deleted">🗑 Recently deleted (' + state.bin.length + ')</a></div></div>' +
@@ -946,23 +965,14 @@
       if (f.size > 200e6) { err.textContent = "That file is too big to be a backup."; err.hidden = false; return; }
       f.text().then(function (txt) {
         var data; try { data = M.readBackup(JSON.parse(txt)); } catch (x) { throw new Error(x instanceof SyntaxError ? "That file isn't a backup (it couldn't be read)." : x.message); }
-        if (!confirm("Restore " + data.kids.length + (data.kids.length === 1 ? " person, " : " people, ") + data.trips.length + " trip(s) and " + data.photos.length + " photo(s) from this backup?")) return null;
-        // v49: someone or something already on this phone keeps every field it has; only the fields in the file overwrite
-        return tx(["kids", "trips", "photos"], "readwrite", function (s) {
-          [["kids", 0], ["trips", 1], ["photos", 2]].forEach(function (x) {
-            var keys = (data.present && data.present[x[0]]) || {};
-            data[x[0]].forEach(function (rec) { var g = s[x[1]].get(rec.id); g.onsuccess = function () { s[x[1]].put(M.mergeRestore(g.result, rec, keys[rec.id])); }; });
-          });
-        }).then(function () { return data.settings.home && !state.meta.home ? setMeta("home", data.settings.home) : null; })
-          .then(function () { return data.settings.homePoint && !state.meta.homePoint ? setMeta("homePoint", data.settings.homePoint) : null; })
-          .then(function () { return data.settings.units && !state.meta.units ? setMeta("units", data.settings.units) : null; })
-          .then(load).then(function () { photoCache = {}; toast("Restored!"); location.hash = "#/"; });
+        return restoreBackup(data);
       }).catch(function (x) { err.textContent = x.message; err.hidden = false; });
     };
     document.getElementById("bwipe").onclick = function () {
       var synced = window.MLTL_SYNC && window.MLTL_SYNC.isOn();
       if (!confirm("Delete everyone's maps, trips and photos on this device? This can't be undone." + (synced ? " This phone also stops syncing; the family's shared copy stays in the family log." : ""))) return;
       tx(["kids", "trips", "photos", "meta"], "readwrite", function (s) { s.forEach(function (st) { st.clear(); }); })
+
         .then(load).then(function () { photoCache = {}; toast("All cleared"); location.hash = "#/"; });
     };
   }
@@ -979,7 +989,7 @@
   // What sync.js needs from the app. Nothing here talks to the network.
   var readyRes; var ready = new Promise(function (r) { readyRes = r; });
   window.MLTL_APP = { version: VERSION, state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, doBackupData: function () { return all("photos").then(function (photos) { return M.makeBackup(state.kids, state.trips.concat(state.bin), photos, null, { home: state.meta.home || "", homePoint: state.meta.homePoint, units: state.meta.units }); }); }, setMeta: setMeta,
-                      kidById: kidById, myPersonId: myPersonId, doBackup: doBackup, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
+                      kidById: kidById, myPersonId: myPersonId, doBackup: doBackup, restoreBackup: restoreBackup, readBackup: function (o) { return M.readBackup(o); }, setMeta: setMeta, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
                       dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
                       // for trips-ui.js
                       main: main, badgeStrip: badgeStrip, bindBadgeStrip: bindBadgeStrip, shell: shell, placeName: placeName, saveKid: saveKid, kidStyle: kidStyle, initial: initial, avatars: avatars, travelerNames: travelerNames,

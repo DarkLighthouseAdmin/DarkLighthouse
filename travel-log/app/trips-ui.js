@@ -248,6 +248,9 @@
       if (fromWish.who && fromWish.who.length) d.kidIds = fromWish.who.filter(function (id) { return st.kids.some(function (x) { return x.id === id; }); });
       if (!d.kidIds.length) d.kidIds = [k.id];
     }
+    // v71 (B2): an unfinished new trip is kept on this phone as you type; "Continue" on Home brings it back here
+    var RB = window.FS_ROBUST, resumed = !old && !fromWish && RB && RB.resumeDraft ? RB.resumeDraft(k.id) : null;
+    if (resumed && resumed.d) { Object.keys(resumed.d).forEach(function (x) { if (x !== "id" && x !== "photoId") d[x] = copy(resumed.d[x]); }); if (!d.kidIds || !d.kidIds.length) d.kidIds = [k.id]; }
     var newPhoto = null, removePhoto = false, saveHome = !st.meta.homePoint, places = null, airports = null;
     function memVals() { var o = {}; document.querySelectorAll("[data-memf]").forEach(function (el) { o[el.dataset.memf] = el.value; }); return o; }
     loadPlaces().then(function (x) { places = x; renderRoute(); }).catch(function () {});
@@ -602,7 +605,7 @@
     var rmp = $("#trmphoto"); if (rmp) rmp.onclick = function () { removePhoto = true; newPhoto = null; prev.hidden = true; rmp.hidden = true; };
 
     // save
-    var saving = false, reviewing = false;
+    var saving = false, reviewing = false, dupOk = false;
     // Mark as reviewed = take "Draft:" off the name and save, keeping anything else changed on this screen
     var rv = $("#treview"); if (rv) rv.onclick = function () { var ti = $("#ttitle"); ti.value = ti.value.replace(/^\s*draft:\s*/i, "").trim(); reviewing = true; $("#tsave").onclick(); };
     $("#tsave").onclick = function () {
@@ -626,6 +629,12 @@
         trip = Object.assign(old ? copy(old) : {}, made);
         if (reviewing) trip = M.reviewTrip(trip);
       } catch (x) { reviewing = false; err.textContent = x.message; err.hidden = false; return; }
+      // v71 (B10): the same trip already here (same people, same place, same days)? Offer to merge instead of a copy.
+      if (!old && RB && RB.dupMatch) {
+        var dm = RB.dupMatch(trip, st.trips);
+        if (dm && !dupOk) { RB.askDup(dm, trip).then(function (how) { if (!how) return; dupOk = how; $("#tsave").onclick(); }); return; }
+        if (dm && dupOk === "merge") trip = RB.mergeDup(dm, trip);
+      }
       if (trip.endDate && trip.endDate <= M.today()) trip.done = true;
       saving = true; $("#tsave").disabled = true;
       if (newPhoto) jobs.push(A_.put("photos", { id: photoId, dataUrl: newPhoto }));
@@ -638,11 +647,18 @@
       if (!old && first && saveHome && $("#thome") && $("#thome").checked) { jobs.push(A_.setMeta("home", first.name)); if (T.hasLoc(first)) jobs.push(A_.setMeta("homePoint", T.cleanPoint(first, true))); }
       var fresh = newStamps(before, ids);
       Promise.all(jobs).then(function () {
+        if (!old && RB && RB.clearDraft) RB.clearDraft();
         location.hash = "#/p/" + (trip.kidIds.indexOf(k.id) >= 0 ? k.id : trip.kidIds[0]) + "/trip/" + trip.id;
-        A_.toast(reviewing ? M.tripLabel(trip) + " reviewed ✓" : old ? "Trip saved" : "Trip added!");
+        A_.toast(reviewing ? M.tripLabel(trip) + " reviewed ✓" : dupOk === "merge" ? "Added to " + M.tripLabel(trip) : old ? "Trip saved" : "Trip added!");
         if (fresh.length) setTimeout(function () { celebrate(fresh); }, 350);
       }).catch(function () { saving = false; $("#tsave").disabled = false; err.textContent = "Couldn't save. Is the device out of space?"; err.hidden = false; });
     };
+    if (!old && !fromWish && RB && RB.watchDraft) RB.watchDraft(k.id, function () {
+      var x = copy(d); delete x.photoId;
+      x.kidIds = kidIds(); x.date = $("#tdate") ? $("#tdate").value : d.date; x.endDate = end.value; x.nights = $("#tnights").value === "" ? null : +$("#tnights").value;
+      x.title = $("#ttitle").value; x.who = $("#twho").value; x.memory = $("#tmem").value; x.roundTrip = $("#tround").checked; x.done = done.checked; x.memories = memVals(); x.fly = fly;
+      return x;
+    }, function () { return !saving; });
     var del = $("#tdel");
     if (del) del.onclick = function () {
       var name = M.tripLabel(old);

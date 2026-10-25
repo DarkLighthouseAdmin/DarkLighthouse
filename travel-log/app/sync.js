@@ -279,7 +279,7 @@
   function nameOf(members, uid) { var m = (members || []).filter(function (x) { return x.user_id === uid; })[0]; return m ? m.display_name || "" : ""; }
 
   function doSync(opts) {
-    var c = cfg(), fid = c.familyId, r, acc, changed = false, photosIn = 0, celebrate = [];
+    var c = cfg(), fid = c.familyId, r, acc, changed = false, photosIn = 0, celebrate = [], mergedIn = 0;
     var metaWas = metaHash(c);   // who's in, names, role, plan: shown in the header and on Family Sync
     return remote().then(function (x) { r = x; return r.session(); }).then(function (sess) {
       if (!sess) throw new Error("Signed out. Open Family Sync to sign back in.");
@@ -299,7 +299,10 @@
       acc = S.access(c.plan, FLAGS);
       return push();
     }).then(function () { return pull(); }).then(function () {
+      if (mergedIn) { mergedIn = 0; return push(); }   // v71 (B4): pages/boards merged from another phone go straight back up
+    }).then(function () {
       c.lastSync = new Date().toISOString();
+      if (c.failed) Object.keys(c.failed).forEach(function (id) { if (c.shadow.photos[id]) delete c.failed[id]; });
       return save(c);
     }).then(function () {
       celebrate.forEach(function (m) { cheer(S.joinLine(m.display_name || "Someone new", m.user_id), personFor(m)); });
@@ -325,9 +328,16 @@
               return r.upload(path, th.blob, th.mime).then(function () {
                 plan.photos.push({ family_id: fid, id: u.id, path: path, mime: th.mime, width: th.w, height: th.h, bytes: th.blob.size, updated_at: new Date().toISOString(), deleted: false });
                 c.shadow.photos[u.id] = th.mime;
+                if (c.failed) delete c.failed[u.id];
               });
             });
-          }).catch(function (e) { if (/offline|fetch/i.test(String(e && e.message))) throw e; });   // one bad photo shouldn't stop the rest
+          }).catch(function (e) {
+            if (/offline|fetch/i.test(String(e && e.message))) throw e;
+            // one bad photo shouldn't stop the rest, but it shows up (v71, B3): "1 photo didn't upload" with Try again; it retries every sync
+            c.failed = c.failed || {}; var f = c.failed[u.id] || { since: new Date().toISOString(), n: 0 };
+            f.trip = u.tripId; f.n++; f.last = new Date().toISOString(); f.why = /too large|payload|413/i.test(String(e && e.message)) ? "too big" : /quota|storage|space/i.test(String(e && e.message)) ? "family storage full" : "upload failed";
+            c.failed[u.id] = f;
+          });
         });
         return jobs.then(function () { return plan.photos.length ? r.upsert("photos", plan.photos) : null; })
           .then(function () { return r.removeFiles(plan.removes).catch(function () {}); })
@@ -345,7 +355,7 @@
         if (!tables.some(function (tb) { return rows[tb].length; })) return;
         return snapshot().then(function (local) {
           var before = { people: local.people.map(function (p) { return p.id; }), trips: local.trips.map(function (t) { return t.id; }) };
-          var ch = S.applyPull(local, c.shadow, rows);
+          var ch = S.applyPull(local, c.shadow, rows); mergedIn = ch.merged || 0;
           (rows.trips || []).forEach(function (t) { if (!t.deleted && !c.authors[t.id] && t.updated_by) c.authors[t.id] = nameOf(c.members, t.updated_by); });
           tables.forEach(function (tb) { c.cursor[tb] = S.nextCursor(c.cursor[tb], rows[tb]); });
           var touched = Object.keys(ch.touched);
@@ -1407,7 +1417,9 @@
       return false;
     },
     homeCard: homeCard, homeTop: homeTop, settingsPanel: settingsPanel, isOn: on, syncNow: syncNow, status: function () { return status; },
-    pending: function () { return pendingN; }, countPending: countPending, tripExtra: tripExtra, backupTag: backupTag,
+    pending: function () { return pendingN; },
+    // v71 (B3): what the "sync stuck" and "photos didn't upload" cards read
+    health: function () { var c = cfg(); return c ? { on: on(), lastSync: c.lastSync || "", status: status, msg: statusMsg, pending: pendingN, failed: c.failed || {} } : { on: false }; }, countPending: countPending, tripExtra: tripExtra, backupTag: backupTag,
     logs: reg, switchTo: switchTo,
     photoNote: function () { return on() ? "We shrink it and keep the full photo on this device. A small copy is shared with your family log. Location data is removed." : null; },
     storageNote: function () { return on() ? "Your maps are on this device and synced with " + (cfg().familyName || "your family log") + ". A backup file is still a good idea." : null; },

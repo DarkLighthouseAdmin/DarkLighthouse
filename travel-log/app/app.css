@@ -1045,3 +1045,12 @@ body.grandview main .rx .rxl { font-size:18px; }
 body.grandview .hllinks { display:none; }
 .rx .rxl { margin-left:.25rem; }
 body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-height:1.2; }
+
+/* v71: robustness cards */
+.rbcard h3 { margin:0 0 .3rem; font-size:1.05rem; }
+.rbcard.rbstuck, .rbcard.rbfail { border-left:4px solid #c2410c; }
+.rbcard.rbdraft { border-left:4px solid #2563eb; }
+.rbcard .actions { margin-top:.5rem; }
+.rprev { margin:.4rem 0 .6rem 1.1rem; padding:0; } .rprev li { margin:.2rem 0; }
+.rbclist .binrow { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.4rem; padding:.35rem 0; border-bottom:1px solid rgba(0,0,0,.08); }
+.rblast { margin:.3rem .2rem .8rem; }

@@ -152,8 +152,8 @@
     Array.prototype.forEach.call(a.main.querySelectorAll("[data-cdel]"), function (b) {
       b.onclick = function () {
         var p = b.dataset.cdel.split("|"), k = a.kidById(p[0]); if (!k) return; var before = (k.capsules || []).slice();
-        k.capsules = before.filter(function (c) { return c.id !== p[1]; });
-        a.saveKid(stamp(k)).then(function () { capsView(); if (window.FS_WHO && window.FS_WHO.undoToast) window.FS_WHO.undoToast("Time capsule deleted", function () { k.capsules = before; a.saveKid(stamp(k)).then(capsView); }); });
+        k.capsules = before.filter(function (c) { return c.id !== p[1]; }); var goneBefore = k.capsGone; k.capsGone = (k.capsGone || []).concat([p[1]]).slice(-200);
+        a.saveKid(stamp(k)).then(function () { capsView(); if (window.FS_WHO && window.FS_WHO.undoToast) window.FS_WHO.undoToast("Time capsule deleted", function () { k.capsules = before; k.capsGone = goneBefore; a.saveKid(stamp(k)).then(capsView); }); });
       };
     });
     var sv = document.getElementById("csave"); if (!sv) return;

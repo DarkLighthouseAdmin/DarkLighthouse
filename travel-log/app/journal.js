@@ -17,7 +17,15 @@
     if (!t || !kid || !DAY.test(day || "")) return null;
     t.journal = list(t).filter(function (j) { return j && j.kid && DAY.test(j.day || ""); });
     var e = entry(t, kid, day), v = { best: clean(vals.best, 280), funny: clean(vals.funny, 200), said: clean(vals.said, 40), photoId: typeof vals.photoId === "string" ? vals.photoId : "" };
-    if (!v.best && !v.funny && !v.photoId) { if (e) t.journal = t.journal.filter(function (j) { return j !== e; }); return null; }
+    if (!v.best && !v.funny && !v.photoId) {
+      if (e) {   // v71: a tombstone so a merge with another phone's copy can't bring the page back
+        t.journal = t.journal.filter(function (j) { return j !== e; });
+        var g = t.journalGone && typeof t.journalGone === "object" ? t.journalGone : {}; g[kid + "|" + day] = String(now || new Date().toISOString());
+        var ks = Object.keys(g); if (ks.length > 300) ks.sort(function (a, b) { return g[a] < g[b] ? -1 : 1; }).slice(0, ks.length - 300).forEach(function (k) { delete g[k]; });
+        t.journalGone = g;
+      }
+      return null;
+    }
     if (!e) {
       if (t.journal.length >= MAX) return null;
       e = { id: rid || ("j" + Math.random().toString(36).slice(2, 12)), kid: kid, day: day }; t.journal.push(e);

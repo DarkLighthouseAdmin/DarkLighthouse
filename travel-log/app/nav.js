@@ -280,6 +280,7 @@
       hp.innerHTML = '<h2>Getting around</h2><ul><li><b>Home</b>: today\'s cards, On this day, and trips from your photos to review.</li><li><b>Map</b>: one person\'s map or the whole family\'s (pick at the top), with USA, World and Parks.</li><li><b>＋ Stamp</b> (the big middle button): add a trip, quick-add places, make trips from photos, find what\'s near you, or stamp a stop on the trip you\'re on.</li><li><b>Trips</b>: every trip, with its journal, games, photos and postcards. The homeschool field-trip log and its PDF are here too.</li><li><b>More</b>: our family, badges and rewards, games and postcards, sharing and keepsakes, and your account (Family Sync, backups, Recently deleted, help and privacy).</li><li><b>Back</b> (top left) goes to the screen you were on, just like your phone\'s Back button. <b>Search</b> is at the top right.</li><li><b>Kid mode</b> (More → Account) puts Map, Stamp and Games in big buttons for one hand. Grandparents get a simple 3-tab view with big text.</li></ul>';
       main.insertBefore(hp, main.children[1] || null);
     }
+    if (window.FS_ROBUST && window.FS_ROBUST.decorate) { try { window.FS_ROBUST.decorate(h, gv); } catch (e) {} }
     labelEmoji(document.getElementById("main")); labelEmoji(document.querySelector(".sheetbg"));
   }
   /** Buttons and links that are only an emoji get their name written next to it. */

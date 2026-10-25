@@ -6,6 +6,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
   var NOTES = [
+    { v: "v71", items: ["🧩 Two phones writing different kids' journal pages or game boards on the same trip now both keep them.", "📝 A trip you started adding is saved as you type. Home asks \"Finish your trip?\"", "📷 Photos that didn't upload show up on Home with Try again, and a warning if sync is stuck.", "🔁 Adding a trip that's already here? You can add to that trip instead.", "💾 Restoring a backup shows exactly what comes back first, and the app keeps a weekly copy on this phone."] },
     { v: "v70", items: ["🧭 A simpler way around: Home, Map, ＋ Stamp, Trips and More at the bottom, and one Back arrow at the top left.", "👵 Grandparents get a simple view with big text: Highlights, Weekly recap, Reactions & news.", "🧒 Kid mode puts Map, Stamp and Games in big buttons (More → Account).", "🛠️ Report a problem (More → Account) emails us the details you choose."] },
     { v: "v69", items: ["🎒 Homeschool field-trip log: subjects, hours and what you learned, printable as a PDF (menu, or a kid's page).", "⏳ Time capsules: notes for a kid that open on a date you pick.", "💌 Invite another family."] },
     { v: "v68", items: ["🔎 Search every trip, stamp and journal page (Search at the top right).", "↩️ Deleted something by mistake? Tap Undo on the bar that pops up.", "⚙️ Miles or kilometers, reminder time and quiet hours in Help & settings.", "🔈 Stamp sounds are now off unless you switch them on."] },

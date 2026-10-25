@@ -2052,3 +2052,88 @@ setTimeout(() => {
   ok(!/fetch\(|XMLHttpRequest|sendBeacon/.test(read("robust.js")), "v70: report never sends anything by itself");
   ok(/navigator\.storage\.persist/.test(read("robust.js")), "v70: asks for persistent storage");
 }
+
+// ---------- v71: robustness (merge per-person pieces, failed uploads, drafts, duplicate trips, restore preview, weekly copy) ----------
+{
+  const S = require(path.join(APP, "sync-core.js")), RB = require(path.join(APP, "robust.js"));
+  const K1 = "person_zz00000000kid01", K2 = "person_zz00000000kid02";
+  // B4: two phones write different kids' journal pages on the same trip; both survive
+  const base = { id: "trip_zzrome0001", kidIds: [K1, K2], place: "Zz Rome", date: "2026-07-01", updatedAt: "2026-07-02T10:00:00.000Z" };
+  const sh = S.emptyShadow ? S.emptyShadow() : { people: {}, visits: {}, trips: {}, photos: {} };
+  sh.trips[base.id] = base.updatedAt;
+  const mine = Object.assign(JSON.parse(JSON.stringify(base)), { journal: [{ id: "ja", kid: K1, day: "2026-07-01", best: "Zz gelato", at: "2026-07-02T11:00:00.000Z" }], updatedAt: "2026-07-02T11:00:00.000Z" });
+  const theirs = Object.assign(JSON.parse(JSON.stringify(base)), { journal: [{ id: "jb", kid: K2, day: "2026-07-01", best: "Zz colosseum", at: "2026-07-02T12:00:00.000Z" }] });
+  // remote newer than our edit: remote wins the trip, our page is kept and the trip goes back up
+  let local = { people: [], trips: [JSON.parse(JSON.stringify(mine))], photoIds: [] };
+  let ch = S.applyPull(local, sh, { trips: [{ id: base.id, data: theirs, updated_at: "2026-07-02T12:00:00.000Z", deleted: false, traveler_ids: [K1, K2] }] });
+  let t = local.trips[0];
+  ok(t.journal.length === 2 && t.journal.some(j => j.kid === K1) && t.journal.some(j => j.kid === K2), "v71: newer remote trip keeps our kid's journal page too");
+  ok(ch.merged === 1 && sh.trips[base.id] !== t.updatedAt && S.planPush(local, sh, "fam_zz").trips.length === 1, "v71: merged trip is pushed back up");
+  // ours newer: we keep ours and add theirs
+  const sh2 = { people: {}, visits: {}, trips: { [base.id]: base.updatedAt }, photos: {} };
+  local = { people: [], trips: [Object.assign(JSON.parse(JSON.stringify(mine)), { updatedAt: "2026-07-02T13:00:00.000Z" })], photoIds: [] };
+  S.applyPull(local, sh2, { trips: [{ id: base.id, data: theirs, updated_at: "2026-07-02T12:00:00.000Z", deleted: false }] });
+  ok(local.trips[0].journal.length === 2, "v71: our newer trip also gets their journal page");
+  // not dirty, nothing extra: plain replace, no ping-pong
+  const sh3 = { people: {}, visits: {}, trips: { [base.id]: "2026-07-02T13:00:00.000Z" }, photos: {} };
+  const same = Object.assign(JSON.parse(JSON.stringify(base)), { journal: t.journal, updatedAt: "2026-07-02T13:00:00.000Z" });
+  local = { people: [], trips: [JSON.parse(JSON.stringify(same))], photoIds: [] };
+  ch = S.applyPull(local, sh3, { trips: [{ id: base.id, data: Object.assign({}, same, { memory: "Zz new note" }), updated_at: "2026-07-02T14:00:00.000Z", deleted: false }] });
+  ok(!ch.merged && local.trips[0].memory === "Zz new note" && S.planPush(local, sh3, "fam_zz").trips.length === 0, "v71: nothing extra = plain update, no echo push");
+  // deleted page doesn't come back
+  const J = require(path.join(APP, "journal.js"));
+  if (J && J.upsert) {
+    const tt = JSON.parse(JSON.stringify(mine)); J.upsert(tt, K1, "2026-07-01", { best: "" }, "2026-07-03T00:00:00.000Z");
+    ok(tt.journal.length === 0 && tt.journalGone && tt.journalGone[K1 + "|2026-07-01"], "v71: clearing a page leaves a tombstone");
+    const back = JSON.parse(JSON.stringify(tt)); S.mergeTripPieces(back, mine);
+    ok(back.journal.length === 0, "v71: a merge can't bring a deleted page back");
+    const later = JSON.parse(JSON.stringify(tt)); S.mergeTripPieces(later, { journal: [{ id: "jc", kid: K1, day: "2026-07-01", best: "Zz rewritten", at: "2026-07-04T00:00:00.000Z" }] });
+    ok(later.journal.length === 1, "v71: a page written after the delete still arrives");
+  } else ok(/journalGone/.test(read("journal.js")), "v71: journal tombstones");
+  // game boards: found squares from both phones
+  const g1 = { games: { "bingo|2026-07-01": { found: ["a", "b"], who: [K1], done: "" } } }, g2 = { games: { "bingo|2026-07-01": { found: ["c"], who: [K2], done: "2026-07-01" }, "hunt|2026-07-02": { found: ["x"], who: [K2], done: "" } } };
+  ok(S.mergeTripPieces(g1, g2) && g1.games["bingo|2026-07-01"].found.length === 3 && g1.games["bingo|2026-07-01"].who.length === 2 && g1.games["bingo|2026-07-01"].done && g1.games["hunt|2026-07-02"], "v71: game boards merge square by square");
+  ok(!S.mergeTripPieces(g1, g2), "v71: merging the same thing twice changes nothing");
+  // person pieces: game stamps and capsules
+  const sp = { people: { [K1]: "2026-07-01T00:00:00.000Z" }, visits: {}, trips: {}, photos: {} };
+  const me = { id: K1, name: "Zz Kid", states: {}, places: {}, parks: {}, games: { g1: { at: "2026-07-01", kind: "bingo" } }, capsules: [{ id: "c1" }], updatedAt: "2026-07-01T00:00:00.000Z" };
+  local = { people: [me], trips: [], photoIds: [] };
+  ch = S.applyPull(local, sp, { people: [{ id: K1, data: { name: "Zz Kid", games: { g2: { at: "2026-07-02", kind: "hunt" } }, capsules: [{ id: "c2" }] }, updated_at: "2026-07-03T00:00:00.000Z", deleted: false }] });
+  ok(Object.keys(me.games).length === 2 && me.capsules.length === 2 && ch.merged === 1, "v71: a person's game stamps and time capsules merge");
+  const gone = { capsules: [{ id: "c2" }], capsGone: ["c1"] }; S.mergePersonPieces(gone, { capsules: [{ id: "c1" }, { id: "c2" }] });
+  ok(gone.capsules.length === 1 && gone.capsules[0].id === "c2", "v71: a deleted time capsule stays deleted");
+  ok(/capsGone/.test(read("more.js")), "v71: deleting a capsule leaves a tombstone");
+  ok(/if \(mergedIn\) \{ mergedIn = 0; return push\(\); \}/.test(read("sync.js")), "v71: merged pieces go straight back up");
+  // B3: failed uploads and stuck sync
+  ok(/c\.failed\[u\.id\] = f/.test(read("sync.js")) && /if \(c\.failed\) delete c\.failed\[u\.id\]/.test(read("sync.js")) && /health: function/.test(read("sync.js")), "v71: failed photo uploads are recorded and cleared");
+  const now = Date.parse("2026-10-24T20:00:00Z");
+  ok(RB.stuckInfo({ on: true, lastSync: "2026-10-24T10:00:00Z", pending: 3, status: "synced" }, now).pending === 3, "v71: changes waiting 10 hours = stuck");
+  ok(!RB.stuckInfo({ on: true, lastSync: "2026-10-24T18:00:00Z", pending: 3, status: "error" }, now), "v71: 2 hours isn't stuck yet");
+  ok(!RB.stuckInfo({ on: true, lastSync: "2026-10-20T10:00:00Z", pending: 0, status: "synced" }, now), "v71: nothing waiting isn't stuck");
+  ok(!RB.stuckInfo({ on: false, pending: 3 }, now) && RB.stuckInfo({ on: true, lastSync: "", pending: 1, status: "error", msg: "x" }, now).error === "x", "v71: off isn't stuck; never synced with an error is");
+  ok(RB.failedList({ failed: { photo_zz1: { trip: "trip_zz1", n: 2, why: "too big" } } })[0].why === "too big", "v71: failed list");
+  // B2: drafts
+  ok(!RB.draftUseful({ route: [{ name: "Zz Home" }] }, true) && RB.draftUseful({ route: [{ name: "Zz Home" }, { name: "Zz Rome" }] }, true) && RB.draftUseful({ route: [{ name: "Zz Rome" }] }, false) && RB.draftUseful({ route: [], title: "Zz" }, true), "v71: a draft is kept once something is entered");
+  ok(RB.draftFresh({ d: {}, at: new Date().toISOString() }) && !RB.draftFresh({ d: {}, at: "2020-01-01T00:00:00Z" }), "v71: drafts older than 30 days are dropped");
+  const tu = read("trips-ui.js");
+  ok(/RB\.resumeDraft\(k\.id\)/.test(tu) && /RB\.watchDraft\(k\.id/.test(tu) && /RB\.clearDraft\(\)/.test(tu), "v71: the builder saves, restores and clears the draft");
+  // B10: duplicates
+  const r1 = { id: "trip_zz1", kidIds: [K1], place: "Zz Rome", date: "2026-07-01", route: [{ name: "Zz Home" }, { name: "Zz Rome" }], memory: "Zz pizza", stays: [{ n: 1 }] };
+  const r2 = { id: "trip_zz2", kidIds: [K2, K1], place: "Zz Rome", date: "2026-07-02", route: [{ name: "Zz Home" }, { name: "Zz Rome" }, { name: "Zz Florence" }], memory: "Zz trains", endDate: "2026-07-09", stays: [{ n: 1 }, { n: 2 }] };
+  ok(RB.dupMatch(r2, [r1]) === r1, "v71: same people, same place, a day apart = duplicate");
+  ok(!RB.dupMatch(Object.assign({}, r2, { date: "2026-07-05" }), [r1]) && !RB.dupMatch(Object.assign({}, r2, { kidIds: ["person_zzother"] }), [r1]) && !RB.dupMatch(Object.assign({}, r2, { place: "Zz Paris", route: [{ name: "Zz Home" }, { name: "Zz Paris" }] }), [r1]), "v71: different dates, people or places aren't duplicates");
+  ok(!RB.dupMatch(r2, [Object.assign({}, r1, { deletedAt: "2026-07-03" })]), "v71: deleted trips aren't duplicates");
+  const mg = RB.mergeDup(r1, r2, "2026-07-10T00:00:00Z");
+  ok(mg.id === r1.id && mg.kidIds.length === 2 && mg.route.length === 3 && /Zz pizza/.test(mg.memory) && /Zz trains/.test(mg.memory) && mg.endDate === "2026-07-09" && mg.stays.length === 2 && mg.date === "2026-07-01", "v71: merge keeps everything and adds the new");
+  ok(/RB\.dupMatch\(trip, st\.trips\)/.test(tu) && /dupOk === "merge"/.test(tu), "v71: the builder asks before saving a duplicate");
+  // B9: restore preview
+  const pv = RB.restorePreview({ exportedAt: "2026-10-01T00:00:00Z", kids: [{ id: K1, name: "Zz A" }, { id: "person_zzgone", name: "Zz B" }], trips: [r1, Object.assign({}, r2, { updatedAt: "2026-01-01" })], photos: [{ id: "photo_zz1" }] },
+    [{ id: K1, name: "Zz A" }, { id: K2, name: "Zz C" }], [Object.assign({}, r2, { updatedAt: "2026-09-01" })], []);
+  ok(pv.addPeople.length === 1 && pv.updPeople.length === 1 && pv.addTrips.length === 1 && pv.keepTrips.length === 1 && pv.updTrips.length === 0 && pv.newPhotos === 1 && pv.stayPeople === 1 && pv.stayTrips === 0, "v71: restore preview counts what comes back, what's replaced and what stays");
+  ok(/function restoreBackup\(data\)/.test(read("app.js")) && /askRestore\(data\)/.test(read("app.js")) && !/if \(!confirm\("Restore " \+ data\.kids\.length/.test(read("app.js")), "v71: restore always previews first");
+  // B5: weekly copy
+  ok(RB.autoDue("", now) && RB.autoDue("2026-10-10T00:00:00Z", now) && !RB.autoDue("2026-10-20T00:00:00Z", now), "v71: a copy is due weekly");
+  ok(/makeBackup\(st\.kids, st\.trips\.concat\(st\.bin \|\| \[\]\), \[\]/.test(read("robust.js")) && /KEEP = 4/.test(read("robust.js")), "v71: weekly copies skip photos and keep the last 4");
+  ok(!/fetch\(|XMLHttpRequest|sendBeacon/.test(read("robust.js")), "v71: nothing in robust.js goes over the network");
+  ok(/FS_ROBUST\.decorate/.test(read("nav.js")), "v71: cards drawn after each screen");
+}

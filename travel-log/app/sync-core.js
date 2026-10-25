@@ -145,6 +145,58 @@
   /** Apply rows pulled from the cloud. Changes local + shadow in place and reports what changed.
       rows = { people, visits, trips, photos } as returned by the server (snake_case). Local wins only when it has an
       unsynced edit that is newer than the cloud row. */
+  // v71 (B4): pieces that belong to one person (journal pages, game boards, game stamps, time capsules) merge piece by
+  // piece instead of last-write-wins on the whole trip/person, so two phones writing different kids' pages both keep them.
+  // Deleting a journal page leaves a small tombstone (journalGone[kid|day] = time) so a merge can't bring it back.
+  function jkey(j) { return j && j.kid && j.day ? j.kid + "|" + j.day : ""; }
+  function unionArr(a, b) { var out = (a || []).slice(); (b || []).forEach(function (x) { if (out.indexOf(x) < 0) out.push(x); }); return out; }
+  function mergeTripPieces(into, from) {
+    if (!into || !from) return false;
+    var changed = false, gone = Object.assign({}, into.journalGone || {}), fgone = from.journalGone || {};
+    Object.keys(fgone).forEach(function (k) { if (!gone[k] || newer(fgone[k], gone[k])) { gone[k] = fgone[k]; changed = true; } });
+    if (changed) into.journalGone = gone;
+    var mine = {}; (Array.isArray(into.journal) ? into.journal : []).forEach(function (j) { var k = jkey(j); if (k) mine[k] = j; });
+    (Array.isArray(from.journal) ? from.journal : []).forEach(function (j) {
+      var k = jkey(j); if (!k) return;
+      var have = mine[k];
+      if (!have) { if (gone[k] && !newer(j.at, gone[k])) return; mine[k] = JSON.parse(JSON.stringify(j)); changed = true; return; }
+      if (newer(j.at, have.at) && JSON.stringify(j) !== JSON.stringify(have)) { mine[k] = JSON.parse(JSON.stringify(j)); changed = true; }
+    });
+    var list = Object.keys(mine).map(function (k) { return mine[k]; }).filter(function (j) { var g = gone[jkey(j)]; if (g && !newer(j.at, g)) { changed = true; return false; } return true; });
+    if (list.length || Array.isArray(into.journal)) {
+      list.sort(function (a, b) { return a.day < b.day ? -1 : a.day > b.day ? 1 : a.kid < b.kid ? -1 : 1; });
+      if (JSON.stringify(list) !== JSON.stringify(into.journal || [])) { into.journal = list; changed = true; }
+    }
+    var fg = from.games && typeof from.games === "object" ? from.games : null;
+    if (fg) {
+      into.games = into.games && typeof into.games === "object" ? into.games : {};
+      Object.keys(fg).forEach(function (k) {
+        var a = into.games[k], b = fg[k]; if (!b) return;
+        if (!a) { into.games[k] = JSON.parse(JSON.stringify(b)); changed = true; return; }
+        var f = unionArr(a.found, b.found), w = unionArr(a.who, b.who), d = a.done || b.done || "";
+        if (f.length !== (a.found || []).length || w.length !== (a.who || []).length || d !== (a.done || "")) { a.found = f; a.who = w; a.done = d; changed = true; }
+      });
+    }
+    return changed;
+  }
+  function mergePersonPieces(into, from) {
+    if (!into || !from) return false;
+    var changed = false;
+    if (from.games && typeof from.games === "object") {
+      into.games = into.games && typeof into.games === "object" ? into.games : {};
+      Object.keys(from.games).forEach(function (k) { if (!into.games[k]) { into.games[k] = JSON.parse(JSON.stringify(from.games[k])); changed = true; } });
+    }
+    var gone = unionArr(into.capsGone, from.capsGone);
+    if (gone.length && gone.length !== (into.capsGone || []).length) { into.capsGone = gone.slice(-200); changed = true; }
+    if (Array.isArray(from.capsules) || Array.isArray(into.capsules)) {
+      var mine = (into.capsules || []).slice(), ids = mine.map(function (c) { return c && c.id; });
+      (from.capsules || []).forEach(function (c) { if (c && c.id && ids.indexOf(c.id) < 0 && gone.indexOf(c.id) < 0) { mine.push(JSON.parse(JSON.stringify(c))); ids.push(c.id); changed = true; } });
+      var kept = mine.filter(function (c) { return !(c && gone.indexOf(c.id) >= 0); }); if (kept.length !== mine.length) changed = true;
+      if (changed || Array.isArray(into.capsules)) into.capsules = kept;
+    }
+    return changed;
+  }
+  function bump(remoteAt) { return new Date(Math.max(Date.now(), ms(remoteAt) + 1)).toISOString(); }
   function applyPull(local, shadow, rows, opts) {
     opts = opts || {};
     var ch = { people: 0, visits: 0, trips: 0, removedPeople: [], removedTrips: [], downloads: [], newTrips: [], touched: {} };
@@ -157,12 +209,17 @@
         }
         delete shadow.people[r.id]; dropPersonVisits(shadow, r.id); return;
       }
-      if (p && localDirty && !newer(r.updated_at, p.updatedAt)) return;   // our newer edit goes up on the next push
+      if (p && localDirty && !newer(r.updated_at, p.updatedAt)) {   // our newer edit goes up on the next push, carrying their pieces too
+        if (mergePersonPieces(p, r.data || {})) { ch.people++; ch.touched[r.id] = 1; ch.merged = (ch.merged || 0) + 1; }
+        return;
+      }
       if (p && !localDirty && shadow.people[r.id] === iso(r.updated_at)) return;   // already have exactly this version (cursor overlap, our own push echoing back)
-      var d = r.data || {};
+      var d = r.data || {}, keep = p ? { games: p.games, capsules: p.capsules, capsGone: p.capsGone } : null;
       if (!p) { p = { id: r.id, states: {}, places: {}, parks: {} }; local.people.push(p); byId[r.id] = p; }
       Object.keys(d).forEach(function (k) { if (!PERSON_SKIP[k]) p[k] = d[k]; });
-      p.updatedAt = iso(r.updated_at); shadow.people[r.id] = p.updatedAt; ch.people++; ch.touched[r.id] = 1;
+      var extra = keep ? mergePersonPieces(p, keep) : false;
+      p.updatedAt = extra ? bump(r.updated_at) : iso(r.updated_at); shadow.people[r.id] = iso(r.updated_at); ch.people++; ch.touched[r.id] = 1;
+      if (extra) ch.merged = (ch.merged || 0) + 1;
     });
     (rows.visits || []).forEach(function (r) {
       var p = byId[r.person_id]; if (!p) return;
@@ -182,13 +239,18 @@
         if (t && !(localDirty && newer(t.updatedAt, r.updated_at))) { local.trips = local.trips.filter(function (x) { return x.id !== r.id; }); ch.removedTrips.push(r.id); ch.trips++; }
         delete shadow.trips[r.id]; return;
       }
-      if (t && localDirty && !newer(r.updated_at, t.updatedAt)) return;
+      if (t && localDirty && !newer(r.updated_at, t.updatedAt)) {   // ours wins, but keep the pages/boards only they have
+        if (mergeTripPieces(t, r.data || {})) { ch.trips++; ch.merged = (ch.merged || 0) + 1; }
+        return;
+      }
       if (t && !localDirty && shadow.trips[r.id] === iso(r.updated_at)) return;   // same version we already have: not a change
       var d = JSON.parse(JSON.stringify(r.data || {})); d.id = r.id; d.updatedAt = iso(r.updated_at);
       if (!Array.isArray(d.kidIds)) d.kidIds = (r.traveler_ids || []).slice();
+      var extra = t && !(r.data || {}).deletedAt ? mergeTripPieces(d, t) : false;   // pages/boards only we have go back up
+      if (extra) { d.updatedAt = bump(r.updated_at); ch.merged = (ch.merged || 0) + 1; }
       if (!t) ch.newTrips.push(r.id);
       local.trips = local.trips.filter(function (x) { return x.id !== r.id; }).concat([d]); tById[r.id] = d;
-      shadow.trips[r.id] = d.updatedAt; ch.trips++;
+      shadow.trips[r.id] = iso(r.updated_at); ch.trips++;
     });
     (rows.photos || []).forEach(function (r) {
       if (r.deleted) { delete shadow.photos[r.id]; return; }
@@ -355,7 +417,7 @@
   }
   function slug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30); }
 
-  return { pendingCount: pendingCount, tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
+  return { mergeTripPieces: mergeTripPieces, mergePersonPieces: mergePersonPieces, pendingCount: pendingCount, tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
            ms: ms, iso: iso, newer: newer, personRow: personRow, tripRow: tripRow, flatVisits: flatVisits, emptyShadow: emptyShadow,
            planPush: planPush, afterPush: afterPush, applyPull: applyPull, nextCursor: nextCursor, photoPath: photoPath,
            matchPeople: matchPeople, remapPeople: remapPeople, access: access, allows: allows, FREE: FREE,
