@@ -1823,7 +1823,7 @@ setTimeout(() => {
 {
   const ROOTDIR = path.join(__dirname, "..");
   const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
-  ok(/var VERSION = "v6[7-9]"/.test(read("app.js")) && /mltl-v6[7-9]/.test(read("sw.js")), "v67: version and cache bumped");
+  ok(/var VERSION = "v(6[7-9]|7[0-9])"/.test(read("app.js")) && /mltl-v(6[7-9]|7[0-9])/.test(read("sw.js")), "v67: version and cache bumped");
   const idx = read("index.html");
   ok(idx.indexOf('src="launch.js"') > idx.indexOf('src="brand.js"') && idx.indexOf('src="launch.js"') < idx.indexOf('src="app.js"') && /"launch\.js"/.test(read("sw.js")), "v67: launch.js loads right after brand.js and is cached");
   // one config spot for contacts and page links
@@ -1902,7 +1902,7 @@ setTimeout(() => {
   const ROOTDIR = path.join(__dirname, "..");
   const X = require(path.join(APP, "extras.js"));
   const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
-  ok(/var VERSION = "v6[8-9]"/.test(read("app.js")) && /mltl-v6[8-9]/.test(read("sw.js")), "v68: version and cache bumped");
+  ok(/var VERSION = "v(6[8-9]|7[0-9])"/.test(read("app.js")) && /mltl-v(6[8-9]|7[0-9])/.test(read("sw.js")), "v68: version and cache bumped");
   ok(/"extras\.js"/.test(read("sw.js")) && /<script src="extras\.js"><\/script>/.test(read("index.html")), "v68: extras.js cached and loaded");
   ok(read("index.html").indexOf("launch.js") < read("index.html").indexOf("extras.js"), "v68: extras loads after launch");
   // Utah: the gull now fills the glyph box like the other states, on the set's 1.6 ground line; no new animal art
@@ -1930,7 +1930,7 @@ setTimeout(() => {
   ok(X.search("u", kids, trips, nm).trips.length === 0 && X.search("café", [{ id: "a", name: "Cafe Zz" }], [], nm).people.length === 1, "v68: short queries return nothing, accents ignored");
   ok(X.search("beach", kids, trips, nm).trips[0].kid === "zz_k2", "v68: trip result links to its traveler");
   // what's new
-  ok(X.notesSince("v67").length === 1 && X.notesSince("v66").length === 2 && X.notesSince("v68").length === 0, "v68: what's new shows only newer notes");
+  ok(X.notesSince("v67").length === X.NOTES.length - 1 && X.notesSince("v66").length === X.NOTES.length && X.notesSince("v99").length === 0, "v68: what's new shows only newer notes");
   // rating prompt limits
   const D = 864e5, now = Date.parse("2026-10-24T20:00:00Z");
   ok(!X.shouldAsk({ first: now - 3 * D }, now) && X.shouldAsk({ first: now - 8 * D }, now), "v68: rating waits 7 days after first use");
@@ -1962,4 +1962,56 @@ setTimeout(() => {
   const q = "/workspace/famstamp-v68/notify-quiet.sql";
   if (fs.existsSync(q)) { const sql = fs.readFileSync(q, "utf8").replace(/--.*$/gm, ""); ok(!/\bdrop\b|\btruncate\b|\bdelete\s+from\b/i.test(sql) && /add column if not exists/.test(sql), "v68: quiet-hours SQL is additive"); }
   ok(!/Zz/.test(JSON.stringify(X.NOTES)), "v68: release notes contain no test names");
+}
+
+// ---------- v69: sample family, field-trip log, time capsules, own login (13+), invite-a-family ----------
+{
+  const MO = require(path.join(APP, "more.js"));
+  ok(/"more\.js"/.test(read("sw.js")) && /<script src="more\.js"><\/script>/.test(read("index.html")) && read("index.html").indexOf("extras.js") < read("index.html").indexOf("more.js"), "v69: more.js cached and loaded after extras");
+  // demo
+  const sd = MO.sampleData(new Date("2026-10-24T12:00:00"));
+  ok(sd.kids.length === 3 && sd.trips.length === 3 && sd.kids.every(k => /sample/i.test(k.name) && k.sample) && sd.trips.every(t => t.sample && /^Sample:/.test(t.title)), "v69: sample family is clearly labeled sample");
+  ok(!/Zz/.test(JSON.stringify(sd)) && !/@|\d{3}-\d{3}-\d{4}/.test(JSON.stringify(sd)), "v69: sample data has no Zz, emails or phone numbers");
+  ok(sd.trips.every(t => t.kidIds.every(id => sd.kids.some(k => k.id === id))), "v69: sample trips point at sample people");
+  ok(/sessionStorage\.getItem\("fs-demo"\) === "1"\) DB_NAME = "mltl-demo"/.test(read("app.js")), "v69: sample family uses its own throwaway database");
+  ok(/demo = sessionStorage\.getItem\("fs-demo"\) === "1"/.test(read("launch.js")) && /return !demo &&/.test(read("launch.js")), "v69: no usage counts from the sample family");
+  ok(/isDemo\(\) && \(h\[0\] === "sync"/.test(read("more.js")), "v69: Family Sync is blocked in the sample family");
+  // field-trip log
+  ok(MO.schoolYear("2026-09-03") === "2026-27" && MO.schoolYear("2026-07-31") === "2025-26" && MO.schoolYear("2026-08-01") === "2026-27", "v69: school year runs Aug to Jul");
+  const cf = MO.cleanField({ on: 1, subjects: ["Science", "Hacking"], hours: "2.3", learned: "x".repeat(2000) });
+  ok(cf.on === true && cf.subjects.join() === "Science" && cf.hours === 2.25 && cf.learned.length === 1000, "v69: field-trip details are cleaned");
+  ok(MO.cleanField({ hours: 99 }).hours === 24 && MO.cleanField({ hours: -3 }).hours === 0, "v69: hours clamp 0-24");
+  const ft = [
+    { id: "zz1", kidIds: ["zzk"], date: "2026-09-10", title: "Zz Test Museum", field: { on: true, subjects: ["History"], hours: 2 } },
+    { id: "zz2", kidIds: ["zzk"], date: "2026-10-01", title: "Zz Test Farm", field: { on: true, subjects: ["Science"], hours: 1.5 } },
+    { id: "zz3", kidIds: ["zzk"], date: "2026-10-02", title: "Zz Test Not field" },
+    { id: "zz4", kidIds: ["zzk"], date: "2026-06-01", title: "Zz Test Last year", field: { on: true, hours: 4 } },
+    { id: "zz5", kidIds: ["zzk"], date: "2026-09-12", title: "Zz Test Deleted", field: { on: true, hours: 9 }, deletedAt: "2026-09-13" },
+    { id: "zz6", kidIds: ["zzo"], date: "2026-09-12", title: "Zz Test Other kid", field: { on: true, hours: 9 } }
+  ];
+  const fl = MO.fieldLog(ft, "zzk", "2026-27");
+  ok(fl.rows.map(r => r.id).join() === "zz1,zz2" && fl.hours === 3.5, "v69: field-trip log picks the kid's marked trips for the year, totals hours");
+  ok(MO.fieldLog(ft, "zzk", "2025-26").hours === 4, "v69: earlier school year separate");
+  ok(/window\.print\(\)/.test(read("more.js")) && /signature/.test(read("more.js")), "v69: field-trip log prints / saves as PDF with a signature line");
+  // capsules
+  const kidNo = { id: "zzk" }, kidYes = { id: "zzk", ownLogin: "2026-10-24" };
+  ok(!MO.capsuleOpen({ unlock: "date", date: "2027-01-01" }, kidNo, "2026-12-31") && MO.capsuleOpen({ unlock: "date", date: "2027-01-01" }, kidNo, "2027-01-01"), "v69: date capsule opens on its day");
+  ok(!MO.capsuleOpen({ unlock: "login" }, kidNo, "2099-01-01") && MO.capsuleOpen({ unlock: "login" }, kidYes, "2026-10-24"), "v69: login capsule opens when the kid has their own login");
+  ok(!MO.capsuleOpen({ unlock: "date", date: "" }, kidNo, "2099-01-01"), "v69: capsule without a date stays shut");
+  const cc = MO.cleanCapsule({ id: "cap_zz", text: "y".repeat(3000), unlock: "login", date: "2027-01-01" });
+  ok(cc.text.length === 2000 && cc.date === "" && cc.unlock === "login", "v69: capsules are cleaned");
+  ok(/capsules/.test(read("more.js")) && /a\.saveKid\(stamp\(k\)\)/.test(read("more.js")), "v69: capsules live on the person so they sync with the family");
+  // own login
+  ok(MO.canGraduate({ role: "kid", birthYear: 2013 }, 2026) && !MO.canGraduate({ role: "kid", birthYear: 2014 }, 2026) && !MO.canGraduate({ role: "kid" }, 2026) && !MO.canGraduate({ role: "adult", birthYear: 1990 }, 2026), "v69: own login only for kids 13+ with a birth year");
+  ok(/I\\'m their parent or guardian/.test(read("more.js")) && /p_confirm13: true/.test(read("more.js")), "v69: a parent has to confirm");
+  ok(/function viewGrad/.test(read("sync.js")) && /sess\.anon \|\| !sess\.email/.test(read("sync.js")) && /redeem_graduation/.test(read("sync.js")), "v69: teen redeems only with their own signed-in account");
+  // SQL
+  const q = "/workspace/famstamp-v69/v69-graduate-referrals.sql";
+  if (fs.existsSync(q)) {
+    const sql = fs.readFileSync(q, "utf8").replace(/--.*$/gm, "");
+    ok(!/\bdrop\b|\btruncate\b|\bdelete\s+from\b/i.test(sql), "v69: SQL is additive (no drop/truncate/delete)");
+    ok(/p_birth_year < 13/.test(sql) && /p_confirm13/.test(sql) && /role in \('owner', 'adult'\)/.test(sql), "v69: SQL enforces 13+, parent confirm, parent role");
+    ok((sql.match(/enable row level security/g) || []).length === 3 && /from public, anon/.test(sql), "v69: new tables locked down, functions not for anon");
+  }
+  ok(!/billing|charge\(|stripe|polar/i.test(read("more.js").replace(/Nothing is charged today|no billing/gi, "")), "v69: invite flow makes no billing calls");
 }

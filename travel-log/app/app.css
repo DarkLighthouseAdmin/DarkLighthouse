@@ -955,3 +955,16 @@ a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-v
 .homesearch{display:flex;gap:.5rem;align-items:center;min-height:44px;padding:.55rem .9rem;margin:.2rem 0 .9rem;border:1px solid #9aa4ab;border-radius:999px;background:#fff;color:#46535a;text-decoration:none}
 .homesearch:hover,.homesearch:focus-visible{border-color:var(--navy,#1f3a5f);color:var(--navy,#1f3a5f)}
 @media (max-width:520px){.topright .toplink.tsearch{display:none}}
+/* v69: demo bar, field-trip log, time capsules */
+#demobar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between;padding:.55rem .9rem;background:#fff4dc;color:#3b2a0a;border-bottom:2px solid #e8a54b;font-size:.92rem}
+body.fsdemo #syncpill,body.fsdemo .synctop,body.fsdemo .familycard,body.fsdemo .famchip{display:none!important}
+.fieldpick{display:flex;gap:.8rem;flex-wrap:wrap}
+.fieldtable{width:100%;border-collapse:collapse;font-size:.92rem}
+.fieldtable th,.fieldtable td{border:1px solid #c9c2b4;padding:.35rem .45rem;text-align:left;vertical-align:top}
+.fieldtrip .chips{display:flex;flex-wrap:wrap;gap:.35rem;border:0;padding:0;margin:.4rem 0}
+.fieldtrip .chip{display:inline-flex;gap:.3rem;align-items:center;min-height:40px;padding:.2rem .6rem;border:1px solid #9aa4ab;border-radius:999px}
+.capsule.open{border-left:4px solid #3f8f5a}
+.captext{white-space:normal;font-size:1.05rem}
+.gradwrap .tapline{display:block;margin:.4rem 0}
+@media print{body.fsdemo #demobar{display:none}.fieldsheet{font-size:11pt}.fieldsheet h2{margin-top:0}}
+body.fsdemo .gbtn,body.fsdemo .keepspot{display:none!important}

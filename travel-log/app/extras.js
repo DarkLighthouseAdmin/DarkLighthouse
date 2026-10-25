@@ -6,6 +6,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
   var NOTES = [
+    { v: "v69", items: ["🎒 Homeschool field-trip log: subjects, hours and what you learned, printable as a PDF (menu, or a kid's page).", "⏳ Time capsules: notes for a kid that open on a date you pick.", "💌 Invite another family."] },
     { v: "v68", items: ["🔎 Search every trip, stamp and journal page (the 🔎 bar on Home, or 🔎 in the menu).", "↩️ Deleted something by mistake? Tap Undo on the bar that pops up.", "⚙️ Miles or kilometers, reminder time and quiet hours in Help & settings.", "🔈 Stamp sounds are now off unless you switch them on."] },
     { v: "v67", items: ["💬 Help & feedback, text size and Export everything (.zip).", "🗑️ Family organizers can delete their account and data in the app."] }
   ];

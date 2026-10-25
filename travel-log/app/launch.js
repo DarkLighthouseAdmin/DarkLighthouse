@@ -130,7 +130,7 @@
   function setSize(k) { if (!SIZES[k]) k = "m"; document.documentElement.style.fontSize = k === "m" ? "" : SIZES[k]; document.documentElement.setAttribute("data-textsize", k); ls(LS.size, k === "m" ? null : k); }
   setSize(ls(LS.size) || "m");
 
-  function teleOn() { return ls(LS.tele) !== "off" && !/[?&]notele\b/.test(location.search); }
+  function teleOn() { var demo = false; try { demo = sessionStorage.getItem("fs-demo") === "1"; } catch (e) {} return !demo && ls(LS.tele) !== "off" && !/[?&]notele\b/.test(location.search); }
   function cfg() { return window.MLTL_SYNC_CONFIG; }
   function send(fn, body) {
     var c = cfg(); if (!c || !c.url || !c.key || !teleOn() || ls(LS.off) === today() || !/^https?:/.test(location.protocol)) return Promise.resolve(false);

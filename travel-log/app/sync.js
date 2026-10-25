@@ -148,7 +148,7 @@
         return jobs;
       },
       family: function (fid) { return sb.from("families").select("*").eq("id", fid).maybeSingle().then(chk); },
-      myFamilies: function (uid) { return sb.from("family_members").select("family_id, role, families(name)").eq("user_id", uid).then(chk); },
+      myFamilies: function (uid) { return sb.from("family_members").select("family_id, role, person_id, families(name)").eq("user_id", uid).then(chk); },
       // Highlights reactions (table public.reactions; RLS: family members read, people add/remove only their own).
       // A missing table comes back as {missing:true} so the app can hide the buttons until it exists.
       reactions: function (fid) { return sb.from("reactions").select("item_ref, user_id, emoji, created_at, family_id").eq("family_id", fid).order("created_at", { ascending: false }).limit(2000).then(rxChk); },
@@ -809,6 +809,36 @@
       main.innerHTML = back("#/", "Home") + '<div class="panel"><h3>Couldn\'t join</h3><p class="muted">' + esc(friendly(e).message) + '</p></div>';
     });
   }
+  // v69: a kid (13+) moves to their own login. A parent makes a one-time code (more.js); the teen opens #/grad/<code>
+  // on their own phone, signed in with their OWN account. Their existing profile and all history are linked to it.
+  function viewGrad(code) {
+    code = String(code || "").trim().toUpperCase();
+    var shell = function (h) { main.innerHTML = back("#/", "Home") + h; };
+    if (!code) { shell('<h1>Your own login</h1><div class="field"><label for="gcode">Code from your parent</label><input id="gcode" autocomplete="off" autocapitalize="characters"></div><button class="btn btn-primary" id="ggo">Continue</button>'); document.getElementById("ggo").onclick = function () { location.hash = "#/grad/" + encodeURIComponent(document.getElementById("gcode").value); }; return; }
+    if (on()) { shell('<div class="panel"><h3>This phone already has a family log</h3><p>Open this link on your own phone, or in a browser where ' + esc(brandName()) + ' isn\'t set up yet.</p></div>'); return; }
+    var r; shell('<div class="synchero"><h1>Checking your code…</h1></div>');
+    remote().then(function (x) { r = x; return ensureSession(r); }).then(function (sess) {
+      if (!sess || sess.anon || !sess.email) {
+        try { sessionStorage.setItem("fs-grad-code", code); } catch (e) {}
+        shell('<div class="synchero"><div class="beam" aria-hidden="true">🎓</div><h1>Sign in with your own account first</h1><p class="lede small">Use your own Google account or email, not a parent\'s. Then come back to this link.</p></div><div class="actions stack"><a class="btn btn-beacon big" href="#/sync">Sign in</a></div>');
+        return;
+      }
+      return r.cupRpc("redeem_graduation", { p_code: code, p_display_name: firstName(sess.name) || "" }).then(function (fid) {
+        if (fid && fid.missing) throw new Error("Own logins aren't switched on yet. Ask your parent.");
+        fid = Array.isArray(fid) ? fid[0] : fid;
+        if (!fid) throw new Error("That code didn't work. It may have expired (codes last 3 days) or been used. Ask your parent for a new one.");
+        try { sessionStorage.removeItem("fs-grad-code"); } catch (e) {}
+        return r.myFamilies(sess.userId).then(function (rows) {
+          var f = (rows || []).filter(function (x) { return x.family_id === fid; })[0] || {};
+          var name = (f.families && f.families.name) || "your family", pid = f.person_id || null;
+          return save(freshCfg(fid, sess.userId, { familyName: name, role: "kid", myPerson: pid, myName: firstName(sess.name) || "", anonymous: false, email: sess.email, seenAll: true }))
+            .then(A.load).then(function () { return syncNow({ throwErrors: true, quiet: true }); })
+            .then(function () { cheer("Welcome to your own login! All your stamps came with you. 🎓", pid ? A.kidById(pid) : null); location.hash = "#/"; });
+        });
+      });
+    }).catch(function (e) { shell('<div class="panel"><h3>Couldn\'t finish</h3><p class="muted">' + esc(friendly(e).message) + '</p></div>'); });
+  }
+  function brandName() { return (window.FS_BRAND && window.FS_BRAND.NAME) || "Famstamp"; }
   function joinPicker(code, inv, sess, r) {
     var fam = inv.people || [], mine = A.state.kids, hasLocal = mine.length > 0, title = S.familyTitle(inv.family_name);
     var free = fam.filter(function (p) { return !p.taken; }), forPid = joinFor(code), gFirst = sess && !sess.anon ? firstName(sess.name) : "";
@@ -1117,7 +1147,7 @@
       '<div class="fmsep" role="separator"></div>' +
       (grown ? '<a role="menuitem" class="fmitem add" href="' + (on() ? "#/sync/invite" : "#/sync") + '">✉︎ Invite someone</a>' : "") +
       '<a role="menuitem" class="fmitem add" href="#/sync/addjoin">＋ Join another family</a><a role="menuitem" class="fmitem add" href="#/sync/new">＋ Start another family log</a>' +
-      '<a role="menuitem" class="fmitem add" href="#/search">🔎 Search</a><a role="menuitem" class="fmitem add" href="#/cup">🏆 Cousin Cup</a><a role="menuitem" class="fmitem add" href="#/stations">📍 Stamp stations</a><a role="menuitem" class="fmitem add" href="#/postcards">💌 Postcards</a><a role="menuitem" class="fmitem add" href="#/help">💬 Help &amp; feedback</a>' +
+      '<a role="menuitem" class="fmitem add" href="#/search">🔎 Search</a><a role="menuitem" class="fmitem add" href="#/fieldtrips">🎒 Field-trip log</a><a role="menuitem" class="fmitem add" href="#/capsules">⏳ Time capsules</a><a role="menuitem" class="fmitem add" href="#/invite">💌 Invite a family</a><a role="menuitem" class="fmitem add" href="#/cup">🏆 Cousin Cup</a><a role="menuitem" class="fmitem add" href="#/stations">📍 Stamp stations</a><a role="menuitem" class="fmitem add" href="#/postcards">💌 Postcards</a><a role="menuitem" class="fmitem add" href="#/help">💬 Help &amp; feedback</a>' +
       '<a role="menuitem" class="fmitem add" href="#/sync">⚙︎ ' + esc(entryLabel()) + ' settings</a>' +
       menuGoogle();
     var scrim = document.createElement("div"); scrim.id = "fmscrim"; scrim.className = "fmscrim";
@@ -1372,6 +1402,7 @@
     route: function (h) {
       if (h[0] === "sync") { viewSync(h[1]); return true; }
       if (h[0] === "join") { viewJoin(h[1]); return true; }
+      if (h[0] === "grad") { viewGrad(decodeURIComponent(h[1] || "")); return true; }
       if (h[0] === "feed") { viewFeed(); return true; }
       return false;
     },

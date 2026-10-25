@@ -28,6 +28,7 @@ Their database functions are in `supabase` migration `20261025000000_launch_basi
 Bump `VERSION` in `app/app.js` and `CACHE` in `app/sw.js` for every release, then run `scripts/test_*.js`.
 
 - **v68**: Search (`#/search`, Home search bar, 🔎 in the header on wide screens, menu item, `/` key); "What's new" after updates
+- **v69**: Sample family demo (`?demo` / Home "Try a sample family": separate local database, fake names, no sync or telemetry, "Start my own family" wipes it); homeschool field-trip log (`#/fieldtrips`, subjects/hours/learned per trip, printable sheet → PDF); time capsules (`#/capsules`, open on a date or when the kid gets their own login; sealed, not encrypted); kid graduates to own login (`#/graduate/<id>` parent confirms 13+, teen redeems code at `#/grad/<code>` while signed in; history kept, parent keeps family view); invite-a-family referral link + tracking (`#/invite`, no rewards or billing). SQL: `supabase/migrations/20261025020000_graduate_referrals.sql` (additive, not applied).
   (`extras.js` NOTES); Undo bars instead of confirm dialogs for trip, postcard and station deletes; stamp sound off unless
   switched on in Help; rate-limited "Enjoying it?" after 10+ stamps (7 days after first use, every 90 days, max 3);
   Help settings: miles/km, °F/°C, reminder hour, quiet hours (needs `notify-quiet.sql`), storage used; lazy photo

@@ -7,12 +7,13 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v68";
+  var VERSION = "v69";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
   var DB_NAME = "mltl", DB_VER = 1, dbp = null;
   try { if (window.MLTL_SYNCCORE) DB_NAME = window.MLTL_SYNCCORE.readLogs(localStorage).active; } catch (e) {}
+  try { if (sessionStorage.getItem("fs-demo") === "1") DB_NAME = "mltl-demo"; } catch (e) {}   // v69: sample family lives in its own throwaway database
   function db() { if (!dbp) dbp = openDb(DB_NAME); return dbp; }
   function openDb(name) {
     return new Promise(function (res, rej) {
