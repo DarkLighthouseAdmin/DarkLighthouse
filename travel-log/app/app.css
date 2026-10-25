@@ -1054,3 +1054,18 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .rprev { margin:.4rem 0 .6rem 1.1rem; padding:0; } .rprev li { margin:.2rem 0; }
 .rbclist .binrow { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.4rem; padding:.35rem 0; border-bottom:1px solid rgba(0,0,0,.08); }
 .rblast { margin:.3rem .2rem .8rem; }
+/* v75: on 360px phones a page with Back + "Sync & sign in" + "Search" was 26px too wide and scrolled sideways.
+   With Back showing on a narrow screen, Search keeps only its icon (its name stays for screen readers) and the sync pill says "Sync". */
+@media (max-width:400px) {
+  .topbar:has(.navback:not([hidden])) .navsearch .tl { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .topbar:has(.navback:not([hidden])) .navsearch { padding-inline:.55rem; }
+  .topbar:has(.navback:not([hidden])) .topright .syncpill .sl { display:none; }
+  .topbar:has(.navback:not([hidden])) .topright .syncpill .ss { display:inline; }
+  .topbar:has(.navback:not([hidden])) .topright:has(.famchip:not([hidden])) .syncpill .ss { display:none; }
+}
+/* v75: 320px phones with a second family log (family chip showing) no longer push the search button off the right edge */
+@media (max-width:340px) {
+  .topbar:has(.famchip:not([hidden])) .navsearch .tl { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .topbar:has(.famchip:not([hidden])) .navsearch { padding-inline:.55rem; }
+  .topbar:has(.navback:not([hidden])) .topright .famchip { max-width:4.4rem !important; }
+}

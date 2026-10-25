@@ -6,6 +6,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
   var NOTES = [
+    { v: "v75", items: ["Small phones: the top bar no longer slides sideways on inner pages.", "Grandparent view: “Report a problem” works, and “Family and sign-in” is back in More."] },
     { v: "v74", items: ["⚡ Opens much faster the first time, especially on slow connections.", "Typing “What we learned” in the field-trip log no longer loses words when you change the hours."] },
     { v: "v73", items: ["💌 Invite a family: when they start their own log, you both get 1 free month of Premium once paid plans start.", "🔒 Before a kid joins on their own device, a parent now sees what they can add and confirms it's OK."] },
     { v: "v72", items: ["🗺️ The family map tells you what to do first when nobody's on it yet."] },

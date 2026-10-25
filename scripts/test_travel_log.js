@@ -2028,7 +2028,7 @@ setTimeout(() => {
   ok(NV.tabOf("#/") === "home" && NV.tabOf("#/p/zzk/us") === "map" && NV.tabOf("#/p/zzk/world") === "map" && NV.tabOf("#/family") === "map" && NV.tabOf("#/trips") === "trips" && NV.tabOf("#/p/zzk/trip/zz1") === "trips" && NV.tabOf("#/fieldtrips") === "trips" && NV.tabOf("#/p/zzk/stats") === "more" && NV.tabOf("#/sync") === "more", "v70: every screen belongs to one bottom tab");
   ok(NV.isRoot("#/") && NV.isRoot("#/trips") && NV.isRoot("#/more") && NV.isRoot("#/p/zzk/parks") && !NV.isRoot("#/p/zzk/trip/zz1") && !NV.isRoot("#/p/zzk/stats") && !NV.isRoot("#/help") && !NV.isRoot("#/trips/zzk"), "v70: back arrow on every inner screen, not on tab roots");
   ok(NV.isRoot("#/highlights", true) && NV.isRoot("#/news", true) && !NV.isRoot("#/help", true), "v70: grandparent roots");
-  ok(NV.grandAllowed("#/highlights") && NV.grandAllowed("#/recap/2026-10-24") && NV.grandAllowed("#/news") && NV.grandAllowed("#/more") && !NV.grandAllowed("#/p/zzk/trips/new") && !NV.grandAllowed("#/p/zzk/edit") && !NV.grandAllowed("#/backup") && !NV.grandAllowed("#/sync"), "v70: grandparent view keeps editing screens out");
+  ok(NV.grandAllowed("#/highlights") && NV.grandAllowed("#/recap/2026-10-24") && NV.grandAllowed("#/news") && NV.grandAllowed("#/more") && !NV.grandAllowed("#/p/zzk/trips/new") && !NV.grandAllowed("#/p/zzk/edit") && !NV.grandAllowed("#/backup") && NV.grandAllowed("#/sync") && NV.grandAllowed("#/report"), "v70: grandparent view keeps editing screens out (v75: Family and sign-in and Report a problem allowed)");
   const tl = NV.tripList([{ id: "a", date: "2025-01-01", kidIds: ["zzk"] }, { id: "b", date: "2026-05-01", kidIds: ["zzo"] }, { id: "c", date: "2026-01-01", kidIds: ["zzk", "zzo"], deletedAt: "x" }, { id: "d", date: "2026-02-01", kidIds: ["zzk"] }]);
   ok(tl.map(t => t.id).join() === "b,d,a", "v70: trips newest first, deleted left out");
   ok(NV.tripList(tl, "zzk").map(t => t.id).join() === "d,a", "v70: trips filtered by person id");
@@ -2186,3 +2186,11 @@ setTimeout(() => {
   ok(!/sourceMappingURL/.test(swr) && /sourceMappingURL=app-bundle\.js\.map/.test(bun), "v74: source map linked for debugging only");
 }
 ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.v/.test(read("more.js")), "v74: the field-trip log keeps typed words when it redraws");
+// ---- v75: small-phone top bar + grandparent view fixes ----
+{
+  const css = read("app.css"), nav = read("nav.js");
+  ok(/var VERSION = "v(7[5-9]|[89]\d)"/.test(read("app.js")) && /mltl-v(7[5-9]|[89]\d)/.test(fs.readFileSync(path.join(APP, "sw.js"), "utf8")), "v75: version and cache bumped");
+  ok(/@media \(max-width:400px\)[\s\S]*\.topbar:has\(\.navback:not\(\[hidden\]\)\) \.navsearch \.tl/.test(css), "v75: inner pages on small phones hide the search label so the top bar fits");
+  ok(/@media \(max-width:340px\)[\s\S]*\.topbar:has\(\.famchip:not\(\[hidden\]\)\) \.navsearch \.tl/.test(css) && /\.topright \.famchip \{ max-width:4\.4rem !important; \}/.test(css), "v75: 320px with the family chip fits");
+  ok(/GRAND_OK[^;]*report: 1/.test(nav) && /GRAND_OK[^;]*sync: 1/.test(nav) && /href="#\/sync">Family and sign-in/.test(nav), "v75: grandparent view can report a problem and reach Family and sign-in");
+}

@@ -29,7 +29,7 @@
     return false;
   }
   /** Grandparent simple view: the screens that stay; anything else goes to Highlights. */
-  var GRAND_OK = { "": 1, highlights: 1, recap: 1, news: 1, more: 1, help: 1, sharecard: 1, postcard: 1, postcards: 1, follow: 1 };
+  var GRAND_OK = { "": 1, highlights: 1, recap: 1, news: 1, more: 1, help: 1, sharecard: 1, postcard: 1, postcards: 1, follow: 1, report: 1, sync: 1 };   // v75: Report a problem and Family & sign-in (incl. leaving) work here too
   function grandAllowed(hash) { var h = parts(hash); return !!GRAND_OK[h[0] || ""]; }
   /** All trips, newest first, optionally only one person's; deleted ones never. */
   function tripList(trips, pid) {
@@ -194,7 +194,7 @@
     var a = A(), w = who(), gv = grandView(), html = '<h1>More</h1>';
     if (gv) {
       html += '<div class="panel"><p>This is the simple view for grandparents. You can switch to the full app any time, and come back here from More.</p><div class="actions"><button type="button" class="btn btn-primary" data-full-app>Switch to the full app</button></div></div>' +
-        '<ul class="morelist"><li><a href="#/highlights">Highlights</a></li><li><a href="#/recap">Weekly recap</a></li><li><a href="#/news">Reactions &amp; news</a></li><li><button type="button" class="linkbtn" data-gtip-again>How to use this</button></li><li><a href="#/help">Help</a></li><li><a href="#/report">Report a problem</a></li></ul>';
+        '<ul class="morelist"><li><a href="#/highlights">Highlights</a></li><li><a href="#/recap">Weekly recap</a></li><li><a href="#/news">Reactions &amp; news</a></li><li><button type="button" class="linkbtn" data-gtip-again>How to use this</button></li><li><a href="#/help">Help</a></li><li><a href="#/sync">Family and sign-in</a></li><li><a href="#/report">Report a problem</a></li></ul>';
       a.main.innerHTML = html; document.title = "More · Famstamp"; return;
     }
     if (kids().length > 1) html += '<p class="small muted">Badges and other personal pages are for:</p>' + chips(w, function (id) { return "#/more/" + id; });
