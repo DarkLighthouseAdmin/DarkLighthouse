@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v69";
+  var VERSION = "v70";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -122,7 +122,7 @@
     var t = e.target.closest && e.target.closest("[data-backup-now],[data-backup-dismiss]");
     if (!t) return;
     var banner = document.querySelector(".backupnag");
-    if (t.hasAttribute("data-backup-now")) doBackup().then(function () { if (banner) banner.remove(); toast("Backup saved. Keep the file somewhere safe."); }).catch(function () { toast("Couldn't make the backup. Try Back up at the top."); });
+    if (t.hasAttribute("data-backup-now")) doBackup().then(function () { if (banner) banner.remove(); toast("Backup saved. Keep the file somewhere safe."); }).catch(function () { toast("Couldn't make the backup. Try More → Back up and restore."); });
     else setMeta("backupDismissedAt", new Date().toISOString()).then(function () { if (banner) banner.remove(); toast("OK, we'll remind you in a week"); });
   });
 

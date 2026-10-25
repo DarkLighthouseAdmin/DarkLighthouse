@@ -968,3 +968,80 @@ body.fsdemo #syncpill,body.fsdemo .synctop,body.fsdemo .familycard,body.fsdemo .
 .gradwrap .tapline{display:block;margin:.4rem 0}
 @media print{body.fsdemo #demobar{display:none}.fieldsheet{font-size:11pt}.fieldsheet h2{margin-top:0}}
 body.fsdemo .gbtn,body.fsdemo .keepspot{display:none!important}
+/* v70: new navigation */
+body.fsnew main nav.tabs, body.fsnew main .hometabs, body.fsnew main a.back, body.fsnew main .whobar .whoswitch, body.fsnew .topright > a.toplink[href="#/backup"], body.fsnew .topright .tsearch { display:none !important; }
+body.fsnew main { padding-bottom:6.5rem; }
+.fsnav { position:fixed; left:0; right:0; bottom:0; z-index:30; background:var(--navy); padding-bottom:env(safe-area-inset-bottom); box-shadow:0 -2px 10px rgba(0,0,0,.18); }
+.fsnav[hidden] { display:none; }
+.fsnav .wrap { display:grid; grid-template-columns:repeat(5,1fr); align-items:end; padding:0 .25rem; max-width:720px; margin:0 auto; }
+.fsnav a, .fsnav button { color:#c9d5e2; text-decoration:none; background:none; border:0; font:inherit; font-size:.78rem; font-weight:600; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.1rem; min-height:58px; padding:.4rem .1rem .5rem; cursor:pointer; }
+.fsnav .ic { font-size:1.3rem; line-height:1; }
+.fsnav a[aria-current=page] { color:var(--beacon); box-shadow:inset 0 3px 0 var(--beacon); }
+.fsnav .nt-stamp { position:relative; top:-14px; margin:0 auto; width:68px; height:68px; min-height:68px; border-radius:50%; background:var(--beacon); color:var(--navy); box-shadow:0 3px 10px rgba(0,0,0,.3); font-size:.75rem; }
+.fsnav .nt-stamp .ic { font-size:1.7rem; font-weight:800; }
+.fsnav a:focus-visible, .fsnav button:focus-visible { outline:3px solid #fff; outline-offset:-3px; }
+.navback { display:inline-flex; align-items:center; gap:.3rem; min-height:44px; min-width:44px; padding:.3rem .6rem; margin-right:.25rem; border:1px solid rgba(232,238,246,.35); border-radius:999px; background:transparent; color:#e8eef6; font:inherit; font-weight:700; font-size:.9rem; cursor:pointer; }
+.navback[hidden] { display:none; }
+.navback span[aria-hidden] { font-size:1.15rem; line-height:1; }
+.topbar .wrap { gap:.5rem; }
+.topbar .brand { margin-right:auto; }
+.navsearch, .navmore { display:inline-flex; align-items:center; gap:.3rem; min-height:40px; }
+.navmore { display:none; }
+body.grandview .navmore { display:inline-flex; }
+@media (max-width:520px) { body.fsnew .brand .logomark { width:96px; height:32px; } .navsearch { padding-inline:.6rem; font-size:.85rem; } body.fsnew .topright .syncpill { max-width:7.5rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .navback .tl { display:none; } }
+.youreon { background:#eef2f6; color:var(--ink); padding:.25rem 1rem; text-align:center; border-bottom:1px solid var(--line); }
+.youreon[hidden] { display:none; }
+.youreon .linkbtn { margin-left:.35rem; min-height:32px; }
+.pchips { display:flex; gap:.4rem; overflow-x:auto; padding:.25rem 0 .5rem; -webkit-overflow-scrolling:touch; }
+.pchips a { flex:0 0 auto; display:inline-flex; align-items:center; gap:.35rem; min-height:44px; padding:.3rem .8rem; border-radius:999px; border:1px solid var(--line); background:#fff; color:var(--ink); text-decoration:none; font-weight:600; }
+.pchips a[aria-current=page] { background:var(--navy); color:#fff; border-color:var(--navy); }
+.mapseg { display:flex; margin:.25rem 0 .75rem; }
+.mapseg a { flex:1; text-align:center; min-height:44px; display:flex; align-items:center; justify-content:center; text-decoration:none; color:var(--ink); font-weight:700; border:1px solid var(--line); background:#fff; }
+.mapseg a:first-child { border-radius:999px 0 0 999px; } .mapseg a:last-child { border-radius:0 999px 999px 0; }
+.mapseg a[aria-current=page] { background:var(--navy); color:#fff; }
+.stampopts { display:grid; gap:.5rem; margin:.5rem 0; }
+.stampopt { display:flex; gap:.75rem; align-items:center; padding:.75rem .9rem; border:1px solid var(--line); border-radius:14px; background:#fff; color:var(--ink); text-decoration:none; min-height:56px; }
+.stampopt .ic { font-size:1.6rem; }
+.moregroup h2 { font-size:1.05rem; margin:1.25rem 0 .4rem; }
+.morelist { list-style:none; padding:0; margin:0; background:#fff; border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+.morelist li + li { border-top:1px solid var(--line); }
+.morelist a, .morelist .linkbtn { display:flex; align-items:center; gap:.6rem; width:100%; min-height:48px; padding:.5rem .9rem; color:var(--ink); text-decoration:none; text-align:left; font:inherit; background:none; border:0; }
+.morelist .ic { width:1.6rem; text-align:center; }
+.morelist li.sub a { padding-left:2.2rem; font-size:.95rem; }
+.fstour { border:2px solid var(--beacon); }
+.elab { font-size:.8em; margin-left:.3em; }
+.fsnav .elab, .navback .elab { display:none; }
+.rx .rxl { font-size:.8rem; font-weight:600; }
+.tyear { font-size:1rem; margin:1.1rem 0 .4rem; color:var(--muted, #5a6878); }
+.newslist { list-style:none; padding:0; } .newslist li { padding:.6rem 0; border-bottom:1px solid var(--line); }
+pre.errlog { white-space:pre-wrap; font-size:.8rem; background:#f4f1ea; padding:.5rem; border-radius:8px; }
+/* kid mode: one hand, big buttons at the bottom */
+body.kidmode .fsnav .wrap { grid-template-columns:repeat(4,1fr); }
+body.kidmode .fsnav a, body.kidmode .fsnav button { min-height:72px; font-size:.95rem; }
+body.kidmode .fsnav .ic { font-size:1.8rem; }
+body.kidmode .fsnav .nt-stamp { width:84px; height:84px; top:-18px; }
+body.kidmode main .btn, body.kidmode .mapseg a, body.kidmode .pchips a { min-height:56px; font-size:1.05rem; }
+body.kidmode #youreon, body.kidmode .topright .famchip, body.kidmode .topright .syncpill { display:none !important; }
+/* grandparent simple view: 3 big tabs, big text, big buttons, no editing */
+body.grandview main, body.grandview main p, body.grandview main li, body.grandview main .small, body.grandview main .lede { font-size:19px; line-height:1.55; }
+body.grandview main h1 { font-size:1.9rem; }
+body.grandview .fsnav .wrap { grid-template-columns:repeat(3,1fr); }
+body.grandview .fsnav a { min-height:72px; font-size:1.05rem; }
+body.grandview .fsnav .ic { font-size:1.6rem; }
+body.grandview main a, body.grandview main button { min-height:48px; }
+body.grandview main a.btn, body.grandview main button, body.grandview main .tapline { display:inline-flex; align-items:center; justify-content:center; }
+body.grandview main .rx { min-width:48px; padding:.35rem .7rem; font-size:1.05rem; }
+body.grandview main .rx .rxl { font-size:1rem; }
+body.grandview .btn-beacon, body.grandview [href*="/trips/new"], body.grandview [href*="/edit"], body.grandview .kidcard.add, body.grandview #youreon, body.grandview .topright .famchip, body.grandview .topright .syncpill, body.grandview .homesearch, body.grandview .navsearch, body.grandview .foot { display:none !important; }
+body.grandview .gtip { border:2px solid var(--beacon); }
+body.grandview .gtip ol { padding-left:1.3rem; }
+@media print { .fsnav, .navback, .youreon, .fstour { display:none !important; } }
+.navback { position:relative; z-index:47; }   /* above sheets (40) and the menu scrim (44), like the logo, so Back always works */
+body:not(.grandview) .topright .navmore { display:none !important; }
+body.grandview .navback, body.grandview .topright .navmore, body.grandview .topbar a.brand { min-height:48px !important; min-width:48px; }
+body.grandview .navback { font-size:1.05rem; padding:.3rem .9rem; } body.grandview .navback .tl { display:inline !important; }
+body.grandview .topbar a.brand { align-items:center; }
+body.grandview main .rx .rxl { font-size:18px; }
+body.grandview .hllinks { display:none; }
+.rx .rxl { margin-left:.25rem; }
+body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-height:1.2; }

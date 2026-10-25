@@ -66,7 +66,7 @@
     if (status === "missing" || !on()) return line ? '<p class="rxwho small">' + esc(line) + '</p>' : "";
     return '<div class="rxbar" data-rx="' + esc(ref) + '">' + H.EMOJI.map(function (e) {
       var l = m[e[0]] || [], mine = l.indexOf(uid) >= 0;
-      return '<button type="button" class="rx' + (mine ? " on" : "") + '" data-emo="' + e[0] + '" aria-pressed="' + mine + '" aria-label="' + esc(e[2]) + (l.length ? ", " + l.length : "") + '">' + e[1] + (l.length ? ' <small>' + l.length + '</small>' : "") + '</button>';
+      return '<button type="button" class="rx' + (mine ? " on" : "") + '" data-emo="' + e[0] + '" aria-pressed="' + mine + '" aria-label="' + esc(e[2]) + (l.length ? ", " + l.length : "") + '"><span aria-hidden="true">' + e[1] + '</span> <span class="rxl">' + esc(e[2]) + '</span>' + (l.length ? ' <small>' + l.length + '</small>' : "") + '</button>';
     }).join("") + '</div>' + (line ? '<p class="rxwho small">' + esc(line) + '</p>' : "");
   }
   function card(it) {
@@ -80,9 +80,9 @@
   function view() {
     document.title = "Highlights · Famstamp";
     var main = A().main, list = items(), grand = iAmGrand();
-    main.innerHTML = '<a class="back" href="#/">← Home</a><h1>✨ Highlights</h1><p class="lede small">' + (grand ? "The grandkids' newest stamps, badges, milestones, firsts and trips. Tap an emoji to cheer them on." :
+    main.innerHTML = '<a class="back" href="#/">← Home</a><h1>✨ Highlights</h1><p class="lede small">' + (grand ? "The grandkids' newest stamps, badges, milestones, firsts and trips. Tap Love it, Wow, Bravo or Ha! to cheer them on." :
       "The kids' newest stamps, badges, milestones and trips, and who cheered.") + '</p>' +
-      '<p class="small"><a class="tapline" href="#/recap">📬 This week\'s recap →</a> · <a class="tapline" href="#/cup">🏆 Cousin Cup</a> · <a class="tapline" href="#/postcards">💌 Postcards</a> · <a class="tapline" href="#/stations">📍 Stamp stations</a></p>' +
+      '<p class="small hllinks"><a class="tapline" href="#/recap">📬 This week\'s recap →</a> · <a class="tapline" href="#/cup">🏆 Cousin Cup</a> · <a class="tapline" href="#/postcards">💌 Postcards</a> · <a class="tapline" href="#/stations">📍 Stamp stations</a></p>' +
       (on() ? "" : '<div class="panel"><p class="small">Reactions work once this phone is in a family log. <a href="#/sync">Family Sync →</a></p></div>') +
       '<p class="small muted" id="rxnote"' + (status === "missing" ? "" : " hidden") + '>Reactions aren\'t switched on for this family log yet.</p>' +
       (list.length ? '<div class="hlfeed">' + list.map(card).join("") + '</div>' : '<div class="panel"><p class="muted">Nothing yet. When the kids get new stamps, badges or trips, they show up here.</p></div>') + tabs();

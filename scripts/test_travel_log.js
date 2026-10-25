@@ -1717,8 +1717,8 @@ setTimeout(() => {
 // ---- v65: brand config, kid-drawn stamps, share cards, postcards, stamp stations, Cousin Cup ----
 {
   const app = f => fs.readFileSync(path.join(APP, f), "utf8");
-  ok(/var VERSION = "v6[5-9]"/.test(read("app.js")) && /mltl-v6[5-9]/.test(read("sw.js")), "v65: version and cache bumped");
-  ok(/var VERSION = "v6[6-9]"/.test(read("app.js")) && /mltl-v6[6-9]/.test(read("sw.js")), "v66: version and cache bumped");
+  ok(/var VERSION = "(?:v6[5-9]|v[7-9][0-9])"/.test(read("app.js")) && /mltl-(?:v6[5-9]|v[7-9][0-9])/.test(read("sw.js")), "v65: version and cache bumped");
+  ok(/var VERSION = "(?:v6[6-9]|v[7-9][0-9])"/.test(read("app.js")) && /mltl-(?:v6[6-9]|v[7-9][0-9])/.test(read("sw.js")), "v66: version and cache bumped");
   ok(/FS_BRAND/.test(read("book.js")) && !/"FAMSTAMP/.test(read("book.js")), "v66: book takes its brand name from FS_BRAND");
   ok(/FS_BRAND/.test(read("rewards.js")) && /FS_BRAND/.test(read("games.js")), "v66: certificate and game footer use FS_BRAND");
   ok(/bfamily/.test(read("book.js")) && /travel crew/.test(read("book.js")), "v66: book has a travel crew page");
@@ -2014,4 +2014,41 @@ setTimeout(() => {
     ok((sql.match(/enable row level security/g) || []).length === 3 && /from public, anon/.test(sql), "v69: new tables locked down, functions not for anon");
   }
   ok(!/billing|charge\(|stripe|polar/i.test(read("more.js").replace(/Nothing is charged today|no billing/gi, "")), "v69: invite flow makes no billing calls");
+}
+
+// ---------- v70: new navigation, grandparent simple view, report a problem, persistent storage ----------
+{
+  const NV = require(path.join(APP, "nav.js")), RB = require(path.join(APP, "robust.js"));
+  const ix = read("index.html");
+  ok(/"nav\.js"/.test(read("sw.js")) && /"robust\.js"/.test(read("sw.js")) && ix.indexOf("robust.js") > ix.indexOf("cup.js") && ix.indexOf("nav.js") > ix.indexOf("robust.js"), "v70: nav.js and robust.js cached and loaded last");
+  ok(NV.tabOf("#/") === "home" && NV.tabOf("#/p/zzk/us") === "map" && NV.tabOf("#/p/zzk/world") === "map" && NV.tabOf("#/family") === "map" && NV.tabOf("#/trips") === "trips" && NV.tabOf("#/p/zzk/trip/zz1") === "trips" && NV.tabOf("#/fieldtrips") === "trips" && NV.tabOf("#/p/zzk/stats") === "more" && NV.tabOf("#/sync") === "more", "v70: every screen belongs to one bottom tab");
+  ok(NV.isRoot("#/") && NV.isRoot("#/trips") && NV.isRoot("#/more") && NV.isRoot("#/p/zzk/parks") && !NV.isRoot("#/p/zzk/trip/zz1") && !NV.isRoot("#/p/zzk/stats") && !NV.isRoot("#/help") && !NV.isRoot("#/trips/zzk"), "v70: back arrow on every inner screen, not on tab roots");
+  ok(NV.isRoot("#/highlights", true) && NV.isRoot("#/news", true) && !NV.isRoot("#/help", true), "v70: grandparent roots");
+  ok(NV.grandAllowed("#/highlights") && NV.grandAllowed("#/recap/2026-10-24") && NV.grandAllowed("#/news") && NV.grandAllowed("#/more") && !NV.grandAllowed("#/p/zzk/trips/new") && !NV.grandAllowed("#/p/zzk/edit") && !NV.grandAllowed("#/backup") && !NV.grandAllowed("#/sync"), "v70: grandparent view keeps editing screens out");
+  const tl = NV.tripList([{ id: "a", date: "2025-01-01", kidIds: ["zzk"] }, { id: "b", date: "2026-05-01", kidIds: ["zzo"] }, { id: "c", date: "2026-01-01", kidIds: ["zzk", "zzo"], deletedAt: "x" }, { id: "d", date: "2026-02-01", kidIds: ["zzk"] }]);
+  ok(tl.map(t => t.id).join() === "b,d,a", "v70: trips newest first, deleted left out");
+  ok(NV.tripList(tl, "zzk").map(t => t.id).join() === "d,a", "v70: trips filtered by person id");
+  ok(NV.emojiOnly("🔎") && NV.emojiOnly(" ✨ ") && !NV.emojiOnly("🔎 Search") && !NV.emojiOnly("+") && !NV.emojiOnly(""), "v70: emoji-only detection");
+  ok(NV.TOUR.length === 3, "v70: 3-step tour");
+  const mg = NV.moreGroups({ who: "zzk", sync: true }), titles = mg.map(g => g[0]).join("|"), hrefs = [].concat(...mg.map(g => g[1].map(l => l[1])));
+  ok(titles === "Our family|Earn|Play & make|Share & keep|Account", "v70: More is grouped");
+  ["#/games", "#/postcards", "#/stations", "#/cup", "#/year", "#/recap", "#/follow", "#/capsules", "#/fieldtrips", "#/invite", "#/sync", "#/backup", "#/deleted", "#/help", "#/report", "#/p/zzk/stats", "#/p/zzk/quests", "#/p/zzk/rewards", "#/p/zzk/firsts", "#/p/zzk/print", "#/p/zzk/book", "#/family/passport", "#/family/wishes", "#/together/top", "#/near", "#/feed"].forEach(h => ok(hrefs.indexOf(h) >= 0, "v70: More reaches " + h));
+  ok(mg.every(g => g[1].every(l => /[A-Za-z]/.test(l[0]))), "v70: every More item has words");
+  const nav = read("nav.js");
+  ok(/history\.back\(\)/.test(nav) && /fsd/.test(nav), "v70: back arrow uses the same history as the phone's Back");
+  ok(/Report a problem/.test(nav) && /Kid mode/.test(nav) && /Switch to the full app/.test(nav) && /How to use this/.test(nav), "v70: kid mode, grandparent switch and tip present");
+  ok(/body\.grandview main[^{]*\{[^}]*font-size:19px/.test(read("app.css")) && /body\.grandview main a, body\.grandview main button \{ min-height:48px/.test(read("app.css")), "v70: grandparent view: big text and 48px targets");
+  ok(/rxl/.test(read("highlights.js")), "v70: reaction buttons have words");
+  ok(!/"(?:Zz|zz)/.test(nav.replace(/\/\/.*$/gm, "")), "v70: no test data in the app code");
+  // report a problem
+  const dirty = "TypeError: cannot read 'Zz Rome' of person_zz00000000kid01 at https://x.example/travel-log/app/trips-ui.js?v=1:12 mail zz@example.com id 123456789";
+  const cl = RB.clean(dirty);
+  ok(!/Zz Rome|zz@example|kid01|123456789|https/.test(cl) && /trips-ui\.js/.test(cl) && /person_<id>/.test(cl), "v70: error log strips names, ids, emails and links");
+  let lg = []; for (let i = 0; i < 20; i++) lg = RB.addLog(lg, "err " + i, "2026-10-24T20:00");
+  ok(lg.length === RB.MAX_LOG && lg[lg.length - 1].m === "err 19", "v70: error log is capped");
+  lg = RB.addLog(RB.addLog([], "same", "a"), "same", "b"); ok(lg.length === 1 && lg[0].n === 2, "v70: repeated errors counted once");
+  const mail = RB.reportMail({ to: "support@darklighthousesolutions.com", what: "Zz test", version: "v70", platform: "Android Chrome", route: "home", log: lg });
+  ok(mail.startsWith("mailto:support@darklighthousesolutions.com?subject=") && /v70/.test(decodeURIComponent(mail)) && /Zz test/.test(decodeURIComponent(mail)), "v70: report is a mailto with the version");
+  ok(!/fetch\(|XMLHttpRequest|sendBeacon/.test(read("robust.js")), "v70: report never sends anything by itself");
+  ok(/navigator\.storage\.persist/.test(read("robust.js")), "v70: asks for persistent storage");
 }
