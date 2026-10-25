@@ -27,6 +27,13 @@
       deletion: "/travel-log/delete-account/",
       support: "/travel-log/support/",
       waitlist: "/travel-log/waitlist/"
+    },
+    // v73: "invite a family" reward. Both families get it when the invited family starts their own log. It is only
+    // granted once payments are live (LIVE flips then); until then the app tracks referrals and shows this promise.
+    REFERRAL: {
+      REWARD: "1 free month of Premium",
+      BOTH: true,
+      LIVE: false
     }
   };
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -59,7 +66,7 @@
         if (!e.hasAttribute("data-keep")) e.textContent = m;
       });
       if (document.body && document.body.hasAttribute("data-brand-title")) document.title = document.title.replace(/Famstamp/g, B.NAME);
-      var a = document.querySelector(".brand"); if (!a) return;
+      var a = document.querySelector(".brand"); if (!a || !a.querySelector(".logomark")) return;   // v73: other sites' .brand (e.g. the home page) is left alone
       if (B.NAME !== "Famstamp" || B.TAGLINE !== "stamp every trip") {
         a.setAttribute("aria-label", B.NAME + " home");
         var t = a.querySelectorAll(".logomark text"); if (t[0]) t[0].textContent = B.NAME.toUpperCase(); if (t[1]) t[1].textContent = String(B.TAGLINE).toUpperCase();

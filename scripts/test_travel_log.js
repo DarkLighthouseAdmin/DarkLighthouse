@@ -538,7 +538,7 @@ const linked = [];
   for (const e of fs.readdirSync(d, { withFileTypes: true })) {
     const p = path.join(d, e.name);
     if (e.isDirectory()) { if (![".git", "node_modules", "app"].includes(e.name) || (e.name === "app" && !p.endsWith(path.join("travel-log", "app")))) walk(p); }
-    else if (/\.(html|xml|txt)$/.test(e.name) && /travel-log\/app/.test(fs.readFileSync(p, "utf8"))) linked.push(path.relative(path.join(__dirname, ".."), p));
+    else if (/\.(html|xml|txt)$/.test(e.name) && /travel-log\/app/.test(fs.readFileSync(p, "utf8").replace(/<script src="\/travel-log\/app\/brand\.js"><\/script>/g, ""))) linked.push(path.relative(path.join(__dirname, ".."), p));
   }
 })(path.join(__dirname, ".."));
 ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "));
@@ -1846,12 +1846,12 @@ setTimeout(() => {
     ok(/data-brand>Famstamp</.test(h), "v67: " + p + " page name fallback matches brand.js");
     ok(!/national park service|\bNPS\b|eastern national/i.test(h), "v67: " + p + " no NPS branding");
   });
-  ["privacy", "terms", "waitlist"].forEach(p => ok(/Draft|DRAFT/.test(site(p + "/index.html")), "v67: " + p + " is marked draft"));
-  ok(/last updated/.test(site("privacy/index.html")) && /last updated/.test(site("terms/index.html")), "v67: policies show a last-updated date");
+  ["privacy", "terms", "delete-account"].forEach(p => ok(/Last updated \w+ \d+, 20\d\d/.test(site(p + "/index.html")), "v67/v73: " + p + " shows its last-updated date"));
+  ok(/last updated/i.test(site("privacy/index.html")) && /last updated/i.test(site("terms/index.html")), "v67: policies show a last-updated date");
   const pp = site("privacy/index.html");
   ok(/don't sell/i.test(pp) && /EXIF/.test(pp) && /children/.test(pp) && /Supabase/.test(pp) && /push/.test(pp) && /delete-account/.test(pp), "v67: privacy policy covers kids, storage, push, photos, no selling, deletion");
   ok(!/COPPA[- ]compliant|fully compliant|guarantee/i.test(pp), "v67: privacy policy doesn't claim legal compliance");
-  ok(/noindex/.test(site("waitlist/index.html")) && /18 or older/.test(site("waitlist/index.html")), "v67: waitlist is noindex and adults only");
+  ok(!/noindex/.test(site("waitlist/index.html")) && /18 or older/.test(site("waitlist/index.html")), "v67/v73: waitlist is public (indexable) and adults only");
   const wl = site("waitlist.js");
   ok(/join_waitlist/.test(wl) && /p_adult: true/.test(wl) && !/localStorage|cookie/.test(wl), "v67: waitlist posts to the rate-limited function and stores nothing locally");
   ok(fs.readFileSync(path.join(ROOTDIR, "index.html"), "utf8").indexOf("partners@darklighthousesolutions.com") > 0, "v67: site footer lists the contacts");
@@ -1957,7 +1957,7 @@ setTimeout(() => {
   ok(typeof PUSH.cleanKinds === "function", "v68: push.js still loads in node");
   // kids' privacy wording
   const PR = site("privacy/index.html");
-  ok(/The parent owns the account/.test(PR) && /Kids never sign up/.test(PR) && /never asked to type personal information/.test(PR), "v68: privacy page says the parent owns the account and kids never sign up");
+  ok(/The parent owns the account/.test(PR) && /Kids can't create an account/.test(PR) && /never ask a child for an email/.test(PR), "v68: privacy page says the parent owns the account and kids never sign up");
   // SQL additive
   const q = "/workspace/famstamp-v68/notify-quiet.sql";
   if (fs.existsSync(q)) { const sql = fs.readFileSync(q, "utf8").replace(/--.*$/gm, ""); ok(!/\bdrop\b|\btruncate\b|\bdelete\s+from\b/i.test(sql) && /add column if not exists/.test(sql), "v68: quiet-hours SQL is additive"); }
@@ -2138,3 +2138,35 @@ setTimeout(() => {
   ok(/FS_ROBUST\.decorate/.test(read("nav.js")), "v71: cards drawn after each screen");
   ok(/rbempty/.test(read("robust.js")), "v71: empty family map says what to do");
 }
+
+// ---- v73: waitlist published, policies self-reviewed (Play User Data / deletion / Families / Data safety, COPPA basics), referral reward ----
+{
+  const ROOTDIR = path.join(__dirname, "..");
+  const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
+  const root = f => fs.readFileSync(path.join(ROOTDIR, f), "utf8");
+  ok(/var VERSION = "v(7[3-9]|[89]\d)"/.test(read("app.js")) && /mltl-v(7[3-9]|[89]\d)/.test(read("sw.js")), "v73: version and cache bumped");
+  const wl = site("waitlist/index.html");
+  ok(!/DRAFT|Draft|not public/.test(wl) && /<title>Get notified when Famstamp launches<\/title>/.test(wl) && /<h1>Get notified when <span data-brand>Famstamp<\/span> launches<\/h1>/.test(wl), "v73: waitlist page is published with the brand name marked");
+  ok(/data-mail="support" data-subject="\{name\} unsubscribe"/.test(wl) && /unsubscribe/i.test(wl) && /privacy\/#waitlist/.test(wl), "v73: waitlist says how to unsubscribe (support@) and links the policy");
+  ok(/src=home/.test(root("index.html")) && /travel-log\/app\/brand\.js/.test(root("index.html")) && /src=travel/.test(root("travel/index.html")) && /travel-log\/waitlist\//.test(root("sitemap.xml")), "v73: waitlist linked from the home page and Travel home, and in the sitemap");
+  ["privacy", "terms", "support", "delete-account", "waitlist"].forEach(p => ok(/href="\/travel-log\/waitlist\/">Get notified<\/a>/.test(site(p + "/index.html")), "v73: " + p + " links the waitlist"));
+  ["privacy", "terms", "delete-account", "waitlist", "README.md"].forEach(p => ok(!/lawyer/i.test(site(p === "README.md" ? p : p + "/index.html")), "v73: no lawyer note in " + p));
+  const pv = site("privacy/index.html");
+  ["who", "kids", "device", "sync", "photos", "stats", "share", "email", "waitlist", "invites", "keep", "delete", "security", "changes"].forEach(id => ok(new RegExp('id="' + id + '"').test(pv), "v73: privacy has #" + id));
+  ok(/COPPA/.test(pv) && /parent or guardian/.test(pv) && /journal pages/.test(pv) && /30 days/.test(pv) && /advertising id/i.test(pv), "v73: privacy gives parents a direct notice (what kids add, consent, review/delete, response time)");
+  ok(/delete the whole waitlist within 3 months/.test(pv) && /Error reports<\/b>: up to 90 days/.test(pv) && /1 free month of Premium/.test(pv), "v73: privacy states waitlist and error retention and the referral record");
+  const del = site("delete-account/index.html");
+  ok(/Dark Lighthouse Solutions/.test(del.split("<footer")[0]) && /Delete only some data/.test(del) && /within 30 days/.test(del) && /referral/.test(del), "v73: deletion page names the developer, covers partial deletion, retention and referrals");
+  ok(/1 free month of Premium/.test(site("terms/index.html")) && /no cash value/.test(site("terms/index.html")), "v73: terms state the referral reward");
+  // referral config lives with the brand
+  const BR = require(path.join(ROOTDIR, "travel-log/app/brand.js"));
+  ok(BR.REFERRAL && BR.REFERRAL.REWARD === "1 free month of Premium" && BR.REFERRAL.BOTH === true && BR.REFERRAL.LIVE === false, "v73: FS_BRAND.REFERRAL = both families, 1 free month of Premium, not live until payments");
+  const mo = read("more.js");
+  ok(/function refPromise\(\)/.test(mo) && /esc\(refPromise\(\)\)/.test(mo) && !/both families get a free month once paid plans start/.test(mo), "v73: invite screen copy comes from FS_BRAND.REFERRAL");
+  ok(/a\.querySelector\("\.logomark"\)/.test(read("brand.js")), "v73: brand.js leaves other sites' .brand header alone");
+  // kid code needs a parent/guardian OK first
+  const sy = read("sync.js");
+  ok(/function kidGate\(go\)/.test(sy) && /if \(srole\(\) === "kid" && !kidOk\(\)\) \{ kidGate/.test(sy) && /parent or legal guardian/.test(sy) && /id="kidgo" disabled/.test(sy) && /privacy\/#kids/.test(sy), "v73: first kid code needs the parent notice and tick");
+  ok(/v: "v73"/.test(read("extras.js")), "v73: what's new note");
+}
+

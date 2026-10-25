@@ -13,6 +13,8 @@ main { max-width:46rem; margin:0 auto; padding:1.2rem 1.2rem 2rem; }
 h1 { font-size:1.9rem; line-height:1.2; margin:.6rem 0; color:var(--navy); }
 h2 { font-size:1.25rem; margin:1.8rem 0 .4rem; color:var(--navy); }
 .lede { font-size:1.1rem; }
+.updated { color:#5a6470; font-size:.92rem; margin-top:-.4rem; }
+.toc a { white-space:nowrap; }
 .draft { display:inline-block; background:#fff4dd; border:1px solid #e8c88a; border-radius:8px; padding:.3rem .7rem; font-size:.9rem; }
 .small { font-size:.9rem; color:var(--muted); }
 dt { font-weight:700; margin-top:.8rem; } dd { margin:.2rem 0 0 0; }

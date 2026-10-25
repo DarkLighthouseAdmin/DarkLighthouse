@@ -6,6 +6,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
   var NOTES = [
+    { v: "v73", items: ["💌 Invite a family: when they start their own log, you both get 1 free month of Premium once paid plans start.", "🔒 Before a kid joins on their own device, a parent now sees what they can add and confirms it's OK."] },
     { v: "v72", items: ["🗺️ The family map tells you what to do first when nobody's on it yet."] },
     { v: "v71", items: ["🧩 Two phones writing different kids' journal pages or game boards on the same trip now both keep them.", "📝 A trip you started adding is saved as you type. Home asks \"Finish your trip?\"", "📷 Photos that didn't upload show up on Home with Try again, and a warning if sync is stuck.", "🔁 Adding a trip that's already here? You can add to that trip instead.", "💾 Restoring a backup shows exactly what comes back first, and the app keeps a weekly copy on this phone."] },
     { v: "v70", items: ["🧭 A simpler way around: Home, Map, ＋ Stamp, Trips and More at the bottom, and one Back arrow at the top left.", "👵 Grandparents get a simple view with big text: Highlights, Weekly recap, Reactions & news.", "🧒 Kid mode puts Map, Stamp and Games in big buttons (More → Account).", "🛠️ Report a problem (More → Account) emails us the details you choose."] },

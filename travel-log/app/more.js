@@ -211,9 +211,14 @@
   }
 
   // ---------- invite a family (referral design; no billing yet) ----------
+  // v73: the reward comes from FS_BRAND.REFERRAL: both families get 1 free month of Premium, granted once payments are live.
+  function refPromise() {
+    var r = (B() && B().REFERRAL) || { REWARD: "1 free month of Premium", BOTH: true, LIVE: false };
+    return "When they start their own family log, " + (r.BOTH ? "both families get " : "you get ") + r.REWARD + (r.LIVE ? "." : " once paid plans start. (Nothing is charged today.)");
+  }
   function inviteView() {
     var a = A(), s = SYNC(), html = '<a class="back" href="#/">← Home</a><h1>💌 Invite another family</h1>' +
-      '<p class="lede small">Know a family that travels? Send them your link. When they start their own family log, both families get a free month once paid plans start. (Nothing is charged today.)</p>';
+      '<p class="lede small">Know a family that travels? Send them your link. ' + esc(refPromise()) + '</p>';
     if (!s || !s.isOn() || myRole() !== "owner") { a.main.innerHTML = html + '<div class="panel"><p>Your family organizer can get your family\'s invite link here once Family Sync is on.</p></div>'; return; }
     a.main.innerHTML = html + '<div class="panel" id="refbox"><p>Getting your link…</p></div>';
     var c = s.cup.cfg();
@@ -224,7 +229,7 @@
       document.getElementById("refbox").innerHTML = '<p>Your link: <span class="mono">' + esc(link) + '</span></p><button type="button" class="btn btn-primary" id="refshare">Share link</button>' +
         '<p class="small">' + (st.joined || 0) + ' famil' + ((st.joined || 0) === 1 ? "y has" : "ies have") + ' joined with your link.</p>';
       document.getElementById("refshare").onclick = function () {
-        var txt = "We keep our family travel stamps in " + B().NAME + ". Try it: " + link;
+        var r = B().REFERRAL, txt = "We keep our family travel stamps in " + B().NAME + ". Try it: " + link + (r && r.BOTH ? " (Start your family log with this link and we both get " + r.REWARD + (r.LIVE ? ".)" : " once paid plans start.)") : "");
         if (navigator.share) navigator.share({ text: txt }).catch(function () {}); else if (navigator.clipboard) navigator.clipboard.writeText(txt).then(function () { a.toast("Link copied"); });
       };
     }).catch(function (e) { document.getElementById("refbox").innerHTML = '<p class="muted">' + esc(e.message || "Couldn't get your link.") + '</p>'; });

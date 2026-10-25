@@ -623,7 +623,27 @@
     // which gives them the Highlights tab.
     function srole() { return role === "kid" ? "kid" : "adult"; }
     function usable(i) { return i.role === srole() && i.uses < i.max_uses && Date.parse(i.expires_at) > Date.now() + 2 * 864e5; }
+    // v73 (COPPA / Play Families): before the first kid code in a family, the grown-up reads what a kid can add on their own
+    // device and confirms they're the parent or guardian. Remembered per family on this device.
+    function kidOk() { try { return (localStorage.getItem("fs-kid-ok") || "").split(",").indexOf(c.familyId) >= 0; } catch (e) { return false; } }
+    function kidGate(go) {
+      var box = document.getElementById("invbox"); err("ierr");
+      box.innerHTML = '<div class="kidgate"><h2>Before a kid joins on their own device</h2>' +
+        '<p class="small">On their device your kid can add journal pages, drawings, stamps and photos to your family\'s log, and react to family posts. ' +
+        'They join with no email or name. What they add is seen only by your family (and anyone you share a follow link or Cup with). We never sell it, use it for ads or share it otherwise. ' +
+        'You can see, change or delete anything they add, remove them, or cancel the code any time. <a href="/travel-log/privacy/#kids" target="_blank" rel="noopener">How we handle kids\' information</a></p>' +
+        '<label class="check"><input type="checkbox" id="kidok"> I\'m this child\'s parent or legal guardian, and I agree.</label>' +
+        '<div class="actions"><button type="button" class="btn btn-beacon" id="kidgo" disabled>Make the kid code</button></div></div>';
+      var cb = document.getElementById("kidok"), go2 = document.getElementById("kidgo");
+      cb.onchange = function () { go2.disabled = !cb.checked; };
+      go2.onclick = function () {
+        if (!cb.checked) return;
+        try { var l = (localStorage.getItem("fs-kid-ok") || "").split(",").filter(Boolean); l.push(c.familyId); localStorage.setItem("fs-kid-ok", l.join(",")); } catch (e) {}
+        go();
+      };
+    }
     function make(fresh) {
+      if (srole() === "kid" && !kidOk()) { kidGate(function () { make(fresh); }); return; }
       var box = document.getElementById("invbox"); box.innerHTML = '<p class="muted">Making a code…</p>'; err("ierr");
       Promise.all([remote().then(function (r) {
         function create() { return r.rpc("create_invite", { p_family: c.familyId, p_role: srole(), p_days: 7, p_max_uses: 10 }); }
@@ -640,6 +660,7 @@
           });
         });
       }), needQR()]).then(function (res) {
+        if (srole() === "kid" && !kidOk()) return;   // switched to "a kid" while this code was on its way: keep the parent notice up
         var inv = Array.isArray(res[0]) ? res[0][0] : res[0]; lastInvite = inv;
         var fsel = document.getElementById("ifor");
         if (fsel) { if (fsel.value && fsel.value !== invFor(inv)) forSet(inv.code, fsel.value); else if (!fsel.value && invFor(inv)) fsel.value = invFor(inv); }

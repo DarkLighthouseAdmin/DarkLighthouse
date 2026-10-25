@@ -2,6 +2,7 @@
 
 The family travel log PWA lives in `app/` and is served at https://darklighthousesolutions.com/travel-log/app/.
 The product name and logo come from `app/brand.js` (`FS_BRAND`), and so do the contact addresses (`FS_BRAND.CONTACT`) and page links (`FS_BRAND.PAGES`). Change them there.
+The "invite a family" reward is `FS_BRAND.REFERRAL`: both families get 1 free month of Premium when the invited family starts their own log, granted only once payments are live (`LIVE: false` until then; no billing code yet).
 
 ## Contacts
 
@@ -14,11 +15,11 @@ The product name and logo come from `app/brand.js` (`FS_BRAND`), and so do the c
 
 ## Site pages
 
-- `privacy/`: privacy policy (draft, needs a lawyer review)
-- `terms/`: terms of use (draft)
+- `privacy/`: privacy policy (published v73; self-reviewed against Google Play User Data, account deletion, Families and Data safety rules and COPPA basics)
+- `terms/`: terms of use (published v73)
 - `delete-account/`: how to delete an account and data (the URL for Google Play's data deletion question)
 - `support/`: help and contacts
-- `waitlist/`: draft waitlist page (noindex; stores emails through the `join_waitlist` database function)
+- `waitlist/`: public "Get notified when Famstamp launches" page (v73; linked from the site home, Travel home and every Famstamp page; stores email, source tag and date through the `join_waitlist` database function; adults only; unsubscribe by emailing support@; the list is deleted within 3 months after the launch email)
 
 The pages use `site.css`, load `app/brand.js` to fill in the name, logo and addresses, and have no analytics.
 Their database functions are in `supabase` migration `20261025000000_launch_basics.sql` (kept outside this repo).
@@ -29,6 +30,7 @@ Bump `VERSION` in `app/app.js` and `CACHE` in `app/sw.js` for every release, the
 
 - **v68**: Search (`#/search`, Home search bar, 🔎 in the header on wide screens, menu item, `/` key); "What's new" after updates
 - **v69**: Sample family demo (`?demo` / Home "Try a sample family": separate local database, fake names, no sync or telemetry, "Start my own family" wipes it); homeschool field-trip log (`#/fieldtrips`, subjects/hours/learned per trip, printable sheet → PDF); time capsules (`#/capsules`, open on a date or when the kid gets their own login; sealed, not encrypted); kid graduates to own login (`#/graduate/<id>` parent confirms 13+, teen redeems code at `#/grad/<code>` while signed in; history kept, parent keeps family view); invite-a-family referral link + tracking (`#/invite`, no rewards or billing). SQL: `supabase/migrations/20261025020000_graduate_referrals.sql` (additive, not applied).
+- **v73**: Waitlist page published (no draft, indexed, in the sitemap) and linked from the home page, Travel home and every Famstamp page; privacy policy, terms and deletion page self-reviewed against Google Play User Data, account deletion, Families and Data safety rules and COPPA basics: parent notice, kid-device data, waitlist, referrals, retention periods, partial deletion; parent/guardian confirmation before the first kid code; referral reward set to 1 free month of Premium for both families once payments are live (`FS_BRAND.REFERRAL`).
 - **v72**: Empty-state audit with a brand-new phone (13 screens); the family map with nobody on it now shows "Add someone".
 - **v71**: Robustness (`robust.js`, `sync-core.js`): journal pages, game boards, game stamps and time capsules merge piece by piece on pull instead of last-write-wins (tombstones `trip.journalGone`, `person.capsGone`; merged rows are pushed straight back; no schema change); failed photo uploads are recorded (`c.failed`), retried every sync and shown on Home with Try again, plus a "Sync stuck since …" card after 6 h of waiting changes; new-trip drafts autosave to localStorage and Home offers "Finish your trip?"; duplicate-trip check on save with "Add to that trip" merge; restore (file or automatic copy) shows a preview first; a weekly automatic copy (no photos, last 4) in IndexedDB `famstamp-autocopies` and a "Last backup file · Automatic copy" line on More and Back up.
 - **v70**: New navigation (`nav.js`): bottom bar Home · Map · big ＋ Stamp · Trips · More; Map has a Family/person picker and USA/World/Parks; `#/trips` lists every trip (person filter, field-trip log + PDF); `#/more` groups everything (Our family, Earn, Play & make, Share & keep, Account) so nothing is link-only; one top-left Back arrow that follows the same history as the phone's Back (and closes sheets first); Search at the top right on every tab; "You're on" line (family log + person); skippable 3-step tour; written labels on emoji buttons; one-handed kid mode (Map, Stamp, Games). Grandparent simple view: 3 big tabs (Highlights, Weekly recap, Reactions & news `#/news`), 19px text, 48px+ targets, no editing screens, a first-open how-to tip, switch to the full app from More. `robust.js`: asks for persistent storage, keeps a privacy-safe error log on the phone, and `#/report` opens an email to support (nothing sent automatically).

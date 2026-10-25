@@ -189,3 +189,8 @@
 .invtag.invon { background:#e3f1e7; color:#2d5a3c; }
 .invdone { opacity:.75; }
 .invold summary { min-height:44px; display:flex; align-items:center; cursor:pointer; font-weight:600; }
+
+/* v73: parent notice before the first kid code */
+.kidgate { text-align:left; }
+.kidgate h2 { font-size:1.15rem; text-align:left; margin:0 0 .4rem; }
+.kidgate .actions { justify-content:flex-start; }
