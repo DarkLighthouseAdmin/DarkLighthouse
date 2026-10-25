@@ -6,7 +6,10 @@ global.self = global.self || {}; require("../travel-log/app/maps.js"); const MAP
 let pass = 0, fail = 0;
 function ok(c, m) { if (c) pass++; else { fail++; console.log("FAIL:", m); } }
 function throws(fn, re, m) { try { fn(); ok(false, m + " (didn't throw)"); } catch (e) { ok(re.test(e.message), m + ": " + e.message); } }
-const read = f => fs.readFileSync(path.join(APP, f), "utf8");
+// v74: the app's scripts ship as app-bundle.js. For sw.js, "caches app-bundle.js" means it caches every bundled script,
+// so the bundled names are listed for the older "is X cached offline" checks. index.html keeps them in its bundle block.
+const BUNDLE = require("./build_app_bundle.js");
+const read = f => { const t = fs.readFileSync(path.join(APP, f), "utf8"); return f === "sw.js" && /"app-bundle\.js"/.test(t) ? t + "\n/* bundled: " + BUNDLE.list().map(x => JSON.stringify(x)).join(", ") + " */" : t; };
 
 // ---- map data ----
 ok(MAPS && MAPS.us && MAPS.world, "maps.js sets self.MLTL_MAPS");
@@ -332,7 +335,8 @@ ok(/Dark Lighthouse Solutions/.test(html) && (html.match(/Dark Lighthouse Soluti
 ok(/class="credit"[^>]*>[^<]*Dark Lighthouse Solutions/.test(html), "the credit is the small footer line");
 ok(/BOOK_URL/.test(js) && /coming soon|on its way to Amazon/i.test(js), "book link has a coming-soon placeholder");
 const files = (sw.match(/FILES\s*=\s*\[([\s\S]*?)\]/) || [])[1] || "";
-const list = files.match(/"([^"]+)"/g).map(x => x.slice(1, -1));
+const list0 = files.match(/"([^"]+)"/g).map(x => x.slice(1, -1));
+const list = list0.includes("app-bundle.js") ? list0.concat(BUNDLE.list()) : list0;   // v74: the bundle carries the app's scripts
 ok(list.length >= 8, "service worker pre-caches the app files");
 list.forEach(f => ok(f === "./" || fs.existsSync(path.join(APP, f)), "pre-cached file exists: " + f));
 ["index.html", "app.js", "app.css", "log-core.js", "maps.js", "manifest.webmanifest"].forEach(f => ok(list.includes(f), "sw caches " + f));
@@ -491,7 +495,7 @@ ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view
   ok(S.thumbDims(4032, 3024).w === 1024 && S.thumbDims(3024, 4032).h === 1024 && S.thumbDims(800, 600).w === 800, "shared photo copies are 1024px on the long edge, never upscaled");
   // wiring + privacy
   ok(/<script src="sync-core\.js"><\/script>\s*<script src="sync-config\.js"><\/script>\s*<script src="stamp-who-core\.js"><\/script>\s*<script src="trips-ui\.js"><\/script>\s*<script src="stamp-who\.js"><\/script>\s*<script src="ranger-badge\.js"><\/script>\s*<script src="spots-data\.js"><\/script>\s*<script src="spots\.js"><\/script>\s*<script src="logo\.js"><\/script>\s*<script src="app\.js"><\/script>\s*<script src="sync\.js"><\/script>/.test(html), "sync scripts load around app.js in order");
-  ok(/"stamp-who-core\.js", "stamp-who\.js"/.test(fs.readFileSync(path.join(APP, "sw.js"), "utf8")), "the who-picker files are cached for offline");
+  ok(/"stamp-who-core\.js", "stamp-who\.js"/.test(fs.readFileSync(path.join(APP, "sw.js"), "utf8")) || (BUNDLE.list().indexOf("stamp-who-core.js") >= 0 && BUNDLE.list().indexOf("stamp-who.js") > BUNDLE.list().indexOf("stamp-who-core.js") && /"app-bundle\.js"/.test(fs.readFileSync(path.join(APP, "sw.js"), "utf8"))), "the who-picker files are cached for offline");
   { // "Who's been there?": who's ticked to start, shared visits, no duplicates, undo
     const W = require(path.join(APP, "stamp-who-core.js"));
     const pa = M.newPerson({ name: "Zz A", role: "adult" }), pb = M.newPerson({ name: "Zz B", role: "adult" }), pk = M.newPerson({ name: "Zz K", role: "kid" }), ppl = [pa, pb, pk];
@@ -2170,3 +2174,15 @@ setTimeout(() => {
   ok(/v: "v73"/.test(read("extras.js")), "v73: what's new note");
 }
 
+// ---- v74: one minified script bundle for a fast first visit ----
+{
+  const ix = read("index.html"), live = ix.replace(/<!--[\s\S]*?-->/g, ""), bl = BUNDLE.list(), bun = read("app-bundle.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
+  ok(/var VERSION = "v(7[4-9]|[89]\d)"/.test(read("app.js")) && /mltl-v(7[4-9]|[89]\d)/.test(swr), "v74: version and cache bumped");
+  ok((live.match(/<script\b/g) || []).length === 1 && /<script src="app-bundle\.js"><\/script>/.test(live), "v74: the page loads only app-bundle.js");
+  ok(bl.length >= 50 && bl[0] === "brand.js" && bl[1] === "launch.js" && bl[bl.length - 1] === "nav.js" && new Set(bl).size === bl.length && bl.every(f => fs.existsSync(path.join(APP, f))), "v74: bundle list in order, no repeats, every file exists");
+  ok(bun.indexOf("/* Famstamp app bundle " + BUNDLE.hash(bl) + ":") === 0, "v74: app-bundle.js is up to date with its sources (rebuild: node scripts/build_app_bundle.js)");
+  ok(/"app-bundle\.js"/.test(swr) && !/"app\.js"/.test(swr) && fs.existsSync(path.join(APP, "app-bundle.js.map")), "v74: the offline cache holds the bundle, not 54 separate files; source map shipped");
+  ok(bun.length < bl.reduce((n, f) => n + fs.statSync(path.join(APP, f)).size, 0) * 0.8, "v74: the bundle is minified");
+  ok(!/sourceMappingURL/.test(swr) && /sourceMappingURL=app-bundle\.js\.map/.test(bun), "v74: source map linked for debugging only");
+}
+ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.v/.test(read("more.js")), "v74: the field-trip log keeps typed words when it redraws");

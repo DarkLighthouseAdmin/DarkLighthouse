@@ -119,7 +119,14 @@
         var t = (a.state.trips || []).filter(function (x) { return x.id === box.dataset.ft; })[0]; if (!t) return;
         t.field = cleanField({ on: box.querySelector("[data-fon]").checked, subjects: Array.prototype.filter.call(box.querySelectorAll("[data-fsub]"), function (c) { return c.checked; }).map(function (c) { return c.dataset.fsub; }), hours: box.querySelector("[data-fh]").value, learned: box.querySelector("[data-fl]").value });
         box.querySelector(".ftmore").hidden = !t.field.on;
-        a.put("trips", stamp(t)).then(function () { if (redraw) { var y = window.scrollY; fieldView(h); window.scrollTo(0, y); } });
+        a.put("trips", stamp(t)).then(function () {
+          if (!redraw) return;
+          // v74: keep whatever someone is typing in another box when the page redraws (their words were being lost)
+          var ae = document.activeElement, keep = ae && ae.id && a.main.contains(ae) && (ae.tagName === "TEXTAREA" || (ae.tagName === "INPUT" && !/^(checkbox|radio)$/.test(ae.type))) ? { id: ae.id, v: ae.value, s: ae.selectionStart, e: ae.selectionEnd } : null;
+          var y = window.scrollY; fieldView(h); window.scrollTo(0, y);
+          var n = keep && document.getElementById(keep.id);
+          if (n) { if (n.value !== keep.v) { n.value = keep.v; n.dispatchEvent(new Event("input", { bubbles: true })); } n.focus({ preventScroll: true }); try { n.setSelectionRange(keep.s, keep.e); } catch (x) {} }
+        });
       };
       box.addEventListener("change", function () { save(true); });
       box.addEventListener("input", function (e) { if (e.target.matches("[data-fl],[data-fh]")) { clearTimeout(t0); t0 = setTimeout(function () { save(false); }, 600); } });
