@@ -93,6 +93,7 @@
     var l = mine(); document.title = "Stamp stations";
     A().main.innerHTML = '<h1>📍 Stamp stations</h1><p class="muted">Make a QR poster for a library, museum, shop or anywhere families visit. Scanning it with a phone that has ' + esc(brand().NAME) + ' gives each person there a stamp for that place (once a day each).</p>' +
       '<div class="actions"><a class="btn btn-primary" href="#/stations/new">➕ Create a station</a></div>' +
+      (brand().CONTACT ? '<p class="small muted stpartners">Run a park, library, museum or attraction and want an official station? Email <a href="mailto:' + esc(brand().CONTACT.partners) + '?subject=' + encodeURIComponent(brand().NAME + " stamp station") + '">' + esc(brand().CONTACT.partners) + '</a>.</p>' : "") +
       (l.length ? '<h2>Made on this phone</h2><ul class="stlist">' + l.map(function (st) { return '<li><a href="#/stations/poster/' + esc(st.id) + '"><b>' + esc(st.name) + '</b>' + (st.place ? ' · ' + esc(st.place) : "") + (st.lat != null ? ' <span class="small muted">📍 location check</span>' : "") + '</a></li>'; }).join("") + '</ul>' : "");
   }
   var spot = null;

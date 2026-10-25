@@ -1718,7 +1718,7 @@ setTimeout(() => {
 {
   const app = f => fs.readFileSync(path.join(APP, f), "utf8");
   ok(/var VERSION = "v6[5-9]"/.test(read("app.js")) && /mltl-v6[5-9]/.test(read("sw.js")), "v65: version and cache bumped");
-  ok(/var VERSION = "v66"/.test(read("app.js")) && /mltl-v66/.test(read("sw.js")), "v66: version and cache bumped");
+  ok(/var VERSION = "v6[6-9]"/.test(read("app.js")) && /mltl-v6[6-9]/.test(read("sw.js")), "v66: version and cache bumped");
   ok(/FS_BRAND/.test(read("book.js")) && !/"FAMSTAMP/.test(read("book.js")), "v66: book takes its brand name from FS_BRAND");
   ok(/FS_BRAND/.test(read("rewards.js")) && /FS_BRAND/.test(read("games.js")), "v66: certificate and game footer use FS_BRAND");
   ok(/bfamily/.test(read("book.js")) && /travel crew/.test(read("book.js")), "v66: book has a travel crew page");
@@ -1816,5 +1816,83 @@ setTimeout(() => {
     ok(!/\b(drop|truncate|delete\s+from|alter\s+table\s+public\.(families|family_members|people|trips))\b/i.test(sql), "cup SQL is additive only");
     ok(/create table if not exists public\.cups/.test(sql) && /enable row level security/.test(sql) && /security definer/.test(sql) && /revoke all/.test(sql), "cup SQL: RLS on, access only through functions");
     ok(!/\bjsonb_build_object\([^)]*'stamps'/.test(sql), "per-family counts never returned");
+  }
+}
+
+// ---- v67: launch basics (help, export, deletion, policies, anonymous stats, accessibility) ----
+{
+  const ROOTDIR = path.join(__dirname, "..");
+  const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
+  ok(/var VERSION = "v67"/.test(read("app.js")) && /mltl-v67/.test(read("sw.js")), "v67: version and cache bumped");
+  const idx = read("index.html");
+  ok(idx.indexOf('src="launch.js"') > idx.indexOf('src="brand.js"') && idx.indexOf('src="launch.js"') < idx.indexOf('src="app.js"') && /"launch\.js"/.test(read("sw.js")), "v67: launch.js loads right after brand.js and is cached");
+  // one config spot for contacts and page links
+  const bsrc = read("brand.js");
+  const C = { support: "support@darklighthousesolutions.com", privacy: "privacy@darklighthousesolutions.com", partners: "partners@darklighthousesolutions.com", press: "press@darklighthousesolutions.com" };
+  Object.keys(C).forEach(k => ok(bsrc.indexOf(k + ': "' + C[k] + '"') > 0, "v67: brand.js has the " + k + " address"));
+  ["privacy", "terms", "delete-account", "support", "waitlist"].forEach(p => ok(bsrc.indexOf('"/travel-log/' + p + '/"') > 0, "v67: brand.js links the " + p + " page"));
+  const L = require("../travel-log/app/launch.js");
+  ok(!/@[a-z]+\.(com|org|net)/i.test(read("launch.js").replace(/@darklighthousesolutions\.com/g, "")) && !/darklighthousesolutions\.com/.test(read("launch.js")), "v67: launch.js reads addresses from FS_BRAND, none hardcoded");
+  // site pages
+  const pages = ["privacy", "terms", "delete-account", "support", "waitlist"];
+  pages.forEach(p => {
+    const h = site(p + "/index.html");
+    ok(!/gtag|googletagmanager|google-analytics/.test(h), "v67: " + p + " page has no analytics");
+    ok(/<script src="\.\.\/app\/brand\.js"><\/script>/.test(h) && !/<script>/.test(h), "v67: " + p + " page takes the brand from brand.js, no inline scripts");
+    ok(/script-src 'self'/.test(h), "v67: " + p + " page has a strict CSP");
+    // static fallbacks must match brand.js
+    (h.match(/data-mail="([a-z]+)"[^>]*href="mailto:([^"?]+)/g) || []).forEach(m => { const x = /data-mail="([a-z]+)"[^>]*href="mailto:([^"?]+)/.exec(m); ok(C[x[1]] === x[2], "v67: " + p + " " + x[1] + " fallback matches brand.js"); });
+    ok(Object.keys(C).every(k => h.indexOf('data-mail="' + k + '"') > 0), "v67: " + p + " page lists all four contacts");
+    ok(/data-brand>Famstamp</.test(h), "v67: " + p + " page name fallback matches brand.js");
+    ok(!/national park service|\bNPS\b|eastern national/i.test(h), "v67: " + p + " no NPS branding");
+  });
+  ["privacy", "terms", "waitlist"].forEach(p => ok(/Draft|DRAFT/.test(site(p + "/index.html")), "v67: " + p + " is marked draft"));
+  ok(/last updated/.test(site("privacy/index.html")) && /last updated/.test(site("terms/index.html")), "v67: policies show a last-updated date");
+  const pp = site("privacy/index.html");
+  ok(/don't sell/i.test(pp) && /EXIF/.test(pp) && /children/.test(pp) && /Supabase/.test(pp) && /push/.test(pp) && /delete-account/.test(pp), "v67: privacy policy covers kids, storage, push, photos, no selling, deletion");
+  ok(!/COPPA[- ]compliant|fully compliant|guarantee/i.test(pp), "v67: privacy policy doesn't claim legal compliance");
+  ok(/noindex/.test(site("waitlist/index.html")) && /18 or older/.test(site("waitlist/index.html")), "v67: waitlist is noindex and adults only");
+  const wl = site("waitlist.js");
+  ok(/join_waitlist/.test(wl) && /p_adult: true/.test(wl) && !/localStorage|cookie/.test(wl), "v67: waitlist posts to the rate-limited function and stores nothing locally");
+  ok(fs.readFileSync(path.join(ROOTDIR, "index.html"), "utf8").indexOf("partners@darklighthousesolutions.com") > 0, "v67: site footer lists the contacts");
+  ok(/brand\(\)\.CONTACT\.partners/.test(read("stations.js")), "v67: stations page shows the partners address");
+  ["add_analytics.py", "add_global_nav.py", "add_head_meta.py"].forEach(f => ok(/rel\.startswith\("travel-log\/"\)/.test(fs.readFileSync(path.join(__dirname, f), "utf8")), f + " leaves the Famstamp policy pages alone"));
+  // scrubbing: nothing personal in error reports
+  const s = L.scrub("TypeError at https://darklighthousesolutions.com/travel-log/app/app.js?v=1:12:3 zz@test.example person_zz00000000kid01 trip_abc12345 #/p/person_zz/passport 5551234567 123e4567-e89b-12d3-a456-426614174000 https://example.com/x");
+  ok(/app\.js:12:3/.test(s) && !/@|zz00000000|abc12345|5551234567|426614174000|example\.com|darklighthouse/.test(s), "v67: error text is scrubbed: " + s);
+  ok(L.scrub("x".repeat(900)).length === 300 && L.scrub("x".repeat(900), 800).length === 800, "v67: error text is capped");
+  ok(L.routeKey("#/p/person_zz00000000kid01/passport") === "kid:passport" && L.routeKey("#/") === "home" && L.routeKey("") === "home" && L.routeKey("#/sync/leave") === "sync:leave" && L.routeKey("#/cup/ABCD2345") === "cup" && L.routeKey("#/trip/trip_123") === "trip", "v67: screen keys carry no ids");
+  ok(L.platform("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/129 Mobile Safari/537.36") === "Android Chrome" && L.platform("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit Version/18.0 Mobile Safari/604.1") === "iOS Safari", "v67: coarse device type");
+  let st = {}; for (let i = 0; i < 250; i++) st = L.bump(st, "2026-10-24", "home");
+  st = L.bump(st, "2026-10-24", "Bad Key!"); for (let i = 0; i < 70; i++) st = L.bump(st, "2026-10-24", "k" + i);
+  ok(st["2026-10-24"].home === 200 && !("Bad Key!" in st["2026-10-24"]) && Object.keys(st["2026-10-24"]).length === 60, "v67: usage counts are capped and keys checked");
+  // export zip: a real zip with the backup, CSV, photos and README
+  const jpg = "data:image/jpeg;base64," + Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 0xff, 0xd9]).toString("base64");
+  const backup = { exportedAt: "2026-10-24T12:00:00Z", kids: [{ id: "person_zz00000000kid01", name: "Zz Kid" }], trips: [{ id: "trip_zz1", date: "2026-07-04", title: "Zz Test, \"beach\"", kidIds: ["person_zz00000000kid01"], photoId: "photo_zz1" }], photos: [{ id: "photo_zz1", dataUrl: jpg }] };
+  const files = L.exportFiles(backup, "Famstamp", "v67"), names = files.map(f => f.name);
+  ok(names.join(",") === "README.txt,backup.json,trips.csv,photos/photo_zz1.jpg", "v67: export has README, backup, CSV and photos: " + names.join(","));
+  ok(/"Zz Test, ""beach"""/.test(files[2].data) && /Zz Kid/.test(files[2].data), "v67: CSV escapes quotes and commas");
+  ok(Buffer.from(files[3].data).equals(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 0xff, 0xd9])), "v67: photo bytes exported as-is");
+  const z = Buffer.from(L.zip(files.map(f => ({ name: f.name, data: f.data }))));
+  ok(z.readUInt32LE(0) === 0x04034b50 && z.readUInt32LE(z.length - 22) === 0x06054b50 && z.readUInt16LE(z.length - 12) === 4, "v67: zip has headers and 4 entries");
+  ok(L.crc32(Buffer.from("123456789")) === 0xCBF43926, "v67: zip CRC32 is standard");
+  ok(JSON.parse(files[1].data).trips[0].id === "trip_zz1", "v67: backup.json inside the zip is the re-importable backup");
+  // deletion and help
+  const ss = read("sync.js");
+  ok(/delete_my_account_and_data/.test(ss) && /Type DELETE to confirm/.test(ss) && /confirm\("Last check/.test(ss) && /owner \? '<div class="panel delall"/.test(ss), "v67: owner-only delete with two confirmations");
+  ok(/res && res\.missing\) return r\.rpc\("delete_family"/.test(ss) && /wipeFiles\(r\)/.test(ss), "v67: delete removes photos first and falls back to the older functions");
+  ok(/#\/help/.test(ss) && /#\/help/.test(read("app.js")) && /data-export-zip/.test(read("app.js")), "v67: help and export reachable from the family menu and Back up");
+  const ls = read("launch.js");
+  ok(/fs-telemetry/.test(ls) && /htele/.test(ls) && /No names, trips, photos/.test(ls), "v67: one opt-out switch for usage and errors, explained");
+  ok(!/userId|familyId|email:|navigator\.userAgent\s*[,}]/.test(ls.replace(/platform\(navigator\.userAgent\)/g, "")), "v67: telemetry sends no user, family or raw user agent");
+  ok(/data-size/.test(ls) && /fs-textsize/.test(ls), "v67: text size setting");
+  ok(!/FS_BRAND/.test(read("app.js")) === false && /FS_BRAND && window\.FS_BRAND\.NAME/.test(read("app.js")), "v67: Back up version line uses the brand name");
+  ok(/\.familycard \.synccta\.small:not\(\.muted\) \{ color: var\(--navy\); \}/.test(read("app.css")) && /prefers-reduced-motion/.test(read("app.css")), "v67: contrast and reduced-motion fixes");
+  // SQL is additive only
+  const sqlPath = "/workspace/famstamp-v67/launch-basics.sql";
+  if (fs.existsSync(sqlPath)) {
+    const sql = fs.readFileSync(sqlPath, "utf8").replace(/--.*$/gm, "");
+    ok(!/\bdrop\s+(table|function|policy|schema|column)|\btruncate\b|alter\s+table\s+\S+\s+drop/i.test(sql), "v67: launch SQL has no DROP or TRUNCATE");
+    ok(/security definer/.test(sql) && /member_role\(p_family\) is distinct from 'owner'|<> 'owner'|!= 'owner'/.test(sql), "v67: delete function is owner-only");
   }
 }

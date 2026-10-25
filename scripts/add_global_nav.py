@@ -59,7 +59,7 @@ def apply(text, rel):
 def pages():
     for p in sorted(ROOT.rglob("*.html")):
         rel = p.relative_to(ROOT).as_posix()
-        if rel.startswith("travel-log/app/"):  # kids' app: no analytics, nav or meta injection
+        if rel.startswith("travel-log/app/") or rel.startswith("travel-log/"):  # kids' app and its policy pages: no analytics, nav or meta injection
             continue
         if rel.startswith((".git/", "scripts/")) or re.fullmatch(r"google[0-9a-f]+\.html", rel) or rel in ("index.html", "money/index.html"):
             continue

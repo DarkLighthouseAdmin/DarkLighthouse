@@ -13,7 +13,21 @@
     APP_PATH: "/travel-log/app/",
     INK: "#16283a",                         // the logo/ink color
     ACCENT: "#c8553d",
-    PAPER: "#fbf6ea"
+    PAPER: "#fbf6ea",
+    // v67: contact addresses (all aliases of the admin mailbox) and the public pages. Change them here only.
+    CONTACT: {
+      support: "support@darklighthousesolutions.com",    // help, bug reports, account deletion requests
+      privacy: "privacy@darklighthousesolutions.com",    // privacy policy, COPPA / parent requests, data deletion
+      partners: "partners@darklighthousesolutions.com",  // parks, libraries, museums, QR stamp stations
+      press: "press@darklighthousesolutions.com"         // media
+    },
+    PAGES: {
+      privacy: "/travel-log/privacy/",
+      terms: "/travel-log/terms/",
+      deletion: "/travel-log/delete-account/",
+      support: "/travel-log/support/",
+      waitlist: "/travel-log/waitlist/"
+    }
   };
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   /** The logo as SVG (viewBox 150x50). color = ink color (default currentColor). */
@@ -35,6 +49,16 @@
   if (typeof document !== "undefined") {
     // keep the header name and title in step with NAME (only touches text when the name was changed here)
     var apply = function () {
+      // v67: website pages (privacy, terms, support, deletion, waitlist) mark the name, logo and contact addresses with
+      // data attributes; their static text is only a fallback for no-JS readers (a test keeps it equal to this file).
+      Array.prototype.forEach.call(document.querySelectorAll("[data-brand]"), function (e) { e.textContent = B.NAME; });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-brand-logo]"), function (e) { e.innerHTML = logoSVG(e.getAttribute("data-brand-logo") || ""); });
+      Array.prototype.forEach.call(document.querySelectorAll("a[data-mail]"), function (e) {
+        var m = B.CONTACT[e.getAttribute("data-mail")]; if (!m) return;
+        e.href = "mailto:" + m + (e.getAttribute("data-subject") ? "?subject=" + encodeURIComponent(e.getAttribute("data-subject").replace(/\{name\}/g, B.NAME)) : "");
+        if (!e.hasAttribute("data-keep")) e.textContent = m;
+      });
+      if (document.body && document.body.hasAttribute("data-brand-title")) document.title = document.title.replace(/Famstamp/g, B.NAME);
       var a = document.querySelector(".brand"); if (!a) return;
       if (B.NAME !== "Famstamp" || B.TAGLINE !== "stamp every trip") {
         a.setAttribute("aria-label", B.NAME + " home");

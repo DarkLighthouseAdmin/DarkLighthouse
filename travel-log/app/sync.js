@@ -961,6 +961,11 @@
       if ((n <= 1) !== alone) viewLeave(true);
     }).catch(function () {});
     main.innerHTML = back("#/sync", "Family") + '<h1>Leave or delete</h1>' +
+      (owner ? '<div class="panel delall" id="delall"><h3>Delete my account and data</h3><p class="small muted">For the family organizer. Deletes ' + esc(c.familyName || "the family") + '\'s whole cloud copy (everyone\'s shared trips, passports and photo copies), takes you out of any other family, and deletes your sign-in' + (c.email ? " (" + esc(c.email) + ")" : "") + '. It can\'t be undone. ' +
+        'Want a copy first? <a href="#/help" data-export-zip>Export everything as a zip</a>.</p>' +
+        '<label class="chk"><input type="checkbox" id="delhere" checked> Also delete everything on this phone</label>' +
+        '<div class="field"><label for="delword">Type DELETE to confirm</label><input type="text" id="delword" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>' +
+        '<div class="actions"><button class="btn btn-danger" id="delgo" disabled>Delete my account and data</button></div></div>' : "") +
       '<div class="panel"><h3>Leave ' + esc(c.familyName || "the family") + '</h3><p class="small muted">This phone stops syncing and keeps its own copy of everything. ' +
       (alone ? "You're the only one in, so the family's cloud copy and its photos are deleted too." : "The family keeps the shared log, including trips you added." + (owner ? " The longest-standing grown-up becomes the organizer." : "")) + '</p>' +
       '<div class="actions"><button class="btn btn-danger" id="lleave">Leave the family log</button></div></div>' +
@@ -980,6 +985,29 @@
       if (!confirm(alone ? "Leave and delete the family's cloud copy? This phone keeps everything." : "Leave " + (c.familyName || "the family") + "? This phone keeps everything.")) return;
       var r; remote().then(function (x) { r = x; return alone ? wipeFiles(r) : null; }).then(function () { return r.rpc("leave_family", { p_family: c.familyId }); })
         .then(function () { return finish("You've left the family log. Everything is still on this phone."); }).catch(function (e) { err("lerr", friendly(e)); });
+    };
+    var dw = document.getElementById("delword"), dg = document.getElementById("delgo");
+    if (dw) dw.oninput = function () { dg.disabled = dw.value.trim().toUpperCase() !== "DELETE"; };
+    if (dg) dg.onclick = function () {
+      if (dw.value.trim().toUpperCase() !== "DELETE") return;
+      var here = document.getElementById("delhere").checked;
+      if (!confirm("Last check: delete " + (c.familyName || "the family") + "'s cloud copy for everyone and your sign-in" + (here ? ", and everything on this phone" : "") + "? This can't be undone.")) return;
+      dg.disabled = true;
+      var r; remote().then(function (x) { r = x; return wipeFiles(r); })
+        .then(function () { return r.cupRpc("delete_my_account_and_data", { p_family: c.familyId }); })
+        .then(function (res) {
+          // v67: before the new function is installed, the two older owner functions do the same job
+          if (res && res.missing) return r.rpc("delete_family", { p_family: c.familyId }).then(function () { return r.rpc("delete_my_account"); });
+        })
+        .then(function () { return r.signOut().catch(function () {}); })
+        .then(function () { return save(null); })
+        .then(function () {
+          setStatus("off");
+          if (!here) { A.toast("Your account and the family's cloud data are deleted. This phone still has its copy."); location.hash = "#/"; return; }
+          return A.tx(["kids", "trips", "photos", "meta"], "readwrite", function (st) { st.forEach(function (x) { x.clear(); }); })
+            .then(A.load).then(function () { A.toast("Your account and data are deleted."); location.hash = "#/"; });
+        })
+        .catch(function (e) { dg.disabled = false; err("lerr", friendly(e)); });
     };
     var w = document.getElementById("lwipe");
     if (w) w.onclick = function () {
@@ -1089,7 +1117,7 @@
       '<div class="fmsep" role="separator"></div>' +
       (grown ? '<a role="menuitem" class="fmitem add" href="' + (on() ? "#/sync/invite" : "#/sync") + '">✉︎ Invite someone</a>' : "") +
       '<a role="menuitem" class="fmitem add" href="#/sync/addjoin">＋ Join another family</a><a role="menuitem" class="fmitem add" href="#/sync/new">＋ Start another family log</a>' +
-      '<a role="menuitem" class="fmitem add" href="#/cup">🏆 Cousin Cup</a><a role="menuitem" class="fmitem add" href="#/stations">📍 Stamp stations</a><a role="menuitem" class="fmitem add" href="#/postcards">💌 Postcards</a>' +
+      '<a role="menuitem" class="fmitem add" href="#/cup">🏆 Cousin Cup</a><a role="menuitem" class="fmitem add" href="#/stations">📍 Stamp stations</a><a role="menuitem" class="fmitem add" href="#/postcards">💌 Postcards</a><a role="menuitem" class="fmitem add" href="#/help">💬 Help &amp; feedback</a>' +
       '<a role="menuitem" class="fmitem add" href="#/sync">⚙︎ ' + esc(entryLabel()) + ' settings</a>' +
       menuGoogle();
     var scrim = document.createElement("div"); scrim.id = "fmscrim"; scrim.className = "fmscrim";

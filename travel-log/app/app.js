@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v66";
+  var VERSION = "v67";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -925,7 +925,8 @@
       (window.MLTL_SYNC && window.MLTL_SYNC.settingsPanel ? window.MLTL_SYNC.settingsPanel() : "") +
       '<div class="panel"><h3>Start over</h3><p class="muted small">Deletes everyone\'s maps, trips and photos from this device. Make a backup first if you might want them later.</p>' +
       '<div class="actions"><button class="btn btn-danger" id="bwipe">Delete everything on this device</button></div></div>' +
-      '<p class="small muted appver" id="appver">Famstamp · Version ' + esc(VERSION) + '</p>';
+      '<div class="panel"><h3>Help, privacy and your data</h3><p class="muted small">Text size, a copy of everything as a zip, help and feedback, and deleting your account and data.</p><div class="actions"><a class="btn btn-ghost" href="#/help">💬 Help &amp; settings</a><button type="button" class="btn btn-ghost" data-export-zip>📦 Export everything (.zip)</button></div></div>' +
+      '<p class="small muted appver" id="appver">' + esc((window.FS_BRAND && window.FS_BRAND.NAME) || "Famstamp") + ' · Version ' + esc(VERSION) + '</p>';
     bindOneTrip();
     if (window.FS_PUSH) window.FS_PUSH.bind();
     document.getElementById("bdown").onclick = function () { doBackup().then(function () { toast("Backup saved"); viewBackup(); }); };
@@ -966,7 +967,7 @@
   });
   // What sync.js needs from the app. Nothing here talks to the network.
   var readyRes; var ready = new Promise(function (r) { readyRes = r; });
-  window.MLTL_APP = { version: VERSION, state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, setMeta: setMeta,
+  window.MLTL_APP = { version: VERSION, state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, doBackupData: function () { return all("photos").then(function (photos) { return M.makeBackup(state.kids, state.trips.concat(state.bin), photos, null, { home: state.meta.home || "", homePoint: state.meta.homePoint, units: state.meta.units }); }); }, setMeta: setMeta,
                       kidById: kidById, myPersonId: myPersonId, doBackup: doBackup, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
                       dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
                       // for trips-ui.js

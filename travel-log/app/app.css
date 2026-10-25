@@ -924,3 +924,16 @@ input[type=file] { min-height:44px; padding:.5rem 0; box-sizing:border-box; }
 .btstamps { display:flex; gap:3cqw; margin:2cqw 0; } .btstamps figure { margin:0; width:17cqw; } .btstamps svg { width:100%; height:auto; }
 .bjpage .bjournal h3 { display:none; } .bjpage .bjent { margin:0 0 4cqw; font-size:4.6cqw; line-height:1.35; } .bjpage .bjd { font-size:3.2cqw; text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
 .bjpage .bjdraw { max-width:40cqw; max-height:40cqw; border-radius:2cqw; }
+
+/* v67 accessibility and launch basics */
+.synctop .synccta, .btn-beacon.synccta, .familycard .synccta.small:not(.muted) { color: var(--navy); }
+.kidcard h3 .role, .kidhead h1 .role { color: #46535a; }
+.chk { display:flex; gap:.5rem; align-items:flex-start; margin:.7rem 0 .3rem; font-weight:600; }
+.chk input { width:1.2rem; height:1.2rem; margin-top:.15rem; flex:none; }
+.delall { border:1px solid #e3b5aa; }
+.hlinks { padding-left:1.1rem; line-height:1.7; }
+.hlinks a, .footlinks a { overflow-wrap:anywhere; }
+.footlinks { font-size:.85rem; }
+.stpartners a { overflow-wrap:anywhere; }
+a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline:3px solid var(--beacon); outline-offset:2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; } }
