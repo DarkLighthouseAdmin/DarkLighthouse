@@ -2136,4 +2136,5 @@ setTimeout(() => {
   ok(/makeBackup\(st\.kids, st\.trips\.concat\(st\.bin \|\| \[\]\), \[\]/.test(read("robust.js")) && /KEEP = 4/.test(read("robust.js")), "v71: weekly copies skip photos and keep the last 4");
   ok(!/fetch\(|XMLHttpRequest|sendBeacon/.test(read("robust.js")), "v71: nothing in robust.js goes over the network");
   ok(/FS_ROBUST\.decorate/.test(read("nav.js")), "v71: cards drawn after each screen");
+  ok(/rbempty/.test(read("robust.js")), "v71: empty family map says what to do");
 }

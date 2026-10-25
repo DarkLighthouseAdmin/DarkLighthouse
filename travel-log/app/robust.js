@@ -263,6 +263,11 @@
       var d2 = readDraft();
       if (d2) { var b = main.querySelector(".builder"); if (b) b.parentNode.insertBefore(card("rbdraft", '<p class="small" style="margin:0">You have an unfinished trip: <b>' + esc(draftWhere(d2)) + '</b> (' + esc(when(d2.at)) + '). <button type="button" class="linkbtn" data-rb-draft="go">Continue it</button></p>'), b); }
     }
+    // empty state: the family map with nobody on it yet
+    if (h[0] === "family" && !h[1] && !a.state.kids.length && !main.querySelector(".rbempty")) {
+      var e0 = card("rbempty", '<p style="margin:0">Nobody on the map yet. Add the first person, then color in every state, country and park they\'ve been to.</p><div class="actions"><a class="btn btn-primary" href="#/add">Add someone</a></div>');
+      main.insertBefore(e0, main.children[1] || null);
+    }
     if (h[0] === "more" && !main.querySelector(".rblast")) {
       var bk = main.querySelector('a[href="#/backup"]'), li = bk && bk.closest("ul, .morelist");
       if (li) { var p = document.createElement("p"); p.className = "small muted rblast"; p.textContent = lastLine(); li.parentNode.insertBefore(p, li.nextSibling); }
