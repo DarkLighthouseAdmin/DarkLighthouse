@@ -1,5 +1,7 @@
 // Math tests for /travel/tools/travel-calc.js. Run: node scripts/test_travel.js
 const C = require("../travel/tools/travel-calc.js");
+// Personal work identities that must never appear on public pages (spelled in pieces so the pattern itself is not a match).
+const PERSONAL_ID_RE = new RegExp(["ora" + "clinical", "m" + "hill" + "ORA"].join("|"), "i");
 let pass = 0, fail = 0;
 function ok(c, m) { if (c) pass++; else { fail++; console.log("FAIL:", m); } }
 function near(a, b, t, m) { ok(Math.abs(a - b) <= t, `${m}: got ${a}, want ${b}`); }
@@ -90,7 +92,7 @@ ok(ie.includes("Heritage Card") && ie.includes("heritageireland.ie"), "ireland: 
 ok(/Giant's Causeway/.test(ie) && /UK ETA/.test(ie), "ireland: Northern Ireland / UK ETA note");
 ok(ie.includes("#trip-planner-travel-budget") || ie.includes('id="trip-planner-travel-budget"'), "ireland: Trip Planner card");
 ok(ie.includes('id="family-travel-kids-planner"'), "ireland: Family Travel planner card");
-ok(!/work-account|work-account/i.test(ie), "ireland: no personal identities");
+ok(!PERSONAL_ID_RE.test(ie), "ireland: no personal identities");
 ok(fs.readFileSync(R("travel/index.html"), "utf8").includes('href="/travel/ireland/"'), "hub links to Ireland guide");
 ok(fs.readFileSync(R("sitemap.xml"), "utf8").includes("<loc>https://darklighthousesolutions.com/travel/ireland/</loc>"), "sitemap has Ireland guide");
 ok(/credit card's rental car cover/.test(fs.readFileSync(R("travel/scotland/index.html"), "utf8")), "scotland: card cover note");
@@ -115,7 +117,7 @@ const guideChecks = (slug, titleRe, ids, extra) => {
   ok(/UK ETA/.test(h) && h.includes("https://www.gov.uk/eta") && h.includes("£20 per person"), slug + ": UK ETA note");
   ok(/excludes only Northern Ireland within the UK/.test(h) && h.includes("usa.visa.com") && h.includes("americanexpress.com"), slug + ": card rental coverage note with sources");
   ok(h.includes('id="trip-planner-travel-budget"') && h.includes('id="family-travel-kids-planner"'), slug + ": planner cards");
-  ok(!/work-account|work-account/i.test(h), slug + ": no personal identities");
+  ok(!PERSONAL_ID_RE.test(h), slug + ": no personal identities");
   ok(fs.readFileSync(R("travel/index.html"), "utf8").includes(`href="/travel/${slug}/"`), "hub links to " + slug);
   ok(fs.readFileSync(R("sitemap.xml"), "utf8").includes(`<loc>https://darklighthousesolutions.com/travel/${slug}/</loc>`), "sitemap has " + slug);
   ok(fs.readFileSync(R("travel/scotland/index.html"), "utf8").includes(`href="/travel/${slug}/"`), "scotland footer links to " + slug);
@@ -162,7 +164,7 @@ const sm = fs.readFileSync(R("sitemap.xml"), "utf8"), hub = fs.readFileSync(R("t
   ok(main.slice(0, main.indexOf("</p>", di) + 4).includes('href="/privacy/#affiliate-links"'), slug + ": disclosure links to /privacy/#affiliate-links");
   ok(!/As an Amazon Associate/.test(h) && !/amazon\.com/.test(h), slug + ": no Amazon links or Amazon sentence yet");
   ok(!/\b(whisk(e)?y|beer|wine|gin|pubs?|distiller(y|ies)|alcohol|cocktails?|brewer(y|ies))\b/i.test(h.replace(/<script[\s\S]*?<\/script>/g, "")), slug + ": no alcohol content");
-  ok(!/work-account|work-account/i.test(h), slug + ": no personal identities");
+  ok(!PERSONAL_ID_RE.test(h), slug + ": no personal identities");
   ok(!/Dark Lighthouse Solutions/.test(h.slice(h.indexOf("<main"), h.indexOf("</main>"))), slug + ": brand name only in the credit, not the page copy");
   ok(h.includes('href="/travel/gear/"') && h.includes("Packing &amp; gear"), slug + ": section nav has Packing & gear");
   ok(h.includes('/travel/affiliates.js'), slug + ": affiliates.js loaded");
@@ -216,7 +218,7 @@ const giftHub = fs.readFileSync(R("travel/gifts/index.html"), "utf8");
   ok(main.slice(0, main.indexOf("</p>", di) + 4).includes('href="/privacy/#affiliate-links"'), slug + ": disclosure links to /privacy/#affiliate-links");
   ok(!/As an Amazon Associate/.test(h) && !/amazon\.com/i.test(h), slug + ": no Amazon links or Amazon sentence yet");
   ok(!/\b(whisk(e)?y|beer|wine|gin|pubs?|distiller(y|ies)|alcohol|cocktails?|brewer(y|ies))\b/i.test(h.replace(/<script[\s\S]*?<\/script>/g, "")), slug + ": no alcohol content");
-  ok(!/work-account|work-account/i.test(h), slug + ": no personal identities");
+  ok(!PERSONAL_ID_RE.test(h), slug + ": no personal identities");
   ok(!/Dark Lighthouse Solutions/.test(h.slice(h.indexOf("<main"), h.indexOf("</main>"))), slug + ": brand name only in the credit, not the page copy");
   ok(h.includes('href="/travel/gifts/"') && h.includes(">Gift guides</a>"), slug + ": section nav has Gift guides");
   ok(h.includes('/travel/affiliates.js'), slug + ": affiliates.js loaded");
