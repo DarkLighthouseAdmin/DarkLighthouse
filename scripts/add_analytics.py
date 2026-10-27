@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Add Google Analytics 4 (G-TVG78TY2JC) to every site HTML page. Idempotent: safe to re-run.
 Run from anywhere:  python3 scripts/add_analytics.py   (build_templates.py also calls inject() on its output)
+- Internal opt-out: ?dls_internal=1 sets localStorage dls_internal=1 (0 clears); then GA is disabled and gtag() is a no-op.
 - gtag snippet goes right after the viewport meta (or charset meta, or <head>).
 - Pages that link to buy.polar.sh get a click listener -> gtag('event','begin_checkout', {...}) via beacon.
 - /templates/ also sends gtag('event','purchase_thanks') when ?thanks=1 is in the URL.
@@ -11,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 GA_ID = "G-TVG78TY2JC"
 GTAG = (f'  <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>\n'
-        f"  <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','{GA_ID}');</script>\n")
+        "  " + "<script>(function(){try{var m=/[?&]dls_internal=([01])/.exec(location.search);if(m){if(m[1]==='1')localStorage.setItem('dls_internal','1');else localStorage.removeItem('dls_internal');}if(localStorage.getItem('dls_internal')==='1')window['ga-disable-{GA}']=true;}catch(e){}})();window.dataLayer=window.dataLayer||[];function gtag(){if(window['ga-disable-{GA}'])return;dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{GA}');</script>".replace("{GA}", GA_ID) + "\n")
 CLICK_MARK = "<!-- ga4-checkout-click -->"
 CLICK = CLICK_MARK + """
   <script>
