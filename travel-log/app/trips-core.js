@@ -65,6 +65,30 @@
     var g = gcMiles(a, b); if (g != null) return g < 5;
     return String(a.name || "").trim().toLowerCase() === String(b.name || "").trim().toLowerCase();
   }
+  /** v80: after stops move or one is added in the middle, a leg whose previous stop changed loses what was only true of the old leg
+   *  (typed miles, the airports flown between). The stops themselves, their nights, notes and stamps are kept. Returns the changed indexes. */
+  function relink(before, after) {
+    var changed = [];
+    after.forEach(function (p, i) {
+      if (i === 0) { delete p.mode; delete p.miles; delete p.dep; delete p.arr; return; }
+      var j = before.indexOf(p);
+      if (j < 1 || before[j - 1] !== after[i - 1]) { delete p.miles; delete p.dep; delete p.arr; changed.push(i); }
+    });
+    return changed;
+  }
+  /** Move stop from -> to (the start, index 0, stays put). Same stop objects, new order. */
+  function moveStop(route, from, to) {
+    var r = (route || []).slice();
+    if (from < 1 || to < 1 || from >= r.length || to >= r.length || from === to) return { route: r, changed: [] };
+    var p = r.splice(from, 1)[0]; r.splice(to, 0, p);
+    return { route: r, changed: relink(route, r) };
+  }
+  /** Put a new stop in at index at (between at-1 and at). */
+  function insertStop(route, at, p) {
+    var r = (route || []).slice(); at = Math.max(r.length ? 1 : 0, Math.min(r.length, at | 0));
+    r.splice(at, 0, p);
+    return { route: r, at: at, changed: relink(route, r) };
+  }
   /** The route without stops that repeat the one before them; at (optional) gets each kept stop's index. */
   function stops(r0, at) {
     var r = [];
@@ -605,7 +629,7 @@
 
   return { EARTH_MI: EARTH_MI, KM_PER_MI: KM_PER_MI, AROUND_WORLD: AROUND_WORLD, MAX_POINTS: MAX_POINTS, MAX_STAYS: MAX_STAYS, MAX_FAVS: MAX_FAVS,
            MODES: MODES, MODE: MODE, STAY_TYPES: STAY_TYPES, FAV_CATS: FAV_CATS, FAV: FAV, US_STATES: US_STATES,
-           gcMiles: gcMiles, legMiles: legMiles, airportCity: airportCity, mustFly: mustFly, sameStop: sameStop, stops: stops, mainDest: mainDest, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
+           gcMiles: gcMiles, legMiles: legMiles, airportCity: airportCity, mustFly: mustFly, sameStop: sameStop, stops: stops, relink: relink, moveStop: moveStop, insertStop: insertStop, mainDest: mainDest, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
            airMinutes: airMinutes, fmtAir: fmtAir, crossesBorder: crossesBorder, CRUISE_MPH: CRUISE_MPH, GROUND_MIN_MI: GROUND_MIN_MI,
            cleanStays: cleanStays, cleanFavs: cleanFavs, cleanMoments: cleanMoments, cleanStory: cleanStory, cleanMemories: cleanMemories, MEM_PROMPTS: MEM_PROMPTS, cleanExtras: cleanExtras,
            routeFromLegacy: routeFromLegacy, syncLegacy: syncLegacy, nightsBetween: nightsBetween, summary: summary, areas: areas, isAdult: isAdult,

@@ -350,6 +350,40 @@ ok(/makeBackup/.test(js) && /readBackup/.test(js), "back up / restore wired up")
 ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view");
 
 
+// ---- v80: reorder a trip's stops and add a forgotten stop in the middle; stops, nights, stamps and photos stay ----
+{
+  const T = require("../travel-log/app/trips-core.js"), P = require("../travel-log/app/passport-core.js"), L = require("../travel-log/app/log-core.js");
+  const kid = L.newPerson({ name: "Zz Test Kid", role: "kid" });
+  const mk = () => L.newTrip({ kidIds: [kid.id], place: "Zz Test Loop", date: "2026-07-01", endDate: "2026-07-09", photoId: "zz-photo-1",
+    route: [{ name: "Zz Home", kind: "city", lat: 40.7, lon: -74, country: "USA", region: "NY" },
+            { name: "London", kind: "city", lat: 51.5, lon: -0.12, country: "GBR", region: "ENG", nights: 2, mode: "plane", dep: { code: "JFK", name: "JFK", lat: 40.6, lon: -73.8 }, arr: { code: "LHR", name: "Heathrow", lat: 51.47, lon: -0.45 } },
+            { name: "Edinburgh", kind: "city", lat: 55.95, lon: -3.19, country: "GBR", region: "SCT", nights: 3, mode: "train", miles: 400 },
+            { name: "Cardiff", kind: "city", lat: 51.48, lon: -3.18, country: "GBR", region: "WLS", nights: 2, mode: "car", sub: "Zz castle day" }] });
+  const t = mk(), ids0 = P.stampsFor(kid, [t], {}).map(s => s.id).sort();
+  const objs = t.route.slice();
+  let m = T.moveStop(t.route, 3, 1);   // Cardiff before London
+  ok(m.route.map(p => p.name).join(",") === "Zz Home,Cardiff,London,Edinburgh", "move: Cardiff now comes first");
+  ok(m.route.every(p => objs.indexOf(p) >= 0) && m.route.length === 4, "move keeps the very same stops (nothing lost or copied)");
+  ok(m.route[1].nights === 2 && m.route[1].sub === "Zz castle day" && m.route[1].lat === 51.48, "a moved stop keeps its nights and details");
+  ok(m.changed.join() === "1,2" && !m.route[2].dep && m.route[3].miles === 400, "only legs that now start somewhere else drop old typed miles / airports (London->Edinburgh keeps 400 mi)");
+  ok(T.moveStop(t.route, 0, 2).route[0].name === "Zz Home" && T.moveStop(t.route, 2, 0).changed.length === 0, "the start can't be moved");
+  const t2 = Object.assign({}, t, { route: m.route });
+  const v = P.tripVisits(t2).map(x => x.area + "@" + x.date);
+  ok(v.join() === "WLS@2026-07-01,ENG@2026-07-03,SCT@2026-07-05", "dates follow the new order: " + v.join());
+  ok(JSON.stringify(P.stampsFor(kid, [t2], {}).map(s => s.id).sort()) === JSON.stringify(ids0), "same stamps after reordering (ids don't depend on order)");
+  const t3 = mk(), keep = t3.route[2];
+  const ins = T.insertStop(t3.route, 2, { name: "York", kind: "city", lat: 53.96, lon: -1.08, country: "GBR", region: "ENG", nights: 1, mode: "train" });
+  ok(ins.route.map(p => p.name).join(",") === "Zz Home,London,York,Edinburgh,Cardiff" && ins.at === 2, "insert: York goes between London and Edinburgh");
+  ok(ins.route[3] === keep && keep.nights === 3 && keep.miles === undefined && ins.route[1].dep && ins.route[1].dep.code === "JFK", "the stop after it keeps its nights; only its old leg miles go; other legs untouched");
+  const v3 = P.tripVisits(Object.assign({}, t3, { route: ins.route })).map(x => x.area + "@" + x.date);
+  ok(v3.join() === "ENG@2026-07-01,SCT@2026-07-04,WLS@2026-07-07", "dates shift for the stops after the new one: " + v3.join());
+  ok(T.insertStop([], 5, { name: "Zz" }).route.length === 1 && T.insertStop(t3.route, 0, { name: "Zz" }).at === 1, "insert never goes before the start");
+  const clean = T.cleanRoute(ins.route); ok(clean.length === 5 && clean[2].name === "York", "reordered route survives cleaning / sync");
+  ok(t.photoId === "zz-photo-1" && t2.photoId === "zz-photo-1", "the trip photo stays");
+  const ui = read("trips-ui.js");
+  ok(/data-addat=/.test(ui) && /Add a stop here/.test(ui) && /data-grip=/.test(ui) && /data-mv=/.test(ui) && /T\.moveStop\(/.test(ui) && /T\.insertStop\(/.test(ui), "builder has drag, arrows and Add a stop here");
+  ok(/\.rp \.addhere/.test(read("app.css")) && /touch-action:none/.test(read("app.css")), "drag grip styled for touch");
+}
 // ---- v79: sights in place search (castles, ruins, viewpoints...), each with its own stamp, counted for its town and country ----
 {
   const TW = require("../travel-log/app/towns-core.js"), T = require("../travel-log/app/trips-core.js"), P = require("../travel-log/app/passport-core.js"), SA = require("../travel-log/app/stamp-art.js"), L = require("../travel-log/app/log-core.js");
@@ -1930,7 +1964,7 @@ setTimeout(() => {
 {
   const ROOTDIR = path.join(__dirname, "..");
   const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
-  ok(/var VERSION = "v(6[7-9]|7[0-9])"/.test(read("app.js")) && /mltl-v(6[7-9]|7[0-9])/.test(read("sw.js")), "v67: version and cache bumped");
+  ok(/var VERSION = "v(6[7-9]|[7-9][0-9])"/.test(read("app.js")) && /mltl-v(6[7-9]|[7-9][0-9])/.test(read("sw.js")), "v67: version and cache bumped");
   const idx = read("index.html");
   ok(idx.indexOf('src="launch.js"') > idx.indexOf('src="brand.js"') && idx.indexOf('src="launch.js"') < idx.indexOf('src="app.js"') && /"launch\.js"/.test(read("sw.js")), "v67: launch.js loads right after brand.js and is cached");
   // one config spot for contacts and page links
@@ -2009,7 +2043,7 @@ setTimeout(() => {
   const ROOTDIR = path.join(__dirname, "..");
   const X = require(path.join(APP, "extras.js"));
   const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
-  ok(/var VERSION = "v(6[8-9]|7[0-9])"/.test(read("app.js")) && /mltl-v(6[8-9]|7[0-9])/.test(read("sw.js")), "v68: version and cache bumped");
+  ok(/var VERSION = "v(6[8-9]|[7-9][0-9])"/.test(read("app.js")) && /mltl-v(6[8-9]|[7-9][0-9])/.test(read("sw.js")), "v68: version and cache bumped");
   ok(/"extras\.js"/.test(read("sw.js")) && /<script src="extras\.js"><\/script>/.test(read("index.html")), "v68: extras.js cached and loaded");
   ok(read("index.html").indexOf("launch.js") < read("index.html").indexOf("extras.js"), "v68: extras loads after launch");
   // Utah: the gull now fills the glyph box like the other states, on the set's 1.6 ground line; no new animal art
