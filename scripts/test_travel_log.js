@@ -350,6 +350,12 @@ ok(/makeBackup/.test(js) && /readBackup/.test(js), "back up / restore wired up")
 ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view");
 
 
+// ---- v83: family menu links go where they say (no bounce back to Home) ----
+{
+  const sy = fs.readFileSync(path.join(__dirname, "../travel-log/app/sync.js"), "utf8");
+  ok(/function spendOverlay\(\) \{ if \(history\.state && history\.state\.fsovl === 1\) history\.replaceState\(\{ fsovl: 2 \}, ""\); ovlOpen = false; \}/.test(sy), "v83: a menu link marks the menu's Back entry spent instead of calling history.back()");
+  ok(/else if \(e\.target\.closest\("a"\)\) \{ spendOverlay\(\); closeMenu\(\); \}/.test(sy), "v83: tapping a menu link spends the entry before closing");
+}
 // ---- v82: passport "about me" page: favorites + birthday month/day only (never the year), no real ID details ----
 {
   const P = require("../travel-log/app/passport-core.js");

@@ -1167,7 +1167,7 @@
   window.addEventListener("hashchange", closeMenu);
   function markView() { document.body.classList.toggle("fsui", /^#\/(sync|join|backup)/.test(location.hash)); }   // Family Sync, join and Backup screens: roomy tap targets
   window.addEventListener("hashchange", markView); markView();
-  document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".brand")) closeMenu(); }, true);
+  document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".brand") && document.getElementById("fammenu")) { spendOverlay(); closeMenu(); } }, true);
   function toggleMenu() {
     if (document.getElementById("fammenu")) { dismissed = true; return closeMenu(); }
     var r = reg(), m = document.createElement("div"), c = cfg(), grown = !c || c.role !== "kid";
@@ -1193,8 +1193,11 @@
     var inMenu = e.target.closest && e.target.closest("#fammenu");
     if (!inMenu) { if (document.getElementById("fammenu")) dismissed = true; closeMenu(); }
     else if (e.target.closest(".fmitem.cur, [data-close-menu]")) { dismissed = true; closeMenu(); }
-    else if (e.target.closest("a")) closeMenu();
+    else if (e.target.closest("a")) { spendOverlay(); closeMenu(); }
   });
+  // v83: a link in the menu closes it right before the page changes. Mark the menu's history entry spent first (Back skips it);
+  // taking it off with history.back() here would land after the link's own navigation and bounce back to Home.
+  function spendOverlay() { if (history.state && history.state.fsovl === 1) history.replaceState({ fsovl: 2 }, ""); ovlOpen = false; }
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape" || document.querySelector(".ppk-bg")) return;   // the place picker (placepick.js) handles its own Esc
     if (document.getElementById("fammenu")) { dismissed = true; closeMenu(); }
