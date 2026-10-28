@@ -1099,3 +1099,18 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .pinzoom button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(0,0,0,.2); background: #fff; color: #123; font-size: 1.3rem; cursor: pointer; }
 .pinrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .pinerr { min-height: 1.2em; color: #a33; }
+/* v82: passport "about me" page (pretend passport: favorites + birthday month/day, never real ID details) */
+.ppage.idpage { display: flex; flex-direction: column; gap: .5rem; padding: 2.2rem 1.1rem 1rem; overflow-y: auto; color: #16283a; }
+.idpage .idtop { display: flex; gap: .75rem; align-items: center; margin-top: .25rem; }
+.idpage .idav { width: 64px; height: 64px; font-size: 1.8rem; flex: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.idpage h3 { margin: 0; font-family: Georgia, serif; }
+.idpage .idbday { margin: .15rem 0 0; }
+.idpage .idhb { margin: 0; font-weight: 700; color: var(--pc, #c2410c); }
+.idpage .idfavs { margin: .25rem 0 0; display: grid; gap: .35rem; }
+.idpage .idrow { border-bottom: 1px dashed rgba(22, 40, 58, .25); padding-bottom: .2rem; }
+.idpage .idrow dt { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+.idpage .idrow dd { margin: 0; font-family: Georgia, serif; font-size: 1.05rem; }
+.idpage .idedit { align-self: flex-start; margin-top: auto; }
+.idpage .idnote { margin: 0; font-size: .72rem; }
+.idbd { display: flex; gap: .5rem; }
+.idbd select { flex: 1; }

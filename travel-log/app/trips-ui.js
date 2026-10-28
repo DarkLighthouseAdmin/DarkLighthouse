@@ -1244,6 +1244,7 @@
       '<section class="ppage cover"><div class="crest" aria-hidden="true"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="3"/><ellipse cx="50" cy="50" rx="18" ry="40" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M10 50h80M16 30h68M16 70h68" stroke="currentColor" stroke-width="2.5" fill="none"/></svg></div>' +
       '<p class="ptype">PASSPORT</p><h2>' + esc(title) + '</h2><p class="pcount">' + counts.world + (counts.world === 1 ? " country stamp" : " country stamps") + ' · ' + counts.states + ' states · ' + counts.parks + ' parks' + (counts.sights ? ' · ' + counts.sights + ' sights' : '') + '</p>' +
       (life.flights ? '<p class="pfly">✈️ ' + life.flights + (life.flights === 1 ? " flight" : " flights") + ' · ' + esc(dist(life.flightMiles)) + ' in the air</p>' : "") + '<p class="pswipe">Swipe to open →</p></section>' +
+      (pid && A().kidById(pid) ? idPageHTML(A().kidById(pid)) : "") +
       (pages.length ? pages.map(function (pg, n) {
         return '<section class="ppage"><header><span>' + esc(secName.toUpperCase()) + '</span><span>' + (n + 1) + '</span></header>' + pg.map(function (c) {
           return '<button type="button" class="stamp" data-sid="' + esc(c.stamp.id) + '" style="left:' + (c.x / 3).toFixed(1) + '%;top:' + (c.y / 4).toFixed(1) + '%;--r:' + c.rot + 'deg" aria-label="' + esc(stampName(c.stamp) + (c.stamp.kind === "state" ? ", " + artFor(pid, c.stamp.area) : "") + (P.fmtDate(c.stamp.date) ? ", " + P.fmtDate(c.stamp.date) : "")) + '">' + stampSVG(c.stamp, pid) +
@@ -1257,9 +1258,44 @@
     if (cr.length) html += '<p class="small muted lmcredit">Landmark drawings from Wikimedia Commons, traced for stamps: ' + cr.join(" · ") + '</p>';
     return html;
   }
+  // v82: the "about me" page right after the cover: name, nickname, favorites and an optional birthday (month + day only, never the year).
+  // A pretend passport: it never asks for real passport or ID details. Family members see it (and anyone the family invites to follow).
+  function idPageHTML(k) {
+    var A_ = A(), d = P.cleanIdPage(k.pp), bd = P.bdayText(d.bday), today = P.isBirthday(d.bday), real = M.realName(k);
+    var favs = P.ID_FIELDS.filter(function (f) { return d[f[0]]; }).map(function (f) { return '<div class="idrow"><dt>' + esc(f[1]) + '</dt><dd>' + esc(d[f[0]]) + '</dd></div>'; }).join("");
+    return '<section class="ppage idpage"><header><span>ABOUT ME</span><span>✦</span></header>' +
+      '<div class="idtop"><span class="dotp idav" style="' + A_.kidStyle(k) + '" aria-hidden="true">' + A_.initial(M.who(k)) + '</span><div><h3>' + esc(M.who(k)) + '</h3>' +
+      (real ? '<p class="small muted">' + esc(real) + '</p>' : "") + (bd ? '<p class="small idbday">🎂 Birthday: ' + esc(bd) + '</p>' : "") + '</div></div>' +
+      (today ? '<p class="idhb">🎉 Happy birthday, ' + esc(M.who(k)) + '!</p>' : "") +
+      (favs ? '<dl class="idfavs">' + favs + '</dl>' : '<p class="small muted">Favorite snack, dream trip, favorite animal… fill in this page together.</p>') +
+      '<button type="button" class="btn btn-ghost idedit" data-idedit>✏️ ' + (favs || bd ? "Edit this page" : "Fill in this page") + '</button>' +
+      '<p class="tiny muted idnote">Pretend passport, just for fun. Never put real passport or ID numbers here.</p></section>';
+  }
+  function idSheet(k, again) {
+    var d = P.cleanIdPage(k.pp), mo = d.bday ? +d.bday.slice(0, 2) : 0, dy = d.bday ? +d.bday.slice(3) : 0;
+    var html = '<h3>About ' + esc(M.who(k)) + '</h3><p class="small muted">All optional. Shows on the first page of the passport.</p>' +
+      P.ID_FIELDS.map(function (f) { return '<div class="field"><label for="id-' + f[0] + '">' + esc(f[1]) + '</label><input id="id-' + f[0] + '" type="text" maxlength="40" autocomplete="off" value="' + esc(d[f[0]] || "") + '" placeholder="' + esc(f[2]) + '" /></div>'; }).join("") +
+      '<div class="field"><label for="id-bm">Birthday (month and day only, no year)</label><div class="idbd"><select id="id-bm" aria-label="Birthday month"><option value="">Month</option>' +
+      P.MONTHS.map(function (m, i) { return '<option value="' + (i + 1) + '"' + (mo === i + 1 ? " selected" : "") + '>' + m + '</option>'; }).join("") + '</select>' +
+      '<select id="id-bd" aria-label="Birthday day"><option value="">Day</option>' + Array.from({ length: 31 }, function (_, i) { return '<option value="' + (i + 1) + '"' + (dy === i + 1 ? " selected" : "") + '>' + (i + 1) + '</option>'; }).join("") + '</select></div></div>' +
+      '<p class="small muted">This is a pretend passport. Never add real passport, ID or document numbers; long numbers are left out.</p><p class="small err" id="iderr" role="alert"></p>' +
+      '<div class="actions"><button type="button" class="btn btn-primary" id="idsave">Save</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>';
+    sheet(html);
+    $("#idsave").onclick = function () {
+      var o = {}; P.ID_FIELDS.forEach(function (f) { o[f[0]] = $("#id-" + f[0]).value; });
+      var m = $("#id-bm").value, dd = $("#id-bd").value;
+      if (m && dd) { o.bday = m + "-" + dd; if (!P.cleanBday(o.bday)) { $("#iderr").textContent = P.MONTHS[m - 1] + " doesn't have a day " + dd + "."; return; } }
+      else if (m || dd) { $("#iderr").textContent = "Pick both the month and the day, or neither."; return; }
+      var clean = P.cleanIdPage(o), dropped = P.ID_FIELDS.some(function (f) { return o[f[0]].trim() && !clean[f[0]]; });
+      if (Object.keys(clean).length) k.pp = clean; else delete k.pp;
+      k.updatedAt = new Date().toISOString();
+      A().saveKid(k).then(function () { closeSheet(); again(1); A().toast(dropped ? "Saved (left out something that looked like an ID number)" : "Saved"); });
+    };
+  }
   function bindBook(again, stamps, owner) {
     $$("[data-psec]").forEach(function (b) { b.onclick = function () { psec = b.dataset.psec; again(1); }; });
     var pages = $("#pages"), n = $$(".ppage", pages).length, pid = owner ? owner.id : null;
+    var ide = $("[data-idedit]"); if (ide && owner) ide.onclick = function () { idSheet(owner, again); };
     function at() { return Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth)); }
     $$("[data-art]").forEach(function (b) { b.onclick = function () { writeArt(pid, { mode: b.dataset.art, one: {} }); again(Math.max(1, at())); var f = $('[data-art="' + b.dataset.art + '"]'); if (f) f.focus(); }; });
     function label() { var i = at(); $("#pgn").textContent = i === 0 ? "Cover" : "Page " + i + " of " + (n - 1); }

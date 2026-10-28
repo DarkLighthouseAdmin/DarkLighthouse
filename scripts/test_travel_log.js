@@ -350,6 +350,20 @@ ok(/makeBackup/.test(js) && /readBackup/.test(js), "back up / restore wired up")
 ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view");
 
 
+// ---- v82: passport "about me" page: favorites + birthday month/day only (never the year), no real ID details ----
+{
+  const P = require("../travel-log/app/passport-core.js");
+  const c = P.cleanIdPage({ snack: "Zz Pretzels", dream: "  Zz   Japan ", pack: "A12345678", animal: "passport no 4", best: "x".repeat(90), bday: "6-14", year: "2015", birthYear: 2015, idNumber: "123" });
+  ok(c.snack === "Zz Pretzels" && c.dream === "Zz Japan" && c.best.length === 40 && c.bday === "06-14", "v82: about-me fields cleaned, birthday kept as month-day");
+  ok(!("pack" in c) && !("animal" in c), "v82: anything that looks like a passport / ID number is left out");
+  ok(!("year" in c) && !("birthYear" in c) && !("idNumber" in c) && Object.keys(c).every(k => P.ID_FIELDS.some(f => f[0] === k) || k === "bday"), "v82: only the known fields are kept (no year, no ID fields)");
+  ok(P.cleanBday("02-30") === "" && P.cleanBday("13-01") === "" && P.cleanBday("2015-06-14") === "" && P.cleanBday("02-29") === "02-29", "v82: birthday must be a real month + day, never a full date with a year");
+  ok(P.bdayText("06-14") === "June 14" && P.bdayText("") === "", "v82: birthday shown as 'June 14'");
+  ok(P.isBirthday("06-14", new Date(2026, 5, 14)) && !P.isBirthday("06-14", new Date(2026, 5, 15)) && P.isBirthday("02-29", new Date(2027, 1, 28)) && !P.isBirthday("02-29", new Date(2028, 1, 28)), "v82: birthday today (Feb 29 birthdays get Feb 28 in other years)");
+  const tui = fs.readFileSync(path.join(__dirname, "../travel-log/app/trips-ui.js"), "utf8");
+  ok(/function idPageHTML/.test(tui) && /idPageHTML\(A\(\)\.kidById\(pid\)\)/.test(tui) && /Never put real passport or ID numbers here/.test(tui) && /no year/.test(tui), "v82: the page sits after the cover and says it's a pretend passport");
+  ok(!/id="id-(year|by|passport|num)/.test(tui), "v82: the edit sheet has no birth-year or ID-number field");
+}
 // ---- v81 (item 6): famous landmarks get their own drawn stamps (Wikimedia Commons CC0 / PD / CC BY, credited); earned stamps upgrade, nothing removed ----
 {
   const SA = require("../travel-log/app/stamp-art.js"), P = require("../travel-log/app/passport-core.js");

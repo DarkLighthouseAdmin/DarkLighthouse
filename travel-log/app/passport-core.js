@@ -231,8 +231,31 @@
   function signSVG(id, name, info) { return SG.signSVG(id, name, info, { fmtDate: fmtDate }); }
   function signTier(info) { return info ? SG.tier(info.visits || 1) : ""; }
 
+  // v82: the passport's "about me" page. A pretend passport: favorites and an optional birthday (month + day, NEVER the year).
+  // It never asks for or keeps real passport / ID details: anything that looks like an ID or document number is dropped.
+  var ID_FIELDS = [["snack", "Favorite snack", "e.g. Pretzels"], ["food", "Favorite food on a trip", "e.g. Pancakes"], ["animal", "Favorite animal", "e.g. Puffins"],
+                   ["dream", "Dream trip", "e.g. Japan"], ["pack", "Never travels without", "e.g. Blue bunny"], ["best", "Best trip so far", "e.g. The beach in July"]];
+  var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var DIM = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  function cleanBday(v) {
+    var m = /^(\d{1,2})-(\d{1,2})$/.exec(String(v == null ? "" : v).trim()); if (!m) return "";
+    var mo = +m[1], d = +m[2]; if (mo < 1 || mo > 12 || d < 1 || d > DIM[mo - 1]) return "";
+    return (mo < 10 ? "0" : "") + mo + "-" + (d < 10 ? "0" : "") + d;
+  }
+  function looksLikeId(t) { var digits = String(t).replace(/[^0-9]/g, "").length; return digits >= 6 || /\b(passport|ssn|social security|licen[cs]e)\s*(no|number|#)/i.test(t); }
+  function cleanIdPage(o) {
+    var out = {}; if (!o || typeof o !== "object") return out;
+    ID_FIELDS.forEach(function (f) { var v = typeof o[f[0]] === "string" ? o[f[0]].replace(/[\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 40) : ""; if (v && !looksLikeId(v)) out[f[0]] = v; });
+    var b = cleanBday(o.bday); if (b) out.bday = b;
+    return out;
+  }
+  function bdayText(b) { b = cleanBday(b); return b ? MONTHS[+b.slice(0, 2) - 1] + " " + (+b.slice(3)) : ""; }
+  function isBirthday(b, now) { b = cleanBday(b); if (!b) return false; now = now || new Date(); var mo = now.getMonth() + 1, d = now.getDate();
+    if (b === "02-29" && mo === 2 && d === 28 && new Date(now.getFullYear(), 1, 29).getMonth() !== 1) return true;   // Feb 29 birthdays get Feb 28 in other years
+    return +b.slice(0, 2) === mo && +b.slice(3) === d; }
+
   return { newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits, sightArea: sightArea, sightSub: sightSub, drinkHidden: drinkHidden, section: section,
            stampsFor: stampsFor, familyStamps: familyStamps, pages: pages, look: look, flag: flag, stampSVG: stampSVG, ISO32: ISO32, NATIONS: NATIONS, MAX_STAMPS: MAX_STAMPS, SHAPES: SHAPES,
-           STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook, signTier: signTier, signInfo: SG.look,
+           STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook, signTier: signTier, signInfo: SG.look, ID_FIELDS: ID_FIELDS, MONTHS: MONTHS, cleanBday: cleanBday, cleanIdPage: cleanIdPage, bdayText: bdayText, isBirthday: isBirthday,
            stampArtMode: function (id, art) { return SA.stateMode(id, art); }, stampDesign: SA.design, STATE_SYMBOLS: SA.SYM ? SA.SYM.DATA : null };
 });
