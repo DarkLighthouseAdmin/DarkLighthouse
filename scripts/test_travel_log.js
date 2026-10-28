@@ -350,6 +350,8 @@ ok(/makeBackup/.test(js) && /readBackup/.test(js), "back up / restore wired up")
 ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view");
 
 
+// ---- v85: 401-479px phones with Back + family chip: Search keeps only its icon so nothing sits off the right edge ----
+ok(/@media \(max-width:479px\) \{\s*\.topbar:has\(\.navback:not\(\[hidden\]\)\):has\(\.famchip:not\(\[hidden\]\)\) \.navsearch \.tl \{ position:absolute/.test(read("app.css")), "v85: 412px phones with Back and the family chip hide the Search label (icon stays)");
 // ---- v84: paste a flight or hotel booking into a new trip (read on the phone; names, codes and prices left out) ----
 {
   const BK = require("../travel-log/app/booking-core.js");

@@ -1074,6 +1074,12 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
   .topbar:has(.navback:not([hidden])) .topright .syncpill .ss { display:inline; }
   .topbar:has(.navback:not([hidden])) .topright:has(.famchip:not([hidden])) .syncpill .ss { display:none; }
 }
+/* v85: 401-479px phones (Galaxy S26 Ultra is 412) with Back + the family chip + "Sync" + "Search" were ~31px too wide, so the page
+   zoomed out and Search sat off the right edge (on inner pages, and on Home while the family menu is open). Search keeps only its icon there. */
+@media (max-width:479px) {
+  .topbar:has(.navback:not([hidden])):has(.famchip:not([hidden])) .navsearch .tl { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .topbar:has(.navback:not([hidden])):has(.famchip:not([hidden])) .navsearch { padding-inline:.55rem; }
+}
 /* v75: 320px phones with a second family log (family chip showing) no longer push the search button off the right edge */
 @media (max-width:340px) {
   .topbar:has(.famchip:not([hidden])) .navsearch .tl { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
