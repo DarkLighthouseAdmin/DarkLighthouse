@@ -190,12 +190,24 @@
     a.main.innerHTML = html; document.title = "Trips · Famstamp";
     if (a.fillPhotos) a.fillPhotos();
   }
+  // v86: dark mode. Auto follows the phone's setting; Light or Dark pins it on this device (theme.js).
+  function themeHTML() {
+    var T_ = window.FS_THEME, cur = T_ ? T_.get() : "auto";
+    function b(v, l) { return '<button type="button" data-theme-set="' + v + '" aria-pressed="' + (cur === v) + '">' + l + '</button>'; }
+    return '<section class="moregroup themegroup"><h2>Appearance</h2><div class="seg" role="group" aria-label="Appearance">' + b("auto", "Auto") + b("light", "☀️ Light") + b("dark", "🌙 Dark") + '</div>' +
+      '<p class="small muted">Auto follows your phone\'s light or dark setting.</p></section>';
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-theme-set]"); if (!b || !window.FS_THEME) return;
+    window.FS_THEME.set(b.dataset.themeSet);
+    document.querySelectorAll("[data-theme-set]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+  });
   function viewMore() {
     var a = A(), w = who(), gv = grandView(), html = '<h1>More</h1>';
     if (gv) {
       html += '<div class="panel"><p>This is the simple view for grandparents. You can switch to the full app any time, and come back here from More.</p><div class="actions"><button type="button" class="btn btn-primary" data-full-app>Switch to the full app</button></div></div>' +
         '<ul class="morelist"><li><a href="#/highlights">Highlights</a></li><li><a href="#/recap">Weekly recap</a></li><li><a href="#/news">Reactions &amp; news</a></li><li><button type="button" class="linkbtn" data-gtip-again>How to use this</button></li><li><a href="#/help">Help</a></li><li><a href="#/sync">Family and sign-in</a></li><li><a href="#/report">Report a problem</a></li></ul>';
-      a.main.innerHTML = html; document.title = "More · Famstamp"; return;
+      a.main.innerHTML = html + themeHTML(); document.title = "More · Famstamp"; return;
     }
     if (kids().length > 1) html += '<p class="small muted">Badges and other personal pages are for:</p>' + chips(w, function (id) { return "#/more/" + id; });
     moreGroups({ who: w, sync: syncOn() }).forEach(function (g) {
@@ -206,7 +218,7 @@
           (isGrand() ? '<li><a href="#/highlights"><span class="ic" aria-hidden="true">✨</span>Highlights</a></li><li><button type="button" class="linkbtn" data-grand-view><span class="ic" aria-hidden="true">👵</span>Simple grandparent view</button></li>' : "") +
           '<li><button type="button" class="linkbtn" data-tour-again><span class="ic" aria-hidden="true">🧭</span>Take the 3-step tour again</button></li>' : "") + '</ul></section>';
     });
-    a.main.innerHTML = html; document.title = "More · Famstamp";
+    a.main.innerHTML = html + themeHTML(); document.title = "More · Famstamp";
   }
   function viewPeople() {
     var a = A(), html = '<a class="back" href="#/more">← More</a><h1>Our family</h1><div class="kids">';

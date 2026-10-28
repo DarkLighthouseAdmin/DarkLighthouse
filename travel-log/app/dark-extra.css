@@ -1,0 +1,25 @@
+/* Famstamp dark mode: hand-tuned part (scripts/build_dark_css.py appends this after the generated rules).
+   Placeholder palette from the current colors, until the new designs arrive. */
+html[data-theme="dark"] { color-scheme:dark;
+  --ink:#e6ebef; --muted:#a9b7be; --cream:#111b24; --card:#1a2632; --line:rgba(230,236,242,.16); --land:#22303d;
+  --navy-ink:#f2f5f7; --sage-ink:#9fd0b0; }
+html[data-theme="dark"] body { background:var(--cream); color:var(--ink); }
+html[data-theme="dark"] .btn-beacon, html[data-theme="dark"] .btn-beacon.synccta, html[data-theme="dark"] .btn-beacon * { color:var(--navy); }
+html[data-theme="dark"] .btn-primary { color:#fff; }
+html[data-theme="dark"] .btn-danger { color:#f2a08e; border-color:rgba(242,160,142,.5); }
+html[data-theme="dark"] input, html[data-theme="dark"] select, html[data-theme="dark"] textarea { background:#0f1922; color:var(--ink); border-color:rgba(230,236,242,.25); }
+html[data-theme="dark"] ::placeholder { color:#7f8d95; }
+/* Paper stays paper: the passport, stamps, certificates, postcards, journal/book pages and state signs keep their printed look */
+html[data-theme="dark"] :is(.ppage, .signbook, .cert, .certview, .pcpage, .pccard, .signcard, .bigsign, .jpage, .bjpage, .bpage, .bcover, .stposter, .stposterview) {
+  color-scheme:light; color:#1f2a33;
+  --ink:#1f2a33; --muted:#5b6b73; --cream:#f7f3ea; --card:#fffdf8; --line:rgba(31,42,51,.12); --land:#fffdf8;
+  --navy-ink:#16283a; --sage-ink:#3f5f4c; }
+html[data-theme="dark"] :is(.ppage, .signbook, .cert, .certview, .pcpage, .pccard, .signcard, .jpage, .bjpage, .bpage) a { color:var(--sage-deep); }
+html[data-theme="dark"] img:not([src$=".svg"]) { filter:none; }
+html[data-theme="dark"] .seg button[aria-pressed=true] { background:var(--beacon); color:#16283a; border-color:var(--beacon); }
+html[data-theme="dark"] .themegroup .seg { margin-top:.4rem; }
+html[data-theme="dark"] .ppage .btn-ghost, html[data-theme="dark"] .ppage .btn:not(.btn-primary):not(.btn-beacon) { background:#fffdf8; color:var(--sage-deep); border-color:rgba(31,42,51,.2); }
+html[data-theme="dark"] .ppage :is(input, select, textarea) { background:#fffdf8; color:#1f2a33; border-color:rgba(31,42,51,.25); }
+html[data-theme="dark"] :is(.familycard, .synctop) .btn-beacon.synccta.synccta.synccta { color:var(--navy); }
+/* map names: light letters with a dark halo on the night-blue land */
+html[data-theme="dark"] .pz-labels text { fill:#f2f5f7; stroke:rgba(12,24,35,.92); }
