@@ -8,7 +8,9 @@
  *  3. Sends ONLY the airports, dates, hotel name and city to Famstamp (ingest_booking), with the family's code
  *     (from trips+CODE@) or the forwarder's address (matched to a family member's sign-in email).
  *  4. Moves the email to Trash (Gmail empties Trash after 30 days), so no copy of the booking email is kept.
- *     Mail that can't be read or matched is labeled "Famstamp/unmatched" and also trashed after 7 days.
+ *  5. (v92) Mail from a known family that can't be read (or goes over the 30-a-day limit) leaves the family a short note in
+ *     the app (note_booking_failed: arrival time, sender's domain, subject cut to 60 characters, reason) and is trashed too.
+ *     Mail that can't be matched to a family is labeled "Famstamp/unmatched" and trashed after 7 days.
  * It never replies to anyone and never reads other mail (the search only matches trips@ addresses).
  *
  * Setup (one time, as the mailbox owner):
@@ -55,13 +57,30 @@ function famstampCheckMail() {
         if (r.getResponseCode() !== 200) throw new Error("Famstamp said " + r.getResponseCode());   // try again next run; nothing trashed
         out = JSON.parse(r.getContentText());
       }
-      if (out === "code" || out === "sender") msg.moveToTrash();
+      if (out === "empty" || out === "limit") {   // v92: tell the family in the app (if notes are set up; else keep the old way)
+        var nr = note_(url, key, secret, code, sender, msg.getSubject(), out === "limit" ? "limit" : "unreadable", msg.getDate());
+        if (nr === "noted" || nr === "skip") out = "noted";
+      }
+      if (out === "code" || out === "sender" || out === "noted") msg.moveToTrash();
       else unmatched = true;
     });
     if (unmatched) thread.addLabel(label_());
   });
   // unmatched or unreadable mail: kept a week so a person can look, then trashed
   GmailApp.search("label:Famstamp/unmatched older_than:7d", 0, 50).forEach(function (t) { t.moveToTrash(); });
+}
+
+// v92: a short "we couldn't read it" note for the family. Never the email itself: only the arrival time, the sender's
+// address (the server keeps just its domain), the subject (cut to 60 characters) and why. Returns the server's answer, or "" on error.
+function note_(url, key, secret, code, sender, subject, reason, date) {
+  try {
+    var r = UrlFetchApp.fetch(url + "/rest/v1/rpc/note_booking_failed", {
+      method: "post", contentType: "application/json", muteHttpExceptions: true,
+      headers: { apikey: key, Authorization: "Bearer " + key },
+      payload: JSON.stringify({ p_secret: secret, p_code: code, p_sender: sender, p_subject: String(subject || "").slice(0, 60), p_reason: reason, p_received: (date || new Date()).toISOString() })
+    });
+    return r.getResponseCode() === 200 ? JSON.parse(r.getContentText()) : "";
+  } catch (e) { return ""; }
 }
 
 // schema.org booking data some airlines and hotels put in the email's HTML

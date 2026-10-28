@@ -2595,3 +2595,18 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/\["Download my Famstamp", "#\/backup\/download"/.test(nav) && /h\[1\] === "download"/.test(app), "v91: Download my Famstamp in More");
   ok(/askAddRestore/.test(rb) && /Nothing here is changed or deleted/.test(rb), "v91: add-only preview says nothing is changed");
 }
+
+// ---- v92: notes for forwarded emails that couldn't be read ----
+{
+  const tu = read("trips-ui.js"), app = read("app.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
+  const MAIL = path.join(APP, "..", "mail"), gs = fs.readFileSync(path.join(MAIL, "famstamp-mail.gs"), "utf8"), sql = fs.readFileSync(path.join(MAIL, "booking-notes.sql"), "utf8");
+  ok(/var VERSION = "v(9[2-9])"/.test(app) && /mltl-v(9[2-9])/.test(swr), "v92: version and cache bumped");
+  ok(/We got an email on " \+ day \+ " but couldn't read it\. Try Paste a booking instead\./.test(tu), "v92: the gentle note wording");
+  ok(/"booking_notes_list"/.test(tu) && /"booking_note_seen"/.test(tu) && /id="bknote"/.test(tu), "v92: notes on Trips and under Paste a booking");
+  const body = sql.replace(/--.*$/gm, "").replace(/on delete cascade/gi, "");
+  ok(!/\b(delete|drop|truncate|alter\s+table\s+public\.(booking_inbox|families|family_members))\b/i.test(body) && !/function public\.ingest_booking\b/.test(body), "v92: notes SQL is additive and leaves ingest_booking alone");
+  ok(/sender_domain/.test(sql) && /check \(char_length\(subject\) <= 60\)/.test(sql) && !/\b(body|raw|plain|html)\s+(text|jsonb)/i.test(sql), "v92: only time, domain, short subject and reason are stored");
+  ok(/enable row level security/i.test(sql) && /revoke all on public\.booking_mail_notes from anon, authenticated/.test(sql), "v92: notes table locked down");
+  ok(/note_booking_failed/.test(gs) && /slice\(0, 60\)/.test(gs) && !/getPlainBody\(\)[^;]*note_/.test(gs), "v92: mail script sends only the subject (cut) for a note");
+  ok(!/sendEmail|reply\(|forward\(|createDraft/.test(gs) && !/Matt|Hill|oraclinical/i.test(gs + sql), "v92: never replies; no personal names");
+}

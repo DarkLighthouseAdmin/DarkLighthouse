@@ -735,6 +735,7 @@
     });
     renderStays(); renderFavs(); renderMoments();
     var tp = $("#tpaste"); if (tp) tp.onclick = function () { bookingSheet(k, opts); };
+    if (tp && openPaste) { openPaste = false; setTimeout(function () { if (document.body.contains(tp)) tp.click(); }, 50); }   // v92: from an email note
     var tall = $("#tall"); if (tall) tall.onclick = function () { $$("input[name=kids]").forEach(function (c) { c.checked = true; }); renderFavs(); renderMoments(); };
     var end = $("#tend"), done = $("#tdone");
     // The end can't be before the start: the picker won't offer earlier days, and Save says so if one is typed anyway.
@@ -1413,12 +1414,32 @@
       return BK.toTrip(res, function (c) { var a = by[c]; return a ? airportObj(a) : null; }, M.today());
     });
   }
+  // v92: forwarded emails that couldn't be used (booking_notes_list: arrival time, sender's domain, short subject, reason only)
+  var openPaste = false, notesAt = 0, notesList = null;
+  function mailNotes() {
+    var f = mailFam(); if (!f) return Promise.resolve([]);
+    if (notesList && Date.now() - notesAt < 60000) return Promise.resolve(notesList);
+    return mailCall("booking_notes_list", { p_family: f }).then(function (l) { notesList = Array.isArray(l) ? l : []; notesAt = Date.now(); return notesList; }).catch(function () { return []; });
+  }
+  function noteText(n) {
+    var d = String(n.received_at || "").slice(0, 10), day = /^\d{4}-\d{2}-\d{2}$/.test(d) ? M.prettyDate(d) : "recently";
+    return n.reason === "limit" ? "We got an email on " + day + " but couldn't add it: more than 30 came in that day. Try Paste a booking instead."
+      : "We got an email on " + day + " but couldn't read it. Try Paste a booking instead.";
+  }
+  function noteHTML(n) {
+    var from = [n.sender_domain ? "from " + n.sender_domain : "", n.subject ? "“" + n.subject + "”" : ""].filter(Boolean).join(" · ");
+    return '<div class="mailitem mailnote" data-nid="' + esc(n.id) + '"><p>📭 ' + esc(noteText(n)) + (from ? '<br><span class="small muted">' + esc(from) + '</span>' : "") + '</p>' +
+      '<div class="actions"><button type="button" class="btn btn-primary" data-notepaste="' + esc(n.id) + '">Paste a booking</button><button type="button" class="btn btn-ghost" data-noteok="' + esc(n.id) + '">Got it</button></div></div>';
+  }
   function mailInbox(main) {
     var f = mailFam(); if (!f || !main) return;
-    var draw = function (list) {
-      if (!list || !list.length || !/^#\/trips/.test(location.hash) || main.querySelector(".mailbox")) return;
+    var draw = function (list, notes) {
+      notes = notes || [];
+      if ((!list || !list.length) && !notes.length || !/^#\/trips/.test(location.hash) || main.querySelector(".mailbox")) return;
+      list = list || [];
       var box = document.createElement("section"); box.className = "panel mailbox";
-      box.innerHTML = '<h2>✉️ From your email</h2><p class="small muted">Bookings your family forwarded. Make each one a trip and check it over, or skip it.</p>' +
+      box.innerHTML = '<h2>✉️ From your email</h2>' + (list.length ? '<p class="small muted">Bookings your family forwarded. Make each one a trip and check it over, or skip it.</p>' : "") +
+        notes.map(noteHTML).join("") +
         list.map(function (it) {
           return '<div class="mailitem" data-mid="' + esc(it.id) + '"><p>' + mailLines(it.parsed || {}) + '</p><div class="actions"><button type="button" class="btn btn-primary" data-mailuse="' + esc(it.id) + '">Make a trip</button><button type="button" class="btn btn-ghost" data-maildrop="' + esc(it.id) + '">Not ours</button></div></div>';
         }).join("");
@@ -1437,6 +1458,22 @@
           });
         };
       });
+      var who = function () { var st = S(), mine = st.meta && st.meta.sync && st.meta.sync.myPerson; return A().kidById(mine) || st.kids[0]; };
+      var gone = function (b) { var row = b.closest(".mailitem"); if (row) row.remove(); if (!$(".mailitem", box)) box.remove(); };
+      $$("[data-noteok]", box).forEach(function (b) {
+        b.onclick = function () {
+          b.disabled = true;
+          mailCall("booking_note_seen", { p_id: b.dataset.noteok }).then(function () { notesList = null; gone(b); })
+            .catch(function () { b.disabled = false; A().toast("Couldn't reach Family Sync. Try again in a moment."); });
+        };
+      });
+      $$("[data-notepaste]", box).forEach(function (b) {
+        b.onclick = function () {
+          var k = who(); if (!k) { A().toast("Add someone to the family first."); return; }
+          mailCall("booking_note_seen", { p_id: b.dataset.notepaste }).catch(function () {}); notesList = null;
+          openPaste = true; location.hash = "#/p/" + k.id + "/trips/new";
+        };
+      });
       $$("[data-maildrop]", box).forEach(function (b) {
         b.onclick = function () {
           b.disabled = true;
@@ -1446,8 +1483,9 @@
         };
       });
     };
-    if (mailList && Date.now() - mailListAt < 60000) { draw(mailList); return; }
-    mailCall("booking_inbox_list", { p_family: f }).then(function (list) { mailList = Array.isArray(list) ? list : []; mailListAt = Date.now(); draw(mailList); }).catch(function () {});
+    var lists = mailList && Date.now() - mailListAt < 60000 ? Promise.resolve(mailList) :
+      mailCall("booking_inbox_list", { p_family: f }).then(function (list) { mailList = Array.isArray(list) ? list : []; mailListAt = Date.now(); return mailList; }).catch(function () { return []; });
+    Promise.all([lists, mailNotes()]).then(function (r) { draw(r[0], r[1]); });
   }
   // ---------- v84: paste a booking (flight or hotel confirmation) into a new trip ----------
   var pendingBooking = null;
@@ -1455,9 +1493,10 @@
     var BK = window.FS_BOOKING_CORE; if (!BK) return;
     var el = sheet('<h3>📋 Paste a booking</h3><p class="small muted">Copy the text of a flight or hotel confirmation email and paste it here. We pick out the airports, dates and hotel name, and it stays on this phone: names, confirmation numbers and prices are left out.</p>' +
       '<div class="field"><label for="bktext">Booking email</label><textarea id="bktext" rows="7" maxlength="60000" placeholder="e.g. Edinburgh (EDI) to London Heathrow (LHR), Fri 3 July 2026"></textarea></div>' +
-      '<div id="bkout" class="small" aria-live="polite"></div><p class="small muted bkmail" id="bkmail" hidden></p>' +
+      '<div id="bkout" class="small" aria-live="polite"></div><p class="small bknote" id="bknote" hidden></p><p class="small muted bkmail" id="bkmail" hidden></p>' +
       '<div class="actions"><button type="button" class="btn btn-primary" id="bkread">Read it</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
     var ta = $("#bktext", el), out = $("#bkout", el), btn = $("#bkread", el), found = null;
+    mailNotes().then(function (notes) { var n = notes[0], o = $("#bknote", el); if (!n || !o) return; o.hidden = false; o.textContent = "📭 " + noteText(n) + " Paste it here instead."; });
     mailAddress().then(function (addr) { var m = $("#bkmail", el); if (!addr || !m) return; m.hidden = false; m.innerHTML = '✉️ Or forward the confirmation email to <b class="bkaddr">' + esc(addr) + '</b>. It shows up on the Trips page for your family to check. Only the places, dates and hotel name are kept.'; });
     ta.oninput = function () { found = null; btn.textContent = "Read it"; out.innerHTML = ""; };
     btn.onclick = function () {

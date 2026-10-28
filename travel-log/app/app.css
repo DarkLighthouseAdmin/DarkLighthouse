@@ -1137,3 +1137,5 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .mailbox .mailitem { border-top: 1px solid rgba(127,127,127,.28); padding-top: .6rem; margin-top: .6rem; }
 .mailbox .mailitem p { margin: 0 0 .4rem; }
 .bkmail .bkaddr { user-select: all; -webkit-user-select: all; word-break: break-all; }
+/* v92: a forwarded email we couldn't read */
+.bknote, .mailnote > p:first-child { background: rgba(232,165,75,.16); border-radius: 10px; padding: .5rem .7rem; }
