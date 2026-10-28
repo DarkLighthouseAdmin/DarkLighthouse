@@ -350,6 +350,24 @@ ok(/makeBackup/.test(js) && /readBackup/.test(js), "back up / restore wired up")
 ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view");
 
 
+// ---- v78: every town worldwide in place search (data/towns, towns-core.js) ----
+{
+  const TW = require("../travel-log/app/towns-core.js"), dir = __dirname + "/../travel-log/app/data/towns/";
+  const idx = JSON.parse(fs.readFileSync(dir + "index.json", "utf8"));
+  const find = (q, cc) => { const k = TW.keyFor(q, idx); if (!k || !fs.existsSync(dir + k + ".json")) return null; const f = TW.parse(JSON.parse(fs.readFileSync(dir + k + ".json", "utf8"))); const h = TW.match(q, f).filter(x => !cc || x.row.country === cc); return h[0] || null; };
+  ok(idx.towns > 200000, "over 200,000 towns worldwide: " + idx.towns);
+  ok(TW.fold("Köln") === "koln" && TW.fold("Liège") === "liege" && TW.fold("St. Andrews") === TW.fold("Saint Andrews") && TW.fold("Łódź") === "lodz" && TW.fold("Straße") === "strasse", "accents and St/Saint fold the same way");
+  for (const [q, cc, own] of [["Ghent", "BEL", "Gent"], ["Gent", "BEL", "Gent"], ["Bruges", "BEL", "Brugge"], ["Brugge", "BEL", "Brugge"], ["Cologne", "DEU", "Köln"], ["Köln", "DEU", "Köln"], ["Koln", "DEU", "Köln"], ["Munich", "DEU", ""], ["Florence", "ITA", ""], ["Lisbon", "PRT", ""]]) {
+    const h = find(q, cc); ok(h && (!own || h.row.names[0] === own), q + " finds the " + cc + " town" + (own ? " (" + own + ")" : "") + ": " + (h && h.row.names.join("/")));
+  }
+  ok(find("ghent").row.country === "BEL", "Ghent, Belgium comes before smaller Ghents");
+  for (const [q, cc] of [["Hallstatt", "AUT"], ["Giethoorn", "NLD"], ["Dingle", "IRL"], ["Portree", "GBR"], ["Rothenburg ob der Tauber", "DEU"], ["Alberobello", "ITA"], ["Bled", "SVN"], ["Colmar", "FRA"], ["Cesky Krumlov", "CZE"], ["Akaroa", "NZL"], ["Tofino", "CAN"], ["Byron Bay", "AUS"], ["Nelsonville", "USA"], ["Swan Hill", "AUS"]])
+    ok(find(q, cc), "small town found: " + q + (cc ? ", " + cc : ""));
+  const big = fs.readdirSync(dir).map(f => fs.statSync(dir + f).size).sort((a, b) => b - a)[0];
+  ok(big < 500000, "every towns file is small enough to load on a phone: biggest " + big);
+  const pl = JSON.parse(read("data/places.json")); ok(pl.rows.split("\n").length === 52188 && /^Gent\t/m.test(pl.rows), "places.json is untouched (52,188 places)");
+  const ui = read("trips-ui.js"); ok(/ensureTowns\(q\)/.test(ui) && /TW\.match\(head, file/.test(ui), "trip search uses the worldwide towns");
+}
 // ---- v77: big people sync without "people_data_check" (kid-drawn stamps, long lists go to people.data_more) ----
 {
   const S = require("../travel-log/app/sync-core.js");

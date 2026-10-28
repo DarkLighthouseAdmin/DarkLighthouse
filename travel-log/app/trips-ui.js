@@ -43,6 +43,27 @@
       DATA.places = { rows: rows, countries: j.countries, admin: j.admin, parks: j.parks }; return DATA.places;
     });
   }
+  // v78: every town worldwide, one small file per name prefix (towns-core.js). Searches use what's loaded and
+  // redraw when the file for what they typed arrives. A missing file (offline, or no such prefix) just means no extra towns.
+  var TW = window.FS_TOWNS, TOWNS = { index: null, files: {}, loading: {}, admin: {}, countries: {} };
+  function townsIndex() {
+    if (TOWNS.index) return Promise.resolve(TOWNS.index);
+    if (!TOWNS.loading.index) TOWNS.loading.index = fetch("data/towns/index.json").then(function (r) { if (!r.ok) throw new Error("offline"); return r.json(); })
+      .then(function (j) { TOWNS.index = j; return j; }).catch(function (e) { TOWNS.loading.index = null; throw e; });
+    return TOWNS.loading.index;
+  }
+  function townKey(q) { return TOWNS.index ? TW.keyFor(String(q || "").split(",")[0], TOWNS.index) : ""; }
+  /** Resolves true when the towns file for this query is ready (and was just fetched), false when nothing new loaded. */
+  function ensureTowns(q) {
+    if (!TW) return Promise.resolve(false);
+    return townsIndex().then(function () {
+      var k = townKey(q); if (!k || TOWNS.files[k]) return false;
+      if (!TOWNS.loading[k]) TOWNS.loading[k] = fetch("data/towns/" + k + ".json").then(function (r) { return r.ok ? r.json() : { rows: "" }; })
+        .then(function (j) { var f = TW.parse(j); Object.keys(f.admin).forEach(function (a) { TOWNS.admin[a] = f.admin[a]; }); Object.keys(f.countries).forEach(function (c) { TOWNS.countries[c] = f.countries[c]; }); TOWNS.files[k] = f; return true; }).catch(function () { TOWNS.loading[k] = null; return false; });
+      return TOWNS.loading[k];
+    }).catch(function () { return false; });
+  }
+  function townsReady(q) { if (!TW) return true; if (!TOWNS.index) return false; var k = townKey(q); return !k || !!TOWNS.files[k]; }
   function loadAirports() {
     if (DATA.airports) return Promise.resolve(DATA.airports);
     return getJSON("airports").then(function (j) {
@@ -54,7 +75,7 @@
   }
   function regionOf(country, admin1) { return country === "USA" || country === "GBR" ? admin1 : (/^[A-Z0-9]{1,3}$/.test(admin1 || "") ? admin1 : ""); }
   function subOf(d, country, admin1) {
-    var c = d.countries[country] || country, ad = d.admin[country + "." + admin1];
+    var c = d.countries[country] || TOWNS.countries[country] || country, ad = d.admin[country + "." + admin1] || TOWNS.admin[country + "." + admin1];
     if (country === "USA") return ad || c;
     if (country === "GBR") return (ad ? ad + ", " : "") + "UK";
     return ad && ad !== c ? ad + ", " + c : c;
@@ -68,7 +89,11 @@
     return o;
   }
   // "St Andrews" / "St. Andrews" / "Saint Andrews", "Mt" / "Mount", "Ft" / "Fort" all find the same town
-  function normQ(s) { return String(s || "").toLowerCase().replace(/\b(st|saint|ste)\.?(\s|-)/g, "saint ").replace(/\bmt\.?(\s|-)/g, "mount ").replace(/\bft\.?(\s|-)/g, "fort ").replace(/\s+/g, " "); }
+  function normQ(s) {
+    s = String(s || "");
+    if (TW) return s.split(",").map(function (x) { return TW.fold(x); }).join(", ");   // v78: accents optional (Koln = Köln), punctuation-proof
+    return s.toLowerCase().replace(/\b(st|saint|ste)\.?(\s|-)/g, "saint ").replace(/\bmt\.?(\s|-)/g, "mount ").replace(/\bft\.?(\s|-)/g, "fort ").replace(/\s+/g, " ");
+  }
   // famous islands, lochs and glens that aren't towns: a point people know, at the main village
   var ALIASES = [
     { k: ["isle of skye", "skye"], name: "Isle of Skye", lat: 57.413, lon: -6.194, country: "GBR", admin1: "SCT" },
@@ -92,9 +117,23 @@
       var r = d.rows[i];
       if (r.low.indexOf(head) !== 0 && r.nlow.indexOf(head) !== 0) continue;
       var pt = cityPoint(d, r);
-      if (tail && (pt.sub.toLowerCase().indexOf(tail) < 0 && (r.admin1 || "").toLowerCase() !== tail && r.country.toLowerCase() !== tail)) continue;
+      if (tail && (normQ(pt.sub).indexOf(tail) < 0 && (r.admin1 || "").toLowerCase() !== tail && r.country.toLowerCase() !== tail)) continue;
       if (al.some(function (a) { return a.name === pt.name && a.country === pt.country; })) continue;
-      cities.push(pt);
+      pt._pop = r.pop * 1000; cities.push(pt);
+    }
+    // v78: towns from the worldwide files (Ghent finds Gent; small towns everywhere). Same place as a list town = skipped.
+    var k = TW ? townKey(head) : "", file = k && TOWNS.files[k];
+    if (file) {
+            TW.match(head, file, { limit: 40 }).forEach(function (h) {
+        var r = h.row, pt = cityPoint(d, { name: h.name, lat: r.lat, lon: r.lon, country: r.country, admin1: r.admin1 });
+        if (tail && (normQ(pt.sub).indexOf(tail) < 0 && (r.admin1 || "").toLowerCase() !== tail && r.country.toLowerCase() !== tail)) return;
+        if (cities.some(function (c) { return c.country === pt.country && Math.abs(c.lat - pt.lat) < 0.04 && Math.abs(c.lon - pt.lon) < 0.06; })) return;
+        if (h.name !== r.names[0]) pt.sub = r.names[0] + " · " + pt.sub;   // typed the English name: show the local one too
+        pt._pop = r.pop; pt._exact = h.exact; cities.push(pt);
+      });
+      cities.forEach(function (c, i) { c._i = i; if (c._exact == null) c._exact = TW.fold(c.name) === TW.fold(head); });
+      cities.sort(function (a, b) { return (b._exact - a._exact) || (b._pop - a._pop) || (a._i - b._i); });
+      cities.forEach(function (c) { delete c._pop; delete c._exact; delete c._i; });
     }
     if (near) cities = cities.filter(function (p) { return p.country === near; }).concat(cities.filter(function (p) { return p.country !== near; }));
     return out.concat(cities).slice(0, Math.max(9, nParks + 6));
@@ -116,7 +155,7 @@
     return out;
   }
   function findPlaces(q) {
-    return Promise.all([loadPlaces(), loadAirports().catch(function () { return null; })]).then(function (r) {
+    return Promise.all([loadPlaces(), loadAirports().catch(function () { return null; }), ensureTowns(q)]).then(function (r) {
       var d = r[0], aps = r[1], nq = normQ((q || "").trim()); if (nq.length < 2) return [];
       var out = areaPoints(d, nq.split(",")[0].trim()).concat(searchPlaces(q, d));
       if (aps) searchAirports(q, aps).slice(0, 3).forEach(function (a) {
@@ -487,6 +526,7 @@
       var q = search.value.trim();
       if (q.length < 2) { results.innerHTML = ""; return; }
       if (!places) { results.innerHTML = '<p class="small muted">Loading places…</p>'; loadPlaces().then(function (x) { places = x; search.dispatchEvent(new Event("input")); }).catch(function () { showResults(results, [], function () { addPoint({ name: q, kind: "place" }); }, q); }); return; }
+      if (!townsReady(q)) ensureTowns(q).then(function (got) { if (got && search.value.trim() === q) search.dispatchEvent(new Event("input")); });
       showResults(results, searchPlaces(q, places, d.route.length > 1 ? d.route[d.route.length - 1].country : null), function (p) { addPoint(p || { name: q, kind: "place" }); if (!p) A_.toast("Added. Tap 📍 to put it on the map, or type the real miles."); }, q);
     });
     search.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); var b = $("[data-pick]", results); if (b) b.click(); } });
@@ -516,7 +556,7 @@
         var j = +el.dataset.near, box2 = $('[data-nearres="' + j + '"]', routeEl), m = el.value.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
         var opts = [];
         if (m && Math.abs(+m[1]) <= 90 && Math.abs(+m[2]) <= 180) opts.push({ label: "Pin it at " + (+m[1]).toFixed(3) + ", " + (+m[2]).toFixed(3), sub: "Latitude, longitude", ll: [+m[1], +m[2]] });
-        else if (places) opts = searchPlaces(el.value, places).filter(function (p) { return p.kind === "city"; }).slice(0, 6).map(function (p) { return { label: "Near " + p.name, sub: p.sub, p: p }; });
+        else if (places) { if (!townsReady(el.value)) { var nv = el.value; ensureTowns(nv).then(function (got) { if (got && el.value === nv) el.dispatchEvent(new Event("input", { bubbles: true })); }); } opts = searchPlaces(el.value, places).filter(function (p) { return p.kind === "city"; }).slice(0, 6).map(function (p) { return { label: "Near " + p.name, sub: p.sub, p: p }; }); }
         showResults(box2, opts, function (x) {
           if (!x) return; var pt = d.route[j];
           if (x.ll) { pt.lat = x.ll[0]; pt.lon = x.ll[1]; }
@@ -1451,7 +1491,7 @@
   }
 
   window.FS_UI = { findPlaces: findPlaces, builder: builder, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
-                   lifetimeHTML: lifetimeHTML, bindLifetime: bindLifetime, printExtra: printExtra, loadPlaces: loadPlaces, loadAirports: loadAirports, routeSVG: routeSVG,
+                   lifetimeHTML: lifetimeHTML, bindLifetime: bindLifetime, printExtra: printExtra, loadPlaces: loadPlaces, loadAirports: loadAirports, ensureTowns: ensureTowns, routeSVG: routeSVG,
                    searchPlaces: searchPlaces, searchAirports: searchAirports, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs,
                    sheet: sheet, closeSheet: closeSheet, dateFields: dateFields, readDate: readDate, shortArea: shortArea, stampName: stampName, CTX: CTX };
 })();
