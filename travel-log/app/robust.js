@@ -179,6 +179,19 @@
       { y: true }).then(function (x) { return !!x; });
   }
 
+  /** v91: preview for "Restore from a backup" (add only). add = MLTL.addOnlyRestore(...) */
+  function askAddRestore(data, add) {
+    var line = function (n, one, many) { return n ? '<li><b>' + n + '</b> ' + (n === 1 ? one : many) + '</li>' : ""; };
+    var body = line(add.kids.length, "person is added", "people are added") + line(add.trips.length, "trip is added", "trips are added") + line(add.photos.length, "photo is added", "photos are added");
+    var sk = add.skipped.kids + add.skipped.trips;
+    return sheetAsk(head("Add from this backup?") +
+      (data.exportedAt ? '<p class="small muted">Backup from ' + esc(when(data.exportedAt)) + '</p>' : "") +
+      '<ul class="rprev">' + (body || "<li>Everything in this backup is already here.</li>") + '</ul>' +
+      '<p class="small"><b>Nothing here is changed or deleted.</b>' + (sk ? " " + sk + (sk === 1 ? " thing is" : " things are") + " already here, so " + (sk === 1 ? "it's" : "they're") + " skipped." : "") + '</p>' +
+      '<div class="actions"><button type="button" class="btn btn-primary" data-ans="y">' + (body ? "Add them" : "OK") + '</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>',
+      { y: true }).then(function (x) { return !!x && !!body; });
+  }
+
   // B2: unfinished new trips
   function DKEY() { return "fs-trip-draft:" + dbKey(); }
   function readDraft() { try { var x = JSON.parse(localStorage.getItem(DKEY()) || "null"); return draftFresh(x) && A().kidById(x.kid) ? x : null; } catch (e) { return null; } }
@@ -298,7 +311,7 @@
   if (A() && A().ready) A().ready.then(function () { setTimeout(autoCopy, 8000); });
   setTimeout(persist, 1500);
   core.persist = persist; core.readLog = readLog; core.log = log;
-  core.decorate = decorate; core.askDup = askDup; core.askRestore = askRestore; core.watchDraft = watchDraft; core.resumeDraft = resumeDraft; core.clearDraft = clearDraft; core.readDraft = readDraft;
+  core.decorate = decorate; core.askDup = askDup; core.askRestore = askRestore; core.askAddRestore = askAddRestore; core.watchDraft = watchDraft; core.resumeDraft = resumeDraft; core.clearDraft = clearDraft; core.readDraft = readDraft;
   core.makeCopy = makeCopy; core.listCopies = listCopies; core.autoCopy = autoCopy; core.lastLine = lastLine;
   return core;
 });

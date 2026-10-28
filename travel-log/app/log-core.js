@@ -441,9 +441,33 @@
     var st = { home: clean(settings && settings.home, 80) };
     var hp = settings && settings.homePoint ? T.cleanPoint(settings.homePoint, true) : null; if (hp) st.homePoint = hp;
     if (settings && settings.units === "km") st.units = "km";
+    // v91: the family's other app settings and lists kept on this phone (postcards, stamp stations, wish settings...)
+    var pr = cleanPrefs(settings && settings.prefs); if (Object.keys(pr).length) st.prefs = pr;
     return { app: APP_ID, version: BACKUP_VERSION, exportedAt: now || new Date().toISOString(),
              note: "Famstamp backup. Keep this file somewhere safe (email it to yourself, or save it to your cloud drive).",
              kids: kids, trips: trips, photos: photos, settings: st };
+  }
+  /** v91: which on-phone settings/lists travel in a backup (and come back on a restore, only where this phone has none). */
+  var PREF_KEYS = ["tempUnit", "voice", "rate", "postcards", "stations", "cups", "wantToGo", "wishAs", "nearAuto", "adultInKid", "rewardsSeen", "whereDone", "theme"];
+  function cleanPrefs(p) {
+    var out = {};
+    if (p && typeof p === "object" && !Array.isArray(p)) PREF_KEYS.forEach(function (k) {
+      if (!(k in p) || p[k] == null) return;
+      var j; try { j = JSON.stringify(p[k]); } catch (e) { return; }
+      if (j && j.length <= 2e6) out[k] = JSON.parse(j);
+    });
+    if ("theme" in out && ["auto", "light", "dark"].indexOf(out.theme) < 0) delete out.theme;
+    return out;
+  }
+  /** v91: "Restore from a backup" that only ADDS: anything whose id is already on this phone is skipped (left exactly as it is).
+      have = { kids: {id: 1}, trips: {id: 1}, photos: {id: 1} }. Returns the records to add and how many were skipped. */
+  function addOnlyRestore(data, have) {
+    have = have || {}; var out = { kids: [], trips: [], photos: [], skipped: { kids: 0, trips: 0, photos: 0 } };
+    ["kids", "trips", "photos"].forEach(function (k) {
+      var h = have[k] || {}, seen = {};
+      (data[k] || []).forEach(function (r) { if (!r || !r.id || seen[r.id]) return; seen[r.id] = 1; if (h[r.id]) out.skipped[k]++; else out[k].push(r); });
+    });
+    return out;
   }
   function cleanArea(bag, idRe) {
     var out = {};
@@ -497,6 +521,7 @@
     var home = obj.version >= 3 && obj.settings && typeof obj.settings === "object" ? clean(obj.settings.home, 80) : "";
     var settings = { home: home };
     if (obj.version >= 4 && obj.settings && typeof obj.settings === "object") { var hp = T.cleanPoint(obj.settings.homePoint, true); if (hp) settings.homePoint = hp; if (obj.settings.units === "km") settings.units = "km"; }
+    if (obj.settings && typeof obj.settings === "object") { var pr = cleanPrefs(obj.settings.prefs); if (Object.keys(pr).length) settings.prefs = pr; }
     return { kids: kids, trips: trips, photos: photos, settings: settings, present: present, exportedAt: typeof obj.exportedAt === "string" ? obj.exportedAt : "" };
   }
 
@@ -742,7 +767,7 @@
   }
 
   return { extraPhotoIds: extraPhotoIds, onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
-           APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
+           APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PREF_KEYS: PREF_KEYS, cleanPrefs: cleanPrefs, addOnlyRestore: addOnlyRestore, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,
            slug: slug, uid: uid, newKid: newKid, toggleArea: toggleArea, togglePark: togglePark, newTrip: newTrip, applyTripMark: applyTripMark,

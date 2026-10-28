@@ -2430,7 +2430,7 @@ setTimeout(() => {
   const pv = RB.restorePreview({ exportedAt: "2026-10-01T00:00:00Z", kids: [{ id: K1, name: "Zz A" }, { id: "person_zzgone", name: "Zz B" }], trips: [r1, Object.assign({}, r2, { updatedAt: "2026-01-01" })], photos: [{ id: "photo_zz1" }] },
     [{ id: K1, name: "Zz A" }, { id: K2, name: "Zz C" }], [Object.assign({}, r2, { updatedAt: "2026-09-01" })], []);
   ok(pv.addPeople.length === 1 && pv.updPeople.length === 1 && pv.addTrips.length === 1 && pv.keepTrips.length === 1 && pv.updTrips.length === 0 && pv.newPhotos === 1 && pv.stayPeople === 1 && pv.stayTrips === 0, "v71: restore preview counts what comes back, what's replaced and what stays");
-  ok(/function restoreBackup\(data\)/.test(read("app.js")) && /askRestore\(data\)/.test(read("app.js")) && !/if \(!confirm\("Restore " \+ data\.kids\.length/.test(read("app.js")), "v71: restore always previews first");
+  ok(/function restoreBackup\(data(, mode)?\)/.test(read("app.js")) && /askRestore\(data\)/.test(read("app.js")) && !/if \(!confirm\("Restore " \+ data\.kids\.length/.test(read("app.js")), "v71: restore always previews first");
   // B5: weekly copy
   ok(RB.autoDue("", now) && RB.autoDue("2026-10-10T00:00:00Z", now) && !RB.autoDue("2026-10-20T00:00:00Z", now), "v71: a copy is due weekly");
   ok(/makeBackup\(st\.kids, st\.trips\.concat\(st\.bin \|\| \[\]\), \[\]/.test(read("robust.js")) && /KEEP = 4/.test(read("robust.js")), "v71: weekly copies skip photos and keep the last 4");
@@ -2560,4 +2560,38 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   // hair reaches above the head (y < 18.5) and down to the temples (y >= 30)
   const ys = (AV.html("a9").match(/<path d="M14\.2[^"]*"/) || [""])[0].match(/-?\d+(\.\d+)?/g).map(Number).filter((v, i) => i % 2 === 1);
   ok(ys.length && Math.min(...ys) <= 12 && Math.max(...ys) >= 30, "v90: a9 hair covers the crown down to the temples");
+}
+
+// ---- v91: Download my Famstamp + add-only "Restore from a backup" ----
+{
+  const app = read("app.js"), nav = read("nav.js"), rb = read("robust.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
+  ok(/var VERSION = "v(9[1-9])"/.test(app) && /mltl-v(9[1-9])/.test(swr), "v91: version and cache bumped");
+  const kidA = M.newPerson({ id: "kid_zzA1", name: "Zz Test Ava", role: "kid", color: "#2a6", now: "2026-10-01T00:00:00.000Z" });
+  kidA.states = { CA: { at: "2026-07-04" } }; kidA.stamps = []; kidA.av = "k2";
+  const kidB = M.newPerson({ id: "kid_zzB2", name: "Zz Test Ben", role: "adult", now: "2026-10-01T00:00:00.000Z" });
+  const trip = M.newTrip({ id: "trp_zz01", kidIds: ["kid_zzA1", "kid_zzB2"], place: "San Diego, CA", date: "2026-07-04", memory: "Zz Test beach day", stops: [], now: "2026-10-01T00:00:00.000Z" });
+  const photo = { id: "pho_zz01", dataUrl: "data:image/jpeg;base64,AAAA" };
+  const settings = { home: "Rivera town", units: "km", prefs: { tempUnit: "C", postcards: [{ id: "pc1", to: "Zz Test Gran" }], theme: "dark", junk: "x", sync: { secret: 1 } } };
+  const file = JSON.parse(JSON.stringify(M.makeBackup([kidA, kidB], [trip], [photo], "2026-10-28T12:00:00.000Z", settings)));
+  ok(file.app === M.APP_ID && file.version === M.BACKUP_VERSION && typeof file.version === "number", "v91: file carries the format version");
+  ok(file.settings.prefs && file.settings.prefs.tempUnit === "C" && file.settings.prefs.theme === "dark" && !("junk" in file.settings.prefs) && !("sync" in file.settings.prefs), "v91: settings travel, only the listed ones (never sync keys)");
+  const back = M.readBackup(file);
+  ok(back.kids.length === 2 && back.trips.length === 1 && back.photos.length === 1, "v91: round trip keeps people, trips and photos");
+  const ka = back.kids.find(k => k.id === "kid_zzA1");
+  ok(ka.name === "Zz Test Ava" && ka.states.CA && ka.av === "k2", "v91: round trip keeps a person's stamps and avatar");
+  ok(back.trips[0].memory === "Zz Test beach day" && back.trips[0].kidIds.length === 2, "v91: round trip keeps the trip's notes and travelers");
+  ok(back.settings.home === "Rivera town" && back.settings.units === "km" && back.settings.prefs.postcards[0].to === "Zz Test Gran", "v91: round trip keeps settings and lists");
+  // add-only: what's already here is skipped by id, never changed
+  const add = M.addOnlyRestore(back, { kids: { kid_zzA1: 1 }, trips: {}, photos: { pho_zz01: 1 } });
+  ok(add.kids.length === 1 && add.kids[0].id === "kid_zzB2" && add.skipped.kids === 1, "v91: a person already here is skipped");
+  ok(add.trips.length === 1 && add.photos.length === 0 && add.skipped.photos === 1, "v91: new trips come in, photos already here are skipped");
+  const dup = M.addOnlyRestore({ kids: [kidB, kidB], trips: [], photos: [] }, {});
+  ok(dup.kids.length === 1, "v91: duplicate ids inside one file come in once");
+  const none = M.addOnlyRestore(back, { kids: { kid_zzA1: 1, kid_zzB2: 1 }, trips: { trp_zz01: 1 }, photos: { pho_zz01: 1 } });
+  ok(!none.kids.length && !none.trips.length && !none.photos.length, "v91: restoring the same backup twice adds nothing");
+  ok(/function restoreAdd\(data\)/.test(app) && /if \(!g\.result\) s\[x\[1\]\]\.add\(rec\)/.test(app), "v91: add-only restore writes only missing ids (checked again at write time)");
+  ok(/restoreBackup\(data, upd && upd\.checked \? "merge" : "add"\)/.test(app), "v91: the restore picker adds by default");
+  ok(/if \(state\.meta\[k\] == null\) jobs\.push\(setMeta\(k, pr\[k\]\)\)/.test(app), "v91: settings come back only where none are set");
+  ok(/\["Download my Famstamp", "#\/backup\/download"/.test(nav) && /h\[1\] === "download"/.test(app), "v91: Download my Famstamp in More");
+  ok(/askAddRestore/.test(rb) && /Nothing here is changed or deleted/.test(rb), "v91: add-only preview says nothing is changed");
 }
