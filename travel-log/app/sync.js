@@ -65,6 +65,7 @@
   function friendly(e) {
     var m = (e && (e.message || e.error_description || e.msg)) || String(e);
     if (/anonymous sign-ins are disabled|Anonymous sign-ins are disabled/i.test(m)) return new Error("Family Sync isn't switched on for invites yet. Try again soon.");
+    if (/violates check constraint "(people|trips)_data/i.test(m)) return new Error("One profile or trip has more in it than the cloud takes in one piece. Update Famstamp (close and reopen it) and tap Sync now; nothing on this phone is lost.");
     if (/Founders plan covers up to|people_cap/i.test(m)) return new Error("Your Founders plan covers up to " + ((m.match(/up to (\d+)/) || [])[1] || 10) + " people. Remove someone to add someone new.");
     if (/Too many open invites/i.test(m)) return new Error("This family has 10 open invites, the most it can have. Turn one off below, then make a new one.");
     if (/over_email_send_rate_limit|email rate limit|email.*too many|too many.*email|you can only request this/i.test(m)) return new Error("Too many emails were sent just now. Wait a few minutes and try again, or use an invite code.");
@@ -319,7 +320,8 @@
         var firstShared = !c.sharedTrip && plan.trips.some(function (t) { return !t.deleted && !c.shadow.trips[t.id]; }) && c.lastSync;
         plan.trips.forEach(function (t) { if (!t.deleted && !c.authors[t.id]) c.authors[t.id] = nameOf(c.members, c.userId) || "you"; });
         var jobs = Promise.resolve();
-        ["people", "visits", "trips"].forEach(function (tb) { if (plan[tb].length) jobs = jobs.then(function () { return r.upsert(tb, plan[tb]); }); });
+        S.peopleBatches(plan.people).forEach(function (b) { jobs = jobs.then(function () { return r.upsert("people", b); }); });   // v77: data + data_more
+        ["visits", "trips"].forEach(function (tb) { if (plan[tb].length) jobs = jobs.then(function () { return r.upsert(tb, plan[tb]); }); });
         plan.uploads.forEach(function (u) {
           jobs = jobs.then(function () { return A.getOne("photos", u.id); }).then(function (p) {
             if (!p) return;

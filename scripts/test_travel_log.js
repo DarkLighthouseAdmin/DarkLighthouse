@@ -350,6 +350,57 @@ ok(/makeBackup/.test(js) && /readBackup/.test(js), "back up / restore wired up")
 ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view");
 
 
+// ---- v77: big people sync without "people_data_check" (kid-drawn stamps, long lists go to people.data_more) ----
+{
+  const S = require("../travel-log/app/sync-core.js");
+  const FID = "fam-zz";
+  const art = n => "data:image/jpeg;base64," + "A".repeat(n);
+  const cloudOk = r => S.utf8Len(JSON.stringify(r.data)) < 8000;   // what the server's check allows (pg_column_size(data) < 8000)
+  const kid = M.newPerson({ name: "Zz Test Kid", role: "kid", now: "2026-10-01T10:00:00.000Z" }), grown = M.newPerson({ name: "Zz Test Parent", role: "adult", now: "2026-10-01T10:00:00.000Z" });
+  kid.stampArt = { "place:SCT": art(40000), "state:FL": art(30000), "park:zion": art(25000) };
+  kid.firsts = Array.from({ length: 120 }, (_, i) => ({ id: "f" + i, what: "Zz Test first number " + i + " with a long note about the day", at: "2026-07-10" }));
+  kid.updatedAt = "2026-10-02T10:00:00.000Z";
+  const old = { data: Object.assign({}, kid) }; delete old.data.states; delete old.data.places; delete old.data.parks;
+  ok(!cloudOk(old), "the old one-column row really was too big for people_data_check (the Oct 27 'Sync paused')");
+  let local = { people: [kid, grown], trips: [], photoIds: [] }, sh = { people: {}, visits: {}, trips: {}, photos: {} };   // a shadow saved by v76 (no .more)
+  let plan = S.planPush(local, sh, FID, "2026-10-03T00:00:00Z");
+  const kr = plan.people.find(r => r.id === kid.id), gr = plan.people.find(r => r.id === grown.id);
+  ok(plan.people.every(cloudOk), "every person row now fits the cloud's data limit");
+  ok(kr.data.name === "Zz Test Kid" && kr.data.role === "kid" && !kr.data.stampArt, "name and role stay in data; drawings move out");
+  ok(Object.keys(kr.data_more.stampArt).length === 3 && kr.data_more.stampArt["place:SCT"] === kid.stampArt["place:SCT"], "all 3 drawings go up whole in data_more");
+  ok(kr.data_more.firsts && kr.data_more.firsts.length === 120 && !kr.data.firsts, "an oversized list moves to data_more, nothing cut");
+  ok(!("data_more" in gr), "a small person doesn't send data_more (keeps any the cloud already has)");
+  const batches = S.peopleBatches(plan.people);
+  ok(batches.every(b => b.every(r => !("_moreHash" in r))) && batches.every(b => b.every(r => ("data_more" in r) === ("data_more" in b[0]))), "each upsert call has the same columns, helper fields stripped");
+  ok(batches.filter(b => "data_more" in b[0]).every(b => b.length === 1), "big rows go one per request");
+  ok(S.pendingCount(plan) >= 2, "the waiting changes are counted");
+  S.afterPush(sh, plan);
+  ok(S.pendingCount(S.planPush(local, sh, FID)) === 0, "after the push nothing is waiting (banner clears)");
+  kid.nickname = "Zz"; kid.updatedAt = "2026-10-04T10:00:00.000Z";
+  plan = S.planPush(local, sh, FID);
+  ok(plan.people.length === 1 && !("data_more" in plan.people[0]) && plan.people[0].data.nickname === "Zz", "a small edit doesn't resend the drawings");
+  S.afterPush(sh, plan);
+  kid.stampArt["state:WI"] = art(20000); kid.updatedAt = "2026-10-05T10:00:00.000Z";
+  plan = S.planPush(local, sh, FID);
+  ok(plan.people.length === 1 && Object.keys(plan.people[0].data_more.stampArt).length === 4, "a new drawing sends data_more again");
+  S.afterPush(sh, plan);
+  // a second phone pulls it back together
+  const row = Object.assign({}, S.peopleBatches(plan.people).flat()[0], { server_at: "2026-10-05T10:00:01Z" });
+  const phone2 = { people: [], trips: [], photoIds: [] }, sh2 = S.emptyShadow();
+  S.applyPull(phone2, sh2, { people: [row], visits: [], trips: [], photos: [] });
+  const k2 = phone2.people[0];
+  ok(k2 && k2.name === "Zz Test Kid" && Object.keys(k2.stampArt).length === 4 && k2.firsts.length === 120, "another phone gets the drawings and the list back");
+  ok(S.planPush(phone2, sh2, FID).people.length === 0, "pulled people don't echo back up");
+  // an older cloud row (no data_more) never wipes what this phone has
+  const onlyData = { family_id: FID, id: kid.id, data: { name: "Zz Test Kid", role: "kid" }, updated_at: "2026-10-06T10:00:00.000Z", deleted: false, server_at: "2026-10-06T10:00:01Z" };
+  S.applyPull(phone2, sh2, { people: [onlyData], visits: [], trips: [], photos: [] });
+  ok(Object.keys(phone2.people[0].stampArt).length === 4, "a row from an older app version keeps this phone's drawings");
+  // two phones, different drawings: both kept
+  const a = { stampArt: { "place:SCT": art(10) } }, b = { stampArt: { "place:IRL": art(12), "place:SCT": art(11) } };
+  ok(S.mergePersonPieces(a, b) && Object.keys(a.stampArt).length === 2 && a.stampArt["place:SCT"] === art(10), "merging keeps both phones' drawings, ours wins on the same place");
+  ok(S.rowData({ data: { name: "x" }, data_more: { stampArt: { k: "v" } } }).stampArt.k === "v", "rowData overlays data_more");
+  ok(/peopleBatches\(plan\.people\)/.test(read("sync.js")) && /people_data|data_more/.test(read("sync-core.js")), "sync.js sends people through peopleBatches");
+}
 // ---- Family Sync (sync-core.js: invite codes, push/pull, conflicts, merge, plan) ----
 {
   const S = require("../travel-log/app/sync-core.js");

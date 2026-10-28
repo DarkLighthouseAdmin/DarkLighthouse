@@ -55,9 +55,59 @@
   // People and trips sync as a JSONB "data" blob next to a few key columns, so new fields added to the app later
   // (badges, favorites, stays, legs...) sync with no database change. Map colors go in their own per-place rows instead.
   var PERSON_SKIP = { id: 1, states: 1, places: 1, parks: 1, updatedAt: 1 };
-  function personRow(p, fid) {
-    var data = {}; Object.keys(p).forEach(function (k) { if (!PERSON_SKIP[k] && p[k] !== undefined) data[k] = JSON.parse(JSON.stringify(p[k])); });
-    return { family_id: fid, id: p.id, data: data, updated_at: iso(p.updatedAt), deleted: false };
+  // v77: the cloud's people.data column holds at most ~8 KB (people_data_check). A kid's drawn stamps (stampArt, up to
+  // 90 KB each) or a long list can go past that, and then the whole push failed ("Sync paused ... people_data_check") and
+  // every change waited. Now the person is split: the small fields stay in data, and stampArt plus the biggest other
+  // fields (largest first) go in people.data_more (added 2026-10-28, its own larger limit). Nothing is dropped.
+  var DATA_MAX = 6000, MORE_MAX = 7000000;
+  var PERSON_CORE = { name: 1, nickname: 1, role: 1, color: 1, relationship: 1, birthYear: 1, createdAt: 1, avatar: 1 };
+  function utf8Len(s) { s = String(s); var n = 0; for (var i = 0; i < s.length; i++) { var c = s.charCodeAt(i); n += c < 0x80 ? 1 : c < 0x800 ? 2 : (c >= 0xd800 && c < 0xdc00) ? (i++, 4) : 3; } return n; }
+  function canon(v) {
+    if (Array.isArray(v)) return "[" + v.map(canon).join(",") + "]";
+    if (v && typeof v === "object") return "{" + Object.keys(v).sort().map(function (k) { return JSON.stringify(k) + ":" + canon(v[k]); }).join(",") + "}";
+    return JSON.stringify(v === undefined ? null : v);
+  }
+  function moreHash(o) { var s = canon(o || {}), h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + "." + s.length; }
+  var EMPTY_MORE = moreHash({});
+  /** Split a person's synced fields into { data, more } so data stays under the cloud's size limit. */
+  function splitPerson(p) {
+    var data = {}, more = {};
+    Object.keys(p).forEach(function (k) { if (!PERSON_SKIP[k] && p[k] !== undefined) data[k] = JSON.parse(JSON.stringify(p[k])); });
+    if (data.stampArt && typeof data.stampArt === "object" && Object.keys(data.stampArt).length) { more.stampArt = data.stampArt; delete data.stampArt; }
+    var size = utf8Len(JSON.stringify(data));
+    if (size > DATA_MAX) {
+      Object.keys(data).filter(function (k) { return !PERSON_CORE[k]; })
+        .map(function (k) { return [k, utf8Len(JSON.stringify(data[k]))]; })
+        .sort(function (a, b) { return b[1] - a[1]; })
+        .forEach(function (kv) { if (size > DATA_MAX) { more[kv[0]] = data[kv[0]]; delete data[kv[0]]; size = utf8Len(JSON.stringify(data)); } });
+    }
+    return { data: data, more: more };
+  }
+  /** A person's cloud row. data_more is only sent when it changed since the last push (it can be big), so the row
+      carries it only then; shadowMore = { personId: hash } of what the cloud has. */
+  function personRow(p, fid, shadowMore) {
+    var sp = splitPerson(p), row = { family_id: fid, id: p.id, data: sp.data, updated_at: iso(p.updatedAt), deleted: false };
+    var h = moreHash(sp.more), had = shadowMore && shadowMore[p.id] || EMPTY_MORE;
+    if (h !== had || !shadowMore) row.data_more = sp.more;
+    row._moreHash = h;
+    return row;
+  }
+  /** The fields from a pulled row: data_more (if any) under data. */
+  function rowData(r) {
+    var d = {}, m = r && r.data_more && typeof r.data_more === "object" ? r.data_more : {};
+    Object.keys(m).forEach(function (k) { d[k] = m[k]; });
+    Object.keys((r && r.data) || {}).forEach(function (k) { d[k] = r.data[k]; });
+    return d;
+  }
+  /** Rows ready for the server: drop helper fields, and group so every upsert call has the same columns
+      (a row without data_more must not reset another row's data_more to the default). */
+  function peopleBatches(rows) {
+    var withMore = [], without = [];
+    (rows || []).forEach(function (r) {
+      var o = {}; Object.keys(r).forEach(function (k) { if (k.charAt(0) !== "_") o[k] = r[k]; });
+      (Object.prototype.hasOwnProperty.call(o, "data_more") ? withMore : without).push(o);
+    });
+    return [without].concat(withMore.map(function (r) { return [r]; })).filter(function (b) { return b.length; });   // big rows one per request
   }
   function tripRow(t, fid) {
     var data = JSON.parse(JSON.stringify(t));
@@ -78,7 +128,7 @@
   function sameVisit(a, b) { return !!a && !!b && (a.at || "") === (b.at || "") && !!a.jr === !!b.jr; }
   function bagOf(p, kind) { return kind === "state" ? (p.states = p.states || {}) : kind === "park" ? (p.parks = p.parks || {}) : (p.places = p.places || {}); }
 
-  function emptyShadow() { return { people: {}, visits: {}, trips: {}, photos: {} }; }
+  function emptyShadow() { return { people: {}, visits: {}, trips: {}, photos: {}, more: {} }; }
 
   /** What this phone needs to send. local = { people, trips, photoIds }. Returns rows per table plus photo ids to upload. */
   /** A trip's photos: its main one plus (v63) the kids' journal drawings. */
@@ -93,7 +143,7 @@
     var byId = {};
     local.people.forEach(function (p) {
       byId[p.id] = p;
-      if (!shadow.people[p.id] || shadow.people[p.id] !== iso(p.updatedAt)) out.people.push(personRow(p, fid));
+      if (!shadow.people[p.id] || shadow.people[p.id] !== iso(p.updatedAt)) out.people.push(personRow(p, fid, shadow.more || {}));
     });
     Object.keys(shadow.people).forEach(function (id) {
       if (!byId[id]) out.people.push({ family_id: fid, id: id, data: {}, updated_at: now, deleted: true });
@@ -133,7 +183,8 @@
   }
   /** After a push succeeds, remember what the cloud now has. */
   function afterPush(shadow, plan) {
-    plan.people.forEach(function (r) { if (r.deleted) { delete shadow.people[r.id]; dropPersonVisits(shadow, r.id); } else shadow.people[r.id] = r.updated_at; });
+    shadow.more = shadow.more || {};
+    plan.people.forEach(function (r) { if (r.deleted) { delete shadow.people[r.id]; delete shadow.more[r.id]; dropPersonVisits(shadow, r.id); } else { shadow.people[r.id] = r.updated_at; if (r._moreHash) shadow.more[r.id] = r._moreHash; } });
     plan.visits.forEach(function (r) { var k = r.person_id + "|" + r.kind + "|" + r.place_id; if (r.deleted) delete shadow.visits[k]; else shadow.visits[k] = { at: r.at || "", jr: !!r.jr }; });
     plan.trips.forEach(function (r) { if (r.deleted) delete shadow.trips[r.id]; else shadow.trips[r.id] = r.updated_at; });
     plan.photos.forEach(function (r) { if (r.deleted) delete shadow.photos[r.id]; });
@@ -186,6 +237,10 @@
       into.games = into.games && typeof into.games === "object" ? into.games : {};
       Object.keys(from.games).forEach(function (k) { if (!into.games[k]) { into.games[k] = JSON.parse(JSON.stringify(from.games[k])); changed = true; } });
     }
+    if (from.stampArt && typeof from.stampArt === "object") {   // v77: a kid's drawn stamp from another phone is kept, not overwritten
+      into.stampArt = into.stampArt && typeof into.stampArt === "object" ? into.stampArt : {};
+      Object.keys(from.stampArt).forEach(function (k) { if (!into.stampArt[k] && typeof from.stampArt[k] === "string") { into.stampArt[k] = from.stampArt[k]; changed = true; } });
+    }
     var gone = unionArr(into.capsGone, from.capsGone);
     if (gone.length && gone.length !== (into.capsGone || []).length) { into.capsGone = gone.slice(-200); changed = true; }
     if (Array.isArray(from.capsules) || Array.isArray(into.capsules)) {
@@ -210,15 +265,16 @@
         delete shadow.people[r.id]; dropPersonVisits(shadow, r.id); return;
       }
       if (p && localDirty && !newer(r.updated_at, p.updatedAt)) {   // our newer edit goes up on the next push, carrying their pieces too
-        if (mergePersonPieces(p, r.data || {})) { ch.people++; ch.touched[r.id] = 1; ch.merged = (ch.merged || 0) + 1; }
+        if (mergePersonPieces(p, rowData(r))) { ch.people++; ch.touched[r.id] = 1; ch.merged = (ch.merged || 0) + 1; }
         return;
       }
       if (p && !localDirty && shadow.people[r.id] === iso(r.updated_at)) return;   // already have exactly this version (cursor overlap, our own push echoing back)
-      var d = r.data || {}, keep = p ? { games: p.games, capsules: p.capsules, capsGone: p.capsGone } : null;
+      var d = rowData(r), keep = p ? { games: p.games, capsules: p.capsules, capsGone: p.capsGone } : null;
       if (!p) { p = { id: r.id, states: {}, places: {}, parks: {} }; local.people.push(p); byId[r.id] = p; }
       Object.keys(d).forEach(function (k) { if (!PERSON_SKIP[k]) p[k] = d[k]; });
       var extra = keep ? mergePersonPieces(p, keep) : false;
-      p.updatedAt = extra ? bump(r.updated_at) : iso(r.updated_at); shadow.people[r.id] = iso(r.updated_at); ch.people++; ch.touched[r.id] = 1;
+      p.updatedAt = extra ? bump(r.updated_at) : iso(r.updated_at); shadow.people[r.id] = iso(r.updated_at);
+      if (r.data_more && typeof r.data_more === "object") { shadow.more = shadow.more || {}; shadow.more[r.id] = moreHash(splitPerson(p).more); } ch.people++; ch.touched[r.id] = 1;
       if (extra) ch.merged = (ch.merged || 0) + 1;
     });
     (rows.visits || []).forEach(function (r) {
@@ -417,7 +473,7 @@
   }
   function slug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30); }
 
-  return { mergeTripPieces: mergeTripPieces, mergePersonPieces: mergePersonPieces, pendingCount: pendingCount, tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
+  return { splitPerson: splitPerson, personRow: personRow, rowData: rowData, peopleBatches: peopleBatches, moreHash: moreHash, utf8Len: utf8Len, DATA_MAX: DATA_MAX, mergeTripPieces: mergeTripPieces, mergePersonPieces: mergePersonPieces, pendingCount: pendingCount, tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
            ms: ms, iso: iso, newer: newer, personRow: personRow, tripRow: tripRow, flatVisits: flatVisits, emptyShadow: emptyShadow,
            planPush: planPush, afterPush: afterPush, applyPull: applyPull, nextCursor: nextCursor, photoPath: photoPath,
            matchPeople: matchPeople, remapPeople: remapPeople, access: access, allows: allows, FREE: FREE,
