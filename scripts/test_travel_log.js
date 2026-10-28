@@ -2538,3 +2538,14 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/moveToTrash/.test(gs) && /ingest_booking/.test(gs), "v88: mail is trashed after reading; only parsed fields are sent");
   ok(!/Matt|Hill|oraclinical/i.test(gs + sql), "v88: no personal names");
 }
+
+// ---- v89: bearded young-adult avatars ----
+{
+  const AV = require(path.join(APP, "avatars.js")), app = read("app.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
+  ok(/var VERSION = "v(89|9\d)"/.test(app) && /mltl-v(89|9\d)/.test(swr), "v89: version and cache bumped");
+  const by = {}; AV.list.forEach(a => { by[a.id] = a; });
+  ok(by.a9 && by.a9.label === "Beard" && by.a9.group === "adult", "v89: a9 'Beard' is a grown-up");
+  ok(by.a10 && by.a11 && by.a10.group === "adult" && by.a11.group === "adult", "v89: two beard variations");
+  ok(["a1","a2","a3","a4","a5","a6","a7","a8","k1","x1","x4"].every(id => AV.has(id)), "v89: earlier ids still there");
+  ok(AV.html("a9") !== AV.html("a3") && /<ellipse/.test(AV.html("a9")), "v89: full beard drawn its own way");
+}

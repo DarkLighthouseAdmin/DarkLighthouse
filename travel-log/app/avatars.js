@@ -32,7 +32,12 @@
     s += '<circle cx="26" cy="' + ey + '" r="' + er + '" fill="#2a211c"/><circle cx="38" cy="' + ey + '" r="' + er + '" fill="#2a211c"/>';
     if (kid) s += '<circle cx="26.8" cy="' + (ey - 0.8) + '" r=".8" fill="#fff"/><circle cx="38.8" cy="' + (ey - 0.8) + '" r=".8" fill="#fff"/><circle cx="22" cy="' + (cy + 5) + '" r="2.6" fill="#f08a7e" opacity=".45"/><circle cx="42" cy="' + (cy + 5) + '" r="2.6" fill="#f08a7e" opacity=".45"/>';
     if (o.glasses) s += '<g fill="none" stroke="#2a211c" stroke-width="1.6"><circle cx="26" cy="' + ey + '" r="4.6"/><circle cx="38" cy="' + ey + '" r="4.6"/><path d="M30.6 ' + ey + 'H33.4"/></g>';
-    if (o.beard) s += '<path d="M17 ' + (cy + 1) + 'C18 ' + (cy + 18) + ' 46 ' + (cy + 18) + ' 47 ' + (cy + 1) + 'C44 ' + (cy + 8) + ' 20 ' + (cy + 8) + ' 17 ' + (cy + 1) + 'Z" fill="' + o.hc + '"/>';
+    if (o.beard === "full" || o.beard === "short") {   // v89: young-adult beards (full = with mustache; short = trimmed)
+      var bl = o.beard === "full" ? 20 : 15, op = o.beard === "full" ? "" : ' opacity=".8"';
+      s += '<path d="M15.5 ' + (cy - 5) + 'C15.5 ' + (cy + bl - 4) + ' 23 ' + (cy + bl) + ' 32 ' + (cy + bl) + 'S48.5 ' + (cy + bl - 4) + ' 48.5 ' + (cy - 5) + 'L46 ' + (cy - 5) + 'C45.5 ' + (cy + 3) + ' 40 ' + (cy + 4.5) + ' 32 ' + (cy + 4.5) + 'S18.5 ' + (cy + 3) + ' 18 ' + (cy - 5) + 'Z" fill="' + o.hc + '"' + op + '/>';
+      s += '<ellipse cx="32" cy="' + (cy + 8) + '" rx="5.6" ry="2.6" fill="' + o.skin + '"/>';
+      if (o.beard === "full") s += '<path d="M24.5 ' + (cy + 6) + 'Q32 ' + (cy + 2) + ' 39.5 ' + (cy + 6) + 'Q32 ' + (cy + 4.6) + ' 24.5 ' + (cy + 6) + 'Z" fill="' + o.hc + '"/>';
+    } else if (o.beard) s += '<path d="M17 ' + (cy + 1) + 'C18 ' + (cy + 18) + ' 46 ' + (cy + 18) + ' 47 ' + (cy + 1) + 'C44 ' + (cy + 8) + ' 20 ' + (cy + 8) + ' 17 ' + (cy + 1) + 'Z" fill="' + o.hc + '"/>';
     s += '<path d="M26.5 ' + (cy + 6) + 'Q32 ' + (cy + (kid ? 11.5 : 10.5)) + ' 37.5 ' + (cy + 6) + '" fill="none" stroke="#7a3b2e" stroke-width="2" stroke-linecap="round"/>';
     if (o.bow) s += '<path d="M40 ' + (cy - 15) + 'L46 ' + (cy - 19) + 'L46 ' + (cy - 11) + 'Z M52 ' + (cy - 19) + 'L46 ' + (cy - 15) + 'L52 ' + (cy - 11) + 'Z" fill="#e2557a"/>';
     return s;
@@ -65,6 +70,9 @@
     { id: "a6", label: "Grown-up in a cap", group: "adult", art: { skin: SKIN[5], hair: "cap", hc: HAIR.black, shirt: "#4a9a6a", beard: 1 } },
     { id: "a7", label: "Grandparent with gray hair", group: "adult", art: { skin: SKIN[1], hair: "bald", hc: HAIR.gray, shirt: "#8a6fd1", glasses: 1 } },
     { id: "a8", label: "Grandparent with a bun", group: "adult", art: { skin: SKIN[2], hair: "bun", hc: HAIR.gray, shirt: "#5aa9a0" } },
+    { id: "a9", label: "Beard", group: "adult", art: { skin: SKIN[1], hair: "short", hc: HAIR.brown, shirt: "#3f6fb5", beard: "full" } },
+    { id: "a10", label: "Short beard", group: "adult", art: { skin: SKIN[0], hair: "short", hc: HAIR.blond, shirt: "#4a9a6a", beard: "short" } },
+    { id: "a11", label: "Beard with dark curly hair", group: "adult", art: { skin: SKIN[3], hair: "curly", hc: HAIR.black, shirt: "#c4574a", beard: "full" } },
     { id: "x1", label: "Fox", group: "animal", art: "fox" },
     { id: "x2", label: "Bear", group: "animal", art: "bear" },
     { id: "x3", label: "Cat", group: "animal", art: "cat" },
