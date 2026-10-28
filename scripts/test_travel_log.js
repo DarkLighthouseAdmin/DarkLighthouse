@@ -350,6 +350,35 @@ ok(/makeBackup/.test(js) && /readBackup/.test(js), "back up / restore wired up")
 ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view");
 
 
+// ---- v84: paste a flight or hotel booking into a new trip (read on the phone; names, codes and prices left out) ----
+{
+  const BK = require("../travel-log/app/booking-core.js");
+  const AIR = { EDI: { code: "EDI", name: "Edinburgh", city: "Edinburgh", country: "GBR", lat: 55.95, lon: -3.37 }, LHR: { code: "LHR", name: "Heathrow", city: "London", country: "GBR", lat: 51.47, lon: -0.45 },
+                JFK: { code: "JFK", name: "JFK", city: "New York", country: "USA", lat: 40.64, lon: -73.78 }, SFO: { code: "SFO", name: "SFO", city: "San Francisco", country: "USA", lat: 37.62, lon: -122.38 } };
+  const air = c => AIR[c] || null;
+  const fl = "Your flight is confirmed\nBooking reference: ZZ9QX1\nPassenger: Zz Test Dad\nOutbound  Fri 3 July 2026\nBA 1442  Edinburgh (EDI) to London Heathrow (LHR)\nReturn  Sun 12 July 2026\nBA 1449  LHR → EDI\nTotal: GBP 245.20";
+  const r1 = BK.parse(fl, "2026-05-01");
+  ok(r1.flights.length === 2 && r1.flights[0].dep === "EDI" && r1.flights[0].arr === "LHR" && r1.flights[0].date === "2026-07-03" && r1.flights[1].date === "2026-07-12", "v84: a pasted flight email gives both legs with their dates");
+  ok(!/ZZ9QX1|Zz Test Dad|245/.test(JSON.stringify(r1)), "v84: confirmation code, passenger name and price are never kept");
+  const t1 = BK.toTrip(r1, air, "2026-05-01");
+  ok(t1.route.length === 3 && t1.route[0].name === "Edinburgh" && !t1.route[0].mode && t1.route[1].mode === "plane" && t1.route[1].dep.code === "EDI" && t1.route[1].arr.code === "LHR" && t1.route[2].name === "Edinburgh", "v84: flights become a route with plane legs and airports");
+  ok(t1.roundTrip && t1.date === "2026-07-03" && t1.endDate === "2026-07-12" && t1.title === "Trip to London" && !t1.done && t1.fly === "yes", "v84: round trip, dates, title; a future trip isn't marked done");
+  const ho = "Thanks for booking with Zz Travel!\nHotel: The Zz Harbour Inn, Portree\nCheck-in: Monday, August 10, 2026 from 3 PM\nCheck-out: Thursday, August 13, 2026 by 11 AM\nConfirmation #123456789";
+  const r2 = BK.parse(ho, "2026-05-01"), t2 = BK.toTrip(r2, air, "2026-09-01");
+  ok(r2.hotels.length === 1 && r2.hotels[0].name === "The Zz Harbour Inn" && r2.hotels[0].city === "Portree" && r2.hotels[0].nights === 3, "v84: a hotel email gives the hotel, its town and the nights");
+  ok(t2.stays[0].name === "The Zz Harbour Inn" && t2.stays[0].type === "hotel" && t2.stays[0].nights === 3 && t2.date === "2026-08-10" && t2.endDate === "2026-08-13" && t2.done && t2.route[0].name === "Portree" && t2.route[0].mode === "car", "v84: a hotel-only booking fills the stay, the dates and the town as a stop");
+  const r3 = BK.parse("Depart\nEdinburgh (EDI)\nJul 3, 10:05\nArrive\nNew York (JFK)\nJul 3, 13:20", "2026-05-01");
+  ok(r3.flights.length === 1 && r3.flights[0].dep === "EDI" && r3.flights[0].arr === "JFK" && r3.flights[0].date === "2026-07-03", "v84: depart and arrive on separate lines, date with no year");
+  const ld = '<script type="application/ld+json">{"@context":"http://schema.org","@type":"FlightReservation","reservationNumber":"RXJ34P","underName":{"@type":"Person","name":"Zz Test"},"reservationFor":{"@type":"Flight","departureAirport":{"@type":"Airport","iataCode":"SFO"},"departureTime":"2027-03-04T20:15:00-08:00","arrivalAirport":{"@type":"Airport","iataCode":"JFK"}}}</script>';
+  const r4 = BK.parse(ld);
+  ok(r4.flights.length === 1 && r4.flights[0].dep === "SFO" && r4.flights[0].date === "2027-03-04" && !/RXJ34P|Zz Test/.test(JSON.stringify(r4)), "v84: schema.org FlightReservation (JSON-LD) read, its code and name left out");
+  ok(BK.parse("Total USD 300 THE END GBP-EUR").flights.length === 0 && BK.toTrip(BK.parse("nothing here"), air) === null, "v84: currency codes aren't airports; nothing found gives null");
+  ok(BK.toTrip({ flights: [{ dep: "EDI", arr: "ZZZ", date: "" }], hotels: [] }, air) === null, "v84: unknown airport codes are dropped");
+  ok(BK.datesIn("2026-02-30 and 31 June 2026").length === 0 && BK.datesIn("Feb 29, 2028")[0] === "2028-02-29", "v84: only real dates");
+  const tui = fs.readFileSync(path.join(__dirname, "../travel-log/app/trips-ui.js"), "utf8"), ix = read("index.html");
+  ok(/id="tpaste"/.test(tui) && /function bookingSheet/.test(tui) && /pendingBooking = found/.test(tui) && /!fromWish && !fromBooking && RB/.test(tui), "v84: Add a trip has Paste a booking; it fills the form and skips the unfinished-trip resume");
+  ok(/<script src="booking-core\.js"><\/script>/.test(ix) && !/fetch\(|XMLHttpRequest|localStorage|indexedDB/.test(fs.readFileSync(path.join(__dirname, "../travel-log/app/booking-core.js"), "utf8")), "v84: booking reader is bundled and never sends or stores the pasted text");
+}
 // ---- v83: family menu links go where they say (no bounce back to Home) ----
 {
   const sy = fs.readFileSync(path.join(__dirname, "../travel-log/app/sync.js"), "utf8");

@@ -319,10 +319,17 @@
       if (fromWish.who && fromWish.who.length) d.kidIds = fromWish.who.filter(function (id) { return st.kids.some(function (x) { return x.id === id; }); });
       if (!d.kidIds.length) d.kidIds = [k.id];
     }
+    // v84: "Paste a booking": what we read from a flight or hotel confirmation fills in the new trip (the pasted text itself is never kept)
+    var fromBooking = !old && !fromWish ? pendingBooking : null; pendingBooking = null;
+    if (fromBooking) {
+      ["date", "endDate", "done", "roundTrip", "title", "fly"].forEach(function (x) { if (fromBooking[x] !== undefined && fromBooking[x] !== "") d[x] = fromBooking[x]; });
+      if (fromBooking.route.length) d.route = fromBooking.route[0].mode ? (d.route.slice(0, 1)).concat(copy(fromBooking.route)) : copy(fromBooking.route);
+      if (fromBooking.stays.length) d.stays = copy(fromBooking.stays);
+    }
     // v71 (B2): an unfinished new trip is kept on this phone as you type; "Continue" on Home brings it back here
-    var RB = window.FS_ROBUST, resumed = !old && !fromWish && RB && RB.resumeDraft ? RB.resumeDraft(k.id) : null;
+    var RB = window.FS_ROBUST, resumed = !old && !fromWish && !fromBooking && RB && RB.resumeDraft ? RB.resumeDraft(k.id) : null;
     if (resumed && resumed.d) { Object.keys(resumed.d).forEach(function (x) { if (x !== "id" && x !== "photoId") d[x] = copy(resumed.d[x]); }); if (!d.kidIds || !d.kidIds.length) d.kidIds = [k.id]; }
-    var newPhoto = null, removePhoto = false, saveHome = !st.meta.homePoint, places = null, airports = null;
+    var newPhoto = null, removePhoto = false, saveHome = !st.meta.homePoint && !fromBooking, places = null, airports = null;
     function memVals() { var o = {}; document.querySelectorAll("[data-memf]").forEach(function (el) { o[el.dataset.memf] = el.value; }); return o; }
     loadPlaces().then(function (x) { places = x; renderRoute(); }).catch(function () {});
     loadAirports().then(function (x) { airports = x; renderFly(); }).catch(function () {});
@@ -331,7 +338,7 @@
     var picks = st.kids.map(function (x) {
       return '<label style="' + A_.kidStyle(x) + '"><input type="checkbox" name="kids" value="' + esc(x.id) + '"' + (d.kidIds.indexOf(x.id) >= 0 ? " checked" : "") + '> <span class="dotp" aria-hidden="true">' + A_.initial(M.who(x)) + '</span> ' + esc(M.who(x)) + '</label>';
     }).join("");
-    var html = '<h2>' + (old ? "Edit trip" : "Add a trip") + '</h2><div class="panel builder">' +
+    var html = '<h2>' + (old ? "Edit trip" : "Add a trip") + '</h2>' + (old ? "" : '<p class="small bkpaste">' + (fromBooking ? '✓ Filled in from your booking. Check it over, then Save. ' : "") + '<button type="button" class="linkbtn" id="tpaste">📋 Paste a flight or hotel booking</button></p>') + '<div class="panel builder">' +
       '<div class="field" style="margin-top:0"><label>Who went?</label><div class="kidpick">' + picks + '</div>' +
       (st.kids.length > 2 ? '<button type="button" class="linkbtn" id="tall">Everyone went</button>' : "") + '</div>' +
       '<div class="bsec"><h3>Where did you go? <span class="muted small">Tap places in order</span></h3><ol class="route" id="broute"></ol>' +
@@ -726,6 +733,7 @@
       if (b.id === "addstay") { var last = d.route[d.route.length - 1]; d.stays.push({ name: "", type: "hotel", nights: null, where: last && d.route.length > 1 ? last.name : "" }); renderStays(); var si = $$("#bstays [data-sf=name]"); si[si.length - 1].focus(); }
     });
     renderStays(); renderFavs(); renderMoments();
+    var tp = $("#tpaste"); if (tp) tp.onclick = function () { bookingSheet(k, opts); };
     var tall = $("#tall"); if (tall) tall.onclick = function () { $$("input[name=kids]").forEach(function (c) { c.checked = true; }); renderFavs(); renderMoments(); };
     var end = $("#tend"), done = $("#tdone");
     // The end can't be before the start: the picker won't offer earlier days, and Save says so if one is typed anyway.
@@ -1374,6 +1382,33 @@
     return el;
   }
   function closeSheet() { $$(".sheetbg").forEach(function (x) { x.remove(); }); }
+  // ---------- v84: paste a booking (flight or hotel confirmation) into a new trip ----------
+  var pendingBooking = null;
+  function bookingSheet(k, opts) {
+    var BK = window.FS_BOOKING_CORE; if (!BK) return;
+    var el = sheet('<h3>📋 Paste a booking</h3><p class="small muted">Copy the text of a flight or hotel confirmation email and paste it here. We pick out the airports, dates and hotel name, and it stays on this phone: names, confirmation numbers and prices are left out.</p>' +
+      '<div class="field"><label for="bktext">Booking email</label><textarea id="bktext" rows="7" maxlength="60000" placeholder="e.g. Edinburgh (EDI) to London Heathrow (LHR), Fri 3 July 2026"></textarea></div>' +
+      '<div id="bkout" class="small" aria-live="polite"></div>' +
+      '<div class="actions"><button type="button" class="btn btn-primary" id="bkread">Read it</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
+    var ta = $("#bktext", el), out = $("#bkout", el), btn = $("#bkread", el), found = null;
+    ta.oninput = function () { found = null; btn.textContent = "Read it"; out.innerHTML = ""; };
+    btn.onclick = function () {
+      if (found) { pendingBooking = found; closeSheet(); builder(k, null, opts); return; }
+      btn.disabled = true;
+      loadAirports().catch(function () { return []; }).then(function (list) {
+        btn.disabled = false;
+        var by = {}; (list || []).forEach(function (a) { by[a.code] = a; });
+        var res = BK.parse(ta.value, M.today());
+        found = BK.toTrip(res, function (c) { var a = by[c]; return a ? airportObj(a) : null; }, M.today());
+        if (!found) { out.innerHTML = '<p class="err">We couldn\'t find any flights or a hotel in that. Try pasting the whole email, or add the trip by hand.</p>'; return; }
+        var lines = [];
+        res.flights.forEach(function (f) { if (by[f.dep] && by[f.arr]) lines.push("✈️ " + esc(f.dep + " → " + f.arr) + (f.date ? " · " + esc(f.date) : "")); });
+        found.stays.forEach(function (h) { lines.push("🏨 " + esc(h.name) + (h.nights != null ? " · " + h.nights + (h.nights === 1 ? " night" : " nights") : "")); });
+        out.innerHTML = '<p><b>We found:</b></p><ul class="bkfound">' + lines.map(function (l) { return "<li>" + l + "</li>"; }).join("") + '</ul>';
+        btn.textContent = "Fill in the trip";
+      });
+    };
+  }
   window.addEventListener("hashchange", closeSheet);
   /** "With Mom & Dad" on a stamp from a shared visit (nicknames when set). Old stamps have no list and show nothing. */
   function withLine(s, owner) {

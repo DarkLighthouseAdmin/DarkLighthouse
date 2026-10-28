@@ -1114,3 +1114,8 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .idpage .idnote { margin: 0; font-size: .72rem; }
 .idbd { display: flex; gap: .5rem; }
 .idbd select { flex: 1; }
+/* v84: paste a booking */
+.bkpaste { margin:-.25rem 0 .6rem; }
+.bkfound { margin:.25rem 0 .5rem; padding-left:1.1rem; }
+.bkfound li { margin:.15rem 0; }
+#bktext { width:100%; font-size:16px; }
