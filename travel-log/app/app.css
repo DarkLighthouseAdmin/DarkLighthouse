@@ -1139,3 +1139,13 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .bkmail .bkaddr { user-select: all; -webkit-user-select: all; word-break: break-all; }
 /* v92: a forwarded email we couldn't read */
 .bknote, .mailnote > p:first-child { background: rgba(232,165,75,.16); border-radius: 10px; padding: .5rem .7rem; }
+
+/* v93: first-time welcome */
+.welcome { border: 2px solid var(--beacon, #e8a33d); }
+.welcome h2 { margin-top: 0; }
+.welcome .actions { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.wl-dots { display: flex; align-items: center; gap: .3rem; margin: .6rem 0; }
+.wl-dots span { width: .55rem; height: .55rem; border-radius: 50%; background: currentColor; opacity: .25; display: inline-block; }
+.wl-dots span.on { opacity: .9; }
+.wl-res { display: flex; flex-direction: column; gap: .35rem; margin: .4rem 0; }
+.wl-pick { text-align: left; padding: .7rem .8rem; border-radius: .6rem; border: 1px solid rgba(0,0,0,.15); background: transparent; color: inherit; font: inherit; min-height: 44px; }

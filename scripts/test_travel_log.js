@@ -2610,3 +2610,25 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/note_booking_failed/.test(gs) && /slice\(0, 60\)/.test(gs) && !/getPlainBody\(\)[^;]*note_/.test(gs), "v92: mail script sends only the subject (cut) for a note");
   ok(!/sendEmail|reply\(|forward\(|createDraft/.test(gs) && !/Matt|Hill|oraclinical/i.test(gs + sql), "v92: never replies; no personal names");
 }
+
+// ---- v93: first-time welcome for brand-new families ----
+{
+  const W = require(path.join(APP, "welcome.js")), app = read("app.js"), nav = read("nav.js"), idx = fs.readFileSync(path.join(APP, "index.html"), "utf8");
+  const fresh = { flag: null, step: null, kids: 0, trips: 0, bin: 0, home: "", backup: "", sync: false, tour: null };
+  const o = (x) => Object.assign({}, fresh, x);
+  ok(W.decide(fresh).step === 1 && W.decide(fresh).flag === "on", "v93: a brand-new family sees step 1");
+  ok(W.decide(o({ kids: 2 })).step === 0 && W.decide(o({ kids: 2 })).flag === "done", "v93: an existing user with people never sees it");
+  ok(W.decide(o({ trips: 1 })).flag === "done" && W.decide(o({ home: "Rivera town" })).flag === "done" && W.decide(o({ backup: "2026-01-01" })).flag === "done", "v93: trips, a home town or a backup mean an existing user");
+  ok(W.decide(o({ sync: true })).flag === "done" && W.decide(o({ tour: "done" })).flag === "done", "v93: Family Sync or the tour done mean an existing user");
+  ok(W.decide(o({ flag: "done" })).step === 0 && W.decide(o({ flag: "done", kids: 0 })).flag === undefined, "v93: once done it never comes back");
+  ok(W.decide(o({ flag: "on", step: "2" })).step === 2 && W.decide(o({ flag: "on", step: "2", kids: 1 })).step === 3, "v93: adding the family moves on to the home town");
+  ok(W.decide(o({ flag: "on", step: "3", kids: 1, trips: 1 })).flag === "done", "v93: once there's a trip, it's done");
+  ok(W.decide(o({ flag: "on", step: "9" })).step === 3 && W.decide(o({ flag: "on", step: "x" })).step === 1, "v93: a bad step is kept in range");
+  ok(JSON.stringify(W.homeStamp({ country: "USA", region: "WI" })) === '{"kind":"state","id":"WI"}', "v93: a US home town stamps its state");
+  ok(JSON.stringify(W.homeStamp({ country: "CAN", region: "ON" })) === '{"kind":"place","id":"CAN"}' && W.homeStamp({ country: "USA" }) === null && W.homeStamp(null) === null, "v93: elsewhere the country; nothing when unsure");
+  ok(/FS_WELCOME\.homeHTML\(\)/.test(app) && /FS_WELCOME\.bind\(\)/.test(app), "v93: welcome on Home");
+  ok(/!\(window\.FS_WELCOME && window\.FS_WELCOME\.active\(\)\)/.test(nav), "v93: the tour waits for the welcome");
+  ok(idx.indexOf('src="welcome.js"') > idx.indexOf('src="where.js"') && idx.indexOf('src="welcome.js"') < idx.indexOf('src="nav.js"'), "v93: welcome.js in the bundle");
+  const wsrc = read("welcome.js");
+  ok(/data-wl="skip"/.test(wsrc) && !/Matt|Hill/.test(wsrc), "v93: Skip on every step; no personal names");
+}

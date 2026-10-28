@@ -280,7 +280,7 @@
       if (/[?&]list=1/.test(location.hash)) { var d = main.querySelector("details.list"); if (d) { d.open = true; setTimeout(function () { d.scrollIntoView({ block: "start" }); }, 50); } }
     }
     // Home: the tour (once), and a sample-family nudge stays as it is
-    if (h[0] === "" && !gv && kids().length && ls("fs-tour") !== "done" && !main.querySelector(".fstour")) { var t = document.createElement("div"); t.innerHTML = tourHTML(); main.insertBefore(t.firstChild, main.firstChild); }
+    if (h[0] === "" && !gv && kids().length && ls("fs-tour") !== "done" && !main.querySelector(".fstour") && !(window.FS_WELCOME && window.FS_WELCOME.active())) { var t = document.createElement("div"); t.innerHTML = tourHTML(); main.insertBefore(t.firstChild, main.firstChild); }
     // grandparent: a one-screen tip the first time
     if (gv && h[0] === "highlights" && ls("fs-gtip") !== "1" && !main.querySelector(".gtip")) {
       var g = document.createElement("div"); g.className = "panel gtip"; g.setAttribute("role", "note");
