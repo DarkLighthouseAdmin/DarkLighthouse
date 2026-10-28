@@ -2549,3 +2549,15 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(["a1","a2","a3","a4","a5","a6","a7","a8","k1","x1","x4"].every(id => AV.has(id)), "v89: earlier ids still there");
   ok(AV.html("a9") !== AV.html("a3") && /<ellipse/.test(AV.html("a9")), "v89: full beard drawn its own way");
 }
+
+// ---- v90: beard avatars get a full head of hair ----
+{
+  const AV = require(path.join(APP, "avatars.js")), app = read("app.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
+  ok(/var VERSION = "v(9\d)"/.test(app) && /mltl-v(9\d)/.test(swr), "v90: version and cache bumped");
+  const by = {}; AV.list.forEach(a => { by[a.id] = a; });
+  ok(by.a9.art.hair === "full" && by.a10.art.hair === "full" && by.a9.label === "Beard" && by.a10.label === "Short beard", "v90: a9 and a10 use the fuller hair, same labels");
+  ok(by.a1.art.hair === "short" && by.a3.art.hair === "short" && by.a11.art.hair === "curly", "v90: other avatars unchanged");
+  // hair reaches above the head (y < 18.5) and down to the temples (y >= 30)
+  const ys = (AV.html("a9").match(/<path d="M14\.2[^"]*"/) || [""])[0].match(/-?\d+(\.\d+)?/g).map(Number).filter((v, i) => i % 2 === 1);
+  ok(ys.length && Math.min(...ys) <= 12 && Math.max(...ys) >= 30, "v90: a9 hair covers the crown down to the temples");
+}

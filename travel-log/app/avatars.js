@@ -12,6 +12,9 @@
     var cap = '<path d="M14.5 ' + (top + 14) + 'C14.5 ' + (top - 2) + ' 49.5 ' + (top - 2) + ' 49.5 ' + (top + 14) + 'C44 ' + (top + 5) + ' 22 ' + (top + 4) + ' 14.5 ' + (top + 14) + 'Z" fill="' + c + '"/>';
     switch (style) {
       case "short": return cap;
+      // v90: fuller short hair (covers the crown down to the temples, with a side part); used by the beard avatars
+      case "full": return '<path d="M14.2 ' + (top + 13) + 'C12.5 ' + (top - 1) + ' 20 ' + (top - 8) + ' 32 ' + (top - 8) + 'C44 ' + (top - 8) + ' 51.5 ' + (top - 2) + ' 49.8 ' + (top + 13) + 'C48.6 ' + (top + 8) + ' 46.5 ' + (top + 5) + ' 44 ' + (top + 4) + 'C37 ' + (top + 7) + ' 29 ' + (top + 7) + ' 25 ' + (top + 3) + 'C21 ' + (top + 5) + ' 17 ' + (top + 8) + ' 14.2 ' + (top + 13) + 'Z" fill="' + c + '"/>' +
+        '<path d="M25 ' + (top + 3) + 'C27 ' + (top - 2) + ' 31 ' + (top - 5) + ' 37 ' + (top - 6) + '" fill="none" stroke="#000" stroke-opacity=".18" stroke-width="1.4" stroke-linecap="round"/>';
       case "curly": return [18, 25, 32, 39, 46].map(function (x, i) { return '<circle cx="' + x + '" cy="' + (top + 4 + (i % 2) * 2) + '" r="6.2" fill="' + c + '"/>'; }).join("") + '<circle cx="15.5" cy="' + (top + 11) + '" r="4.5" fill="' + c + '"/><circle cx="48.5" cy="' + (top + 11) + '" r="4.5" fill="' + c + '"/>';
       case "long": return '<path d="M13 ' + (top + 12) + 'C12 ' + (top - 3) + ' 52 ' + (top - 3) + ' 51 ' + (top + 12) + 'L52 54L44 54L44 ' + (top + 12) + 'L20 ' + (top + 12) + 'L20 54L12 54Z" fill="' + c + '"/>';
       case "bun": return cap + '<circle cx="32" cy="' + (top - 4) + '" r="6" fill="' + c + '"/>';
@@ -70,8 +73,8 @@
     { id: "a6", label: "Grown-up in a cap", group: "adult", art: { skin: SKIN[5], hair: "cap", hc: HAIR.black, shirt: "#4a9a6a", beard: 1 } },
     { id: "a7", label: "Grandparent with gray hair", group: "adult", art: { skin: SKIN[1], hair: "bald", hc: HAIR.gray, shirt: "#8a6fd1", glasses: 1 } },
     { id: "a8", label: "Grandparent with a bun", group: "adult", art: { skin: SKIN[2], hair: "bun", hc: HAIR.gray, shirt: "#5aa9a0" } },
-    { id: "a9", label: "Beard", group: "adult", art: { skin: SKIN[1], hair: "short", hc: HAIR.brown, shirt: "#3f6fb5", beard: "full" } },
-    { id: "a10", label: "Short beard", group: "adult", art: { skin: SKIN[0], hair: "short", hc: HAIR.blond, shirt: "#4a9a6a", beard: "short" } },
+    { id: "a9", label: "Beard", group: "adult", art: { skin: SKIN[1], hair: "full", hc: HAIR.brown, shirt: "#3f6fb5", beard: "full" } },
+    { id: "a10", label: "Short beard", group: "adult", art: { skin: SKIN[0], hair: "full", hc: HAIR.blond, shirt: "#4a9a6a", beard: "short" } },
     { id: "a11", label: "Beard with dark curly hair", group: "adult", art: { skin: SKIN[3], hair: "curly", hc: HAIR.black, shirt: "#c4574a", beard: "full" } },
     { id: "x1", label: "Fox", group: "animal", art: "fox" },
     { id: "x2", label: "Bear", group: "animal", art: "bear" },
