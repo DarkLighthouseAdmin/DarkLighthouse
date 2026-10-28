@@ -78,9 +78,12 @@
       var arrive = day, leave = typeof p.nights === "number" && day ? addDays(day, p.nights) : "";
       if (i === pts.length - 1 && !leave && t.endDate) leave = t.endDate;
       var via = p.arr && p.arr.code ? p.arr.code + (p.arr.city ? " " + T.airportCity(p.arr.city, p.arr.name, p.arr.code) : "") : p.name;
-      pointAreas(p, parkStates).forEach(function (a) {
+      var pa = pointAreas(p, parkStates);
+      // v79: a sight stop (castle, viewpoint, beach...) is its own stamp too, and still counts for its country / state
+      if (p.kind === "sight") pa.push({ kind: "sight", area: sightArea(p), name: p.name, type: p.type || "landmark", town: p.town || "", ref: p.ref || "", fame: p.fame || 0 });
+      pa.forEach(function (a) {
         var k = a.kind + ":" + a.area;
-        if (!out[k]) { out[k] = { kind: a.kind, area: a.area, date: arrive || (t.date ? cleanDate(t.date) : ""), end: leave, via: via }; order.push(k); }
+        if (!out[k]) { out[k] = { kind: a.kind, area: a.area, date: arrive || (t.date ? cleanDate(t.date) : ""), end: leave, via: via }; if (a.kind === "sight") sightInfo(out[k], a); order.push(k); }
         else if (leave) out[k].end = leave;
       });
       if (leave) day = leave;
@@ -88,10 +91,18 @@
     if (!r.length && t.mark && t.mark.id) { var mk = t.mark.kind + ":" + t.mark.id; out[mk] = { kind: t.mark.kind, area: t.mark.id, date: cleanDate(t.date), end: t.endDate || "", via: "" }; order.push(mk); }
     return order.map(function (k) { var v = out[k]; if (v.end && v.date && v.end < v.date) v.end = ""; if (v.end === v.date) v.end = ""; return v; });
   }
+  /** A sight's stamp id: its Wikidata id when known (Q1234), else type + name + country ("castle-edinburgh-castle-GBR"). */
+  function sightArea(p) {
+    if (/^Q\d{1,12}$/.test(p.ref || "")) return p.ref;
+    var f = String(p.name || "").toLowerCase().normalize ? String(p.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : String(p.name || "").toLowerCase();
+    return ((p.type || "landmark") + "-" + f.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 28) + (p.country ? "-" + p.country : "")).slice(0, 40);
+  }
+  function sightInfo(o, a) { o.name = a.name; o.type = a.type; if (a.town) o.town = a.town; if (a.ref) o.ref = a.ref; if (a.fame) o.fame = a.fame; return o; }
   function sameVisit(a, b) { var x = a.date || "", y = b.date || ""; return !!x && !!y && (x.indexOf(y) === 0 || y.indexOf(x) === 0); }
   function section(kind, area, isCountry) {
     if (kind === "park") return "parks";
     if (kind === "state") return "states";
+    if (kind === "sight") return "sights";
     return "world";
   }
   /** Every stamp in one person's passport, oldest first. Sources: trips they went on, stamps added by hand, and places colored
@@ -102,7 +113,9 @@
     (trips || []).forEach(function (t) {
       if ((t.kidIds || []).indexOf(person.id) < 0) return;
       tripVisits(t, ctx.parkStates).forEach(function (v) {
-        out.push({ id: "t-" + t.id + "-" + v.kind + "-" + v.area, kind: v.kind, area: v.area, date: v.date, end: v.end || "", via: v.via || "", tripId: t.id, trip: t.place, source: "trip", who: [person.id] });
+        var st = { id: "t-" + t.id + "-" + v.kind + "-" + v.area, kind: v.kind, area: v.area, date: v.date, end: v.end || "", via: v.via || "", tripId: t.id, trip: t.place, source: "trip", who: [person.id] };
+        if (v.kind === "sight") sightInfo(st, v);
+        out.push(st);
         have[v.kind + ":" + v.area] = 1;
       });
     });
@@ -139,7 +152,7 @@
   function hash(s) { return T.hash(String(s)); }
   /** How a stamp looks: shape, ink and motif come from the place (stamp-art.js); the tilt comes from the stamp itself. */
   function look(s, name, art) {
-    var h = hash(s.id), R = T.rng(h), d = SA.design(s.kind, s.area, name, art);
+    var h = hash(s.id), R = T.rng(h), d = SA.design(s.kind, s.area, name, art, s);
     return { shape: d.shape, ink: d.ink, motif: d.motif, border: d.border, rot: Math.round((R() * 2 - 1) * 16), r: R };
   }
   /** Spread stamps over passport pages: 4 per page, each nudged and turned a little (stable for the same stamp). */
@@ -166,8 +179,11 @@
   /** One stamp as SVG (viewBox 160x160), drawn by stamp-art.js. name = place name; opts.sub = park line under the name,
       opts.art = bird | flower | animal | mix for state stamps, opts.flag = false to leave the flag off.
       No date means no date line at all (never a placeholder). */
+  /** The line under a sight's name: "CASTLE · EDINBURGH" (type and town). */
+  function sightSub(s) { var ty = SA.typeOf ? SA.typeOf(s.type) : { label: "" }; return ty.label + (s.town && s.town !== s.name ? " · " + s.town : ""); }
   function stampSVG(s, name, opts) {
     opts = opts || {};
+    if (s.kind === "sight") { if (s.name) name = s.name; if (!opts.sub) opts = Object.assign({}, opts, { sub: sightSub(s) }); }
     // v65: a kid's own drawn stamp for this place (kidart.js), when the stamp is one person's
     var KA = typeof self !== "undefined" && self.FS_KIDART;
     if (KA && KA.svgFor && opts.kid !== false && (opts.holder || s.holder || (s.who && s.who.length === 1))) {
@@ -207,7 +223,7 @@
   function signSVG(id, name, info) { return SG.signSVG(id, name, info, { fmtDate: fmtDate }); }
   function signTier(info) { return info ? SG.tier(info.visits || 1) : ""; }
 
-  return { newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits,
+  return { newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits, sightArea: sightArea, sightSub: sightSub, section: section,
            stampsFor: stampsFor, familyStamps: familyStamps, pages: pages, look: look, flag: flag, stampSVG: stampSVG, ISO32: ISO32, NATIONS: NATIONS, MAX_STAMPS: MAX_STAMPS, SHAPES: SHAPES,
            STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook, signTier: signTier, signInfo: SG.look,
            stampArtMode: function (id, art) { return SA.stateMode(id, art); }, stampDesign: SA.design, STATE_SYMBOLS: SA.SYM ? SA.SYM.DATA : null };

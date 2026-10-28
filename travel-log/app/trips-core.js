@@ -59,6 +59,9 @@
   /** A stop that's really the place you're already at (typed "Orlando" again after starting at home in Orlando). */
   function sameStop(a, b) {
     if (!a || !b) return false;
+    // v79: a castle or viewpoint is its own stop even inside the town before it (Edinburgh, then Edinburgh Castle)
+    if ((a.kind === "sight") !== (b.kind === "sight")) return false;
+    if (a.kind === "sight") return (!!a.ref && a.ref === b.ref) || String(a.name || "").trim().toLowerCase() === String(b.name || "").trim().toLowerCase();
     var g = gcMiles(a, b); if (g != null) return g < 5;
     return String(a.name || "").trim().toLowerCase() === String(b.name || "").trim().toLowerCase();
   }
@@ -144,8 +147,14 @@
   function cleanPoint(p, first) {
     if (!p || typeof p !== "object") return null;
     var name = clean(p.name, 80); if (!name) return null;
-    var o = { name: name, kind: /^(city|park|place)$/.test(p.kind) ? p.kind : "place" };
+    var o = { name: name, kind: /^(city|park|place|sight)$/.test(p.kind) ? p.kind : "place" };
     if (p.ref) o.ref = clean(p.ref, 40);
+    // v79: a sight (castle, ruin, viewpoint, beach, distillery, a pin you dropped...): its type, the town it's in, and how famous it is
+    if (o.kind === "sight") {
+      o.type = /^[a-z]{2,16}$/.test(p.type || "") ? p.type : "landmark";
+      if (clean(p.town, 60)) o.town = clean(p.town, 60);
+      var fm = num(p.fame, 0, 999); if (fm) o.fame = fm;
+    }
     var lat = num(p.lat, -90, 90, 3), lon = num(p.lon, -180, 180, 3);
     if (lat != null && lon != null) { o.lat = lat; o.lon = lon; }
     if (/^[A-Z]{3}$/.test(p.country || "")) o.country = p.country;
@@ -331,10 +340,10 @@
       }
     });
     var seen = r.length > 1 ? r.slice(1) : r.slice();
-    var cities = [], parks = [], states = [], countries = [], uk = [];
+    var cities = [], parks = [], states = [], countries = [], uk = [], sights = [];
     function add(a, v) { if (v && a.indexOf(v) < 0) a.push(v); }
     seen.forEach(function (p) {
-      if (p.kind === "park") add(parks, p.ref || p.name); else add(cities, p.name);
+      if (p.kind === "park") add(parks, p.ref || p.name); else if (p.kind === "sight") { add(sights, p.name); if (p.town) add(cities, p.town); } else add(cities, p.name);
       if (p.country === "USA" && US_STATES.indexOf(p.region) >= 0) add(states, p.region);
       if (p.country === "GBR" && UK_NATIONS.indexOf(p.region) >= 0) add(uk, p.region);
       add(countries, p.country);
@@ -342,7 +351,7 @@
     var nights = typeof t.nights === "number" ? t.nights : nightsBetween(t.date, t.endDate);
     if (nights == null) { var s = 0, any = false; r.forEach(function (p) { if (typeof p.nights === "number") { s += p.nights; any = true; } }); nights = any ? s : null; }
     return { legs: legs, miles: Math.round(miles), milesKnown: known && legs.length > 0, flights: flights, roadMiles: Math.round(road), flightMiles: Math.round(flown), airMin: air,
-             cities: cities, parks: parks, states: states, countries: countries, ukNations: uk, nights: nights, days: nights == null ? null : nights + 1 };
+             cities: cities, sights: sights, parks: parks, states: states, countries: countries, ukNations: uk, nights: nights, days: nights == null ? null : nights + 1 };
   }
   /** Map areas a trip colors in for everyone on it: [{ kind: "state"|"place"|"park", id }]. */
   function areas(t, parkStates) {

@@ -350,6 +350,40 @@ ok(/makeBackup/.test(js) && /readBackup/.test(js), "back up / restore wired up")
 ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view");
 
 
+// ---- v79: sights in place search (castles, ruins, viewpoints...), each with its own stamp, counted for its town and country ----
+{
+  const TW = require("../travel-log/app/towns-core.js"), T = require("../travel-log/app/trips-core.js"), P = require("../travel-log/app/passport-core.js"), SA = require("../travel-log/app/stamp-art.js"), L = require("../travel-log/app/log-core.js");
+  const dir = __dirname + "/../travel-log/app/data/sights/";
+  const idx = JSON.parse(fs.readFileSync(dir + "index.json", "utf8"));
+  const find = (q, cc, type) => { const k = TW.keyFor(q, idx); if (!k || !fs.existsSync(dir + k + ".json")) return null; const f = TW.parse(JSON.parse(fs.readFileSync(dir + k + ".json", "utf8"))); return TW.match(q, f, { words: true, limit: 30 }).map(h => h.row).find(r => (!cc || r.country === cc) && (!type || r.type === type)) || null; };
+  ok(idx.sights > 50000, "lots of sights worldwide: " + idx.sights);
+  const ec = find("Edinburgh Castle", "GBR");
+  ok(ec && ec.type === "castle" && ec.town === "Edinburgh" && ec.rank >= 40 && /^Q\d+$/.test(ec.wd), "Edinburgh Castle: a famous castle in Edinburgh: " + JSON.stringify(ec));
+  const SIGHT_CASES = [["Tintern Abbey", "GBR", "ruin"], ["Urquhart Castle", "GBR", "ruin"], ["Tunnel View", "USA", "viewpoint"], ["Ladies View", "IRL", "viewpoint"], ["Niagara Falls", "CAN", "waterfall"], ["Notre Dame de Paris", "FRA", "cathedral"], ["Tikal", "GTM", "ancient"], ["Ben Nevis", "GBR", "peak"]];
+  for (const [q, cc, type] of SIGHT_CASES) ok(find(q, cc, type), q + " is a " + type + (cc ? " in " + cc : ""));
+  const big = fs.readdirSync(dir).map(f => fs.statSync(dir + f).size).sort((a, b) => b - a)[0];
+  ok(big < 500000, "every sights file is small enough to load on a phone: biggest " + big);
+  // a sight stop keeps its type and town, and counts toward its town and country
+  const stop = T.cleanPoint ? T.cleanPoint({ name: "Edinburgh Castle", kind: "sight", type: "castle", town: "Edinburgh", fame: 140, ref: "Q212065", lat: 55.9486, lon: -3.1999, country: "GBR", region: "SCT", sub: "Castle · Edinburgh, Scotland, UK" }) : null;
+  ok(stop && stop.kind === "sight" && stop.type === "castle" && stop.town === "Edinburgh" && stop.fame === 140 && stop.ref === "Q212065", "trip stop keeps sight type, town and fame");
+  ok(T.cleanPoint({ name: "Zz", kind: "sight", type: "<script>", lat: 1, lon: 1 }).type === "landmark", "an odd sight type falls back to landmark");
+  const kid = L.newPerson({ name: "Zz Test Kid", role: "kid" });
+  const trip = L.newTrip({ kidIds: [kid.id], place: "Zz Test Scotland", date: "2026-07-01", endDate: "2026-07-05",
+    route: [{ name: "Zz Home", kind: "city", lat: 40.7, lon: -74, country: "USA", region: "NY" }, { name: "Edinburgh", kind: "city", lat: 55.95, lon: -3.19, country: "GBR", region: "SCT" }, stop] });
+  const st = T.summary(trip);
+  ok(st.sights && st.sights.length === 1 && st.sights[0] === "Edinburgh Castle" && st.cities.indexOf("Edinburgh") >= 0, "trip stats list the sight");
+  const ps = P.stampsFor(kid, [trip], {});
+  const sx = ps.find(x => x.kind === "sight");
+  ok(sx && sx.area === "Q212065" && sx.name === "Edinburgh Castle" && sx.type === "castle" && P.section(sx.kind, sx.area) === "sights", "the sight earns its own stamp in the Sights section");
+  ok(ps.some(x => x.kind === "place" && x.area === "SCT"), "...and Scotland's stamp still counts");
+  ok(sx && P.sightSub(sx) === "Castle · Edinburgh", "stamp says what and where: " + (sx && P.sightSub(sx)));
+  const svg = P.stampSVG && sx ? P.stampSVG(sx) : "";
+  ok(/<svg/.test(svg) && /EDINBURGH CASTLE|Edinburgh Castle/i.test(svg), "the sight stamp draws with its name");
+  for (const t of ["castle", "ruin", "cathedral", "abbey", "monument", "museum", "landmark", "viewpoint", "waterfall"]) ok(SA.TYPES[t] && SA.typeOf(t).emoji, "stamp type for " + t);
+  const ui = read("trips-ui.js");
+  ok(/ensureLayer\(SIGHTS/.test(ui) && /fambadge/.test(ui) && /Famous landmark/.test(ui), "trip search shows sights with a Famous landmark badge");
+  ok(/fambadge/.test(read("app.css")), "the badge is styled");
+}
 // ---- v78: every town worldwide in place search (data/towns, towns-core.js) ----
 {
   const TW = require("../travel-log/app/towns-core.js"), dir = __dirname + "/../travel-log/app/data/towns/";
@@ -823,7 +857,7 @@ ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "
   ok(/first visit/.test(P.signSVG("TX", "Texas", { first: "2020-05-01", visits: 2 })), "a dated sign still shows its first visit");
   ok(read("index.html").indexOf("state-symbols.js") < read("index.html").indexOf("stamp-art.js") && read("index.html").indexOf("stamp-art.js") < read("index.html").indexOf("passport-core.js"), "index.html loads symbols, then stamp art, then the passport");
   const sw2 = read("sw.js"); ok(["state-symbols.js", "stamp-art.js"].every(f => sw2.indexOf('"' + f + '"') >= 0), "service worker caches the stamp art files");
-  ok(read("stamp-art.js").length < 170000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight");
+  ok(read("stamp-art.js").length < 185000 && read("state-symbols.js").length < 12000, "stamp art stays lightweight (v79: +21 place-type glyphs)");
   ok(/famstamp-stampart:/.test(read("trips-ui.js")) && /data-art=/.test(read("trips-ui.js")), "passport has the Bird / Flower / Animal / Mix toggle, saved per person");
 }
 

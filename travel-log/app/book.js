@@ -10,6 +10,7 @@
 
   function fmt(at) { if (!at) return ""; var d = new Date(String(at).slice(0, 10) + "T12:00:00"); return isNaN(d) ? "" : d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }); }
   function stampName(s) {
+    if (s.kind === "sight") return s.name || s.area;
     var M = window.MLTL, maps = window.MLTL_MAPS;
     if (s.kind === "park") { var p = M.parkById(s.area); return p ? p.name : s.area; }
     if (s.kind === "state") { var st = maps.us.shapes.filter(function (x) { return x.id === s.area; })[0]; return st ? st.name : s.area; }

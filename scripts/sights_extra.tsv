@@ -1,0 +1,56 @@
+# Hand list: scenic drives and film locations GeoNames lacks. type, names|alt, lat, lon, ISO3, town, fame (Wikipedia languages), Wikidata id
+# Q ids, fame and coordinates come from Wikipedia/Wikidata (CC0) via /workspace/famstamp-plan/make_extra.py
+drive	North Coast 500|NC500|NC 500	58.2	-5.0	GBR	Inverness	10	Q23042024
+drive	Route 66|Historic Route 66	35.19	-111.65	USA	Flagstaff	56	Q79934
+drive	Pacific Coast Highway|PCH|Highway 1 California	36.27	-121.81	USA	Big Sur	26	Q550419
+drive	Great Ocean Road	-38.68	143.39	AUS	Apollo Bay	33	Q74046
+drive	Ring of Kerry	51.95	-9.92	IRL	Killarney	19	Q1757200
+drive	Wild Atlantic Way	53.27	-9.05	IRL	Galway	15	Q16853596
+drive	Blue Ridge Parkway	36.0	-81.7	USA	Boone	11	Q885856
+drive	Going-to-the-Sun Road	48.7	-113.72	USA		4	Q3109921
+drive	Amalfi Coast|Amalfi Drive	40.63	14.6	ITA	Amalfi	58	Q212214
+drive	Romantic Road|Romantische Straße	49.38	10.18	DEU	Rothenburg ob der Tauber	28	Q311252
+drive	Cabot Trail	46.65	-60.95	CAN		7	Q642700
+drive	Icefields Parkway	52.22	-117.22	CAN	Jasper	6	Q2639216
+drive	Garden Route	-34.03	23.05	ZAF	Knysna	15	Q1402191
+drive	Transfagarasan|Transfăgărășan	45.6	24.62	ROU		35	Q934803
+drive	Atlantic Ocean Road|Atlanterhavsveien	63.02	7.35	NOR		31	Q756561
+drive	Trollstigen	62.45	7.67	NOR	Åndalsnes	28	Q940332
+drive	Overseas Highway|Florida Keys Overseas Highway	24.7	-81.1	USA	Marathon	12	Q370697
+drive	Road to Hana|Hana Highway	20.8	-156.1	USA	Hana	6	Q388423
+drive	Milford Road	-44.9	168.1	NZL	Te Anau	7	Q1506155
+drive	Stelvio Pass	46.53	10.45	ITA		36	Q1334855
+drive	Grossglockner High Alpine Road|Großglockner Hochalpenstraße	47.08	12.84	AUT		22	Q694270
+drive	Causeway Coastal Route	55.2	-6.25	GBR	Bushmills	0	
+drive	Skyline Drive	38.53	-78.44	USA		12	Q911052
+drive	Beartooth Highway	44.97	-109.47	USA	Red Lodge	4	Q2234880
+drive	Tail of the Dragon|Deals Gap	35.47	-83.92	USA		5	Q5245928
+drive	Sea to Sky Highway|Sea-to-Sky Highway	49.7	-123.15	CAN	Squamish	11	Q919039
+drive	Chapman's Peak Drive	-34.08	18.36	ZAF	Hout Bay	10	Q501723
+drive	Golden Circle	64.31	-20.3	ISL		25	Q1554353
+drive	Ring Road Iceland|Route 1 Iceland	64.25	-15.2	ISL		35	Q593178
+drive	Snake Pass	53.43	-1.87	GBR	Glossop	3	Q1405909
+drive	Hardknott Pass	54.4	-3.17	GBR		7	Q1453680
+drive	Bealach na Bà|Applecross Pass	57.42	-5.7	GBR	Applecross	7	Q812915
+drive	Route des Grandes Alpes	45.5	6.6	FRA		8	Q1471539
+drive	Kancamagus Highway	44.0	-71.4	USA		3	Q1046870
+drive	Million Dollar Highway	37.9	-107.7	USA	Ouray	4	Q981620
+drive	Historic Columbia River Highway	45.55	-122.1	USA		4	Q1620784
+film	Glenfinnan Viaduct|Harry Potter bridge|Hogwarts Express viaduct	56.8763	-5.4317	GBR	Glenfinnan	21	Q1155735
+film	Hobbiton Movie Set|Hobbiton	-37.8575	175.6797	NZL	Matamata	12	Q18924400
+film	Dark Hedges|The Dark Hedges	55.1344	-6.3806	GBR		12	Q28842723
+film	Al-Khazneh|The Treasury Petra|Petra Treasury	30.3221	35.4515	JOR	Wadi Musa	29	Q1259626
+film	Leadenhall Market|Diagon Alley London	51.5127	-0.0835	GBR	London	21	Q961148
+film	Castle Ward|Winterfell	54.3675	-5.5806	GBR	Strangford	13	Q3663083
+film	Ballintoy Harbour	55.2364	-6.3575	GBR	Ballintoy	14	Q1130080
+film	Aït Benhaddou|Ait Benhaddou	31.05	-7.1333	MAR		68	Q309436
+film	Warner Bros. Studio Tour London|Harry Potter Studio Tour	51.6904	-0.4181	GBR	Leavesden	12	Q27924395
+film	Platform 9 3/4|Platform 9¾	51.5322	-0.124	GBR	London	30	
+film	Tom's Restaurant	40.8055	-73.9654	USA	New York	8	Q2441394
+film	Rocky Steps	39.9649	-75.1802	USA	Philadelphia	12	Q1139488
+film	Hook & Ladder 8|Ghostbusters firehouse	40.719	-74.007	USA	New York	1	Q22350200
+film	Bradbury Building	34.0505	-118.2478	USA	Los Angeles	15	Q495106
+film	Universal Studios Hollywood	34.1359	-118.3539	USA	Los Angeles	19	Q1337576
+film	Mount Sunday|Edoras	-43.548	170.893	NZL		3	Q31683747
+film	Amélie café|Café des Deux Moulins	48.885	2.333	FRA	Paris	0	
+film	Kualoa Ranch|Jurassic Park valley	21.5206	-157.837	USA		3	Q6441069

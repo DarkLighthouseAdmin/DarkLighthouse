@@ -222,6 +222,8 @@ body.kidview .foot { display:none; }
 .results button { text-align:left; background:#fff; border:1px solid var(--line); border-radius:10px; padding:.5rem .7rem; font:inherit; cursor:pointer; min-height:44px; color:var(--ink); }
 .results button b { display:block; font-weight:600; } .results button span { display:block; font-size:.8rem; color:var(--muted); }
 .results button.custom { border-style:dashed; color:var(--sage-deep); font-weight:600; }
+.results button.famous { border:2px solid #b8862b; background:#fffaf0; }
+.results .fambadge { display:inline-block; font-style:normal; font-size:.72rem; font-weight:700; color:#7a5310; background:#fbe9c4; border-radius:999px; padding:.05rem .45rem; margin-left:.25rem; vertical-align:middle; }
 .locate { margin:.4rem 0 .2rem 2.6rem; }
 .btotal { display:flex; align-items:center; justify-content:space-between; gap:.6rem; flex-wrap:wrap; margin-top:.8rem; background:#16283a; color:#fff; border-radius:14px; padding:.6rem .9rem; font-size:1.05rem; }
 .btotal:empty { display:none; } .btotal b { font-family:var(--serif); font-size:1.3rem; color:var(--beacon); }

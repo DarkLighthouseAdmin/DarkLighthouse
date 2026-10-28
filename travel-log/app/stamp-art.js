@@ -641,6 +641,71 @@
   CTYG.c_bahamas = function () { return P("M6 29 Q20 24 34 29Z") + lighthouse(20, 27.6, 21, 3.6, 1) + palmlet(8.4, 28) + palmlet(31.4, 28) + water(29) + S("M27 9 Q28.4 8 29.8 9 Q31.2 8 32.6 9", 0.7); };
   Object.keys(CTYG).forEach(function (k) { G[k] = CTYG[k]; });
 
+  // ---------- v79: place types (sights, nature, kid favorites, drinks, getting there...): one picture per type ----------
+  // Placeholder designs in the Famstamp stamp style, our own drawings; the type stamps get new art later.
+  var TG = {
+    castle: function () { return P("M4 38 V16 H3 V11 H6 V13 H8 V11 H11 V16 H10 V22 H30 V16 H29 V11 H32 V13 H34 V11 H37 V16 H36 V38 Z") + P("M15 22 V9 H14 V5 H17 V7 H19 V5 H21 V7 H23 V5 H26 V9 H25 V22 Z") +
+      P("M17 38 V31 Q20 27 23 31 V38 Z M6.5 20 h2 v4 h-2Z M31.5 20 h2 v4 h-2Z M19 12 h2 v4 h-2Z", PAPER) + S("M20 5 V0.6", 1) + P("M20 0.6 L25 2 L20 3.4Z") + S("M0 39 H40", 1.3); },
+    ruin: function () { return P("M2 38 V12 L5 9 L7 13 L9 10 V38 Z") + P("M13 38 V18 Q20 9 27 18 V38 H24 V22 Q20 16 16 22 V38 Z") + P("M31 38 V22 L33 19 L35 23 L37 20 V38 Z") +
+      S("M2 20 H9 M2 28 H9 M31 30 H37", 0.8, PAPER) + C(11, 37.4, 1.6) + C(29, 37.6, 1.2) + S("M0 39 H40", 1.3); },
+    cathedral: function () { return P("M8 38 V18 L11 6 L14 18 V38 Z M26 38 V18 L29 6 L32 18 V38 Z") + P("M14 38 V22 L20 15 L26 22 V38 Z") + C(20, 25.5, 3, PAPER) +
+      P("M18 38 V33 Q20 30.5 22 33 V38 Z M10 24 h2 v5 h-2Z M28 24 h2 v5 h-2Z", PAPER) + S("M11 6 V2 M9.6 3.4 H12.4 M29 6 V2 M27.6 3.4 H30.4", 0.9) + S("M0 39 H40", 1.3); },
+    abbey: function () { return P("M2 38 V24 L10 18 L18 24 V38 Z") + P("M18 38 V10 H28 V38 Z") + P("M18 10 V7 H20.4 V10 Z M21.8 10 V7 H24.2 V10 Z M25.6 10 V7 H28 V10 Z") + P("M28 38 V26 L34 21 L40 26 V38 Z") +
+      P("M21.5 14 h3 v6 h-3Z M6 31 Q8 28 10 31 V35 H6Z M12 31 Q14 28 16 31 V35 H12Z M31 31 Q33 28 35 31 V35 H31Z", PAPER) + S("M0 39 H40", 1.3); },
+    viewer: function () { return S("M0 31 L7 24 L12 28 L18 22", 1.1) + S("M26 25 L32 20 L40 27", 1.1) + P("M9 12 Q9 8 13 8 H27 Q31 8 31 12 V17 Q31 21 27 21 H13 Q9 21 9 17 Z") +
+      C(15, 14.5, 3.6, PAPER) + C(25, 14.5, 3.6, PAPER) + C(15, 14.5, 1.5) + C(25, 14.5, 1.5) + P("M18.5 21 H21.5 V35 H18.5Z M13 35 H27 V38 H13Z") + S("M0 39 H40", 1.3); },
+    beach: function () { return S("M20 13 L21 36", 1.6) + P("M5 15 Q20 1 35 15 Z") + P("M5 15 Q8.75 12 12.5 15 Q16.25 12 20 15 Q23.75 12 27.5 15 Q31.25 12 35 15 Z", PAPER) + C(34, 5, 2.8) +
+      P("M0 37 Q20 33 40 37 V40 H0Z") + S("M0 31 Q5 29 10 31 T20 31", 1.1); },
+    boot: function () { return P("M10 5 H21 V21 Q29 21 33 26 Q35.5 29 34.5 32 H8 V29 Q8 24 10 20 Z") + P("M7 32 H35.5 V36 H7Z") + S("M12.5 9 H18.5 M12.5 13 H18.5 M12.5 17 H18.5", 1.1, PAPER) +
+      S("M9 36.3 V35 M14 36.3 V35 M19 36.3 V35 M24 36.3 V35 M29 36.3 V35", 1, PAPER); },
+    fish: function () { return P("M5 21 Q14 9 27 21 Q14 33 5 21 Z") + P("M26 21 L35 13 V29 Z") + C(11, 19.5, 1.5, PAPER) + S("M17 15 Q19.5 21 17 27", 1, PAPER) + C(31, 7, 1.6) + C(35, 3, 1.1) + C(27, 4, 1) +
+      S("M0 38 Q5 36 10 38 T20 38 T30 38 T40 38", 1.2); },
+    ferris: function () { return S("M20 4 A12 12 0 1 1 19.9 4", 1.8) + S("M20 4 V28 M8 16 H32 M11.5 7.5 L28.5 24.5 M28.5 7.5 L11.5 24.5", 0.9) + C(20, 16, 2) +
+      P("M18 2 h4 v4 h-4Z M30 14 h4 v4 h-4Z M18 26 h4 v4 h-4Z M6 14 h4 v4 h-4Z") + S("M20 16 L12 38 M20 16 L28 38", 2) + S("M0 39 H40", 1.3); },
+    swing: function () { return S("M4 38 L10 6 H30 L36 38", 2.2) + S("M16 6 V25 M24 6 V25", 1) + P("M14 25 H26 V27.5 H14Z") + C(20, 19.5, 2.6) + S("M0 39 H40", 1.3); },
+    still: function () { return P("M7 38 V28 Q7 17 19 17 Q31 17 31 28 V38 Z") + P("M15 17 V11 Q19 7 23 11 V17 Z") + S("M19 8 Q21 2 29 5 L37 12 V22", 2) + P("M34 22 H40 V30 H34Z") +
+      S("M8 30 H30 M8 34 H30", 1, PAPER) + S("M0 39 H40", 1.3); },
+    mug: function () { return P("M8 12 H26 V36 Q26 38 24 38 H10 Q8 38 8 36 Z") + S("M26 17 H31 Q33 17 33 19 V27 Q33 29 31 29 H26", 2.4) + P("M7 13 V10 Q8 5 13 6.5 Q16 3 21 5.5 Q26 4.5 27 9.5 V13 Z") +
+      S("M13 17 V33 M17 17 V33 M21 17 V33", 1, PAPER); },
+    grapes: function () { return S("M20 10 Q20 5 24 3", 1.4) + P("M21 7 Q27 0.5 35 5 Q30 11.5 21 7Z") + C(13, 14, 3.4) + C(20, 14, 3.4) + C(27, 14, 3.4) + C(16.5, 20, 3.4) + C(23.5, 20, 3.4) + C(13, 20, 2.6) + C(27, 20, 2.6) +
+      C(20, 26, 3.4) + C(16.5, 31.5, 3) + C(23.5, 31.5, 3) + C(20, 36.5, 2.6) + C(12, 13, 0.8, PAPER) + C(19, 13, 0.8, PAPER) + C(15.5, 19, 0.8, PAPER) + C(19, 25, 0.8, PAPER); },
+    pint: function () { return P("M11 9 H29 L26.6 36 Q26.4 38 24.4 38 H15.6 Q13.6 38 13.4 36 Z") + P("M10.5 10 V8 Q11 3.5 15.5 4.6 Q20 1.5 24.5 4.4 Q29 3.5 29.5 8 V12 H10.5 Z") +
+      S("M12.6 15 H27.4", 1.2, PAPER) + S("M16 19 L15.4 34", 1, PAPER) + S("M0 39 H40", 1.3); },
+    train: function () { return P("M10 5 H30 Q33.5 5 33.5 8.5 V31 H6.5 V8.5 Q6.5 5 10 5 Z") + P("M10 9 H30 V18 H10Z M17 5.8 H23 V7.2 H17Z", PAPER) + C(12, 25.5, 2, PAPER) + C(28, 25.5, 2, PAPER) + P("M17 24 H23 V27 H17Z", PAPER) +
+      S("M11 31 L6 37 M29 31 L34 37", 1.8) + S("M1 37 H39 M3 39.4 H37", 1.2); },
+    road: function () { return S("M0 21 L8 13 L14 18 L20 12", 1.2) + S("M27 14 L33 9 L40 15", 1.2) + P("M13 40 Q6 31 17 25 Q28 19 22 13 Q18 9 23 3 H26 Q22 8.6 26.4 12.6 Q33 19.5 22 26.5 Q14 31.5 21 40 Z") +
+      S("M17 37 Q13.6 31.4 19.6 27.6 M24.6 21 Q28.4 17 24.4 12.2", 0.9, PAPER); },
+    stadium: function () { return P("M2 21 Q20 13 38 21 V32 Q20 40 2 32 Z") + P("M8 24.5 Q20 19.5 32 24.5 V28.5 Q20 33.5 8 28.5 Z", PAPER) + S("M20 20.6 V32", 0.8) + S("M4 21 V5 M36 21 V5", 1.4) +
+      P("M1 2.5 H7 V7 H1Z M33 2.5 H39 V7 H33Z") + C(2.6, 4.7, 0.7, PAPER) + C(5.4, 4.7, 0.7, PAPER) + C(34.6, 4.7, 0.7, PAPER) + C(37.4, 4.7, 0.7, PAPER); },
+    clapper: function () { return P("M6 16 H34 V37 H6Z") + P("M6 9.5 L33 3 L34.2 8 L7.2 14.5 Z") + P("M11 12.3 L14.3 6.8 L17.4 6.1 L14.1 11.6Z M20.4 10.1 L23.7 4.6 L26.8 3.9 L23.5 9.4Z", PAPER) +
+      S("M10 22 H30 M10 27 H24 M10 32 H27", 1.2, PAPER); },
+    bridge: function () { return P("M9 5 H12 V33 H9Z M28 5 H31 V33 H28Z") + S("M0 13 Q6 8 10.5 5.5 Q20 22 29.5 5.5 Q34 8 40 13", 1.1) + S("M15 12 V24 M20 15 V24 M25 12 V24 M5 9.4 V24 M35 9.4 V24", 0.7) +
+      P("M0 23.4 H40 V26 H0Z") + S("M0 35 Q5 33 10 35 T20 35 T30 35 T40 35", 1.2); },
+    pin: function () { return P("M20 38 Q9 24 9 15.5 A11 11 0 1 1 31 15.5 Q31 24 20 38 Z") + C(20, 15.5, 4.4, PAPER) + E(20, 38.4, 7, 1.4); },
+    star5: function () { return P("M20 3 L24.5 15 L37 15.4 L27 23.2 L30.8 36 L20 28.4 L9.2 36 L13 23.2 L3 15.4 L15.5 15 Z") + C(20, 20, 3.6, PAPER); }
+  };
+  Object.keys(TG).forEach(function (k) { G[k] = TG[k]; });
+  /** Place types for sights and other stops (search, trip stops, their passport stamps). label, emoji, picture, ink, group. */
+  var TYPES = {
+    castle: ["Castle", "🏰", "castle", "#6b3a2a", "sights"], palace: ["Palace", "👑", "dome", "#5f35a0", "sights"], ruin: ["Ruins", "🏚️", "ruin", "#5b4a2f", "sights"],
+    ancient: ["Ancient site", "🏺", "pyramid", "#8a4a17", "sights"], historic: ["Historic site", "📜", "columns", "#5b4a2f", "sights"], abbey: ["Abbey", "⛪", "abbey", "#3b4048", "sights"],
+    cathedral: ["Cathedral", "⛪", "cathedral", "#23262c", "sights"], temple: ["Temple", "🛕", "pagoda", "#962043", "sights"], monument: ["Monument", "🗿", "obelisk", "#1f4f9e", "sights"],
+    tower: ["Tower", "🗼", "tower", "#3b4048", "sights"], landmark: ["Landmark", "📍", "star5", "#b02a2a", "sights"], museum: ["Museum", "🏛️", "temple", "#17608a", "sights"],
+    viewpoint: ["Viewpoint", "🔭", "viewer", "#2b4f5e", "sights"], waterfall: ["Waterfall", "💦", "waterfall", "#17608a", "nature"],
+    beach: ["Beach", "🏖️", "beach", "#17608a", "nature"], lake: ["Lake", "🏞️", "mountainlake", "#1f4f9e", "nature"], island: ["Island", "🏝️", "palm", "#2b7340", "nature"],
+    peak: ["Mountain", "⛰️", "peaks", "#4a6a24", "nature"], cave: ["Cave", "🦇", "cave", "#3b4048", "nature"], garden: ["Garden", "🌷", "tulip", "#2b7340", "nature"],
+    trail: ["Trail", "🥾", "boot", "#5b4a2f", "nature"], park: ["Park", "🌳", "pine", "#2f5d3a", "nature"], canyon: ["Canyon", "🏜️", "canyon", "#8a4a17", "nature"],
+    glacier: ["Glacier", "🧊", "peaks", "#17608a", "nature"], geyser: ["Geyser", "♨️", "geyser", "#2b4f5e", "nature"],
+    zoo: ["Zoo", "🦒", "giraffe", "#8a4a17", "fun"], aquarium: ["Aquarium", "🐠", "fish", "#17608a", "fun"], themepark: ["Theme park", "🎡", "ferris", "#962043", "fun"],
+    waterpark: ["Water park", "🌊", "wave", "#1f4f9e", "fun"], playground: ["Playground", "🛝", "swing", "#b02a2a", "fun"],
+    distillery: ["Distillery", "🥃", "still", "#8a4a17", "drinks"], brewery: ["Brewery", "🍺", "mug", "#6c3a1f", "drinks"], winery: ["Winery", "🍇", "grapes", "#83388a", "drinks"],
+    pub: ["Pub", "🍺", "pint", "#6c3a1f", "drinks"], lighthouse: ["Lighthouse", "🚨", "lighthouse", "#b02a2a", "sights"],
+    ferry: ["Ferry port", "⛴️", "ship", "#1f4f9e", "getting"], station: ["Train station", "🚉", "train", "#3b4048", "getting"], drive: ["Scenic drive", "🛣️", "road", "#4a6a24", "getting"],
+    stadium: ["Stadium", "🏟️", "stadium", "#2b7340", "fun"], film: ["Film location", "🎬", "clapper", "#23262c", "sights"], bridge: ["Bridge", "🌉", "bridge", "#2b4f5e", "sights"],
+    pin: ["Pinned place", "📍", "pin", "#b02a2a", "sights"]
+  };
+  function typeOf(t) { var x = TYPES[t] || TYPES.landmark; return { id: TYPES[t] ? t : "landmark", label: x[0], emoji: x[1], motif: x[2], ink: x[3], group: x[4] }; }
+
 
   // ---------- countries: hand tuned for the most visited, the rest made from the code ----------
   // code: shape, border, ink (palette key or index), motif, font, label
@@ -704,7 +769,7 @@
   function stateMode(id, art) { return art === "bird" || art === "flower" || art === "animal" ? art : MODES[hash("mix:" + id) % 3]; }
 
   /** How a place's stamp looks. kind = "place" (country or UK nation), "state" or "park". art = bird|flower|animal|mix (states). */
-  function design(kind, area, name, art) {
+  function design(kind, area, name, art, sx) {
     var h = hash(kind + ":" + area), h2 = hash(area + "#2"), d;
     if (kind === "state") {
       var i = STATE_ORDER.indexOf(area); if (i < 0) i = h % 51;
@@ -719,6 +784,10 @@
       d = { shape: pick((name || "").length > 14 ? ["arch", "shield", "octagon"] : (name || "").length > 11 ? ["arch", "shield", "octagon", "oval"] : ["circle", "double", "arch", "shield", "octagon", "cancel", "oval"], h),   // long names only on frames with room to print them big
             border: pick(BORDERS, h2), ink: pick(["#5b4a2f", "#2f5d3a", "#6b3a2a", "#2b4f5e", "#4b5320", "#7a3b1d"], h >>> 4),
             motif: mt || pick(PARK_GEN, h >>> 7), pose: h % 3, flip: false, font: pick(["slab", "serif", "cond"], h >>> 9), label: /^sp-/.test(area) ? "STATE PARK" : /^nm-/.test(area) ? "NATIONAL MONUMENT" : /^mem-/.test(area) ? "NATIONAL MEMORIAL" : "NATIONAL PARK" }; }
+    } else if (kind === "sight") {
+      // v79: a sight's stamp shows its type's picture (castle, ruin, viewpoint...); a famous landmark with its own drawing shows that
+      var ty = typeOf(sx && sx.type), lm = sx && sx.ref && G["lm_" + sx.ref] ? "lm_" + sx.ref : "";
+      d = { shape: "circle", border: lm ? "double" : pick(BORDERS, h2), ink: ty.ink, motif: lm || ty.motif, pose: h % 3, flip: false, font: "serif", label: ty.label.toUpperCase(), type: ty.id, landmark: !!lm };
     } else {
       var c = COUNTRY[area];
       if (c) { c = c.split("|"); d = { shape: c[0], border: c[1], ink: inkOf(c[2], h), motif: c[3], font: c[4], label: c[5], pose: h % 3, flip: false, tuned: true }; }
@@ -789,7 +858,7 @@
     for (var i = 0; i < 10; i++) { var b = (i * 36 - 90) * Math.PI / 180, q = i % 2 ? 1.7 : 4.2; s += (i ? " L" : "M") + (x + q * Math.cos(b)).toFixed(2) + " " + (y + q * Math.sin(b)).toFixed(2); } return '<path d="' + s + 'Z"/>'; }
   function parkSVG(s, text, d, opts) {
     var ink = d.ink, uid = "pk" + (hash((s.id || "") + s.area) % 1e8), SER = FONTS.serif;
-    var NAME = String(text.name || s.area).toUpperCase(), date = String(text.date || "") + (s.kind !== "park" && text.end && text.end !== text.date ? " – " + text.end : ""), BOT = String(s.kind === "state" ? d.symbol || "" : s.kind === "park" ? text.sub || d.label || "" : d.label || "").toUpperCase();
+    var NAME = String(text.name || s.area).toUpperCase(), date = String(text.date || "") + (s.kind !== "park" && text.end && text.end !== text.date ? " – " + text.end : ""), BOT = String(s.kind === "state" ? d.symbol || "" : s.kind === "park" || s.kind === "sight" ? text.sub || d.label || "" : d.label || "").toUpperCase();
     var RT = 56.5, RB = 66.6, RW = 51;
     // top name: as big as fits in ~236 degrees, never bigger than 17
     var m = BOT.length, bf = Math.min(10.4, RB * 1.75 / (m * 0.7 || 1)), bw = m * bf * 0.7, ba = bw / (RB - bf * 0.36) * 180 / Math.PI, tmax = Math.min(RT * 4.1, (322 - ba) * Math.PI / 180 * RT);
@@ -823,9 +892,9 @@
       opts = {art: bird|flower|animal|mix, flag}. */
   function stampSVG(s, text, opts) {
     opts = opts || {}; text = text || {};
-    var d = design(s.kind, s.area, text.name, opts.art);
+    var d = design(s.kind, s.area, text.name, opts.art, s);
     return parkSVG(s, text, d, opts);
   }
 
-  return { stampSVG: stampSVG, design: design, SYM: SYM, GLYPHS: G, COUNTRY: COUNTRY, SHAPES: SHAPES, BORDERS: BORDERS, INKS: INKS, INK_LIST: INK_LIST, FONTS: FONTS, MODES: MODES, stateMode: stateMode, hash: hash, PARK_ART: PARK_ART, parkLook: parkLook };
+  return { stampSVG: stampSVG, design: design, TYPES: TYPES, typeOf: typeOf, SYM: SYM, GLYPHS: G, COUNTRY: COUNTRY, SHAPES: SHAPES, BORDERS: BORDERS, INKS: INKS, INK_LIST: INK_LIST, FONTS: FONTS, MODES: MODES, stateMode: stateMode, hash: hash, PARK_ART: PARK_ART, parkLook: parkLook };
 });

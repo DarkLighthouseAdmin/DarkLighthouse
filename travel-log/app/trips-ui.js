@@ -46,24 +46,32 @@
   // v78: every town worldwide, one small file per name prefix (towns-core.js). Searches use what's loaded and
   // redraw when the file for what they typed arrives. A missing file (offline, or no such prefix) just means no extra towns.
   var TW = window.FS_TOWNS, TOWNS = { index: null, files: {}, loading: {}, admin: {}, countries: {} };
-  function townsIndex() {
-    if (TOWNS.index) return Promise.resolve(TOWNS.index);
-    if (!TOWNS.loading.index) TOWNS.loading.index = fetch("data/towns/index.json").then(function (r) { if (!r.ok) throw new Error("offline"); return r.json(); })
-      .then(function (j) { TOWNS.index = j; return j; }).catch(function (e) { TOWNS.loading.index = null; throw e; });
-    return TOWNS.loading.index;
+  // v79: sights (castles, viewpoints, beaches, distilleries...) load the same way from data/sights/ (scripts/build_sights.py)
+  var SIGHTS = { dir: "data/sights/", index: null, files: {}, loading: {}, admin: {}, countries: {} }; TOWNS.dir = "data/towns/";
+  var FAMOUS = 40;   // Wikipedia in 40+ languages = a famous landmark (Edinburgh Castle, Eiffel Tower, Stonehenge)
+  function layerIndex(L) {
+    if (L.index) return Promise.resolve(L.index);
+    if (!L.loading.index) L.loading.index = fetch(L.dir + "index.json").then(function (r) { if (!r.ok) throw new Error("offline"); return r.json(); })
+      .then(function (j) { L.index = j; return j; }).catch(function (e) { L.loading.index = null; throw e; });
+    return L.loading.index;
   }
-  function townKey(q) { return TOWNS.index ? TW.keyFor(String(q || "").split(",")[0], TOWNS.index) : ""; }
-  /** Resolves true when the towns file for this query is ready (and was just fetched), false when nothing new loaded. */
-  function ensureTowns(q) {
-    if (!TW) return Promise.resolve(false);
-    return townsIndex().then(function () {
-      var k = townKey(q); if (!k || TOWNS.files[k]) return false;
-      if (!TOWNS.loading[k]) TOWNS.loading[k] = fetch("data/towns/" + k + ".json").then(function (r) { return r.ok ? r.json() : { rows: "" }; })
-        .then(function (j) { var f = TW.parse(j); Object.keys(f.admin).forEach(function (a) { TOWNS.admin[a] = f.admin[a]; }); Object.keys(f.countries).forEach(function (c) { TOWNS.countries[c] = f.countries[c]; }); TOWNS.files[k] = f; return true; }).catch(function () { TOWNS.loading[k] = null; return false; });
-      return TOWNS.loading[k];
+  function layerKey(L, q) { return L.index ? TW.keyFor(String(q || "").split(",")[0], L.index) : ""; }
+  function ensureLayer(L, q) {
+    return layerIndex(L).then(function () {
+      var k = layerKey(L, q); if (!k || L.files[k]) return false;
+      if (!L.loading[k]) L.loading[k] = fetch(L.dir + k + ".json").then(function (r) { return r.ok ? r.json() : { rows: "" }; })
+        .then(function (j) { var f = TW.parse(j); Object.keys(f.admin).forEach(function (a) { L.admin[a] = f.admin[a]; TOWNS.admin[a] = TOWNS.admin[a] || f.admin[a]; }); Object.keys(f.countries).forEach(function (c) { L.countries[c] = f.countries[c]; TOWNS.countries[c] = TOWNS.countries[c] || f.countries[c]; }); L.files[k] = f; return true; }).catch(function () { L.loading[k] = null; return false; });
+      return L.loading[k];
     }).catch(function () { return false; });
   }
-  function townsReady(q) { if (!TW) return true; if (!TOWNS.index) return false; var k = townKey(q); return !k || !!TOWNS.files[k]; }
+  function layerReady(L, q) { if (!L.index) return false; var k = layerKey(L, q); return !k || !!L.files[k]; }
+  function townKey(q) { return layerKey(TOWNS, q); }
+  /** Resolves true when a towns or sights file for this query just arrived (so the list should redraw). */
+  function ensureTowns(q) {
+    if (!TW) return Promise.resolve(false);
+    return Promise.all([ensureLayer(TOWNS, q), ensureLayer(SIGHTS, q)]).then(function (r) { return r[0] || r[1]; });
+  }
+  function townsReady(q) { return !TW || (layerReady(TOWNS, q) && layerReady(SIGHTS, q)); }
   function loadAirports() {
     if (DATA.airports) return Promise.resolve(DATA.airports);
     return getJSON("airports").then(function (j) {
@@ -79,6 +87,17 @@
     if (country === "USA") return ad || c;
     if (country === "GBR") return (ad ? ad + ", " : "") + "UK";
     return ad && ad !== c ? ad + ", " + c : c;
+  }
+  /** A sight as a trip stop: its type, its town (it counts for that town's country / state) and how famous it is. */
+  function typeEmoji(t) { var SA = window.WK_STAMPART; return SA && SA.typeOf ? SA.typeOf(t).emoji : "📍"; }
+  function sightPoint(d, r, typed) {
+    var SA = window.WK_STAMPART, ty = SA && SA.typeOf ? SA.typeOf(r.type) : { id: r.type || "landmark", label: "Sight", emoji: "📍" };
+    var name = typed && typed !== r.names[0] && TW.fold(typed).indexOf(TW.fold(r.names[0])) < 0 ? typed : r.names[0];
+    var where = subOf(d, r.country, r.admin1), famous = (r.rank || 0) >= FAMOUS;
+    var o = { name: name, kind: "sight", type: ty.id, lat: r.lat, lon: r.lon, country: r.country, region: regionOf(r.country, r.admin1),
+      sub: ty.label + " · " + (r.town ? r.town + ", " : "") + where, label: ty.emoji + " " + name };
+    if (r.town) o.town = r.town; if (r.wd) o.ref = r.wd; if (r.rank) o.fame = Math.min(999, r.rank); if (famous) o.badge = "⭐ Famous landmark";
+    return o;
   }
   function cityPoint(d, r) { return { name: r.name, kind: "city", lat: r.lat, lon: r.lon, country: r.country, region: regionOf(r.country, r.admin1), sub: subOf(d, r.country, r.admin1) }; }
   function parkPoint(d, p) {
@@ -133,8 +152,21 @@
       });
       cities.forEach(function (c, i) { c._i = i; if (c._exact == null) c._exact = TW.fold(c.name) === TW.fold(head); });
       cities.sort(function (a, b) { return (b._exact - a._exact) || (b._pop - a._pop) || (a._i - b._i); });
-      cities.forEach(function (c) { delete c._pop; delete c._exact; delete c._i; });
     }
+    // v79: sights. Exact names first, then famous landmarks, then the rest by size / fame; at most 5 sights so towns still show.
+    var sk = TW ? layerKey(SIGHTS, head) : "", sfile = sk && SIGHTS.files[sk];
+    if (sfile) {
+      var ns = 0;
+      cities.forEach(function (c, i) { if (c._exact == null) c._exact = TW.fold(c.name) === TW.fold(head); c._score = Math.log(Math.max(1, c._pop || 1)) / Math.LN10 + 1; c._i = i; });
+      TW.match(head, sfile, { limit: 30, words: true }).forEach(function (h) {
+        var r = h.row, pt = sightPoint(d, r, h.name);
+        if (tail && (normQ(pt.sub).indexOf(tail) < 0 && (r.admin1 || "").toLowerCase() !== tail && r.country.toLowerCase() !== tail)) return;
+        pt._exact = h.exact; pt._famous = (r.rank || 0) >= FAMOUS; pt._score = 2 + Math.min(r.rank || 0, 120) / 12; pt._i = 100 + ns++; cities.push(pt);
+      });
+      cities.sort(function (a, b) { return (b._exact - a._exact) || ((b._famous ? 1 : 0) - (a._famous ? 1 : 0)) || (b._score - a._score) || (a._i - b._i); });
+      var nsight = 0; cities = cities.filter(function (c) { return c.kind !== "sight" || ++nsight <= 5; });
+    }
+    cities.forEach(function (c) { delete c._pop; delete c._exact; delete c._i; delete c._score; delete c._famous; });
     if (near) cities = cities.filter(function (p) { return p.country === near; }).concat(cities.filter(function (p) { return p.country !== near; }));
     return out.concat(cities).slice(0, Math.max(9, nParks + 6));
   }
@@ -361,7 +393,7 @@
             }).join("") + '</div>' : "") + '</div>';
         }
         var nights = typeof p.nights === "number" ? p.nights : 0;
-        return '<li class="rp">' + leg + '<div class="pt' + (T.hasLoc(p) ? "" : " noloc") + '"><span class="pin" aria-hidden="true">' + (i === 0 ? "🏠" : p.kind === "park" ? "🌲" : i) + '</span>' +
+        return '<li class="rp">' + leg + '<div class="pt' + (T.hasLoc(p) ? "" : " noloc") + '"><span class="pin" aria-hidden="true">' + (i === 0 ? "🏠" : p.kind === "park" ? "🌲" : p.kind === "sight" ? typeEmoji(p.type) : i) + '</span>' +
           '<div class="nm"><b>' + esc(p.name) + '</b><span>' + (i === 0 ? "Start · " : "") + esc(p.sub || (p.near ? "near " + p.near : T.hasLoc(p) ? "Your own place" : "No location yet")) + '</span>' +
           (T.hasLoc(p) ? "" : '<button type="button" class="linkbtn sm" data-locate="' + i + '">📍 Find it on the map</button>') + '</div>' +
           (i > 0 ? '<div class="stepper" aria-label="Nights in ' + esc(p.name) + '"><button type="button" data-n="-1" data-ni="' + i + '" aria-label="One less night">−</button><span>' + nights + '<small>' + (nights === 1 ? "night" : "nights") + '</small></span><button type="button" data-n="1" data-ni="' + i + '" aria-label="One more night">+</button></div>' : "") +
@@ -518,7 +550,7 @@
     function guessMode(a, b) { var g = T.gcMiles(a, b); return g == null ? "car" : g > 600 || T.mustFly(a, b) || (a.country && b.country && a.country !== b.country && g > 300) ? "plane" : "car"; }
     function fillAirports(a, b) { if (!airports) return; if (!b.dep) { var x = nearestAirport(a, airports); if (x) b.dep = x; } if (!b.arr) { var y = nearestAirport(b, airports); if (y) b.arr = y; } }
     function showResults(box, list, onPick, custom) {
-      box.innerHTML = list.map(function (p, i) { return '<button type="button" role="option" data-pick="' + i + '"><b>' + esc(p.label || p.name) + '</b><span>' + esc(p.sub || "") + '</span></button>'; }).join("") +
+      box.innerHTML = list.map(function (p, i) { return '<button type="button" role="option" data-pick="' + i + '"' + (p.badge ? ' class="famous"' : "") + '><b>' + esc(p.label || p.name) + (p.badge ? ' <em class="fambadge">' + esc(p.badge) + '</em>' : "") + '</b><span>' + esc(p.sub || "") + '</span></button>'; }).join("") +
         (custom ? '<button type="button" role="option" data-pick="custom" class="custom">➕ Use “' + esc(custom) + '” as our own place<span>For a cabin, a beach or anywhere not on the list</span></button>' : "");
       $$("[data-pick]", box).forEach(function (b) { b.onclick = function () { onPick(b.dataset.pick === "custom" ? null : list[+b.dataset.pick]); }; });
     }
@@ -1099,16 +1131,16 @@
   // ---------- passport ----------
   var CTX = { parkStates: M.PARK_STATES };
   function stampsOf(p) { return P.stampsFor(p, S().trips, CTX); }
-  function stampName(s) { return s.kind === "park" ? parkName(s.area) : areaName(s.kind, s.area); }
+  function stampName(s) { return s.kind === "sight" ? s.name || s.area : s.kind === "park" ? parkName(s.area) : areaName(s.kind, s.area); }
   function stampKeys(ids) { var out = {}; people(ids).forEach(function (p) { stampsOf(p).forEach(function (s) { out[p.id + "|" + s.id] = 1; if (s.kind === "state") out["sign|" + p.id + "|" + s.area] = 1; }); }); return out; }
   function newStamps(before, ids) {
     var seen = {}, out = [];
     people(ids).forEach(function (p) { stampsOf(p).forEach(function (s) { var k = s.kind + ":" + s.area; if (!before[p.id + "|" + s.id] && s.source !== "map" && !seen[k]) { seen[k] = 1; out.push(Object.assign({}, s, { holder: p.id, newSign: s.kind === "state" && !before["sign|" + p.id + "|" + s.area] })); } }); });
     return out.sort(function (a, b) { return (b.newSign ? 1 : 0) - (a.newSign ? 1 : 0); });
   }
-  var SECTIONS = [["world", "🌍 Countries"], ["states", "🇺🇸 States"], ["parks", "🌲 Parks"]];
+  var SECTIONS = [["world", "🌍 Countries"], ["states", "🇺🇸 States"], ["parks", "🌲 Parks"], ["sights", "🏰 Sights"]];
   var psec = "world";
-  function inSection(s, sec) { return sec === "parks" ? s.kind === "park" : sec === "states" ? s.kind === "state" : s.kind === "place"; }
+  function inSection(s, sec) { return sec === "parks" ? s.kind === "park" : sec === "states" ? s.kind === "state" : sec === "sights" ? s.kind === "sight" : s.kind === "place"; }
   // State stamps can show the state's bird, flower or animal (or a mix). Each person (and the family passport) keeps
   // their own choice on this device, like the State Signs seen list; press and hold one stamp to switch just that one.
   var ART_MODES = [["bird", "🐦 Bird"], ["flower", "🌸 Flower"], ["animal", "🦌 Animal"], ["mix", "🔀 Mix"]];
@@ -1132,24 +1164,24 @@
       sub: s.kind === "park" ? M.parkSub(PARK_BY[s.area]) : "" });
   }
   function bookHTML(title, color, stamps, who, pid) {
-    var life = T.lifetime(pid || null, S().trips), counts = { world: 0, states: 0, parks: 0 }; stamps.forEach(function (s) { counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : "world"]++; });
+    var life = T.lifetime(pid || null, S().trips), counts = { world: 0, states: 0, parks: 0, sights: 0 }; stamps.forEach(function (s) { counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : s.kind === "sight" ? "sights" : "world"]++; });
     var list = stamps.filter(function (s) { return inSection(s, psec); }), pages = P.pages(list, 4);
-    var secName = { world: "Countries", states: "Domestic stamps", parks: "National parks" }[psec];
+    var secName = { world: "Countries", states: "Domestic stamps", parks: "National parks", sights: "Sights and places" }[psec];
     var art = readArt(pid);
     var html = '<div class="seg" role="group" aria-label="Passport section">' + SECTIONS.map(function (x) { return '<button type="button" data-psec="' + x[0] + '" aria-pressed="' + (psec === x[0]) + '">' + x[1] + ' <small>' + counts[x[0]] + '</small></button>'; }).join("") + '</div>' +
       (psec === "states" ? '<div class="seg artseg" role="group" aria-label="State stamp pictures">' + ART_MODES.map(function (x) { return '<button type="button" data-art="' + x[0] + '" aria-pressed="' + (art.mode === x[0]) + '">' + x[1] + '</button>'; }).join("") + '</div>' +
         '<p class="small muted arthint">Each state stamp shows its state bird, flower or animal. Press and hold a stamp to switch just that one.</p>' : "") +
       '<div class="pbook" style="--pc:' + esc(color) + '"><div class="pages" id="pages" tabindex="0" aria-label="Passport pages. Swipe to turn.">' +
       '<section class="ppage cover"><div class="crest" aria-hidden="true"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="3"/><ellipse cx="50" cy="50" rx="18" ry="40" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M10 50h80M16 30h68M16 70h68" stroke="currentColor" stroke-width="2.5" fill="none"/></svg></div>' +
-      '<p class="ptype">PASSPORT</p><h2>' + esc(title) + '</h2><p class="pcount">' + counts.world + (counts.world === 1 ? " country stamp" : " country stamps") + ' · ' + counts.states + ' states · ' + counts.parks + ' parks</p>' +
+      '<p class="ptype">PASSPORT</p><h2>' + esc(title) + '</h2><p class="pcount">' + counts.world + (counts.world === 1 ? " country stamp" : " country stamps") + ' · ' + counts.states + ' states · ' + counts.parks + ' parks' + (counts.sights ? ' · ' + counts.sights + ' sights' : '') + '</p>' +
       (life.flights ? '<p class="pfly">✈️ ' + life.flights + (life.flights === 1 ? " flight" : " flights") + ' · ' + esc(dist(life.flightMiles)) + ' in the air</p>' : "") + '<p class="pswipe">Swipe to open →</p></section>' +
       (pages.length ? pages.map(function (pg, n) {
         return '<section class="ppage"><header><span>' + esc(secName.toUpperCase()) + '</span><span>' + (n + 1) + '</span></header>' + pg.map(function (c) {
           return '<button type="button" class="stamp" data-sid="' + esc(c.stamp.id) + '" style="left:' + (c.x / 3).toFixed(1) + '%;top:' + (c.y / 4).toFixed(1) + '%;--r:' + c.rot + 'deg" aria-label="' + esc(stampName(c.stamp) + (c.stamp.kind === "state" ? ", " + artFor(pid, c.stamp.area) : "") + (P.fmtDate(c.stamp.date) ? ", " + P.fmtDate(c.stamp.date) : "")) + '">' + stampSVG(c.stamp, pid) +
             (who && c.stamp.who.length ? '<span class="dots">' + A().avatars(c.stamp.who) + '</span>' : "") + '</button>';
         }).join("") + '</section>';
-      }).join("") : '<section class="ppage empty"><header><span>' + esc(secName.toUpperCase()) + '</span><span>1</span></header><p>' + esc({ world: "No country stamps yet.", states: "No state stamps yet.", parks: "No national park stamps yet." }[psec]) + '<br>' +
-        (psec === "parks" ? "Mark a park on the Parks tab, or add one to a trip." : psec === "states" ? "Color a state on the USA map, or add a trip." : "Color a country on the World map, or add a trip abroad.") + '</p></section>') +
+      }).join("") : '<section class="ppage empty"><header><span>' + esc(secName.toUpperCase()) + '</span><span>1</span></header><p>' + esc({ world: "No country stamps yet.", states: "No state stamps yet.", parks: "No national park stamps yet.", sights: "No sight stamps yet." }[psec]) + '<br>' +
+        (psec === "sights" ? "Add a castle, a viewpoint, a beach or any sight as a stop on a trip." : psec === "parks" ? "Mark a park on the Parks tab, or add one to a trip." : psec === "states" ? "Color a state on the USA map, or add a trip." : "Color a country on the World map, or add a trip abroad.") + '</p></section>') +
       '</div><div class="pager"><button type="button" class="btn btn-ghost" id="pprev" aria-label="Previous page">‹</button><span id="pgn">Cover</span><button type="button" class="btn btn-ghost" id="pnext" aria-label="Next page">›</button></div></div>';
     return html;
   }
