@@ -1,4 +1,4 @@
-# Hand list: scenic drives and film locations GeoNames lacks. type, names|alt, lat, lon, ISO3, town, fame (Wikipedia languages), Wikidata id
+# Hand list: scenic drives, film locations and world-famous landmarks GeoNames lacks or under-ranks. type, names|alt, lat, lon, ISO3, town, fame (Wikipedia languages), Wikidata id
 # Q ids, fame and coordinates come from Wikipedia/Wikidata (CC0) via /workspace/famstamp-plan/make_extra.py
 drive	North Coast 500|NC500|NC 500	58.2	-5.0	GBR	Inverness	10	Q23042024
 drive	Route 66|Historic Route 66	35.19	-111.65	USA	Flagstaff	56	Q79934
@@ -54,3 +54,53 @@ film	Universal Studios Hollywood	34.1359	-118.3539	USA	Los Angeles	19	Q1337576
 film	Mount Sunday|Edoras	-43.548	170.893	NZL		3	Q31683747
 film	Amélie café|Café des Deux Moulins	48.885	2.333	FRA	Paris	0	
 film	Kualoa Ranch|Jurassic Park valley	21.5206	-157.837	USA		3	Q6441069
+tower	Eiffel Tower|Tour Eiffel	48.8583	2.2945	FRA	Paris	191	Q243
+monument	Statue of Liberty|Lady Liberty	40.6892	-74.0444	USA	New York City	159	Q9202
+tower	Big Ben|Elizabeth Tower	51.5007	-0.1246	GBR	London	88	Q41225
+bridge	Tower Bridge	51.5056	-0.0753	GBR	London	86	Q83125
+ancient	Colosseum|Colosseo|Coliseum|Flavian Amphitheatre	41.8903	12.4922	ITA	Rome	148	Q10285
+tower	Leaning Tower of Pisa|Tower of Pisa|Torre di Pisa	43.723	10.3966	ITA	Pisa	119	Q39054
+palace	Taj Mahal	27.175	78.0419	IND	Agra	185	Q9141
+landmark	Sydney Opera House	-33.8571	151.2149	AUS	Sydney	99	Q45178
+tower	Empire State Building	40.7483	-73.9856	USA	New York City	125	Q9188
+monument	Arc de Triomphe	48.8738	2.295	FRA	Paris	86	Q64436
+monument	Brandenburg Gate|Brandenburger Tor	52.5163	13.3777	DEU	Berlin	86	Q82425
+monument	Christ the Redeemer|Cristo Redentor	-22.9519	-43.2105	BRA	Rio de Janeiro	94	Q79961
+ancient	Great Pyramid of Giza|Pyramids of Giza|Giza Pyramids	29.9792	31.1342	EGY	Giza	126	Q37200
+tower	Space Needle	47.6204	-122.3491	USA	Seattle	45	Q5317
+cathedral	Saint Basil's Cathedral|St Basil's Cathedral	55.7525	37.6231	RUS	Moscow	79	Q129846
+monument	Atomium	50.895	4.3414	BEL	Brussels	53	Q180901
+ancient	Easter Island moai|Moai|Rapa Nui	-27.12	-109.35	CHL	Hanga Roa	164	Q14452
+bridge	Rialto Bridge|Ponte di Rialto	45.438	12.3356	ITA	Venice	52	Q52505
+monument	India Gate	28.6129	77.2293	IND	New Delhi	51	Q245347
+ancient	Parthenon	37.9715	23.7266	GRC	Athens	138	Q10288
+tower	CN Tower	43.6428	-79.3871	CAN	Toronto	80	Q134883
+ancient	Machu Picchu	-13.1633	-72.5456	PER	Aguas Calientes	150	Q676203
+bridge	Golden Gate Bridge	37.8197	-122.4786	USA	San Francisco	110	Q44440
+cathedral	Sagrada Familia|Sagrada Família	41.4037	2.1743	ESP	Barcelona	109	Q48435
+monument	Mount Rushmore	43.8789	-103.4592	USA	Keystone	96	Q83497
+monument	Gateway Arch	38.6246	-90.185	USA	St. Louis	40	Q2027162
+monument	Washington Monument	38.8895	-77.0352	USA	Washington	70	Q178114
+landmark	United States Capitol|US Capitol	38.8897	-77.0092	USA	Washington	77	Q54109
+ancient	Great Wall of China|Great Wall	40.4314	116.5644	CHN	Beijing	194	Q12501
+castle	Neuschwanstein Castle|Schloss Neuschwanstein	47.5575	10.7494	DEU	Schwangau	93	Q4152
+tower	Burj Khalifa	25.1972	55.2742	ARE	Dubai	140	Q12495
+ancient	Angkor Wat	13.4125	103.8667	KHM	Siem Reap	137	Q43473
+cathedral	Hagia Sophia|Ayasofya	41.0083	28.98	TUR	Istanbul	152	Q12506
+castle	Cinderella Castle	28.4195	-81.5812	USA	Orlando	17	Q2742709
+bridge	Sydney Harbour Bridge	-33.8522	151.2107	AUS	Sydney	68	Q54495
+ancient	Petra	30.3289	35.4403	JOR	Wadi Musa	117	Q5788
+ancient	Chichen Itza|Chichén Itzá	20.6831	-88.5686	MEX	Pisté	110	Q5859
+museum	Louvre|Musée du Louvre|The Louvre	48.8611	2.3358	FRA	Paris	170	Q19675
+cathedral	Notre-Dame de Paris|Notre Dame Cathedral	48.853	2.3498	FRA	Paris	125	Q2981
+palace	Buckingham Palace	51.501	-0.142	GBR	London	95	Q42182
+castle	Tower of London	51.5082	-0.0762	GBR	London	88	Q62378
+tower	Petronas Towers|Petronas Twin Towers	3.1578	101.7117	MYS	Kuala Lumpur	89	Q83063
+tower	Tokyo Tower	35.6586	139.7456	JPN	Tokyo	69	Q183536
+ancient	Acropolis|Acropolis of Athens	37.9717	23.7261	GRC	Athens	97	Q131013
+monument	Lincoln Memorial	38.8893	-77.0501	USA	Washington	53	Q213559
+landmark	White House|The White House	38.8978	-77.0367	USA	Washington	143	Q35525
+landmark	Hollywood Sign	34.1341	-118.3217	USA	Los Angeles	43	Q180376
+palace	Palace of Versailles|Château de Versailles|Versailles	48.8047	2.1203	FRA	Versailles	109	Q2946
+cathedral	St. Peter's Basilica|Saint Peter's Basilica	41.9022	12.4534	VAT	Vatican City	131	Q12512
+ancient	Alhambra	37.1763	-3.5882	ESP	Granada	96	Q47476

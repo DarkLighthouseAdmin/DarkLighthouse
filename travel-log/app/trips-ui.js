@@ -570,8 +570,32 @@
     function fillAirports(a, b) { if (!airports) return; if (!b.dep) { var x = nearestAirport(a, airports); if (x) b.dep = x; } if (!b.arr) { var y = nearestAirport(b, airports); if (y) b.arr = y; } }
     function showResults(box, list, onPick, custom) {
       box.innerHTML = list.map(function (p, i) { return '<button type="button" role="option" data-pick="' + i + '"' + (p.badge ? ' class="famous"' : "") + '><b>' + esc(p.label || p.name) + (p.badge ? ' <em class="fambadge">' + esc(p.badge) + '</em>' : "") + '</b><span>' + esc(p.sub || "") + '</span></button>'; }).join("") +
-        (custom ? '<button type="button" role="option" data-pick="custom" class="custom">➕ Use “' + esc(custom) + '” as our own place<span>For a cabin, a beach or anywhere not on the list</span></button>' : "");
-      $$("[data-pick]", box).forEach(function (b) { b.onclick = function () { onPick(b.dataset.pick === "custom" ? null : list[+b.dataset.pick]); }; });
+        (custom && custom !== "osm" ? '<button type="button" role="option" data-pick="custom" class="custom">➕ Use “' + esc(custom) + '” as our own place<span>For a cabin, a beach or anywhere not on the list</span></button>' : "") +
+        // v81: not on our lists? look it up on OpenStreetMap (only when tapped), or drop a pin on the map
+        (custom && window.FS_PIN && custom.length >= 3 && custom !== "osm" ? '<button type="button" role="option" data-pick="osm" class="custom osm">🔎 Not here? Search OpenStreetMap for “' + esc(custom) + '”<span>Looks it up when you tap · © OpenStreetMap contributors</span></button>' : "") +
+        (custom && window.FS_PIN ? '<button type="button" role="option" data-pick="pin" class="custom pin">📍 Drop a pin on the map<span>Name it and pick what kind of place it is (beach, cabin, waterfall…)</span></button>' : "");
+      $$("[data-pick]", box).forEach(function (b) { b.onclick = function () {
+        var k = b.dataset.pick;
+        if (k === "osm") return osmSearch(custom);
+        if (k === "pin") return openPin(custom === "osm" ? search.value.trim() : custom);
+        onPick(k === "custom" ? null : list[+k]);
+      }; });
+    }
+    function osmSearch(q) {
+      results.innerHTML = '<p class="small muted" role="status">Looking on OpenStreetMap…</p>';
+      window.FS_PIN.search(q).then(function (list) {
+        if (search.value.trim() !== q) return;
+        showResults(results, list, function (p) { if (p) addPoint(p); }, "osm");
+        results.insertAdjacentHTML(list.length ? "afterbegin" : "beforeend", list.length ? '<p class="small muted osmhead">From OpenStreetMap · © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></p>' : '<p class="small muted">OpenStreetMap has nothing called “' + esc(q) + '” either. Drop a pin instead, or add it as our own place.</p>');
+      }).catch(function (e) { results.innerHTML = '<p class="small muted">Couldn\'t reach OpenStreetMap right now (' + esc(e.message || "offline") + '). Drop a pin or try again in a minute.</p>'; showResults(results, [], function () {}, q); });
+    }
+    function openPin(name) {
+      var r = d.route, ref = insertAt != null && r[insertAt - 1] ? r[insertAt - 1] : r[r.length - 1], c = null;
+      for (var i = r.length - 1; !c && i >= 0; i--) if (r[i] && r[i].lat != null) c = r[i];
+      if (ref && ref.lat != null) c = ref;
+      window.FS_PIN.open({ name: /^osm$/.test(name || "") ? "" : name, center: c ? { lat: c.lat, lon: c.lon } : null,
+        findLocal: function (q) { var x = searchPlaces(q, places || [], null)[0]; return x && x.lat != null ? x : null; },
+        onDone: function (pt) { addPoint(pt); A_.toast("Added " + pt.name + " 📍"); } });
     }
     search.addEventListener("input", function () {
       var q = search.value.trim();
@@ -1173,7 +1197,9 @@
 
   // ---------- passport ----------
   var CTX = { parkStates: M.PARK_STATES };
-  function stampsOf(p) { return P.stampsFor(p, S().trips, CTX); }
+  // v81: kids' passports skip drink stamps (distillery, brewery, winery, pub) unless the family turned on grown-up bits on kids' pages
+  function sctx() { return Object.assign({}, CTX, { adultInKid: !!S().meta.adultInKid }); }
+  function stampsOf(p) { return P.stampsFor(p, S().trips, sctx()); }
   function stampName(s) { return s.kind === "sight" ? s.name || s.area : s.kind === "park" ? parkName(s.area) : areaName(s.kind, s.area); }
   function stampKeys(ids) { var out = {}; people(ids).forEach(function (p) { stampsOf(p).forEach(function (s) { out[p.id + "|" + s.id] = 1; if (s.kind === "state") out["sign|" + p.id + "|" + s.area] = 1; }); }); return out; }
   function newStamps(before, ids) {
@@ -1226,6 +1252,9 @@
       }).join("") : '<section class="ppage empty"><header><span>' + esc(secName.toUpperCase()) + '</span><span>1</span></header><p>' + esc({ world: "No country stamps yet.", states: "No state stamps yet.", parks: "No national park stamps yet.", sights: "No sight stamps yet." }[psec]) + '<br>' +
         (psec === "sights" ? "Add a castle, a viewpoint, a beach or any sight as a stop on a trip." : psec === "parks" ? "Mark a park on the Parks tab, or add one to a trip." : psec === "states" ? "Color a state on the USA map, or add a trip." : "Color a country on the World map, or add a trip abroad.") + '</p></section>') +
       '</div><div class="pager"><button type="button" class="btn btn-ghost" id="pprev" aria-label="Previous page">‹</button><span id="pgn">Cover</span><button type="button" class="btn btn-ghost" id="pnext" aria-label="Next page">›</button></div></div>';
+    // v82: credit the artists of any famous-landmark drawings on these pages (CC0 / CC BY icons from Wikimedia Commons)
+    var LM = window.FS_LANDMARKS, seenLm = {}, cr = psec === "sights" && LM ? list.filter(function (s) { return s.ref && LM.has(s.ref) && !seenLm[s.ref] && (seenLm[s.ref] = 1); }).map(function (s) { var c = LM.credit(s.ref); return '<a href="' + esc(c.page) + '" target="_blank" rel="noopener">' + esc(c.name) + '</a> by ' + esc(c.artist || "unknown") + ' (' + esc(c.license) + ')'; }) : [];
+    if (cr.length) html += '<p class="small muted lmcredit">Landmark drawings from Wikimedia Commons, traced for stamps: ' + cr.join(" · ") + '</p>';
     return html;
   }
   function bindBook(again, stamps, owner) {
@@ -1278,7 +1307,7 @@
   }
   function passportFamily(openAt) {
     var A_ = A(); document.title = "Family passport · Famstamp";
-    var stamps = P.familyStamps(S().kids, S().trips, CTX), title = S().meta.familyName ? "The " + S().meta.familyName + " Family Passport" : "Our Family's Famstamp Passport";
+    var stamps = P.familyStamps(S().kids, S().trips, sctx()), title = S().meta.familyName ? "The " + S().meta.familyName + " Family Passport" : "Our Family's Famstamp Passport";
     A_.main.innerHTML = '<a class="back" href="#/family">← Family map</a><h1>Family passport</h1><div class="seg pswitch" role="group" aria-label="Passport or State Signs"><a class="btn" aria-current="page">🛂 Passport</a><a class="btn" href="#/family/signs">🪧 State Signs</a></div><p class="lede small">Every stamp anyone in the family has, with who was there. A trip you took together is one stamp.</p>' +
       bookHTML(title, "#16283a", stamps, true, null) +
       '<h2>Passports</h2><div class="stats">' + S().kids.map(function (p) {

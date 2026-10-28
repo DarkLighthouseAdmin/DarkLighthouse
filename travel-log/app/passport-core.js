@@ -107,6 +107,10 @@
   }
   /** Every stamp in one person's passport, oldest first. Sources: trips they went on, stamps added by hand, and places colored
       on the map with no visit yet (shown with no date). The same visit is never stamped twice. */
+  function drinkHidden(person, type, ctx) {
+    var ty = SA.typeOf ? SA.typeOf(type) : null;
+    return !!(ty && ty.group === "drinks" && !(person && (person.role === "adult" || person.role === "grand")) && !(ctx && ctx.adultInKid));
+  }
   function stampsFor(person, trips, ctx) {
     ctx = ctx || {};
     var out = [], have = {};
@@ -114,7 +118,11 @@
       if ((t.kidIds || []).indexOf(person.id) < 0) return;
       tripVisits(t, ctx.parkStates).forEach(function (v) {
         var st = { id: "t-" + t.id + "-" + v.kind + "-" + v.area, kind: v.kind, area: v.area, date: v.date, end: v.end || "", via: v.via || "", tripId: t.id, trip: t.place, source: "trip", who: [person.id] };
-        if (v.kind === "sight") sightInfo(st, v);
+        if (v.kind === "sight") {
+          sightInfo(st, v);
+          // v81: distillery / brewery / winery / pub stamps are for grown-ups; a kid's passport skips them unless the family turned on "show grown-up bits on kids' pages"
+          if (drinkHidden(person, v.type, ctx)) return;
+        }
         out.push(st);
         have[v.kind + ":" + v.area] = 1;
       });
@@ -223,7 +231,7 @@
   function signSVG(id, name, info) { return SG.signSVG(id, name, info, { fmtDate: fmtDate }); }
   function signTier(info) { return info ? SG.tier(info.visits || 1) : ""; }
 
-  return { newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits, sightArea: sightArea, sightSub: sightSub, section: section,
+  return { newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits, sightArea: sightArea, sightSub: sightSub, drinkHidden: drinkHidden, section: section,
            stampsFor: stampsFor, familyStamps: familyStamps, pages: pages, look: look, flag: flag, stampSVG: stampSVG, ISO32: ISO32, NATIONS: NATIONS, MAX_STAMPS: MAX_STAMPS, SHAPES: SHAPES,
            STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook, signTier: signTier, signInfo: SG.look,
            stampArtMode: function (id, art) { return SA.stateMode(id, art); }, stampDesign: SA.design, STATE_SYMBOLS: SA.SYM ? SA.SYM.DATA : null };

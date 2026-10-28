@@ -1080,3 +1080,22 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
   .topbar:has(.famchip:not([hidden])) .navsearch { padding-inline:.55rem; }
   .topbar:has(.navback:not([hidden])) .topright .famchip { max-width:4.4rem !important; }
 }
+
+/* v81: OpenStreetMap search + Drop a pin */
+.results .custom.osm, .results .custom.pin { border-style: dashed; }
+.results .osmhead a, .osmattr a { color: inherit; }
+.osmattr { font-size: .72rem; color: var(--muted, #667); margin: .2rem 0 .4rem; text-align: right; }
+.pinsheet { position: fixed; inset: 0; z-index: 9000; background: rgba(10, 20, 30, .55); display: flex; align-items: flex-end; justify-content: center; }
+.pinpanel { background: var(--card, #fff); color: inherit; width: 100%; max-width: 520px; max-height: 94vh; overflow: auto; border-radius: 18px 18px 0 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 30px rgba(0,0,0,.25); }
+.pinhead { display: flex; align-items: center; justify-content: space-between; }
+.pinhead h3 { margin: 0; }
+.pinx { font-size: 1.6rem; line-height: 1; background: none; border: 0; min-width: 44px; min-height: 44px; cursor: pointer; color: inherit; }
+.pinfind { display: flex; gap: 6px; margin: 6px 0; }
+.pinfind input { flex: 1; min-width: 0; }
+.pinmap { position: relative; height: 260px; overflow: hidden; border-radius: 12px; background: #dfe8ee; touch-action: none; cursor: crosshair; user-select: none; }
+.pintiles img { position: absolute; width: 256px; height: 256px; pointer-events: none; }
+.pinmark { position: absolute; font-size: 30px; transform: translate(-50%, -92%); pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
+.pinzoom { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.pinzoom button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(0,0,0,.2); background: #fff; color: #123; font-size: 1.3rem; cursor: pointer; }
+.pinrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.pinerr { min-height: 1.2em; color: #a33; }

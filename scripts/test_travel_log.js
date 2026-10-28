@@ -322,7 +322,7 @@ ok(/#\/family/.test(js) && /function viewFamily/.test(js) && /Been together/.tes
 ok(/Parent\/Adult/.test(read("log-core.js")) && /data-role/.test(js), "add-someone form has roles");
 ok(!/Add a kid|All kids|Which kids went/.test(js), "no kids-only wording in the people flow");
 ok(/Content-Security-Policy[^>]*default-src 'self'[^>]*script-src 'self'/.test(html), "CSP locks scripts to this site");
-ok(!/https?:\/\//.test(html.replace(/<!--[\s\S]*?-->/g, "").replace(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co wss:\/\/ercowufdbmvqagshduxh\.supabase\.co https:\/\/api\.open-meteo\.com https:\/\/archive-api\.open-meteo\.com;/, "").replace(/img-src 'self' data: blob: https:\/\/lh3\.googleusercontent\.com;/, "")), "index.html loads nothing from other sites (only Family Sync may connect to the family database; Google profile photos only)");
+ok(!/https?:\/\//.test(html.replace(/<!--[\s\S]*?-->/g, "").replace(/connect-src 'self' https:\/\/ercowufdbmvqagshduxh\.supabase\.co wss:\/\/ercowufdbmvqagshduxh\.supabase\.co https:\/\/nominatim\.openstreetmap\.org https:\/\/api\.open-meteo\.com https:\/\/archive-api\.open-meteo\.com;/, "").replace(/img-src 'self' data: blob: https:\/\/lh3\.googleusercontent\.com https:\/\/tile\.openstreetmap\.org;/, "")), "index.html loads nothing from other sites (only Family Sync may connect to the family database; Google profile photos only)");
 ok(/function okAvatar\(u\) \{ return \/\^https:\\\/\\\/lh3\\\.googleusercontent\\\.com/.test(read("sync.js")), "only Google profile photo URLs are shown");
 ok(/that\\'s me \(on another device\)/.test(read("sync.js")) && /This will link this device to/.test(read("sync.js")), "already-joined people are selectable, with a confirm");
 ok(/function identityJoin/.test(read("sync.js")) && /mltl-join-for/.test(read("sync.js")), "login = identity: members skip the picker; invites can name who they're for");
@@ -349,6 +349,114 @@ ok(/indexedDB\.open/.test(js) && /toDataURL\("image\/jpeg"/.test(js) && /fitDims
 ok(/makeBackup/.test(js) && /readBackup/.test(js), "back up / restore wired up");
 ok(/window\.print\(\)/.test(js) && /@media print/.test(css), "printable map view");
 
+
+// ---- v81 (item 6): famous landmarks get their own drawn stamps (Wikimedia Commons CC0 / PD / CC BY, credited); earned stamps upgrade, nothing removed ----
+{
+  const SA = require("../travel-log/app/stamp-art.js"), P = require("../travel-log/app/passport-core.js");
+  globalThis.WK_STAMPART = SA; delete globalThis.FS_LANDMARKS;
+  require("../travel-log/app/landmark-art.js");
+  const LM = globalThis.FS_LANDMARKS;
+  ok(LM && LM.ids.length >= 20, "landmarks: drawings registered (" + (LM ? LM.ids.length : 0) + ")");
+  ok(LM.ids.every(q => /^Q\d+$/.test(q) && typeof SA.GLYPHS["lm_" + q] === "function" && /<path fill-rule="evenodd" d="M/.test(SA.GLYPHS["lm_" + q]())), "landmarks: every drawing is one ink shape keyed by its Wikidata id");
+  ok(LM.ids.every(q => { const c = LM.credit(q); return c && c.name && c.artist && /^(CC0|Public domain|CC BY( \d\.\d)?( us)?)$/.test(c.license) && /^https:\/\/commons\.wikimedia\.org\/wiki\/File:/.test(c.page); }), "landmarks: every drawing has a free license (CC0 / PD / CC BY) and its credit");
+  ["Q243", "Q9202", "Q41225", "Q10285", "Q37200", "Q45178"].forEach(q => ok(LM.has(q), "landmarks: has a drawing for " + q + " (" + LM.credit(q).name + ")"));
+  const pt = (ref) => ({ kind: "sight", name: "Zz Eiffel Tower", type: "tower", country: "FRA", lat: 48.8583, lon: 2.2945, ref: ref });
+  const L = require("../travel-log/app/log-core.js"), T = require("../travel-log/app/trips-core.js");
+  const mom = L.newPerson({ name: "Zz Test Mom", role: "adult" });
+  const trips = [L.newTrip({ kidIds: [mom.id], place: "Zz Test Paris", date: "2026-05-01", route: T.cleanRoute([{ name: "Zz Home", kind: "city", lat: 48.85, lon: 2.35, country: "FRA" }, pt("Q243"), Object.assign(pt(""), { name: "Zz Corner Cafe Tower", lat: 48.86 })]) })];
+  const ss = P.stampsFor(mom, trips, {}).filter(s => s.kind === "sight");
+  const lmS = ss.find(s => s.ref === "Q243"), plain = ss.find(s => !s.ref);
+  const d1 = SA.design("sight", lmS.area, lmS.name, null, lmS), d2 = SA.design("sight", plain.area, plain.name, null, plain);
+  ok(d1.landmark === true && d1.motif === "lm_Q243" && d1.border === "double", "landmarks: Eiffel Tower stop gets its drawn stamp (double ring)");
+  ok(d2.landmark === false && d2.motif === SA.typeOf("tower").motif, "landmarks: a sight with no drawing keeps its type's stamp, with its own name");
+  const before = P.stampsFor(mom, trips, {}).map(s => s.kind + ":" + s.area).join(",");
+  const g = SA.GLYPHS.lm_Q243; delete SA.GLYPHS.lm_Q243;
+  const d0 = SA.design("sight", lmS.area, lmS.name, null, lmS);
+  const after = P.stampsFor(mom, trips, {}).map(s => s.kind + ":" + s.area).join(",");
+  SA.GLYPHS.lm_Q243 = g;
+  ok(d0.landmark === false && before === after, "landmarks: without the drawing the same stamp shows the type picture; adding one upgrades it (same stamp id, nothing removed)");
+  ok(/lm_Q243|<path fill-rule="evenodd"/.test(SA.stampSVG(lmS, { name: lmS.name })), "landmarks: the landmark stamp draws its picture");
+  const html = fs.readFileSync(path.join(__dirname, "../travel-log/app/index.html"), "utf8"), tui = fs.readFileSync(path.join(__dirname, "../travel-log/app/trips-ui.js"), "utf8");
+  ok(/<script src="stamp-art\.js"><\/script>\s*<script src="landmark-art\.js"><\/script>/.test(html), "landmarks: drawings load right after the stamp art (in the bundle)");
+  ok(/class="small muted lmcredit">Landmark drawings from Wikimedia Commons/.test(tui) && /LM\.credit\(s\.ref\)/.test(tui), "landmarks: Sights pages credit each drawing's artist and license");
+  const credits = fs.readFileSync(path.join(__dirname, "../travel-log/LANDMARK-CREDITS.md"), "utf8");
+  ok(LM.ids.every(q => credits.includes(q)), "landmarks: LANDMARK-CREDITS.md lists every drawing");
+  delete globalThis.WK_STAMPART;
+}
+// ---- v81: every kind of place gets its own stamp; OpenStreetMap lookup (on tap, 1/s, cached, credited); drop a pin; drink stamps grown-ups only ----
+{
+  const O = require("../travel-log/app/osm-core.js"), P = require("../travel-log/app/passport-core.js"), SA = require("../travel-log/app/stamp-art.js"), L = require("../travel-log/app/log-core.js"), T = require("../travel-log/app/trips-core.js");
+  const I = {}; Object.keys(P.ISO32).forEach(k => { I[P.ISO32[k].toLowerCase()] = k; });
+  const lb = t => SA.typeOf(t).label;
+  // 1. Nominatim usage policy
+  const u = O.searchURL("Neist Point Lighthouse");
+  ok(/^https:\/\/nominatim\.openstreetmap\.org\/search\?/.test(u) && /format=jsonv2/.test(u) && /limit=8/.test(u) && /q=Neist%20Point%20Lighthouse$/.test(u), "v81: OSM search URL is the public Nominatim search, small result count");
+  ok(O.GAP_MS >= 1000 && O.waitFor(Date.now(), Date.now()) >= 1000 && O.waitFor(0, Date.now()) === 0, "v81: never more than one OpenStreetMap request a second");
+  ok(O.ATTR === "© OpenStreetMap contributors", "v81: OpenStreetMap credit text");
+  const pin = read("pin.js"), tui = read("trips-ui.js");
+  ok(/OpenStreetMap contributors/.test(pin) && /openstreetmap\.org\/copyright/.test(pin) && /OpenStreetMap contributors/.test(tui), "v81: map and results credit OpenStreetMap");
+  ok(/cacheGet\(window\.localStorage/.test(pin) && /cachePut\(window\.localStorage/.test(pin), "v81: OpenStreetMap answers are cached on the phone");
+  ok(/data-pick="osm"/.test(tui) && !/FS_PIN\.search\([^)]*\)[^;]*addEventListener\("input"/.test(tui) && (tui.match(/FS_PIN\.search\(/g) || []).length === 1 && /function osmSearch/.test(tui), "v81: OpenStreetMap is only searched when someone taps (no search-as-you-type)");
+  const st = { m: {}, getItem(k) { return this.m[k] || null; }, setItem(k, v) { this.m[k] = v; } };
+  O.cachePut(st, "a", [1]); ok(JSON.stringify(O.cacheGet(st, "a")) === "[1]" && O.cacheGet(st, "b") === null, "v81: cache round-trips");
+  for (let i = 0; i < 200; i++) O.cachePut(st, "k" + i, i);
+  ok(Object.keys(JSON.parse(st.m["fs-osm"])).length <= 150, "v81: cache stays small (oldest dropped)");
+  const html = read("index.html");
+  ok(/connect-src [^;]*https:\/\/nominatim\.openstreetmap\.org/.test(html) && /img-src [^;]*https:\/\/tile\.openstreetmap\.org/.test(html), "v81: CSP allows only Nominatim and the OSM map tiles for this");
+  ok(/<script src="towns-core\.js"><\/script>\s*<script src="osm-core\.js"><\/script>\s*<script src="pin\.js"><\/script>/.test(html), "v81: OSM + pin scripts load (in the bundle)");
+  // 2. OSM results -> stops with the right type
+  const A = (cc, st2, l4, extra) => Object.assign({ country_code: cc, country: st2 }, l4 ? { "ISO3166-2-lvl4": l4 } : {}, extra || {});
+  const R = [
+    [{ name: "Neist Point Lighthouse", category: "man_made", type: "lighthouse", lat: "57.42", lon: "-6.79", address: A("gb", "United Kingdom", "GB-SCT", { village: "Glendale", state: "Scotland" }) }, "lighthouse", "GBR", "SCT"],
+    [{ name: "Ullapool Ferry Terminal", category: "amenity", type: "ferry_terminal", lat: "57.89", lon: "-5.16", address: A("gb", "United Kingdom", "GB-SCT") }, "ferry", "GBR", "SCT"],
+    [{ name: "Talisker Distillery", category: "craft", type: "distillery", lat: "57.30", lon: "-6.36", address: A("gb", "United Kingdom", "GB-SCT") }, "distillery", "GBR", "SCT"],
+    [{ name: "Shell Beach", category: "natural", type: "beach", lat: "-26.2", lon: "113.8", address: A("au", "Australia", "AU-WA") }, "beach", "AUS", "WA"],
+    [{ name: "Zz Test Falls", category: "waterway", type: "waterfall", lat: "35.1", lon: "-83.1", address: A("us", "United States", "US-NC") }, "waterfall", "USA", "NC"],
+    [{ name: "Henry Doorly Zoo", category: "tourism", type: "zoo", lat: "41.22", lon: "-95.93", address: A("us", "United States", "US-NE") }, "zoo", "USA", "NE"],
+    [{ name: "Camp Nou", category: "leisure", type: "stadium", lat: "41.38", lon: "2.12", address: A("es", "Spain") }, "stadium", "ESP", ""],
+    [{ name: "Forth Bridge", category: "man_made", type: "bridge", lat: "56.0", lon: "-3.39", address: A("gb", "United Kingdom", "GB-SCT") }, "bridge", "GBR", "SCT"],
+    [{ name: "Old Faithful", category: "natural", type: "geyser", lat: "44.46", lon: "-110.83", address: A("us", "United States", "US-WY"), extratags: { wikidata: "Q1129397" } }, "geyser", "USA", "WY"],
+    [{ name: "Zz Test Playground", category: "leisure", type: "playground", lat: "43.07", lon: "-89.4", address: A("us", "United States", "US-WI") }, "playground", "USA", "WI"],
+    [{ name: "Zz Odd Thing", category: "shop", type: "bakery", lat: "1", lon: "1", address: A("fr", "France") }, "pin", "FRA", ""]
+  ];
+  R.forEach(([r, ty, c3, reg]) => {
+    const p = O.toPoint(r, I, lb), c = T.cleanPoint(p, false);
+    ok(p && p.kind === "sight" && p.type === ty && p.country === c3 && (p.region || "") === reg && c.kind === "sight" && c.type === ty && new RegExp("^" + lb(ty)).test(c.sub || ""), "v81: OSM " + r.name + " -> " + ty + " stop in " + c3 + (reg ? "/" + reg : ""));
+  });
+  ok(O.toPoint(R[8][0], I, lb).ref === "Q1129397", "v81: OSM Wikidata id kept, so it's the same stamp as our own list's");
+  const town = O.toPoint({ name: "Ullapool", category: "place", type: "village", lat: "57.9", lon: "-5.16", address: A("gb", "United Kingdom", "GB-SCT", { state: "Scotland" }) }, I, lb);
+  ok(town.kind === "city" && town.country === "GBR" && town.region === "SCT" && /Scotland/.test(town.sub), "v81: an OSM town becomes a town stop");
+  ok(O.toPoint({ name: "x", lat: "nope", lon: "1" }, I, lb) === null && O.toPoint(null, I, lb) === null, "v81: bad OSM rows are skipped");
+  // tiles
+  const t1 = O.tileXY(55.95, -3.19, 12), b1 = O.latLon(t1.x, t1.y, 12);
+  ok(Math.abs(b1.lat - 55.95) < 1e-6 && Math.abs(b1.lon + 3.19) < 1e-6 && /^https:\/\/tile\.openstreetmap\.org\/12\/\d+\/\d+\.png$/.test(O.tileURL(Math.floor(t1.x), Math.floor(t1.y), 12)), "v81: map tile math round-trips");
+  // 3. every type has its own stamp
+  const kid = L.newPerson({ name: "Zz Test Kid", role: "kid" }), mom = L.newPerson({ name: "Zz Test Mom", role: "adult" });
+  const types = Object.keys(SA.TYPES);
+  ok(types.length >= 40 && ["lighthouse", "ferry", "station", "drive", "stadium", "film", "bridge", "pin", "distillery", "brewery", "winery", "pub", "zoo", "aquarium", "themepark", "waterpark", "playground", "beach", "waterfall", "lake", "island", "peak", "cave", "glacier", "geyser"].every(k => types.includes(k)), "v81: all place types exist (" + types.length + ")");
+  const trips = []; for (let i = 0; i < types.length; i += 10) trips.push(L.newTrip({ kidIds: [kid.id, mom.id], place: "Zz Test Everything " + i, date: "2026-08-01",
+    route: T.cleanRoute([{ name: "Zz Home", kind: "city", lat: 40.7, lon: -74, country: "USA", region: "NY" }].concat(types.slice(i, i + 10).map((ty, j) => ({ name: "Zz " + ty + " place", kind: "sight", type: ty, lat: 10 + (i + j) / 10, lon: 10, country: "FRA", mode: "car" })))) }));
+  const trip = trips;
+  const ks = P.stampsFor(kid, trips, {}).filter(s => s.kind === "sight"), ms = P.stampsFor(mom, trips, {}).filter(s => s.kind === "sight");
+  ok(ms.length === types.length, "v81: a grown-up gets one stamp per place type (" + ms.length + ")");
+  const sv = ms.map(s => P.stampSVG(s));
+  ok(sv.every(x => /<svg/.test(x)) && new Set(ms.map(s => SA.typeOf(s.type).motif)).size >= 20, "v81: each type draws its own stamp (motifs differ)");
+  ok(ks.length === types.length - 4 && !ks.some(s => SA.typeOf(s.type).group === "drinks"), "v81: a kid's passport skips distillery / brewery / winery / pub stamps");
+  ok(P.stampsFor(kid, trips, { adultInKid: true }).filter(s => s.kind === "sight").length === types.length, "v81: ...unless grown-up bits are turned on for kids' pages");
+  ok(P.stampsFor(kid, trips, {}).some(s => s.kind === "place" && s.area === "FRA"), "v81: the kid still gets the country stamp from a distillery stop");
+  ok(/function sctx\(\)/.test(tui) && /P\.stampsFor\(p, S\(\)\.trips, sctx\(\)\)/.test(tui), "v81: the passport passes the family's grown-up setting");
+  // 4. famous drives / film locations / stations are in the search data
+  const SD = path.join(APP, "data", "sights");
+  const findS = (nm) => { const f = fs.readdirSync(SD).filter(x => /\.json$/.test(x) && x !== "index.json"); for (const x of f) { const j = JSON.parse(fs.readFileSync(path.join(SD, x), "utf8")); const rows = String(j.rows || "").split("\n"); for (const r of rows) { if (r.split("\t")[0].split("|")[0] === nm) return r; } } return null; };
+  ["North Coast 500", "Glenfinnan Viaduct", "Hobbiton Movie Set", "Eiffel Tower", "Colosseum", "Machu Picchu"].forEach(nm => ok(!!findS(nm), "v81: search data has " + nm));
+  // 5. drop a pin
+  ok(/Drop a pin/.test(pin) && /Use where I am now/.test(pin) && /kind: "sight", type: type/.test(pin) && /data-pick="pin"/.test(tui), "v81: drop a pin: name, type, tap the map or use where you are");
+  ok(/optgroup label="' \+ groups\[g\]/.test(pin) && /Drinks \(grown-ups\)/.test(pin), "v81: pin types grouped (drinks marked grown-ups)");
+  const pinStop = T.cleanPoint({ name: "Zz Grandpa's Cabin", kind: "sight", type: "pin", lat: 45.12345, lon: -89.5, country: "USA", region: "WI", sub: "Pinned place · Wisconsin" }, false);
+  const pt = L.newTrip({ kidIds: [kid.id], place: "Zz Cabin", date: "2026-09-01", route: [{ name: "Zz Home", kind: "city", lat: 43, lon: -89.4, country: "USA", region: "WI" }, pinStop] });
+  const pss = P.stampsFor(kid, [pt], {});
+  ok(pss.some(s => s.kind === "sight" && s.name === "Zz Grandpa's Cabin") && pss.some(s => s.kind === "state" && s.area === "WI"), "v81: a dropped pin is its own stamp and counts for its state");
+}
 
 // ---- v80: reorder a trip's stops and add a forgotten stop in the middle; stops, nights, stamps and photos stay ----
 {

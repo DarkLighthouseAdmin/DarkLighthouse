@@ -151,6 +151,9 @@ if os.path.exists(xp):
 # ---- places GeoNames links to English Wikipedia but not to Wikidata (Stonehenge, the Eiffel Tower...): ask Wikipedia for the Wikidata id
 encache = os.path.join(SRC, "wd", "enwiki.json")
 enq = json.load(open(encache)) if os.path.exists(encache) else {}
+# points, cliffs, rocks and hills only make it in when they have an English Wikipedia article (there are ~300k bot-made ones)
+for g in [g for g, s in keep.items() if s.get("code") in ("T.PT", "T.CLF", "T.RK", "T.HLL") and not s.get("en")]: del keep[g]
+print("after en-only filter for points/cliffs/rocks/hills", len(keep))
 need = sorted(set(urllib.parse.unquote(s["en"]).replace("_", " ") for s in keep.values() if not s["wd"] and s.get("en")))
 need = [t for t in need if t not in enq and "|" not in t and len(t) < 250]
 print("wikipedia titles to look up", len(need))
