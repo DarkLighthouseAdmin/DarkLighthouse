@@ -321,6 +321,7 @@
     }
     // v84: "Paste a booking": what we read from a flight or hotel confirmation fills in the new trip (the pasted text itself is never kept)
     var fromBooking = !old && !fromWish ? pendingBooking : null; pendingBooking = null;
+    var mailId = fromBooking ? pendingMail : null; pendingMail = null;
     if (fromBooking) {
       ["date", "endDate", "done", "roundTrip", "title", "fly"].forEach(function (x) { if (fromBooking[x] !== undefined && fromBooking[x] !== "") d[x] = fromBooking[x]; });
       if (fromBooking.route.length) d.route = fromBooking.route[0].mode ? (d.route.slice(0, 1)).concat(copy(fromBooking.route)) : copy(fromBooking.route);
@@ -795,6 +796,7 @@
       var fresh = newStamps(before, ids);
       Promise.all(jobs).then(function () {
         if (!old && RB && RB.clearDraft) RB.clearDraft();
+        if (mailId) mailCall("booking_inbox_mark", { p_id: mailId, p_status: "used" }).catch(function () {});
         location.hash = "#/p/" + (trip.kidIds.indexOf(k.id) >= 0 ? k.id : trip.kidIds[0]) + "/trip/" + trip.id;
         A_.toast(reviewing ? M.tripLabel(trip) + " reviewed ✓" : dupOk === "merge" ? "Added to " + M.tripLabel(trip) : old ? "Trip saved" : "Trip added!");
         if (fresh.length) setTimeout(function () { celebrate(fresh); }, 350);
@@ -1386,15 +1388,77 @@
     return el;
   }
   function closeSheet() { $$(".sheetbg").forEach(function (x) { x.remove(); }); }
+  // ---------- v88: bookings forwarded by email to trips+CODE@ (Family Sync only; see travel-log/mail/famstamp-mail.gs) ----------
+  // The mail script keeps only airports, dates and hotel names (booking_inbox in famstamp-v88/booking-inbox.sql);
+  // each one waits on the Trips page until someone makes it a trip (opens a filled-in draft) or says "Not ours".
+  var pendingMail = null, MAIL_DOMAIN = "darklighthousesolutions.com", mailListAt = 0, mailList = null;
+  function mailFam() { var S_ = window.MLTL_SYNC, c = S_ && S_.isOn && S_.isOn() && S_.cup && S_.cup.cfg(); return c && c.familyId ? c.familyId : ""; }
+  function mailCall(fn, args) { var S_ = window.MLTL_SYNC; return mailFam() && S_.cup && S_.cup.rpc ? S_.cup.rpc(fn, args) : Promise.reject(new Error("Family Sync is off")); }
+  function mailAddress() {
+    var f = mailFam(); if (!f) return Promise.resolve(null);
+    return mailCall("my_booking_address", { p_family: f }).then(function (c) { return typeof c === "string" && /^[a-z2-9]{6}$/.test(c) ? "trips+" + c + "@" + MAIL_DOMAIN : null; }).catch(function () { return null; });
+  }
+  function mailLines(p) {
+    var out = [];
+    (p.flights || []).forEach(function (f) { out.push("✈️ " + esc(f.dep + " → " + f.arr) + (f.date ? " · " + esc(f.date) : "")); });
+    (p.hotels || []).forEach(function (h) { out.push("🏨 " + esc(h.name) + (h.city ? ", " + esc(h.city) : "") + (h.checkIn ? " · " + esc(h.checkIn) : "")); });
+    return out.join("<br>");
+  }
+  function mailToTrip(p) {
+    var BK = window.FS_BOOKING_CORE; if (!BK) return Promise.resolve(null);
+    var res = { flights: (p.flights || []).map(function (f) { return { dep: f.dep, arr: f.arr, date: f.date || "" }; }),
+                hotels: (p.hotels || []).map(function (h) { return { name: h.name, city: h.city || "", checkIn: h.checkIn || "", checkOut: h.checkOut || "", nights: h.nights == null ? null : h.nights }; }) };
+    return loadAirports().catch(function () { return []; }).then(function (list) {
+      var by = {}; (list || []).forEach(function (a) { by[a.code] = a; });
+      return BK.toTrip(res, function (c) { var a = by[c]; return a ? airportObj(a) : null; }, M.today());
+    });
+  }
+  function mailInbox(main) {
+    var f = mailFam(); if (!f || !main) return;
+    var draw = function (list) {
+      if (!list || !list.length || !/^#\/trips/.test(location.hash) || main.querySelector(".mailbox")) return;
+      var box = document.createElement("section"); box.className = "panel mailbox";
+      box.innerHTML = '<h2>✉️ From your email</h2><p class="small muted">Bookings your family forwarded. Make each one a trip and check it over, or skip it.</p>' +
+        list.map(function (it) {
+          return '<div class="mailitem" data-mid="' + esc(it.id) + '"><p>' + mailLines(it.parsed || {}) + '</p><div class="actions"><button type="button" class="btn btn-primary" data-mailuse="' + esc(it.id) + '">Make a trip</button><button type="button" class="btn btn-ghost" data-maildrop="' + esc(it.id) + '">Not ours</button></div></div>';
+        }).join("");
+      var h1 = main.querySelector("h1"); if (h1) h1.parentNode.insertBefore(box, h1.nextSibling); else main.insertBefore(box, main.firstChild);
+      $$("[data-mailuse]", box).forEach(function (b) {
+        b.onclick = function () {
+          var it = list.filter(function (x) { return x.id === b.dataset.mailuse; })[0]; if (!it) return;
+          b.disabled = true;
+          mailToTrip(it.parsed || {}).then(function (found) {
+            b.disabled = false;
+            if (!found) { A().toast("We couldn't read that one. Add it by hand, or tap Not ours."); return; }
+            var st = S(), mine = st.meta && st.meta.sync && st.meta.sync.myPerson, k = A().kidById(mine) || st.kids[0];
+            if (!k) { A().toast("Add someone to the family first."); return; }
+            pendingBooking = found; pendingMail = it.id; mailList = null;
+            location.hash = "#/p/" + k.id + "/trips/new";
+          });
+        };
+      });
+      $$("[data-maildrop]", box).forEach(function (b) {
+        b.onclick = function () {
+          b.disabled = true;
+          mailCall("booking_inbox_mark", { p_id: b.dataset.maildrop, p_status: "dismissed" }).then(function () {
+            mailList = null; var row = b.closest(".mailitem"); if (row) row.remove(); if (!$(".mailitem", box)) box.remove();
+          }).catch(function () { b.disabled = false; A().toast("Couldn't reach Family Sync. Try again in a moment."); });
+        };
+      });
+    };
+    if (mailList && Date.now() - mailListAt < 60000) { draw(mailList); return; }
+    mailCall("booking_inbox_list", { p_family: f }).then(function (list) { mailList = Array.isArray(list) ? list : []; mailListAt = Date.now(); draw(mailList); }).catch(function () {});
+  }
   // ---------- v84: paste a booking (flight or hotel confirmation) into a new trip ----------
   var pendingBooking = null;
   function bookingSheet(k, opts) {
     var BK = window.FS_BOOKING_CORE; if (!BK) return;
     var el = sheet('<h3>📋 Paste a booking</h3><p class="small muted">Copy the text of a flight or hotel confirmation email and paste it here. We pick out the airports, dates and hotel name, and it stays on this phone: names, confirmation numbers and prices are left out.</p>' +
       '<div class="field"><label for="bktext">Booking email</label><textarea id="bktext" rows="7" maxlength="60000" placeholder="e.g. Edinburgh (EDI) to London Heathrow (LHR), Fri 3 July 2026"></textarea></div>' +
-      '<div id="bkout" class="small" aria-live="polite"></div>' +
+      '<div id="bkout" class="small" aria-live="polite"></div><p class="small muted bkmail" id="bkmail" hidden></p>' +
       '<div class="actions"><button type="button" class="btn btn-primary" id="bkread">Read it</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
     var ta = $("#bktext", el), out = $("#bkout", el), btn = $("#bkread", el), found = null;
+    mailAddress().then(function (addr) { var m = $("#bkmail", el); if (!addr || !m) return; m.hidden = false; m.innerHTML = '✉️ Or forward the confirmation email to <b class="bkaddr">' + esc(addr) + '</b>. It shows up on the Trips page for your family to check. Only the places, dates and hotel name are kept.'; });
     ta.oninput = function () { found = null; btn.textContent = "Read it"; out.innerHTML = ""; };
     btn.onclick = function () {
       if (found) { pendingBooking = found; closeSheet(); builder(k, null, opts); return; }
@@ -1669,7 +1733,7 @@
       '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
   }
 
-  window.FS_UI = { findPlaces: findPlaces, builder: builder, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
+  window.FS_UI = { mailInbox: mailInbox, mailAddress: mailAddress, findPlaces: findPlaces, builder: builder, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
                    lifetimeHTML: lifetimeHTML, bindLifetime: bindLifetime, printExtra: printExtra, loadPlaces: loadPlaces, loadAirports: loadAirports, ensureTowns: ensureTowns, routeSVG: routeSVG,
                    searchPlaces: searchPlaces, searchAirports: searchAirports, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs,
                    sheet: sheet, closeSheet: closeSheet, dateFields: dateFields, readDate: readDate, shortArea: shortArea, stampName: stampName, CTX: CTX };

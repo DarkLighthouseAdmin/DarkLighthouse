@@ -1133,3 +1133,7 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .avpick[aria-pressed=true] { border-color:var(--navy); box-shadow:0 0 0 3px var(--beacon); }
 .avpick .avlet { color:#fff; font-family:var(--serif); font-weight:700; font-size:1.3rem; text-shadow:0 1px 2px rgba(0,0,0,.25); }
 .avpick:focus-visible { outline:3px solid var(--beacon); outline-offset:2px; }
+/* v88: bookings forwarded by email */
+.mailbox .mailitem { border-top: 1px solid rgba(127,127,127,.28); padding-top: .6rem; margin-top: .6rem; }
+.mailbox .mailitem p { margin: 0 0 .4rem; }
+.bkmail .bkaddr { user-select: all; -webkit-user-select: all; word-break: break-all; }

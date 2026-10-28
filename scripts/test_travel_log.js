@@ -2521,3 +2521,20 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(ix.indexOf('src="avatars.js"') > 0 && ix.indexOf('src="avatars.js"') < ix.indexOf('src="app.js"') && BUNDLE.list().indexOf("avatars.js") >= 0, "v87: avatars.js is in the bundle before app.js");
   ok(/TO SWAP IN THE NEW SET/.test(read("avatars.js")), "v87: swap instructions at the top of avatars.js");
 }
+
+// ---- v88: bookings forwarded by email (trips+CODE@) ----
+{
+  const tu = read("trips-ui.js"), nav = read("nav.js"), app = read("app.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
+  const MAIL = path.join(APP, "..", "mail"), gs = fs.readFileSync(path.join(MAIL, "famstamp-mail.gs"), "utf8"), sql = fs.readFileSync(path.join(MAIL, "booking-inbox.sql"), "utf8");
+  ok(/var VERSION = "v(8[8-9]|9\d)"/.test(app) && /mltl-v(8[8-9]|9\d)/.test(swr), "v88: version and cache bumped");
+  ok(/mailInbox: mailInbox/.test(tu) && /UI\.mailInbox\(a\.main\)/.test(nav), "v88: Trips page shows the email inbox");
+  ok(/"my_booking_address"/.test(tu) && /id="bkmail"[^>]*hidden/.test(tu), "v88: forward address only shows once the server has it");
+  ok(/p_status: "used"/.test(tu) && /p_status: "dismissed"/.test(tu) && /var mailId = fromBooking \? pendingMail : null/.test(tu), "v88: marked used only after the trip is saved; Not ours dismisses");
+  ok(!/\b(delete|drop|truncate)\b/i.test(sql.replace(/--.*$/gm, "").replace(/on delete cascade/gi, "")), "v88: booking SQL is additive (no delete/drop/truncate)");
+  ok(/enable row level security/i.test(sql) && /revoke all on public\.family_mail_codes, public\.booking_inbox, public\.fs_private_settings from anon, authenticated/.test(sql), "v88: inbox tables locked down");
+  ok(/__SECRET_SHA256__/.test(sql) && !/[0-9a-f]{64}/.test(sql), "v88: no secret hash in the repo copy");
+  ok(/FS_INGEST_SECRET/.test(gs) && !/sb_secret|service_role|eyJ/.test(gs), "v88: mail script keeps its keys in Script Properties");
+  ok(!/sendEmail|reply\(|forward\(|createDraft/.test(gs), "v88: mail script never sends or replies");
+  ok(/moveToTrash/.test(gs) && /ingest_booking/.test(gs), "v88: mail is trashed after reading; only parsed fields are sent");
+  ok(!/Matt|Hill|oraclinical/i.test(gs + sql), "v88: no personal names");
+}

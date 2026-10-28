@@ -189,6 +189,7 @@
     });
     a.main.innerHTML = html; document.title = "Trips · Famstamp";
     if (a.fillPhotos) a.fillPhotos();
+    if (UI && UI.mailInbox) UI.mailInbox(a.main);   // v88: bookings forwarded by email
   }
   // v86: dark mode. Auto follows the phone's setting; Light or Dark pins it on this device (theme.js).
   function themeHTML() {
