@@ -2506,3 +2506,18 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   const gen = require("child_process").execFileSync("python3", [path.join(__dirname, "build_dark_css.py"), "--check"], { encoding: "utf8" });
   ok(/up to date/.test(gen), "v86: dark.css matches the light CSS (run scripts/build_dark_css.py after CSS changes)");
 }
+
+// ---- v87: placeholder avatars (swappable set in avatars.js) ----
+{
+  const AV = require(path.join(APP, "avatars.js")), ix = read("index.html"), app = read("app.js"), tu = read("trips-ui.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
+  ok(/var VERSION = "v(8[7-9]|9\d)"/.test(app) && /mltl-v(8[7-9]|9\d)/.test(swr), "v87: version and cache bumped");
+  ok(AV.list.length >= 16 && AV.list.some(a => a.group === "kid") && AV.list.some(a => a.group === "adult"), "v87: kid and grown-up avatars");
+  ok(new Set(AV.list.map(a => a.id)).size === AV.list.length && AV.list.every(a => /^[a-z]\d+$/.test(a.id) && a.label), "v87: ids are unique and each has a spoken label");
+  ok(AV.list.every(a => /^<svg class="avimg" viewBox="0 0 64 64"[^>]*>[\s\S]+<\/svg>$/.test(AV.html(a.id)) && !/<script|on\w+=|href/i.test(AV.html(a.id))), "v87: every avatar is a plain drawing");
+  ok(AV.html("nope") === "" && AV.html('"><img src=x>') === "" && !AV.has("__proto__") && !AV.has(undefined), "v87: unknown ids draw nothing (fall back to the initial)");
+  ok(/class="avpick" data-av=""/.test(AV.pickerHTML("", "Z")) && (AV.pickerHTML("k2", "Z").match(/aria-pressed="true"/g) || []).length === 1, "v87: picker has a letter option and marks the current pick");
+  ok(/AV && AV\.has\(x\.av\)\) return AV\.html\(x\.av\)/.test(app), "v87: a person's badge uses their avatar, else their initial");
+  ok(/kidForm|viewKidForm/.test(app) && /FS_AVATARS\.pickerHTML\(av/.test(app) && /AV\.pickerHTML\(av/.test(tu), "v87: pickable on Add/Edit person and on About me");
+  ok(ix.indexOf('src="avatars.js"') > 0 && ix.indexOf('src="avatars.js"') < ix.indexOf('src="app.js"') && BUNDLE.list().indexOf("avatars.js") >= 0, "v87: avatars.js is in the bundle before app.js");
+  ok(/TO SWAP IN THE NEW SET/.test(read("avatars.js")), "v87: swap instructions at the top of avatars.js");
+}

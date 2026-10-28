@@ -171,7 +171,7 @@
   function chips(cur, hrefFor, withFamily) {
     var list = kids(), m = me();
     return '<nav class="pchips" aria-label="Whose">' + (withFamily ? '<a href="' + hrefFor("") + '"' + (!cur ? ' aria-current="page"' : "") + '>' + withFamily + '</a>' : "") + list.map(function (p) {
-      return '<a href="' + hrefFor(p.id) + '" style="' + A().kidStyle(p) + '"' + (cur === p.id ? ' aria-current="page"' : "") + '><span class="dotp" aria-hidden="true">' + esc(A().initial(name(p))) + '</span>' + esc(name(p)) + (p.id === m ? ' <small>(you)</small>' : "") + '</a>';
+      return '<a href="' + hrefFor(p.id) + '" style="' + A().kidStyle(p) + '"' + (cur === p.id ? ' aria-current="page"' : "") + '><span class="dotp" aria-hidden="true">' + A().initial(p) + '</span>' + esc(name(p)) + (p.id === m ? ' <small>(you)</small>' : "") + '</a>';
     }).join("") + '</nav>';
   }
   function viewTrips(pid) {
@@ -222,7 +222,7 @@
   }
   function viewPeople() {
     var a = A(), html = '<a class="back" href="#/more">← More</a><h1>Our family</h1><div class="kids">';
-    kids().forEach(function (k) { html += '<a class="kidcard" href="#/p/' + esc(k.id) + '" style="' + a.kidStyle(k) + '"><span class="avatar">' + esc(a.initial(name(k))) + '</span><span><h3>' + esc(name(k)) + '</h3></span></a>'; });
+    kids().forEach(function (k) { html += '<a class="kidcard" href="#/p/' + esc(k.id) + '" style="' + a.kidStyle(k) + '"><span class="avatar">' + a.initial(k) + '</span><span><h3>' + esc(name(k)) + '</h3></span></a>'; });
     a.main.innerHTML = html + '<a class="kidcard add" href="#/add">+ Add someone</a></div>'; document.title = "Our family · Famstamp";
   }
   function viewStampPage() {

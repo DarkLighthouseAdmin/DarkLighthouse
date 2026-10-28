@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v86";
+  var VERSION = "v87";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -81,7 +81,11 @@
   // ---------- helpers ----------
   var main = document.getElementById("main"), toastEl = document.getElementById("toast"), toastT;
   function toast(msg) { toastEl.textContent = msg; toastEl.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(function () { toastEl.classList.remove("show"); }, 2200); }
-  function initial(name) { return esc((name || "?").trim().charAt(0).toUpperCase()); }
+  // A person's badge: their picked avatar (v87, avatars.js), else the first letter of their name. Takes a person or a name.
+  function initial(x) {
+    if (x && typeof x === "object") { var AV = window.FS_AVATARS; if (AV && AV.has(x.av)) return AV.html(x.av); x = M.who(x); }
+    return esc((x || "?").trim().charAt(0).toUpperCase());
+  }
   function kidStyle(k) { return "--kid:" + esc(k.color); }
   var COUNTRY = {}; MAPS.world.countries.forEach(function (c) { COUNTRY[c.id] = c; });
   var SHAPE = {}; MAPS.world.shapes.forEach(function (s) { SHAPE[s.id] = s; });
@@ -97,7 +101,7 @@
   }
 
   function avatars(ids) {
-    return ids.map(kidById).filter(Boolean).map(function (x) { return '<span class="dotp" title="' + esc(M.who(x)) + '" style="' + kidStyle(x) + '">' + initial(M.who(x)) + '</span>'; }).join("");
+    return ids.map(kidById).filter(Boolean).map(function (x) { return '<span class="dotp" title="' + esc(M.who(x)) + '" style="' + kidStyle(x) + '">' + initial(x) + '</span>'; }).join("");
   }
   function travelerNames(ids) { return M.joinNames(names(ids)); }
 
@@ -256,7 +260,7 @@
     if (state.kids.length && window.FS_NEAR && !M.onTripNow(state.trips, M.today()).length) html += '<p class="small nearlink"><a class="tapline" href="#/near">📍 What\'s near me? Parks and places to stamp nearby</a></p>';
     html += '<h2>Who\'s traveling?</h2><div class="kids">';
     state.kids.forEach(function (k) {
-      html += '<a class="kidcard" href="#/p/' + esc(k.id) + '" style="' + kidStyle(k) + '"><span class="avatar">' + initial(M.who(k)) + '</span>' +
+      html += '<a class="kidcard" href="#/p/' + esc(k.id) + '" style="' + kidStyle(k) + '"><span class="avatar">' + initial(k) + '</span>' +
               '<span><h3>' + esc(M.who(k)) + ' <span class="role">' + esc(roleLabel(k)) + '</span></h3>' + (M.realName(k) ? '<span class="muted small realname">' + esc(M.realName(k)) + '</span><br>' : "") + '<span class="muted">' + esc(summaryLine(k)) + '</span></span></a>';
     });
     html += '<a class="kidcard add" href="#/add">+ Add someone</a></div>';
@@ -291,6 +295,7 @@
     var editing = !!k, color = k ? k.color : M.COLORS[state.kids.length % M.COLORS.length], role = k ? M.validRole(k.role) : (state.kids.length ? "" : "kid");
     if (!editing && !role) role = state.kids.some(function (x) { return x.role === "kid"; }) && !state.kids.some(function (x) { return x.role !== "kid"; }) ? "adult" : "kid";
     var rel = k ? M.relOf(k) : M.defaultRel(role), relTouched = !!(k && k.relationship);
+    var av = k && window.FS_AVATARS && window.FS_AVATARS.has(k.av) ? k.av : "";
     var html = '<a class="back" href="' + (k ? "#/p/" + esc(k.id) + "/stats" : "#/") + '">← Back</a>' +
       '<h1>' + (editing ? "Edit " + esc(M.who(k)) : "Add someone") + '</h1><div class="panel">' +
       '<div class="field" style="margin-top:0"><label>Who is this?</label><div class="seg" role="group" aria-label="Who is this?">' + M.ROLES.map(function (r) {
@@ -301,15 +306,17 @@
       '<div class="field"><label for="kyear">Year they were born (optional, shows a kid\'s age on each trip)</label><input id="kyear" type="number" inputmode="numeric" min="1900" max="' + new Date().getFullYear() + '" value="' + (k && k.birthYear ? k.birthYear : "") + '" /></div>' +
       '<div class="field"><label>Map color</label><div class="swatches" role="group" aria-label="Map color">' +
       M.COLORS.map(function (c) { return '<button type="button" class="swatch" data-color="' + c + '" aria-pressed="' + (c === color) + '" aria-label="Color ' + c + '" style="background:' + c + '"></button>'; }).join("") +
-      '</div></div><p class="err" id="kerr" hidden></p><div class="actions"><button class="btn btn-primary" id="ksave">' + (editing ? "Save" : "Add") + '</button>' +
+      '</div></div>' + (window.FS_AVATARS ? '<div class="field"><label>Picture (optional)</label><div id="kav">' + window.FS_AVATARS.pickerHTML(av, k ? M.who(k).trim().charAt(0).toUpperCase() : "?", "--kid:" + esc(color)) + '</div></div>' : "") +
+      '<p class="err" id="kerr" hidden></p><div class="actions"><button class="btn btn-primary" id="ksave">' + (editing ? "Save" : "Add") + '</button>' +
       (editing ? '<button class="btn btn-danger" id="kdel">Remove ' + esc(M.who(k)) + '</button>' : "") + '</div></div>';
     main.innerHTML = html;
     main.querySelectorAll("[data-role]").forEach(function (b) {
       b.onclick = function () { role = b.dataset.role; document.getElementById("kname").placeholder = PLACEHOLDER[role]; if (!relTouched) document.getElementById("krel").value = M.defaultRel(role); main.querySelectorAll("[data-role]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); };
     });
     main.querySelectorAll(".swatch").forEach(function (b) {
-      b.onclick = function () { color = b.dataset.color; main.querySelectorAll(".swatch").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); };
+      b.onclick = function () { color = b.dataset.color; main.querySelectorAll(".swatch").forEach(function (x) { x.setAttribute("aria-pressed", x === b); }); main.querySelectorAll(".avpick").forEach(function (x) { x.style.setProperty("--kid", color); }); };
     });
+    if (window.FS_AVATARS) window.FS_AVATARS.bindPicker(main, function (id) { av = id; });
     var ksaving = false;
     document.getElementById("ksave").onclick = function () {
       if (ksaving) return;   // a double tap mustn't add the person twice
@@ -319,6 +326,7 @@
         var cap = !editing && window.MLTL_SYNC && window.MLTL_SYNC.peopleCap ? window.MLTL_SYNC.peopleCap() : 0;
         if (cap && state.kids.length >= cap) throw new Error("Your Founders plan covers up to " + cap + " people. Remove someone to add someone new.");
         var kid = editing ? k : M.newPerson({ name: name, role: role, birthYear: year, color: color, nickname: nick, relationship: relv });
+        if (window.FS_AVATARS) { if (av) kid.av = av; else delete kid.av; }
         if (editing) { var tmp = M.newPerson({ name: name, role: role, birthYear: year, color: color }); k.name = tmp.name; k.role = tmp.role; k.birthYear = tmp.birthYear; k.color = tmp.color; k.relationship = M.validRel(relv, tmp.role); var nk = M.newPerson({ name: "x", nickname: nick }).nickname; if (nk) k.nickname = nk; else delete k.nickname; k.updatedAt = new Date().toISOString(); }
         ksaving = true; document.getElementById("ksave").disabled = true;
         saveKid(kid).then(function () { if (!editing) state.kids.push(kid); state.kids.sort(byRole); location.hash = "#/p/" + kid.id + (editing ? "/stats" : "/us"); toast(editing ? "Saved" : "Welcome aboard, " + M.who(kid) + "!"); })
@@ -345,7 +353,7 @@
   var worldZoom = "world";
   function shell(k, tab, inner) {
     var cur = tab === "trip" ? "trips" : tab;
-    return (tab === "trips" ? backupBanner() : "") + '<div style="' + kidStyle(k) + '"><a class="back" href="#/">← Everyone</a><div class="kidhead"><span class="avatar">' + initial(M.who(k)) + '</span><h1>' + esc(M.who(k)) + ' <span class="role">' + esc(roleLabel(k)) + '</span>' + (M.realName(k) ? ' <span class="muted small realname">' + esc(M.realName(k)) + '</span>' : "") + '</h1></div>' + whoBar(k, cur) +
+    return (tab === "trips" ? backupBanner() : "") + '<div style="' + kidStyle(k) + '"><a class="back" href="#/">← Everyone</a><div class="kidhead"><span class="avatar">' + initial(k) + '</span><h1>' + esc(M.who(k)) + ' <span class="role">' + esc(roleLabel(k)) + '</span>' + (M.realName(k) ? ' <span class="muted small realname">' + esc(M.realName(k)) + '</span>' : "") + '</h1></div>' + whoBar(k, cur) +
       '<nav class="tabs" aria-label="Sections" style="' + kidStyle(k) + '"><div class="wrap">' + (window.FS_HL ? window.FS_HL.tab(false) : "") + TABS.map(function (t) {
         return '<a href="#/p/' + esc(k.id) + '/' + t[0] + '"' + (t[0] === cur ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">' + t[2] + '</span>' + t[1] + '</a>';
       }).join("") + '</div></nav>' + inner + '</div>';
@@ -358,7 +366,7 @@
     var me = myPersonId(), tabPath = tab === "us" ? "" : "/" + tab;
     return '<div class="whobar"><p class="whose">' + (k.id === me ? "Your " + esc(TAB_WORD[tab] || "page") : "You're viewing <b>" + esc(M.who(k)) + "'s " + esc(TAB_WORD[tab] || "page") + "</b>") + '</p>' +
       '<nav class="whoswitch" aria-label="Switch person">' + state.kids.map(function (p) {
-        return '<a href="#/p/' + esc(p.id) + tabPath + '" style="' + kidStyle(p) + '"' + (p.id === k.id ? ' aria-current="page"' : "") + '><span class="dotp" aria-hidden="true">' + initial(M.who(p)) + '</span>' + esc(M.who(p)) + (p.id === me ? ' <small>(you)</small>' : "") + '</a>';
+        return '<a href="#/p/' + esc(p.id) + tabPath + '" style="' + kidStyle(p) + '"' + (p.id === k.id ? ' aria-current="page"' : "") + '><span class="dotp" aria-hidden="true">' + initial(p) + '</span>' + esc(M.who(p)) + (p.id === me ? ' <small>(you)</small>' : "") + '</a>';
       }).join("") + '</nav></div>';
   }
   /** The bottom tabs on the home screen go to your own pages (or the first person's when this phone isn't linked to anyone). */
@@ -721,7 +729,7 @@
       (kids.length >= 2 && kids.length < state.kids.length ? '<div class="seg" role="group" aria-label="Who\'s in the cup">' + [["kids", "Kids & cousins"], ["all", "Everyone"]].map(function (m) {
         return '<button type="button" data-cup="' + m[0] + '" aria-pressed="' + ((m[0] === "all") === all) + '">' + m[1] + '</button>'; }).join("") + '</div>' : "") +
       '<h2>Cheers</h2><div class="cheers">' + people.map(function (p) {
-        return '<a class="stat person" href="#/p/' + esc(p.id) + '" style="' + kidStyle(p) + '"><div class="v"><span class="dotp">' + initial(M.who(p)) + '</span> ' + esc(M.who(p)) + '</div><div class="k">' + esc(c.cheers[p.id]) + '</div></a>'; }).join("") + '</div>';
+        return '<a class="stat person" href="#/p/' + esc(p.id) + '" style="' + kidStyle(p) + '"><div class="v"><span class="dotp">' + initial(p) + '</span> ' + esc(M.who(p)) + '</div><div class="k">' + esc(c.cheers[p.id]) + '</div></a>'; }).join("") + '</div>';
     if (!c.cats.length) html += '<div class="panel"><p>No stamps yet. The first trip starts the race!</p></div>';
     c.cats.forEach(function (cat) {
       html += '<section class="panel cupcat"><h3>' + cat.icon + ' ' + esc(cat.label) + '</h3><ol class="cuprows">' + cat.rows.map(function (r) {
@@ -768,7 +776,7 @@
       var wk = M.whoBeen(people, "park", MAPS.world);
       var rows = M.PARKS.filter(function (p) { var who = wk[p.id]; return who && (!together || who.length === n); }).map(function (p) {
         return '<div class="row"><div class="nm"><b>' + esc(p.name) + '</b><span>' + esc(p.states) + '</span></div><span class="dots">' + wk[p.id].map(function (id) {
-          var x = kidById(id); return '<span class="dotp" title="' + esc(M.who(x)) + '" style="' + kidStyle(x) + '">' + initial(M.who(x)) + '</span>'; }).join("") + '</span></div>';
+          var x = kidById(id); return '<span class="dotp" title="' + esc(M.who(x)) + '" style="' + kidStyle(x) + '">' + initial(x) + '</span>'; }).join("") + '</span></div>';
       }).join("");
       map = '<div class="panel parks">' + (rows || '<p class="muted">' + (together ? "No parks you've all been to yet. Time to plan one?" : "No national parks yet.") + '</p>') + '</div>';
       line = together ? fs.togetherParks + " <small>of 64 parks together</small>" : fs.parks + " <small>of 64 national parks between " + (n === 1 ? "them" : "you") + "</small>";
@@ -792,7 +800,7 @@
       UI().lifetimeHTML(null) +
       '<h2>Everyone</h2><div class="stats">' + people.map(function (p) {
         var ps = M.stats(p, state.trips, MAPS.world);
-        return '<a class="stat person" href="#/p/' + esc(p.id) + '" style="' + kidStyle(p) + '"><div class="v"><span class="dotp">' + initial(M.who(p)) + '</span> ' + esc(M.who(p)) + '</div><div class="k">' + ps.states + ' states · ' + ps.countries + ' countries · ' + ps.parks + ' parks</div></a>';
+        return '<a class="stat person" href="#/p/' + esc(p.id) + '" style="' + kidStyle(p) + '"><div class="v"><span class="dotp">' + initial(p) + '</span> ' + esc(M.who(p)) + '</div><div class="k">' + ps.states + ' states · ' + ps.countries + ' countries · ' + ps.parks + ' parks</div></a>';
       }).join("") + '</div>';
     main.querySelectorAll("[data-person]").forEach(function (b) { b.onclick = function () {
       var id = b.dataset.person, i = famSel.indexOf(id);

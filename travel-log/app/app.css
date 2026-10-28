@@ -1125,3 +1125,11 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .bkfound { margin:.25rem 0 .5rem; padding-left:1.1rem; }
 .bkfound li { margin:.15rem 0; }
 #bktext { width:100%; font-size:16px; }
+/* v87: placeholder avatars (avatars.js). The drawing sits on the person's map color. */
+.dotp, .avatar { overflow:hidden; }
+.avimg { width:100%; height:100%; display:block; border-radius:50%; }
+.avgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(52px, 1fr)); gap:.45rem; margin-top:.35rem; }
+.avpick { aspect-ratio:1; min-height:44px; border-radius:50%; border:2px solid transparent; background:var(--kid, #6f8f7a); padding:0; cursor:pointer; display:grid; place-items:center; overflow:hidden; box-shadow:0 0 0 1px rgba(31,42,51,.15); }
+.avpick[aria-pressed=true] { border-color:var(--navy); box-shadow:0 0 0 3px var(--beacon); }
+.avpick .avlet { color:#fff; font-family:var(--serif); font-weight:700; font-size:1.3rem; text-shadow:0 1px 2px rgba(0,0,0,.25); }
+.avpick:focus-visible { outline:3px solid var(--beacon); outline-offset:2px; }

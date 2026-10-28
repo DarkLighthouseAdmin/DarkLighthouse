@@ -47,7 +47,7 @@
     return '<div class="whochips" role="group" aria-label="Who\'s been there?">' + list.map(function (p) {
       var h = hold[p.id] || "", lock = h === "trip", checked = on.indexOf(p.id) >= 0 || lock;
       return '<label class="wchip' + (lock ? " lock" : "") + '" style="' + A().kidStyle(p) + '"><input type="checkbox" data-who="' + esc(p.id) + '"' + (checked ? " checked" : "") + (lock ? " disabled" : "") + '>' +
-        '<span class="dotp" aria-hidden="true">' + A().initial(M.who(p)) + '</span><span class="wn">' + esc(M.who(p)) + (p.id === me ? ' <small>(you)</small>' : "") + '</span>' +
+        '<span class="dotp" aria-hidden="true">' + A().initial(p) + '</span><span class="wn">' + esc(M.who(p)) + (p.id === me ? ' <small>(you)</small>' : "") + '</span>' +
         (lock ? '<small class="wtag">from a trip</small>' : h ? '<small class="wtag">has it</small>' : "") + '</label>';
     }).join("") + '</div>';
   }

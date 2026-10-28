@@ -54,7 +54,7 @@
     if (!st.kids.length) { main.innerHTML = '<a class="back" href="#/">← Everyone</a><h1>Trips to plan</h1><div class="panel"><p>Add the people in your family first, then everyone can add dream places.</p><a class="btn btn-primary" href="#/add">+ Add someone</a></div>'; return; }
     var me = voter(), L = W.list(st.kids, st.trips, M.today());
     var chips = st.kids.map(function (k) {
-      return '<button type="button" class="wwhoami" data-wishas="' + esc(k.id) + '" aria-pressed="' + (me && me.id === k.id) + '" style="' + A().kidStyle(k) + '"><span class="dotp">' + A().initial(who(k)) + '</span>' + esc(who(k)) + '</button>';
+      return '<button type="button" class="wwhoami" data-wishas="' + esc(k.id) + '" aria-pressed="' + (me && me.id === k.id) + '" style="' + A().kidStyle(k) + '"><span class="dotp">' + A().initial(k) + '</span>' + esc(who(k)) + '</button>';
     }).join("");
     main.innerHTML = '<a class="back" href="#/">← Everyone</a><section class="wishes"><h1>🌠 Trips to plan</h1>' +
       '<p class="lede">Everyone adds the places they dream of going. One vote each, plus as many reactions as you like. When you go, it moves to Made it!</p>' +

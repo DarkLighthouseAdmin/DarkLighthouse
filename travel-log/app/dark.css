@@ -212,6 +212,7 @@ html[data-theme="dark"] .pinpanel { background:var(--card, #121a21); box-shadow:
 html[data-theme="dark"] .pinmap { background:#152028; }
 html[data-theme="dark"] .pinzoom button { border:1px solid rgba(230,236,242,0.2); background:#121a21; color:#dde6ef; }
 html[data-theme="dark"] .pinerr { color:#e1c1c1; }
+html[data-theme="dark"] .avpick { box-shadow:0 0 0 1px rgba(0,0,0,0.27); }
 /* sync.css */
 html[data-theme="dark"] .syncpill { background:rgba(19,27,39,0.12); }
 html[data-theme="dark"] .syncstate .syncpill { background:#17241a; color:var(--sage-ink) !important; }
@@ -294,3 +295,4 @@ html[data-theme="dark"] .ppage :is(input, select, textarea) { background:#fffdf8
 html[data-theme="dark"] :is(.familycard, .synctop) .btn-beacon.synccta.synccta.synccta { color:var(--navy); }
 /* map names: light letters with a dark halo on the night-blue land */
 html[data-theme="dark"] .pz-labels text { fill:#f2f5f7; stroke:rgba(12,24,35,.92); }
+html[data-theme="dark"] .avpick[aria-pressed=true] { border-color:#f2f5f7; }

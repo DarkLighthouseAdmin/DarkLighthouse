@@ -71,7 +71,7 @@
   }
   function card(it) {
     var who = it.kidIds.map(A().kidById).filter(Boolean), names = M().joinNames(who.map(function (p) { return M().who(p); }));
-    return '<article class="hlitem panel" data-ref="' + esc(it.ref) + '"><div class="hlhead"><span class="dots">' + who.map(function (p) { return '<span class="dotp" style="' + A().kidStyle(p) + '">' + esc(A().initial(M().who(p))) + '</span>'; }).join("") +
+    return '<article class="hlitem panel" data-ref="' + esc(it.ref) + '"><div class="hlhead"><span class="dots">' + who.map(function (p) { return '<span class="dotp" style="' + A().kidStyle(p) + '">' + A().initial(p) + '</span>'; }).join("") +
       '</span><span class="small"><b>' + esc(names) + '</b> · ' + esc(M().prettyDate(it.at)) + '</span></div>' +
       (it.photoId ? '<img alt="" class="hlphoto" data-photo="' + esc(it.photoId) + '">' : "") +
       '<h3><span aria-hidden="true">' + it.emoji + '</span> ' + esc(it.title) + '</h3>' + (it.detail ? '<p class="small muted">' + esc(it.detail) + '</p>' : "") +
