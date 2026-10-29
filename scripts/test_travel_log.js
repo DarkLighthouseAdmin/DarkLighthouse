@@ -2807,3 +2807,50 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(idx.sights >= 229478, "v103: no sights lost (" + idx.sights + ")");
   ok(/function airportPoints\(d, head\)/.test(tui) && /type: "airport"/.test(tui) && /loadAirports\(\)\.then\(function \(\) \{ if \(search\.value\.trim\(\) === q\)/.test(tui), "v103: Add a stop finds airports by code and stamps them");
 }
+{ // v104: a trip with a long journal no longer pauses the family's sync (trips.data 16 KB limit): split into data + data_more
+  const S = require("../travel-log/app/sync-core.js"), read = f => require("fs").readFileSync(require("path").join(__dirname, "../travel-log/app", f), "utf8");
+  const big = { id: "t_zz104", place: "Zz Test Edinburgh", date: "2026-07-01", kidIds: ["p_zz1"], updatedAt: "2026-10-29T10:00:00.000Z", memory: "Zz Test", title: "Zz Test trip",
+    route: [{ name: "Edinburgh", lat: 55.95, lon: -3.19, country: "GBR" }],
+    journal: Array.from({ length: 120 }, (_, i) => ({ kid: "p_zz1", day: "2026-07-" + String(1 + i % 28).padStart(2, "0") + "-" + i, at: "2026-07-01T00:00:00.000Z", text: "Zz Test Rivera day " + i + " — we saw the castle ☃ " + "x".repeat(300) })),
+    games: { bingo: "y".repeat(2500) }, wants: [{ id: "w1", text: "Zz Test zoo", at: "2026-10-01T00:00:00Z" }] };
+  const len = o => Buffer.byteLength(JSON.stringify(o));
+  ok(len(big) > 40000, "v104: test trip is far over 16 KB (" + len(big) + ")");
+  const sp = S.splitTrip(big);
+  ok(len(sp.data) <= S.TRIP_DATA_MAX && sp.more.journal && sp.more.journal.length === 120, "v104: split keeps data under " + S.TRIP_DATA_MAX + " (" + len(sp.data) + "), journal moved whole");
+  ok(["id", "place", "date", "kidIds", "title", "memory"].every(k => k in sp.data), "v104: what the server and share links read stays in data");
+  ok(JSON.stringify(S.rowData({ data: sp.data, data_more: sp.more })) === JSON.stringify(Object.assign({}, sp.more, sp.data)) && Object.keys(S.rowData({ data: sp.data, data_more: sp.more })).length === Object.keys(big).length, "v104: rowData puts every field back (nothing cut)");
+  const small = { id: "t_zz104s", place: "Zz Test Leeds", date: "2026-05-01", kidIds: [], updatedAt: "2026-10-29T10:00:00.000Z", journal: [{ id: "a", text: "Zz Test" }] };
+  const sh = S.emptyShadow(); let plan = S.planPush({ people: [], trips: [big, small], photoIds: [] }, sh, "f_zz");
+  const rb = plan.trips.find(r => r.id === big.id), rs = plan.trips.find(r => r.id === small.id);
+  ok(rb.data_more && rb._more && !("data_more" in rs) && JSON.stringify(rs.data) === JSON.stringify(small), "v104: only the big trip carries data_more; small trips send the same row as before");
+  const b = S.tripBatches(plan.trips);
+  ok(b.small.length === 1 && b.big.length === 1 && b.big[0].out[0].data_more && !Object.keys(b.big[0].out[0]).some(k => k[0] === "_"), "v104: big trip goes in its own request, helper fields stripped");
+  rb._held = true; S.afterPush(sh, plan);
+  ok(!sh.trips[big.id] && sh.trips[small.id], "v104: a held big trip stays waiting (retries next sync), the rest is marked synced");
+  rb._held = false; S.afterPush(sh, plan);
+  ok(sh.trips[big.id] && sh.tripMore[big.id] === 1, "v104: after it goes up, the phone remembers the cloud copy is split");
+  const shrunk = Object.assign({}, big, { journal: [], games: {}, updatedAt: "2026-10-29T11:00:00.000Z" });
+  plan = S.planPush({ people: [], trips: [shrunk], photoIds: [] }, sh, "f_zz");
+  ok(JSON.stringify(plan.trips[0].data_more) === "{}", "v104: when it fits again, data_more is cleared with {} (no stale journal coming back)");
+  S.afterPush(sh, plan); ok(!sh.tripMore[big.id], "v104: shadow forgets the split");
+  const loc = { people: [], trips: [], photoIds: [] }, sh2 = S.emptyShadow();
+  S.applyPull(loc, sh2, { trips: [{ id: big.id, family_id: "f_zz", data: sp.data, data_more: sp.more, traveler_ids: ["p_zz1"], updated_at: big.updatedAt, deleted: false }] });
+  ok(loc.trips[0] && loc.trips[0].journal.length === 120 && loc.trips[0].games.bingo.length === 2500 && sh2.tripMore[big.id] === 1, "v104: another phone pulls the whole long journal");
+  const mine = JSON.parse(JSON.stringify(big)); mine.journal.push({ kid: "p_zz1", day: "2026-08-01", at: "2026-10-29T12:00:00.000Z", text: "Zz Test new page" }); mine.updatedAt = "2026-10-29T12:00:00.000Z";
+  const loc2 = { people: [], trips: [mine], photoIds: [] }, sh3 = S.emptyShadow(); sh3.trips[big.id] = "2026-10-29T09:00:00.000Z";
+  const theirs = JSON.parse(JSON.stringify(big)); theirs.journal.push({ kid: "p_zz1", day: "2026-08-02", at: "2026-10-29T11:00:00.000Z", text: "Zz Test their page" }); const st = S.splitTrip(theirs);
+  S.applyPull(loc2, sh3, { trips: [{ id: big.id, data: st.data, data_more: st.more, traveler_ids: [], updated_at: "2026-10-29T11:00:00.000Z", deleted: false }] });
+  ok(loc2.trips[0].journal.length === 122 && loc2.trips[0].journal.some(j => j.day === "2026-08-01") && loc2.trips[0].journal.some(j => j.day === "2026-08-02"), "v104: both phones' pages kept when a split trip merges");
+  const oldRow = S.rowData({ data: Object.assign({}, sp.data), data_more: sp.more });
+  ok(oldRow.journal.length === 120, "v104: a row from an older app (no journal in data) still keeps the journal from data_more");
+  ok(/tripBatches\(plan\.trips\)/.test(read("sync.js")) && /_held = true/.test(read("sync.js")) && /b\.row\._held = false/.test(read("sync.js")), "v104: sync.js sends big trips alone and a failed one waits instead of pausing sync");
+}
+{ // v104: 12-15 KB trips still go up whole if the server has no data_more column yet
+  const S = require("../travel-log/app/sync-core.js");
+  const mid = { id: "t_zz104m", place: "Zz Test York", date: "2026-06-01", kidIds: [], updatedAt: "2026-10-29T10:00:00.000Z", journal: [{ kid: "p_zz1", day: "2026-06-01", text: "z".repeat(13000) }] };
+  const sh = S.emptyShadow(), plan = S.planPush({ people: [], trips: [mid], photoIds: [] }, sh, "f_zz"), b = S.tripBatches(plan.trips);
+  ok(b.big.length === 1 && b.big[0].alt && !("data_more" in b.big[0].alt[0]) && b.big[0].alt[0].data.journal[0].text.length === 13000, "v104: a 13 KB trip has a whole-row fallback (old server)");
+  plan.trips[0]._sentWhole = true; S.afterPush(sh, plan); ok(sh.trips[mid.id] && !sh.tripMore[mid.id], "v104: sent whole -> not marked split");
+  const huge = Object.assign({}, mid, { id: "t_zz104h", journal: [{ kid: "p_zz1", day: "2026-06-01", text: "z".repeat(30000) }] });
+  ok(!S.tripBatches(S.planPush({ people: [], trips: [huge], photoIds: [] }, S.emptyShadow(), "f").trips).big[0].alt, "v104: a 30 KB trip has no whole fallback (it would fail); it waits instead");
+}

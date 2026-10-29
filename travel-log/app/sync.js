@@ -321,7 +321,17 @@
         plan.trips.forEach(function (t) { if (!t.deleted && !c.authors[t.id]) c.authors[t.id] = nameOf(c.members, c.userId) || "you"; });
         var jobs = Promise.resolve();
         S.peopleBatches(plan.people).forEach(function (b) { jobs = jobs.then(function () { return r.upsert("people", b); }); });   // v77: data + data_more
-        ["visits", "trips"].forEach(function (tb) { if (plan[tb].length) jobs = jobs.then(function () { return r.upsert(tb, plan[tb]); }); });
+        if (plan.visits.length) jobs = jobs.then(function () { return r.upsert("visits", plan.visits); });
+        var tb = S.tripBatches(plan.trips);   // v104: big trips go split (data + data_more), one per request
+        if (tb.small.length) jobs = jobs.then(function () { return r.upsert("trips", tb.small); });
+        tb.big.forEach(function (b) {
+          jobs = jobs.then(function () { return r.upsert("trips", b.out); }).then(function () { b.row._held = false; }, function (e) {
+            if (/offline|fetch/i.test(String(e && e.message))) throw e;
+            if (b.alt) return r.upsert("trips", b.alt).then(function () { b.row._held = false; b.row._sentWhole = true; }, function () { b.row._held = true; c.tripHeld = (c.tripHeld || 0) + 1; });   // no data_more column yet: send it whole, as before
+            b.row._held = true; c.tripHeld = (c.tripHeld || 0) + 1;   // one big trip waits and retries; it doesn't pause the family's sync
+            try { console.warn("Famstamp: a long trip is waiting to sync", e && e.message); } catch (x) {}
+          });
+        });
         plan.uploads.forEach(function (u) {
           jobs = jobs.then(function () { return A.getOne("photos", u.id); }).then(function (p) {
             if (!p) return;

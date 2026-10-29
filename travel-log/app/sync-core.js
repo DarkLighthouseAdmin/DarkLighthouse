@@ -109,11 +109,46 @@
     });
     return [without].concat(withMore.map(function (r) { return [r]; })).filter(function (b) { return b.length; });   // big rows one per request
   }
-  function tripRow(t, fid) {
-    var data = JSON.parse(JSON.stringify(t));
-    return { family_id: fid, id: t.id, data: data, traveler_ids: t.deletedAt ? [] : (t.kidIds || []).slice(),   // Recently deleted: no travelers, so share links skip it
+  // v104: the cloud's trips.data holds at most ~16 KB (trips_data_check). A trip with a long journal (or lots of games,
+  // wants, a story...) went past it, the push failed and the whole family's sync paused. Now a big trip is split like a
+  // person (v77): the fields the server and share links read stay in data, and the biggest others (largest first) go in
+  // trips.data_more (added 2026-10-29). Nothing is cut or dropped; a pull puts the two back together.
+  var TRIP_DATA_MAX = 12000;
+  var TRIP_CORE = { id: 1, kidIds: 1, place: 1, date: 1, endDate: 1, from: 1, title: 1, planned: 1, deletedAt: 1, photoId: 1, updatedAt: 1, memory: 1 };
+  function splitTrip(t) {
+    var data = JSON.parse(JSON.stringify(t || {})), more = {}, size = utf8Len(JSON.stringify(data));
+    if (size > TRIP_DATA_MAX) {
+      Object.keys(data).filter(function (k) { return !TRIP_CORE[k]; })
+        .map(function (k) { return [k, utf8Len(JSON.stringify(data[k]))]; })
+        .sort(function (a, b) { return b[1] - a[1] || (a[0] < b[0] ? -1 : 1); })
+        .forEach(function (kv) { if (size > TRIP_DATA_MAX) { more[kv[0]] = data[kv[0]]; delete data[kv[0]]; size = utf8Len(JSON.stringify(data)); } });
+    }
+    return { data: data, more: more };
+  }
+  /** A trip's cloud row. data_more goes only when the trip is split, or was split before (then {} clears the old copy),
+      so small trips send exactly the row they always did. shadowMore = { tripId: 1 } for trips the cloud has split. */
+  function tripRow(t, fid, shadowMore) {
+    var sp = splitTrip(t), data = sp.data, big = Object.keys(sp.more).length > 0;
+    var row = { family_id: fid, id: t.id, data: data, traveler_ids: t.deletedAt ? [] : (t.kidIds || []).slice(),   // Recently deleted: no travelers, so share links skip it
              from_place: t.from || "", to_place: t.place || "",
              trip_date: /^\d{4}-\d{2}-\d{2}$/.test(t.date || "") ? t.date : null, photo_id: t.photoId || null, updated_at: iso(t.updatedAt), deleted: false };
+    if (big || (shadowMore && shadowMore[t.id])) {
+      row.data_more = sp.more; row._more = big;
+      var whole = JSON.parse(JSON.stringify(t));   // fits the old way too (12-15 KB): used if the server has no data_more column yet
+      if (!(shadowMore && shadowMore[t.id]) && utf8Len(JSON.stringify(whole)) <= 15000) row._whole = whole;
+    }
+    return row;
+  }
+  /** Trip rows for the server: the usual rows together (same columns as always), each split trip in its own request. */
+  function tripBatches(rows) {
+    var small = [], big = [];
+    (rows || []).forEach(function (r) {
+      var o = {}; Object.keys(r).forEach(function (k) { if (k.charAt(0) !== "_") o[k] = r[k]; });
+      if (!Object.prototype.hasOwnProperty.call(o, "data_more")) { small.push(o); return; }
+      var alt = null; if (r._whole) { alt = {}; Object.keys(o).forEach(function (k) { if (k !== "data_more") alt[k] = o[k]; }); alt.data = r._whole; }
+      big.push({ row: r, out: [o], alt: alt ? [alt] : null });
+    });
+    return { small: small, big: big };
   }
   /** Every colored-in place, flattened: "personId|kind|placeId" -> { at, jr } */
   function flatVisits(people) {
@@ -128,7 +163,7 @@
   function sameVisit(a, b) { return !!a && !!b && (a.at || "") === (b.at || "") && !!a.jr === !!b.jr; }
   function bagOf(p, kind) { return kind === "state" ? (p.states = p.states || {}) : kind === "park" ? (p.parks = p.parks || {}) : (p.places = p.places || {}); }
 
-  function emptyShadow() { return { people: {}, visits: {}, trips: {}, photos: {}, more: {} }; }
+  function emptyShadow() { return { people: {}, visits: {}, trips: {}, photos: {}, more: {}, tripMore: {} }; }
 
   /** What this phone needs to send. local = { people, trips, photoIds }. Returns rows per table plus photo ids to upload. */
   /** A trip's photos: its main one plus (v63) the kids' journal drawings. */
@@ -164,7 +199,7 @@
     var tripIds = {};
     local.trips.forEach(function (t) {
       tripIds[t.id] = 1;
-      if (!shadow.trips[t.id] || shadow.trips[t.id] !== iso(t.updatedAt)) out.trips.push(tripRow(t, fid));
+      if (!shadow.trips[t.id] || shadow.trips[t.id] !== iso(t.updatedAt)) out.trips.push(tripRow(t, fid, shadow.tripMore || {}));
       tripPhotos(t).forEach(function (pid) { if (!shadow.photos[pid] && (local.photoIds || []).indexOf(pid) >= 0) out.uploads.push({ id: pid, tripId: t.id }); });
     });
     Object.keys(shadow.trips).forEach(function (id) {
@@ -186,7 +221,13 @@
     shadow.more = shadow.more || {};
     plan.people.forEach(function (r) { if (r.deleted) { delete shadow.people[r.id]; delete shadow.more[r.id]; dropPersonVisits(shadow, r.id); } else { shadow.people[r.id] = r.updated_at; if (r._moreHash) shadow.more[r.id] = r._moreHash; } });
     plan.visits.forEach(function (r) { var k = r.person_id + "|" + r.kind + "|" + r.place_id; if (r.deleted) delete shadow.visits[k]; else shadow.visits[k] = { at: r.at || "", jr: !!r.jr }; });
-    plan.trips.forEach(function (r) { if (r.deleted) delete shadow.trips[r.id]; else shadow.trips[r.id] = r.updated_at; });
+    shadow.tripMore = shadow.tripMore || {};
+    plan.trips.forEach(function (r) {
+      if (r._held) return;   // v104: a split trip the server couldn't take yet stays waiting (and retries); the rest went up
+      if (r.deleted) { delete shadow.trips[r.id]; delete shadow.tripMore[r.id]; return; }
+      shadow.trips[r.id] = r.updated_at;
+      if (r._more && !r._sentWhole) shadow.tripMore[r.id] = 1; else if (r._sentWhole) delete shadow.tripMore[r.id]; else if (Object.prototype.hasOwnProperty.call(r, "data_more")) delete shadow.tripMore[r.id];
+    });
     plan.photos.forEach(function (r) { if (r.deleted) delete shadow.photos[r.id]; });
     return shadow;
   }
@@ -306,14 +347,16 @@
       var t = tById[r.id], localDirty = t && shadow.trips[r.id] !== iso(t.updatedAt);
       if (r.deleted) {
         if (t && !(localDirty && newer(t.updatedAt, r.updated_at))) { local.trips = local.trips.filter(function (x) { return x.id !== r.id; }); ch.removedTrips.push(r.id); ch.trips++; }
-        delete shadow.trips[r.id]; return;
+        delete shadow.trips[r.id]; if (shadow.tripMore) delete shadow.tripMore[r.id]; return;
       }
       if (t && localDirty && !newer(r.updated_at, t.updatedAt)) {   // ours wins, but keep the pages/boards only they have
-        if (mergeTripPieces(t, r.data || {})) { ch.trips++; ch.merged = (ch.merged || 0) + 1; }
+        if (mergeTripPieces(t, rowData(r))) { ch.trips++; ch.merged = (ch.merged || 0) + 1; }
         return;
       }
       if (t && !localDirty && shadow.trips[r.id] === iso(r.updated_at)) return;   // same version we already have: not a change
-      var d = JSON.parse(JSON.stringify(r.data || {})); d.id = r.id; d.updatedAt = iso(r.updated_at);
+      var d = JSON.parse(JSON.stringify(rowData(r))); d.id = r.id; d.updatedAt = iso(r.updated_at);   // v104: data_more + data
+      shadow.tripMore = shadow.tripMore || {};
+      if (r.data_more && typeof r.data_more === "object" && Object.keys(r.data_more).length) shadow.tripMore[r.id] = 1; else if (r.data_more) delete shadow.tripMore[r.id];
       if (!Array.isArray(d.kidIds)) d.kidIds = (r.traveler_ids || []).slice();
       var extra = t && !(r.data || {}).deletedAt ? mergeTripPieces(d, t) : false;   // pages/boards only we have go back up
       if (extra) { d.updatedAt = bump(r.updated_at); ch.merged = (ch.merged || 0) + 1; }
@@ -486,7 +529,7 @@
   }
   function slug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30); }
 
-  return { splitPerson: splitPerson, personRow: personRow, rowData: rowData, peopleBatches: peopleBatches, moreHash: moreHash, utf8Len: utf8Len, DATA_MAX: DATA_MAX, mergeTripPieces: mergeTripPieces, mergePersonPieces: mergePersonPieces, pendingCount: pendingCount, tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
+  return { splitTrip: splitTrip, tripBatches: tripBatches, TRIP_DATA_MAX: TRIP_DATA_MAX, splitPerson: splitPerson, personRow: personRow, rowData: rowData, peopleBatches: peopleBatches, moreHash: moreHash, utf8Len: utf8Len, DATA_MAX: DATA_MAX, mergeTripPieces: mergeTripPieces, mergePersonPieces: mergePersonPieces, pendingCount: pendingCount, tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
            ms: ms, iso: iso, newer: newer, personRow: personRow, tripRow: tripRow, flatVisits: flatVisits, emptyShadow: emptyShadow,
            planPush: planPush, afterPush: afterPush, applyPull: applyPull, nextCursor: nextCursor, photoPath: photoPath,
            matchPeople: matchPeople, remapPeople: remapPeople, access: access, allows: allows, FREE: FREE,
