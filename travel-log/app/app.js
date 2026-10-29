@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v100";
+  var VERSION = "v101";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -169,12 +169,14 @@
     if (window.MLTL_IMPORT && window.MLTL_IMPORT.route(h)) return;
     if (h[0] === "year" && window.FS_YEAR && window.FS_YEAR.view) return window.FS_YEAR.view(h[1] && kidById(h[1]) ? h[1] : "");
     if (h[0] === "near" && window.FS_NEAR) return window.FS_NEAR.view();
+    if (h[0] === "plan") { var pk = kidById(((state.meta.sync || {}).myPerson) || "") || state.kids[0]; if (pk) { location.replace("#/p/" + pk.id + "/trips/plan"); return; } location.replace("#/add"); return; }
     if (h[0] === "family") return viewFamily();
     if (h[0] === "together") return viewTogether(h[1]);
     if ((h[0] === "p" || h[0] === "kid") && kidById(h[1])) {
       document.body.classList.add("kidview");
       var k = kidById(h[1]), tab = h[2] || "us";
       if (tab === "trips" && h[3] === "new") return UI().builder(k, null, { all: h[4] === "all" });
+      if (tab === "trips" && h[3] === "plan") return UI().builder(k, null, { all: true, plan: true });   // v101: an upcoming trip
       if (tab === "trips" && h[3] === "edit") return UI().builder(k, h[4]);
       if (tab === "trip" && h[3]) return UI().detail(k, h[3]);
       if (tab === "passport") return UI().passport(k);
@@ -235,6 +237,11 @@
         '<div class="actions"><button type="button" class="btn btn-beacon" data-quickstamp="' + esc(who) + '|' + esc(x.trip.id) + '">📍 Stamp a stop</button>' +
         '<a class="btn btn-ghost" href="#/p/' + esc(who) + '/trip/' + esc(x.trip.id) + '">Open trip</a><a class="btn btn-ghost" href="#/near">📍 What\'s near me</a></div><p class="small" id="nearline"></p></section>';
     });
+    // v101: a planned trip whose dates have come: did you go?
+    (M.plannedTrips ? M.plannedTrips(state.trips) : []).filter(function (t) { return /^\d{4}-\d{2}-\d{2}$/.test(t.date || "") && t.date <= today; }).slice(0, 2).forEach(function (t) {
+      var who = t.kidIds.filter(kidById)[0]; if (!who) return;
+      html += '<a class="panel familycard plandue" href="#/p/' + esc(who) + '/trip/' + esc(t.id) + '"><span class="fam-ic" aria-hidden="true">📅</span><span><h3>' + esc(M.tripLabel(t)) + ': did you go?</h3><span class="muted small">Tap to stamp it, or start it if you\'re there now</span></span></a>';
+    });
     if (!now.length && next.length) {
       var x = next[0], who = x.trip.kidIds.filter(kidById)[0];
       html += '<a class="panel familycard countdown" href="' + (who ? "#/p/" + esc(who) + "/trip/" + esc(x.trip.id) : "#/") + '"><span class="fam-ic cd-n" aria-hidden="true">' + (x.days > 99 ? "✈️" : x.days) + '</span><span><h3>' + esc(M.countdownLine(x)) + '</h3>' +
@@ -258,7 +265,7 @@
     html = backupBanner() + html;
     if (window.FS_WELCOME) html = window.FS_WELCOME.homeHTML() + html;   // v93: first-time welcome (brand-new families only)
     if (state.kids.length) html += '<div class="homeadd">' + (state.kids.length === 1 ? '<a class="btn btn-beacon btn-big" id="homeadd" href="' + esc(UI().addTripHref(state.kids[0])) + '">' : '<button type="button" class="btn btn-beacon btn-big" id="homeadd" aria-haspopup="dialog">') +
-      '<span aria-hidden="true">＋</span> Add a trip' + (state.kids.length === 1 ? '</a>' : '</button>') + '<span class="small muted">Stops, flights and miles, and everyone on it gets the stamps</span></div>';
+      '<span aria-hidden="true">＋</span> Add a trip' + (state.kids.length === 1 ? '</a>' : '</button>') + '<a class="tapline small homeplan" href="#/plan">✈️ Plan a trip you\'re going on</a>' + '<span class="small muted">Stops, flights and miles, and everyone on it gets the stamps</span></div>';
     if (window.MLTL_SYNC && window.MLTL_SYNC.homeTop) html += window.MLTL_SYNC.homeTop();
     if (window.FS_HL) html += window.FS_HL.homeCard();
     if (window.FS_WHERE) html += window.FS_WHERE.homeCard();

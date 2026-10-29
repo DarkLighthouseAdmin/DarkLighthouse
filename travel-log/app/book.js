@@ -21,7 +21,7 @@
     return P.stampsFor(k, A().state.trips, { parkStates: M.PARK_STATES }).slice().sort(function (a, b) { return (a.date || "9") < (b.date || "9") ? -1 : (a.date || "9") > (b.date || "9") ? 1 : 0; });
   }
   function tripsOf(k) {
-    return A().state.trips.filter(function (t) { return t.kidIds.indexOf(k.id) >= 0; })
+    return A().state.trips.filter(function (t) { return t.kidIds.indexOf(k.id) >= 0 && t.planned !== true; })
       .sort(function (a, b) { return (a.date || a.createdAt || "") < (b.date || b.createdAt || "") ? -1 : 1; });
   }
   function years(k, trips, stamps) {

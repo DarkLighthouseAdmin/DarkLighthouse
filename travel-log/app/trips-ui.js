@@ -309,6 +309,20 @@
   }
 
   // ---------- trip card on the Trips tab ----------
+  /** v101: "Planned · in 12 days", "Planned · dates not set yet", "Planned · did you go?" */
+  function planWhen(t) {
+    var td = M.today();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(t.date || "")) return "Planned · dates not set yet";
+    if (t.date > td) { var n = M.dayDiff(td, t.date); return "Planned · " + (n === 1 ? "tomorrow" : "in " + n + " days"); }
+    return "Planned · did you go?";
+  }
+  function planBanner(t) {
+    if (t.planned !== true) return "";
+    var td = M.today(), dated = /^\d{4}-\d{2}-\d{2}$/.test(t.date || ""), past = dated && t.date <= td;
+    return '<section class="panel planbox" id="planbox"><h3>📅 ' + esc(planWhen(t)) + '</h3><p class="small muted">' + (past ? "The trip's dates have come. Did you go? Stamping it puts every stop in everyone's passport." :
+      "This trip is planned, so it doesn't give stamps yet. When you get there, start it and the stamps come in.") + '</p><div class="actions">' +
+      '<button type="button" class="btn btn-beacon" id="tstart">' + (past ? "✓ We went! Stamp it" : "🧳 We're here: start the trip") + '</button></div></section>';
+  }
   function tripCard(t, k) {
     var A_ = A(), age = k && M.isKid(k) ? M.ageOn(k.birthYear, t.date) : null, owner = k || A_.kidById(t.kidIds[0]), s = T.summary(t);
     var route = M.routeText(t), link = owner ? "#/p/" + esc(owner.id) + "/trip/" + esc(t.id) : "";
@@ -316,7 +330,7 @@
     var miles = s.legs.length && s.miles ? '<span class="tmiles">' + (s.milesKnown ? "" : "at least ") + esc(dist(s.miles)) + '</span>' + (s.flights ? ' · <span class="tfly">✈️ ' + s.flights + (s.flights === 1 ? " flight" : " flights") + '</span>' : "") : "";
     var draft = M.isDraft(t);
     return '<article class="trip' + (draft ? " isdraft" : "") + '">' + (t.photoId ? '<img alt="" data-photo="' + esc(t.photoId) + '">' : "") + '<div class="body">' +
-      (draft ? '<span class="drafttag">Needs review</span>' : "") + '<h3>' + (link ? '<a class="tlink" href="' + link + '">' + esc(t.place) + '</a>' : esc(t.place)) + '</h3>' +
+      (draft ? '<span class="drafttag">Needs review</span>' : "") + (t.planned === true ? '<span class="drafttag plantag">📅 ' + esc(planWhen(t)) + '</span>' : "") + '<h3>' + (link ? '<a class="tlink" href="' + link + '">' + esc(t.place) + '</a>' : esc(t.place)) + '</h3>' +
       (route !== t.place ? '<div class="route">' + esc(route) + '</div>' : "") +
       '<div class="when">' + esc(bits.join(" · ")) + (miles ? (bits.length ? " · " : "") + miles : "") + (t.mark && !s.legs.length ? " · 🖍 " + esc(areaName(t.mark.kind, t.mark.id)) : "") + '</div>' +
       (t.memory ? '<p class="mem">' + esc(t.memory) + '</p>' : "") +
@@ -352,6 +366,9 @@
       if (fromWish.who && fromWish.who.length) d.kidIds = fromWish.who.filter(function (id) { return st.kids.some(function (x) { return x.id === id; }); });
       if (!d.kidIds.length) d.kidIds = [k.id];
     }
+    // v101: "Plan a trip" (and "Plan this trip" from the wish list) makes an upcoming trip: no dates needed yet, no stamps until you go
+    if (!old && (opts.plan || fromWish)) { d.planned = true; d.done = false; d.date = ""; d.endDate = ""; }
+    var planning = d.planned === true;
     // v84: "Paste a booking": what we read from a flight or hotel confirmation fills in the new trip (the pasted text itself is never kept)
     var fromBooking = !old && !fromWish ? pendingBooking : null; pendingBooking = null;
     var mailId = fromBooking ? pendingMail : null; pendingMail = null;
@@ -372,18 +389,19 @@
     var picks = st.kids.map(function (x) {
       return '<label style="' + A_.kidStyle(x) + '"><input type="checkbox" name="kids" value="' + esc(x.id) + '"' + (d.kidIds.indexOf(x.id) >= 0 ? " checked" : "") + '> <span class="dotp" aria-hidden="true">' + A_.initial(x) + '</span> ' + esc(M.who(x)) + '</label>';
     }).join("");
-    var html = '<h2>' + (old ? "Edit trip" : "Add a trip") + '</h2>' + (old ? "" : '<p class="small bkpaste">' + (fromBooking ? '✓ Filled in from your booking. Check it over, then Save. ' : "") + '<button type="button" class="linkbtn" id="tpaste">📋 Paste a flight or hotel booking</button></p>') + '<div class="panel builder">' +
-      '<div class="field" style="margin-top:0"><label>Who went?</label><div class="kidpick">' + picks + '</div>' +
+    var html = '<h2>' + (planning ? (old ? "Edit planned trip" : "✈️ Plan a trip") : old ? "Edit trip" : "Add a trip") + '</h2>' +
+      (planning ? '<p class="small muted planhint" id="planhint">📅 Planned trip: somewhere you\'re going. No stamps until you go. When you get there, tap “We\'re here: start the trip”.</p>' : "") + (old ? "" : '<p class="small bkpaste">' + (fromBooking ? '✓ Filled in from your booking. Check it over, then Save. ' : "") + '<button type="button" class="linkbtn" id="tpaste">📋 Paste a flight or hotel booking</button></p>') + '<div class="panel builder">' +
+      '<div class="field" style="margin-top:0"><label>' + (planning ? "Who's going?" : "Who went?") + '</label><div class="kidpick">' + picks + '</div>' +
       (st.kids.length > 2 ? '<button type="button" class="linkbtn" id="tall">Everyone went</button>' : "") + '</div>' +
-      '<div class="bsec"><h3>Where did you go? <span class="muted small">Tap places in order</span></h3><ol class="route" id="broute"></ol><div id="bundo" class="undobar" role="status" hidden></div>' +
+      '<div class="bsec"><h3>' + (planning ? "Where are you going?" : "Where did you go?") + ' <span class="muted small">Tap places in order</span></h3><ol class="route" id="broute"></ol><div id="bundo" class="undobar" role="status" hidden></div>' +
       '<div class="addplace"><label for="psearch" id="pslabel">Add a stop</label><div class="pswhere" id="pswhere" hidden></div><input id="psearch" type="search" autocomplete="off" placeholder="City, town or national park" aria-controls="presults">' +
       '<div class="results" id="presults" role="listbox"></div></div>' +
       '<label class="check small"><input type="checkbox" id="tround"' + (d.roundTrip ? " checked" : "") + '> Round trip (came back home at the end)</label>' +
       '<div class="btotal" id="btotal"></div><div id="bfly" class="bfly"></div></div>' +
-      '<div class="bsec"><h3>When?</h3>' + (d.plan ? '<p class="small muted planhint">Pick your dates and Home counts down to the trip. While you\'re there, tap Stamp a stop.</p>' : "") + '<div class="fields"><div class="field"><label for="tdate">Start</label><input id="tdate" type="date" value="' + esc(d.date || "") + '"></div>' +
+      '<div class="bsec"><h3>When?</h3>' + (planning ? '<p class="small muted planhint">Dates not set yet? That\'s fine. Pick them when you know, and Home counts down to the trip.</p>' : d.plan ? '<p class="small muted planhint">Pick your dates and Home counts down to the trip. While you\'re there, tap Stamp a stop.</p>' : "") + '<div class="fields"><div class="field"><label for="tdate">Start</label><input id="tdate" type="date" value="' + esc(d.date || "") + '"></div>' +
       '<div class="field"><label for="tend">End <span class="muted small">(optional)</span></label><input id="tend" type="date" value="' + esc(d.endDate || "") + '"></div>' +
       '<div class="field"><label for="tnights">Or how many nights?</label><input id="tnights" type="number" inputmode="numeric" min="0" max="999" value="' + (typeof d.nights === "number" ? d.nights : "") + '" placeholder="e.g. 7"></div></div>' +
-      '<label class="check small"><input type="checkbox" id="tdone"' + (d.done || d.endDate ? " checked" : "") + '> We\'re home: this trip is done (unlocks its story)</label></div>' +
+      '<label class="check small"' + (planning ? " hidden" : "") + '><input type="checkbox" id="tdone"' + (!planning && (d.done || d.endDate) ? " checked" : "") + '> We\'re home: this trip is done (unlocks its story)</label></div>' +
       '<details class="bsec more" id="dstays"' + (d.stays.length ? " open" : "") + '><summary>🏨 Where you stayed <span class="cnt"></span></summary><div id="bstays"></div><button type="button" class="linkbtn" id="addstay">+ Add a place you stayed</button></details>' +
       '<details class="bsec more" id="dfavs"' + (d.favs.length ? " open" : "") + '><summary>⭐ Favorites <span class="cnt"></span></summary><div id="bfavs"></div><div class="favadd" id="favadd"></div></details>' +
       '<details class="bsec more tmems"' + (Object.keys(d.moments || {}).length || d.memory || Object.keys(d.memories || {}).length ? " open" : "") + '><summary>💬 Trip memories</summary>' +
@@ -876,6 +894,7 @@
           fly: fly, back: $("#tround").checked ? d.back : null, stays: d.stays, favs: d.favs.filter(function (f) { return grown || !T.FAV[f.cat].adult; }), moments: d.moments, story: d.story, memories: memVals(), wx: d.wx,
           who: $("#twho").value, memory: $("#tmem").value, mark: mv ? { kind: mv.split(":")[0], id: mv.split(":")[1] } : null, photoId: photoId });
         trip = Object.assign(old ? copy(old) : {}, made);
+        if (planning) { trip.planned = true; trip.done = false; }   // v101: stays planned until they start it
         if (reviewing) trip = M.reviewTrip(trip);
       } catch (x) { reviewing = false; err.textContent = x.message; err.hidden = false; return; }
       // v71 (B10): the same trip already here (same people, same place, same days)? Offer to merge instead of a copy.
@@ -884,7 +903,7 @@
         if (dm && !dupOk) { RB.askDup(dm, trip).then(function (how) { if (!how) return; dupOk = how; $("#tsave").onclick(); }); return; }
         if (dm && dupOk === "merge") trip = RB.mergeDup(dm, trip);
       }
-      if (trip.endDate && trip.endDate <= M.today()) trip.done = true;
+      if (trip.endDate && trip.endDate <= M.today() && !trip.planned) trip.done = true;
       saving = true; $("#tsave").disabled = true;
       if (newPhoto) jobs.push(A_.put("photos", { id: photoId, dataUrl: newPhoto }));
       A_.clearPhotos();
@@ -899,7 +918,7 @@
         if (!old && RB && RB.clearDraft) RB.clearDraft();
         if (mailId) mailCall("booking_inbox_mark", { p_id: mailId, p_status: "used" }).catch(function () {});
         location.hash = "#/p/" + (trip.kidIds.indexOf(k.id) >= 0 ? k.id : trip.kidIds[0]) + "/trip/" + trip.id;
-        A_.toast(reviewing ? M.tripLabel(trip) + " reviewed ✓" : dupOk === "merge" ? "Added to " + M.tripLabel(trip) : old ? "Trip saved" : "Trip added!");
+        A_.toast(trip.planned ? (old ? "Plan saved" : "Trip planned! No stamps until you go ✈️") : reviewing ? M.tripLabel(trip) + " reviewed ✓" : dupOk === "merge" ? "Added to " + M.tripLabel(trip) : old ? "Trip saved" : "Trip added!");
         if (fresh.length) setTimeout(function () { celebrate(fresh); }, 350);
       }).catch(function () { saving = false; $("#tsave").disabled = false; err.textContent = "Couldn't save. Is the device out of space?"; err.hidden = false; });
     };
@@ -981,7 +1000,7 @@
       (s.legs.length ? '<p class="routeline">' + t.route.map(function (p) { return esc(p.name); }).join(' <span aria-hidden="true">→</span> ') + (t.roundTrip ? ' <span aria-hidden="true">→</span> home' : "") +
         ' · <b>' + (s.milesKnown ? "" : "at least ") + esc(dist(s.miles, true)) + '</b> ' + unitToggle() + '</p>' : "") +
       (T.routeMap(t) ? '<div class="mapbox routebox">' + routeSVG(t) + '</div>' : (s.legs.length ? '<p class="hint">Find each stop on the map (Edit) to see the route drawn here.</p>' : "")) +
-      '<h3 class="sec">Trip stats</h3><div class="tstats">' + tstat("🧭", dist(s.miles), s.milesKnown || !s.legs.length ? "traveled" : "so far") +
+      planBanner(t) + '<h3 class="sec">Trip stats</h3><div class="tstats">' + tstat("🧭", dist(s.miles), s.milesKnown || !s.legs.length ? "traveled" : "so far") +
       (s.flights ? tstat("✈️", s.flights, s.flights === 1 ? "flight" : "flights") + (s.flightMiles ? tstat("🛫", dist(s.flightMiles), "flown") : "") + (s.airMin ? tstat("⏱️", "~" + T.fmtAir(s.airMin), "in the air") : "") : "") + (s.roadMiles ? tstat("🚗", dist(s.roadMiles), "on the road") : "") +
       (s.nights != null ? tstat("🌙", s.nights, s.nights === 1 ? "night" : "nights") : "") + (s.cities.length ? tstat("🏙️", s.cities.length, s.cities.length === 1 ? "town or city" : "towns & cities") : "") +
       (s.parks.length ? tstat("🌲", s.parks.length, s.parks.length === 1 ? "national park" : "national parks") : "") + (s.states.length ? tstat("🇺🇸", s.states.length, s.states.length === 1 ? "state" : "states") : "") +
@@ -1009,6 +1028,14 @@
     (window.FS_TRIPX || []).forEach(function (x) { if (x.bind) try { x.bind(k, t, A_.main); } catch (e) {} });
     if (window.FS_SPOTS) window.FS_SPOTS.bindTrip(k, t, A_.main, function () { var y = window.scrollY; detail(k, tid); window.scrollTo(0, y); });
     $$("[data-adultkid]").forEach(function (b) { b.onclick = function () { A_.setMeta("adultInKid", b.dataset.adultkid === "1").then(function () { detail(k, tid); }); }; });
+    var tst = $("#tstart");   // v101: a planned trip becomes a real one; its stamps come in now
+    if (tst) tst.onclick = function () {
+      var ids = t.kidIds.slice(), before = stampKeys(ids); M.startPlanned(t, M.today()); var jobs = [];
+      var changedIds = M.applyTripMark(t, S().kids) || [];
+      S().kids.forEach(function (x) { if (changedIds.indexOf(x.id) >= 0) { x.updatedAt = new Date().toISOString(); jobs.push(A().saveKid(x)); } });
+      jobs.push(saveTrip(t));
+      Promise.all(jobs).then(function () { var fresh = newStamps(before, ids); detail(k, t.id); A().toast("Trip started! Stamps are in ✈️"); if (fresh.length) setTimeout(function () { celebrate(fresh); }, 350); });
+    };
     var storyRender = bindStory(k, t);
     bindWeather(k, t, function () { if (storyRender && !(t.story && t.story.edited)) storyRender(); });
   }
@@ -1924,7 +1951,7 @@
       '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
   }
 
-  window.FS_UI = { mailInbox: mailInbox, mailAddress: mailAddress, findPlaces: findPlaces, builder: builder, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
+  window.FS_UI = { mailInbox: mailInbox, mailAddress: mailAddress, findPlaces: findPlaces, builder: builder, planWhen: planWhen, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
                    lifetimeHTML: lifetimeHTML, bindLifetime: bindLifetime, printExtra: printExtra, loadPlaces: loadPlaces, loadAirports: loadAirports, ensureTowns: ensureTowns, routeSVG: routeSVG,
                    searchPlaces: searchPlaces, searchAirports: searchAirports, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs,
                    sheet: sheet, closeSheet: closeSheet, dateFields: dateFields, readDate: readDate, shortArea: shortArea, stampName: stampName, CTX: CTX };

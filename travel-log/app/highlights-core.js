@@ -55,7 +55,7 @@
       });
     });
     (trips || []).forEach(function (t) {
-      if (!t || t.deletedAt || draft(t) || !ok(t.date)) return;
+      if (!t || t.deletedAt || draft(t) || t.planned === true || !ok(t.date)) return;
       var ks = (t.kidIds || []).filter(function (id) { return kidIds[id]; }); if (!ks.length) return;
       // v63: the kids' journal pages (best part of the day, a funny quote, a drawing)
       (Array.isArray(t.journal) ? t.journal : []).forEach(function (j) {

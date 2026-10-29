@@ -1169,3 +1169,7 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .wl-dots span.on { opacity: .9; }
 .wl-res { display: flex; flex-direction: column; gap: .35rem; margin: .4rem 0; }
 .wl-pick { text-align: left; padding: .7rem .8rem; border-radius: .6rem; border: 1px solid rgba(0,0,0,.15); background: transparent; color: inherit; font: inherit; min-height: 44px; }
+/* v101: planned (upcoming) trips */
+.drafttag.plantag { text-transform:none; background:#e3f0ff; color:#1f4f9e; border-color:#9cc0ef; }
+.panel.planbox { border-left:4px solid #1f4f9e; }
+.homeplan { display:block; margin:.45rem 0 .2rem; }

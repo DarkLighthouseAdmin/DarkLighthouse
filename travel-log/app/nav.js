@@ -137,7 +137,8 @@
     var trip = onTrip && (onTrip.trip || onTrip), tw = trip && (trip.kidIds || []).filter(A().kidById)[0];
     function c(href, ic, label, sub, attr) { return '<a class="stampopt" href="' + href + '"' + (attr || "") + '><span class="ic" aria-hidden="true">' + ic + '</span><span><b>' + label + '</b><br><span class="small muted">' + sub + '</span></span></a>'; }
     return '<div class="stampopts">' +
-      c("#/stamp/trip", "🧳", "Add a trip", "Stops, flights and miles; everyone on it gets the stamps", ' data-fs-addtrip') +
+      c("#/stamp/trip", "🧳", "Add a trip we took", "Stops, flights and miles; everyone on it gets the stamps", ' data-fs-addtrip') +
+      c("#/plan", "✈️", "Plan a trip", "Somewhere you're going. No stamps until you go") +
       (w ? c("#/p/" + esc(w.id) + "/us?list=1", "✅", "Quick-add places", "Check off states, countries and parks " + esc(name(w)) + " has been to") : "") +
       c("#/import", "📷", "From photos", "Make trips from the dates and places in your photos") +
       c("#/near", "📍", "Near me", "Parks and places to stamp close by") +
@@ -179,10 +180,13 @@
     var a = A(), p = pid && a.kidById(pid); if (pid && !p) pid = "";
     var list = tripList(a.state.trips, pid), UI = window.FS_UI, html = '<h1>Trips</h1>';
     if (kids().length > 1) html += chips(pid, function (id) { return "#/trips" + (id ? "/" + id : ""); }, "Everyone");
-    html += '<div class="actions tripsacts"><button type="button" class="btn btn-beacon" data-fs-addtrip>＋ Add a trip</button><a class="btn btn-ghost" href="#/fieldtrips">🎒 Field-trip log &amp; PDF</a></div>';
+    html += '<div class="actions tripsacts"><button type="button" class="btn btn-beacon" data-fs-addtrip>＋ Add a trip</button><a class="btn btn-ghost" href="#/plan">✈️ Plan a trip</a><a class="btn btn-ghost" href="#/fieldtrips">🎒 Field-trip log &amp; PDF</a></div>';
     var drafts = M().draftTrips ? M().draftTrips(a.state.trips).length : 0;
     if (drafts) html += '<p><a class="tapline" href="#/p/' + esc(pid || who()) + '/trips/review">📷 ' + drafts + (drafts === 1 ? " trip" : " trips") + ' from your photos to review →</a></p>';
     if (!list.length) html += '<div class="panel empty"><p><b>' + (p ? esc(name(p)) + " has no trips yet." : "No trips yet.") + '</b></p><p class="small muted">Add your first one, even a trip from years ago. Each trip keeps its own journal, road-trip games, photos and postcards.</p><button type="button" class="btn btn-primary" data-fs-addtrip>Add a trip</button></div>';
+    // v101: planned trips sit in their own Upcoming section (soonest first), not among the trips you took
+    var plan = list.filter(function (t) { return t.planned === true; }); list = list.filter(function (t) { return t.planned !== true; });
+    if (plan.length) { html += '<h2 class="tyear" id="tupcoming">📅 Upcoming</h2>'; plan.sort(function (x, y) { return (x.date || "9999") < (y.date || "9999") ? -1 : 1; }).forEach(function (t) { html += UI ? UI.tripCard(t, p || a.kidById((t.kidIds || [])[0])) : '<p>' + esc(t.place) + '</p>'; }); }
     var year = "", FIRST = window.FS_REDRAW ? 1e9 : 24, CHUNK = 30, tok = ++tripsTok;
     function card(t) {
       var y = String(t.date || "").slice(0, 4) || "No date", h = "";

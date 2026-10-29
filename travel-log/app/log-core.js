@@ -318,6 +318,7 @@
       Returns the ids of people whose maps changed. */
   var PARK_STATES = {}; ALL_PARKS.forEach(function (p) { PARK_STATES[p.id] = p.states.split(/,\s*/); });
   function applyTripMark(trip, kids) {
+    if (isPlanned(trip)) return [];   // v101: a planned trip colors nothing in until it happens
     var list = T.areas(trip, PARK_STATES).slice(), changed = [];
     if (trip.mark) list.push(trip.mark);
     kids.forEach(function (k) {
@@ -338,6 +339,7 @@
 
   /** world: { countries: [{id,name,cont}] } from maps.js. */
   function stats(kid, trips, world) {
+    trips = (trips || []).filter(function (t) { return !isPlanned(t); });   // v101
     var countryById = {}; (world.countries || []).forEach(function (c) { countryById[c.id] = c; });
     var states = Object.keys(kid.states).filter(function (k) { return k !== "DC"; }).length;
     var seen = {}, uk = 0, other = 0;
@@ -596,6 +598,18 @@
 
   // ---------- Drafts (trips made from photos, waiting for a "Looks good") ----------
   var DRAFT_RE = /^\s*draft:\s*/i;
+  /** v101: a planned (upcoming) trip: no stamps, counts or firsts until the family starts it ("We're here") or says they went. */
+  function isPlanned(t) { return !!t && !t.deletedAt && t.planned === true; }
+  /** Planned trips: dated soonest first, then the ones with no dates yet. */
+  function plannedTrips(trips) {
+    return (trips || []).filter(isPlanned).slice().sort(function (a, b) { var x = a.date || "9999", y = b.date || "9999"; return x < y ? -1 : x > y ? 1 : 0; });
+  }
+  /** Turn a planned trip into a real one (it starts earning stamps). Nothing else on it changes; today is used when it had no start yet. */
+  function startPlanned(t, today0) {
+    var d = today0 || todayStr(); t.planned = false; t.startedAt = new Date().toISOString();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(t.date || "") || t.date > d) { if (t.endDate && t.endDate < d) t.endDate = ""; t.date = d; }
+    return t;
+  }
   function isDraft(t) { return !!t && !t.deletedAt && (t.draft === true || DRAFT_RE.test(String(t.title || ""))); }
   function draftTrips(trips) { return (trips || []).filter(isDraft); }
   /** Mark a draft reviewed: draft off, "Draft:" taken off the name, and a fresh updatedAt so it syncs and wins over the file it came from. */
@@ -663,7 +677,7 @@
   function onTripNow(trips, today) {
     today = today || todayStr();
     return (trips || []).filter(function (t) {
-      if (!t || t.deletedAt || isDraft(t) || !/^\d{4}-\d{2}-\d{2}$/.test(t.date || "")) return false;
+      if (!t || t.deletedAt || isDraft(t) || isPlanned(t) || !/^\d{4}-\d{2}-\d{2}$/.test(t.date || "")) return false;
       var end = tripEnd(t); return t.date <= today && today <= end;
     }).map(function (t) { return { trip: t, day: dayDiff(t.date, today) + 1, of: dayDiff(t.date, tripEnd(t)) + 1 }; });
   }
@@ -678,7 +692,7 @@
   function familyCup(people, trips, world, year) {
     year = String(year || today().slice(0, 4));
     function newThisYear(p) { var n = 0; ["states", "places", "parks"].forEach(function (bag) { Object.keys(p[bag] || {}).forEach(function (id) { var at = p[bag][id] && p[bag][id].at; if (typeof at === "string" && at.slice(0, 4) === year) n++; }); }); return n; }
-    function tripsThisYear(p) { return trips.filter(function (t) { return !t.deletedAt && !isDraft(t) && t.kidIds.indexOf(p.id) >= 0 && String(t.date || "").slice(0, 4) === year; }).length; }
+    function tripsThisYear(p) { return trips.filter(function (t) { return !t.deletedAt && !isDraft(t) && !isPlanned(t) && t.kidIds.indexOf(p.id) >= 0 && String(t.date || "").slice(0, 4) === year; }).length; }
     var st = {}; people.forEach(function (p) { st[p.id] = stats(p, trips, world); });
     var CATS = [
       { id: "year", icon: "✨", label: "New stamps in " + year, short: "new stamps this year", val: newThisYear },
@@ -766,7 +780,7 @@
     return { trip: c, photo: ph };
   }
 
-  return { extraPhotoIds: extraPhotoIds, onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+  return { isPlanned: isPlanned, plannedTrips: plannedTrips, startPlanned: startPlanned, extraPhotoIds: extraPhotoIds, onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PREF_KEYS: PREF_KEYS, cleanPrefs: cleanPrefs, addOnlyRestore: addOnlyRestore, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,

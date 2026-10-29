@@ -132,6 +132,7 @@
     var out = [], have = {};
     (trips || []).forEach(function (t) {
       if ((t.kidIds || []).indexOf(person.id) < 0) return;
+      if (t.planned === true && !t.deletedAt) return;   // v101: a planned trip gives no stamps until it happens
       tripVisits(t, ctx.parkStates).forEach(function (v) {
         var st = { id: "t-" + t.id + "-" + v.kind + "-" + v.area, kind: v.kind, area: v.area, date: v.date, end: v.end || "", via: v.via || "", tripId: t.id, trip: t.place, source: "trip", who: [person.id] };
         if (v.kind === "sight") {

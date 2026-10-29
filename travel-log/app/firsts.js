@@ -47,7 +47,7 @@
     var jr = earliest(p.parks, function (id, v) { return v.jr && !/^sp-/.test(id); }); if (jr) out.jr = { at: jr.at, place: nm("park", jr.id), text: "Earned a Junior Ranger badge at " + nm("park", jr.id) };
     var st = earliest(p.states, function (id) { return !(hc === "USA" && id === home.region); }); if (st) out.state = { at: st.at, place: nm("state", st.id) };
     var co = earliest(p.places, function (id) { return id !== hc; }); if (co) out.country = { at: co.at, place: nm("country", co.id) };
-    var mine = (trips || []).filter(function (t) { return (t.kidIds || []).indexOf(p.id) >= 0 && DATE.test(t.date || ""); })
+    var mine = (trips || []).filter(function (t) { return (t.kidIds || []).indexOf(p.id) >= 0 && DATE.test(t.date || "") && t.planned !== true; })
       .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     var ab = mine.filter(function (t) { return T && T.crossesBorder ? T.crossesBorder(t.route, hc) : false; })[0];
     if (ab) out.abroad = { at: ab.date, place: tripName(ab) };

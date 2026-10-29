@@ -2742,3 +2742,20 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(got.length === 2 && a.games["hunt:home:" + day].trip === "home" && a.games["hunt:home:" + day].place === "Not on a trip", "v100: a game finished at home stamps each chosen player, tied to no trip");
   ok(G.award(home, "hunt", day, [a], "x").length === 0, "v100: a player gets the stamp once");
 }
+{ // v101: "Plan a trip" makes an upcoming trip: no stamps, counts or firsts until it starts
+  const M = require("../travel-log/app/log-core.js"), P = require("../travel-log/app/passport-core.js"), tui = read("trips-ui.js"), nav = read("nav.js"), app = read("app.js");
+  const kid = { id: "zz-ana", name: "Zz Test Rivera Ana", role: "kid", states: {}, places: {}, parks: {} };
+  const t = { id: "zz-plan", kidIds: ["zz-ana"], place: "Zz Test Scotland", date: "2099-07-01", planned: true, route: [{ name: "Orlando", kind: "city", lat: 28.5, lon: -81.4, country: "USA", region: "FL" }, { name: "Scotland", kind: "place", lat: 56.5, lon: -4.2, country: "GBR", region: "SCT" }] };
+  ok(M.isPlanned(t) && !M.isPlanned({ id: "x" }) && !M.isPlanned(Object.assign({}, t, { deletedAt: "2026-01-01" })), "v101: isPlanned only for planned: true");
+  ok(P.stampsFor(kid, [t], {}).length === 0, "v101: a planned trip gives no stamps");
+  ok(M.applyTripMark(t, [kid]).length === 0 && !Object.keys(kid.places).length, "v101: a planned trip colors nothing in");
+  ok(M.onTripNow([Object.assign({}, t, { date: "2026-01-01", endDate: "2099-01-01" })], "2026-10-29").length === 0, "v101: a planned trip isn't 'on a trip now' until it starts");
+  ok(M.upcoming([t], "2026-10-29").length === 1, "v101: a dated planned trip counts down on Home");
+  const u = JSON.parse(JSON.stringify(Object.assign({}, t, { date: "" }))); M.startPlanned(u, "2026-10-29");
+  ok(u.planned === false && u.date === "2026-10-29" && u.startedAt && u.route.length === 2, "v101: starting a planned trip keeps its stops and dates it today");
+  ok(P.stampsFor(kid, [u], {}).some(s => s.area === "SCT"), "v101: once started, the trip's stamps come in");
+  const w = JSON.parse(JSON.stringify(Object.assign({}, t, { date: "2026-10-01" }))); M.startPlanned(w, "2026-10-29"); ok(w.date === "2026-10-01", "v101: 'We went' keeps the trip's own past dates");
+  ok(M.plannedTrips([{ id: "a", planned: true, date: "" }, { id: "b", planned: true, date: "2027-01-01" }, { id: "c" }]).map(x => x.id).join() === "b,a", "v101: planned trips sort soonest first, undated last");
+  ok(/opts\.plan \|\| fromWish\)\) \{ d\.planned = true;/.test(tui) && /"Where are you going\?"/.test(tui) && /"Who's going\?"/.test(tui) && /We're here: start the trip/.test(tui) && /We went! Stamp it/.test(tui), "v101: plan wording and the start button");
+  ok(/c\("#\/plan", "✈️", "Plan a trip"/.test(nav) && /📅 Upcoming/.test(nav) && /h\[3\] === "plan"/.test(app) && /did you go\?/.test(app), "v101: Plan a trip in + Stamp, Trips and Home; Upcoming section; did-you-go card");
+}
