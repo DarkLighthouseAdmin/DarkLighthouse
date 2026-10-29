@@ -3023,3 +3023,21 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   const tui = read("trips-ui.js");
   ok(/data-wundo=/.test(tui) && /M\.undoWant\(t, w\)/.test(tui) && /class="wexp"/.test(tui) && /M\.wantExp\(t, w\)/.test(tui), "v114: a ticked idea shows its earned stamp and an Undo button");
 }
+{ // v115+: more of our own landmark drawings (castles, St Peter's...), aliases, name fallback for stops without a Wikidata id, Vatican City country stamp
+  const SA = require("../travel-log/app/stamp-art.js"); globalThis.WK_STAMPART = SA; delete globalThis.FS_LANDMARKS;
+  delete require.cache[require.resolve("../travel-log/app/landmark-art.js")]; require("../travel-log/app/landmark-art.js");
+  const LM = globalThis.FS_LANDMARKS, cr = fs.readFileSync(path.join(__dirname, "../travel-log/LANDMARK-CREDITS.md"), "utf8"), own = cr.split("## Our own drawings")[1] || "";
+  ["Q756268", "Q12512", "Q62378", "Q42646", "Q20816698", "Q913981", "Q275128", "Q4152"].forEach(q => ok(LM.drawn(q) && LM.own.indexOf(q) >= 0, "v115: own drawing for " + q));
+  ok(LM.own.every(q => { const g = SA.GLYPHS["lm_" + q](); return /<path|<rect|<circle/.test(g) && !/NaN|undefined|=>/.test(g); }), "v115: every own drawing renders (" + LM.own.length + ")");
+  ok(LM.own.every(q => new RegExp("\\| " + q + " \\|").test(own) || /^Q(237|79182|131013)$/.test(q) || own.indexOf(q) >= 0), "v115: every own drawing is listed in LANDMARK-CREDITS.md 'Our own drawings' with its reference photo");
+  ok(SA.GLYPHS.lm_Q237 === SA.GLYPHS.lm_Q12512 && SA.GLYPHS.lm_Q79182 === SA.GLYPHS.lm_Q20816698, "v115: Vatican City uses St Peter's; the Eilean Donan islet uses the castle");
+  ok(LM.ids.length >= 22 && LM.ids.every(q => LM.has(q)) && !LM.has("Q756268"), "v115: the traced-icon credit list is unchanged");
+  const d = (area, type, ref) => SA.design("sight", area, "x", null, { kind: "sight", type, ref: ref || "" });
+  ok(d("castle-stirling-castle-GBR", "castle").motif === "lm_Q756268" && d("cathedral-st-peter-s-basilica-VAT", "cathedral").motif === "lm_Q12512" && d("castle-stirling-castle-GBR", "castle").landmark, "v115: a stop saved without its id still gets the drawing by exact name + country");
+  ok(d("pub-windsor-castle-GBR", "pub").motif !== "lm_Q42646" && d("castle-stirling-castle-USA", "castle").motif === "castle" && d("Q999999999", "castle", "Q999999999").motif === "castle", "v115: no drawing for a pub of the same name, another country, or an unknown id");
+  const v = SA.design("country", "VAT", "Vatican City", null, { kind: "country", area: "VAT" });
+  ok(v.motif === "lm_Q12512" && !v.flip, "v115: the Vatican City country stamp shows St Peter's");
+  const sp = read("spots-data.js");
+  ok(/"rome", "Rome", "Italy", EU, 41\.9, 12\.5, "lm_Q10285"/.test(sp) && /"athens", "Athens", "Greece", EU, 37\.98, 23\.73, "lm_Q10288"/.test(sp) && /"cairo", "Cairo", "Egypt", MA, 30\.04, 31\.24, "lm_Q37200"/.test(sp), "v115: Rome, Athens and Cairo city stamps use their landmark drawings");
+}
+{ const SA = require("../travel-log/app/stamp-art.js"); ok(SA.design("sight", "Q12512", "x", null, { kind: "sight", type: "cathedral", ref: "Q12512" }).ink === "#34507a" && SA.design("sight", "cathedral-x-FRA", "x", null, { kind: "sight", type: "cathedral", ref: "" }).ink === "#23262c", "v115: a drawn cathedral landmark uses slate blue (legible in dark mode); plain cathedrals unchanged"); }

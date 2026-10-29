@@ -770,6 +770,7 @@
   var COUNTRY = {
     ENG: "shield|double|red|rose|serif|ARRIVAL", SCT: "octagon|toothed|violet|thistle|slab|WELCOME", WLS: "arch|dashed|green|dragon|sans|CROESO",
     NIR: "hexagon|dotted|blue|columns|cond|ENTRY", IRL: "circle|toothed|green|shamrock|serif|FÁILTE", GBR: "rect|double|blue|clock|mono|ARRIVED",
+    VAT: "circle|double|brown|lm_Q12512|serif|ENTRATA", // v115: Vatican City: St Peter's dome (drawn in landmark-art.js)
     FRA: "oval|dashed|blue|c_eiffel|serif|ENTRÉE", CAN: "rect|toothed|red|maple|sans|WELCOME", JPN: "circle|solid|red|fuji|cond|ARRIVAL",
     MEX: "double|dotted|green|cactus|slab|BIENVENIDO", ITA: "shield|solid|green|arches|serif|ARRIVO", ESP: "cancel|dashed|red|c_sagrada|slab|LLEGADA",
     DEU: "hexagon|double|black|c_brandenburg|cond|EINREISE", NLD: "octagon|solid|brown|windmill|sans|AANKOMST", GRC: "rect|dotted|blue|temple|serif|ARRIVAL",
@@ -845,7 +846,9 @@
     } else if (kind === "sight") {
       // v79: a sight's stamp shows its type's picture (castle, ruin, viewpoint...); a famous landmark with its own drawing shows that
       var ty = typeOf(sx && sx.type), lm = sx && sx.ref && G["lm_" + sx.ref] ? "lm_" + sx.ref : "";
-      d = { shape: "circle", border: lm ? "double" : pick(BORDERS, h2), ink: ty.ink, motif: lm || ty.motif, pose: h % 3, flip: false, font: "serif", label: ty.label.toUpperCase(), type: ty.id, landmark: !!lm };
+      // v115: a stop saved without its Wikidata id: its exact name + country (from the stamp's area) can still find the drawing; never for pubs, food or stays
+      if (!lm && sx && !sx.ref && API.LM_NAMES && !/^(pub|distillery|brewery|winery|station|airport|ferry|cruise|market|street|pin|playground|university|ski|campground|onsen)$/.test(ty.id)) { var lq = API.LM_NAMES[String(area || "").replace(/^[a-z]+-/, "")]; if (lq && G["lm_" + lq]) lm = "lm_" + lq; }
+      d = { shape: "circle", border: lm ? "double" : pick(BORDERS, h2), ink: lm && ty.ink === "#23262c" ? "#34507a" : ty.ink /* v115: near-black inks vanish on dark paper; a drawn landmark gets slate blue */, motif: lm || ty.motif, pose: h % 3, flip: false, font: "serif", label: ty.label.toUpperCase(), type: ty.id, landmark: !!lm };
     } else if (kind === "region") {
       // v110: a province / state of Canada, Australia, Mexico or Germany: its country's look, labelled PROVINCE / STATE
       var rc = COUNTRY[String(area).split(".")[0]], RL = { CAN: "PROVINCE", AUS: "STATE", MEX: "ESTADO", DEU: "LAND" }[String(area).split(".")[0]] || "REGION";
@@ -935,7 +938,7 @@
     // the gaps between the name and the bottom line get a small star each
     var lg = ((270 - na / 2) + (90 + ba / 2)) / 2, rg = ((270 + na / 2) + (450 - ba / 2)) / 2, gap = (270 - na / 2) - (90 + ba / 2);
     var st = gap > 16 ? pstar(lg, 62) + pstar(rg, 62) : "";
-    var art = G[d.motif] ? (d.flip && !/^(np|x|c)_/.test(d.motif) ? '<g transform="matrix(-1 0 0 1 40 0)">' + G[d.motif](d.pose) + "</g>" : G[d.motif](d.pose)) : "", np = /^(np|x)_/.test(d.motif), sc = np ? 2.6 : 2.1, gx = np ? 28 : 38, gy = np ? (date ? 22 : 26) : (date ? 20 : 28);
+    var art = G[d.motif] ? (d.flip && !/^(np|x|c|lm)_/.test(d.motif) ? '<g transform="matrix(-1 0 0 1 40 0)">' + G[d.motif](d.pose) + "</g>" : G[d.motif](d.pose)) : "", np = /^(np|x)_/.test(d.motif), sc = np ? 2.6 : 2.1, gx = np ? 28 : 38, gy = np ? (date ? 22 : 26) : (date ? 20 : 28);
     var body = '<defs><clipPath id="' + uid + 'c"><circle cx="80" cy="80" r="' + (RW - 0.9) + '"/></clipPath></defs><g clip-path="url(#' + uid + 'c)"><g class="motif" transform="translate(' + gx + " " + gy + ") scale(" + sc + ')">' + art + "</g></g>";
     var plate = "";
     if (date) { var df = Math.min(12.4, 76 / (date.length * 0.62)), pw = Math.min(90, Math.max(62, date.length * df * 0.62 + 14));
@@ -959,5 +962,6 @@
     return parkSVG(s, text, d, opts);
   }
 
-  return { stampSVG: stampSVG, design: design, TYPES: TYPES, typeOf: typeOf, SYM: SYM, GLYPHS: G, COUNTRY: COUNTRY, SHAPES: SHAPES, BORDERS: BORDERS, INKS: INKS, INK_LIST: INK_LIST, FONTS: FONTS, MODES: MODES, stateMode: stateMode, hash: hash, PARK_ART: PARK_ART, parkLook: parkLook };
+  var API = { stampSVG: stampSVG, design: design, TYPES: TYPES, typeOf: typeOf, SYM: SYM, GLYPHS: G, COUNTRY: COUNTRY, SHAPES: SHAPES, BORDERS: BORDERS, INKS: INKS, INK_LIST: INK_LIST, FONTS: FONTS, MODES: MODES, stateMode: stateMode, hash: hash, PARK_ART: PARK_ART, parkLook: parkLook, LM_NAMES: {} };
+  return API;
 });

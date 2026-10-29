@@ -36,7 +36,7 @@
     ["liverpool", "Liverpool", "England", UK, 53.41, -2.98, "ship"], ["oxford", "Oxford", "England", UK, 51.75, -1.26, "dome"],
     ["cambridge", "Cambridge", "England", UK, 52.2, 0.12, "tower"], ["bath", "Bath", "England", UK, 51.38, -2.36, "columns"],
     ["york", "York", "England", UK, 53.96, -1.08, "castle"],
-    ["paris", "Paris", "France", EU, 48.86, 2.35, "c_eiffel"], ["rome", "Rome", "Italy", EU, 41.9, 12.5, "arches"],
+    ["paris", "Paris", "France", EU, 48.86, 2.35, "c_eiffel"], ["rome", "Rome", "Italy", EU, 41.9, 12.5, "lm_Q10285"],
     ["florence", "Florence", "Italy", EU, 43.77, 11.26, "dome"], ["venice", "Venice", "Italy", EU, 45.44, 12.32, "ship"],
     ["milan", "Milan", "Italy", EU, 45.46, 9.19, "tower"], ["barcelona", "Barcelona", "Spain", EU, 41.39, 2.17, "c_sagrada"],
     ["madrid", "Madrid", "Spain", EU, 40.42, -3.7, "dome"], ["lisbon", "Lisbon", "Portugal", EU, 38.72, -9.14, "ship"],
@@ -45,7 +45,7 @@
     ["vienna", "Vienna", "Austria", EU, 48.21, 16.37, "dome"], ["prague", "Prague", "Czechia", EU, 50.08, 14.44, "clock"],
     ["budapest", "Budapest", "Hungary", EU, 47.5, 19.04, "c_parliament"], ["copenhagen", "Copenhagen", "Denmark", EU, 55.68, 12.57, "c_nyhavn"],
     ["stockholm", "Stockholm", "Sweden", EU, 59.33, 18.07, "ship"], ["oslo", "Oslo", "Norway", EU, 59.91, 10.75, "mountainlake"],
-    ["reykjavik", "Reykjavík", "Iceland", EU, 64.15, -21.94, "geyser"], ["athens", "Athens", "Greece", EU, 37.98, 23.73, "temple"],
+    ["reykjavik", "Reykjavík", "Iceland", EU, 64.15, -21.94, "geyser"], ["athens", "Athens", "Greece", EU, 37.98, 23.73, "lm_Q10288"],
     ["dubrovnik", "Dubrovnik", "Croatia", EU, 42.65, 18.09, "c_dubrovnik"], ["zurich", "Zürich", "Switzerland", EU, 47.38, 8.54, "peaks"],
     ["krakow", "Kraków", "Poland", EU, 50.06, 19.94, "tower"], ["istanbul", "Istanbul", "Türkiye", EU, 41.01, 28.98, "dome"],
     ["tokyo", "Tokyo", "Japan", AS, 35.68, 139.69, "fuji"], ["kyoto", "Kyoto", "Japan", AS, 35.01, 135.77, "pagoda"],
@@ -59,7 +59,7 @@
     ["havana", "Havana", "Cuba", LA, 23.11, -82.37, "palm"], ["buenos-aires", "Buenos Aires", "Argentina", LA, -34.6, -58.38, "c_obelisco"],
     ["rio-de-janeiro", "Rio de Janeiro", "Brazil", LA, -22.91, -43.17, "peaks"], ["lima", "Lima", "Peru", LA, -12.05, -77.04, "ship"],
     ["cusco", "Cusco", "Peru", LA, -13.53, -71.97, "peaks"],
-    ["dubai", "Dubai", "UAE", MA, 25.2, 55.27, "sky2"], ["cairo", "Cairo", "Egypt", MA, 30.04, 31.24, "pyramid"],
+    ["dubai", "Dubai", "UAE", MA, 25.2, 55.27, "sky2"], ["cairo", "Cairo", "Egypt", MA, 30.04, 31.24, "lm_Q37200"],
     ["marrakech", "Marrakech", "Morocco", MA, 31.63, -7.99, "c_koutoubia"], ["cape-town", "Cape Town", "South Africa", MA, -33.92, 18.42, "peaks"],
     ["nairobi", "Nairobi", "Kenya", MA, -1.29, 36.82, "sky2"], ["jerusalem", "Jerusalem", "Israel", MA, 31.77, 35.21, "dome"]];
   var PUBS = [

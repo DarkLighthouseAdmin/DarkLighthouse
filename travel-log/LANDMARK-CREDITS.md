@@ -34,3 +34,11 @@ These landmark stamps are our own drawings, made by looking at reference photos 
 | Landmark | Wikidata | Drawn | Reference photos looked at |
 |---|---|---|---|
 | Edinburgh Castle (v113) | Q212065 | Famstamp | https://commons.wikimedia.org/wiki/File:Edinburgh_Castle_from_Princes_Street_-_geograph.org.uk_-_2441979.jpg , https://commons.wikimedia.org/wiki/File:Edinburgh_Castle_from_Princes_Street_-_geograph.org.uk_-_3150306.jpg |
+| Stirling Castle (v115) | Q756268 | Famstamp | https://commons.wikimedia.org/wiki/File:Stirling_Castle_2017.jpg |
+| St. Peter's Basilica (v115; also Vatican City Q237 and the Vatican City country stamp) | Q12512 | Famstamp | https://commons.wikimedia.org/wiki/File:Basilica_di_San_Pietro_in_Vaticano_September_2015-1a.jpg |
+| Tower of London (v115) | Q62378 | Famstamp | https://commons.wikimedia.org/wiki/File:London,_Tower_of_London,_White_Tower_--_2016_--_4678.jpg |
+| Windsor Castle (v115) | Q42646 | Famstamp | https://commons.wikimedia.org/wiki/File:Round_Tower,_Windsor_Castle,_England_-_Nov_2006.jpg |
+| Eilean Donan Castle (v115; also the Eilean Donan islet Q79182) | Q20816698 | Famstamp | https://commons.wikimedia.org/wiki/File:Eilean_Donan_castle_-_95mm.jpg |
+| Urquhart Castle (v115) | Q913981 | Famstamp | https://commons.wikimedia.org/wiki/File:Urquhart_Castle_distance_2.jpg |
+| Caernarfon Castle (v115) | Q275128 | Famstamp | https://commons.wikimedia.org/wiki/File:Caernarfon_Castle_-_geograph.org.uk_-_6566342.jpg |
+| Neuschwanstein Castle (v115) | Q4152 | Famstamp | https://commons.wikimedia.org/wiki/File:Neuschwanstein_Castle_2024.jpg |

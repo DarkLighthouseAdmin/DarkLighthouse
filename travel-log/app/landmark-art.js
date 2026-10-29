@@ -92,7 +92,121 @@
       return rock + crag + build + flag + cut;
     }
   };
+
+  // v115: more of our own drawings (made from reference photos, not traced). Shared helpers: ink shapes, buildings with a paper
+  // outline, crenellations, water.
+  function H() {
+    function P(d, f) { return '<path d="' + d + '"' + (f ? ' fill="' + f + '"' : "") + '/>'; }
+    function S(d, w, c) { return '<path d="' + d + '" fill="none" stroke="' + (c || "currentColor") + '" stroke-width="' + w + '" stroke-linecap="round" stroke-linejoin="round"/>'; }
+    function C(x, y, r, f) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"' + (f ? ' fill="' + f + '"' : "") + '/>'; }
+    function R(x, y, w, h, f) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '"' + (f ? ' fill="' + f + '"' : "") + '/>'; }
+    function B(d) { return '<path d="' + d + '" stroke="' + PAPER + '" stroke-width="0.5" stroke-linejoin="round"/>'; }
+    function cren(x0, x1, y, w, h) { var s = ""; for (var x = x0; x + w <= x1 + 0.01; x += 2 * w) s += "M" + x.toFixed(2) + " " + y + " h" + w + " v-" + h + " h-" + w + "Z "; return s; }
+    function water(y, x0, x1) { var d = "M" + x0 + " " + y + " q1.5 -0.9 3 0", n = Math.ceil((x1 - x0) / 3); for (var i = 1; i < n; i++) d += " t3 0"; return S(d, 0.7); }
+    return { P: P, S: S, C: C, R: R, B: B, cren: cren, water: water };
+  }
+  var MORE = {
+  // Stirling Castle: crag with cliff, Great Hall (long roof, crow-stepped gables), Forework twin round towers with cones, Palace block, flag
+  Q756268: function () { var h = H(), P = h.P, S = h.S, C = h.C, R = h.R, B = h.B, cren = h.cren;
+    var rock = P("M0 39.4 V34 L2 32.6 L3 30 L5 28.4 L6.2 26.4 L34 26.2 L36.4 27.6 L37.4 30 L39 31.4 L40 33 V39.4 Z");
+    var crag = P("M8 28 L8.8 33 L8.3 37 L9.6 33 Z M15 27.6 L15.4 31 L14.6 36.8 L16.2 31.4 Z M23 27.4 L23.8 31.8 L23 38 L24.8 32 Z M30.4 27.6 L31 31 L30.4 35.6 L32 31.2 Z M4 31 L5.6 33 L4.4 36.6 L6.6 33.4Z", PAPER);
+    var walls = B("M5.6 26.6 V23.4 H35 V26.6 Z") + P(cren(5.6, 35, 23.4, 0.9, 0.9));
+    var palace = B("M6.4 23.6 V15.6 H13.6 V23.6 Z") + P(cren(6.4, 13.6, 15.6, 0.9, 1));
+    var hall = B("M14 23.6 V16.4 L15 15 V13.4 L15.8 12.6 L16.6 13.4 V14.2 L24.6 14.2 V13.4 L25.4 12.6 L26.2 13.4 V15 L27.2 16.4 V23.6 Z") +
+      B("M15 16.4 L15 14.6 L15.8 13.8 L15.8 13 M14 16.4 h1 v-0.8 h0.8 v-0.8 h0.8 v-0.8") + P("M15.2 15.4 L20.6 9.6 L26 15.4 Z") + P("M14.2 16.4 h1.2 v-1.2 h1 v-1.2 h1 v-1 h1 v-1 h1 v-1 h1 v-1 h1 v1 h1 v1 h1 v1 h1 v1 h1 v1.2 h1 v1.2 h1.2 v7.2 h-12.6 Z");
+    var fore = B("M27 23.6 V17 H35 V23.6 Z") + B("M26.4 23.6 V15.4 Q28 14.6 29.6 15.4 V23.6 Z") + B("M32.4 23.6 V15.4 Q34 14.6 35.6 15.4 V23.6 Z") + P("M26.2 15.6 L28 11 L29.8 15.6 Z M32.2 15.6 L34 11 L35.8 15.6 Z");
+    var cut = P("M8 18 h1 v1.8 h-1Z M10.6 18 h1 v1.8 h-1Z M8 20.8 h1 v1.6 h-1Z M10.6 20.8 h1 v1.6 h-1Z", PAPER) +
+      P("M16.4 17.4 q0.6 -1 1.2 0 v3.2 h-1.2Z M19.2 17.4 q0.6 -1 1.2 0 v3.2 h-1.2Z M22 17.4 q0.6 -1 1.2 0 v3.2 h-1.2Z M24.6 17.4 q0.6 -1 1.2 0 v3.2 h-1.2Z", PAPER) +
+      P("M29.8 23.6 V20.2 Q31 18.4 32.2 20.2 V23.6Z M27.6 17.6 h0.8 v1.4 h-0.8Z M33.6 17.6 h0.8 v1.4 h-0.8Z", PAPER);
+    var flag = S("M10 15.4 V9.4", 0.55) + P("M10.3 9.4 L13.6 10.4 L10.3 11.5Z");
+    return rock + crag + walls + palace + hall + fore + cut + flag; },
+
+  // St Peter's Basilica: dome with ribs, lantern and cross on a drum; facade with columns and statues; colonnade arms; obelisk
+  Q12512: function () { var { P, S, C, R, B } = H(PAPER);
+    var dome = P("M11.6 15.4 Q11.6 5.4 20 4.6 Q28.4 5.4 28.4 15.4 Z") + B("M11 17.6 V14.8 H29 V17.6 Z") + P("M18.6 4.9 V3 H21.4 V4.9Z M18.2 3.2 L20 1.6 L21.8 3.2Z") + S("M20 1.6 V-0.4 M19.1 0.4 H20.9", 0.45);
+    var ribs = S("M15.6 15 Q15.2 9 18 6 M20 15 V5.2 M24.4 15 Q24.8 9 22 6", 0.4, PAPER) + P("M12 15.8 h1 v1.3 h-1Z M14.8 15.8 h1 v1.3 h-1Z M17.6 15.8 h1 v1.3 h-1Z M21.4 15.8 h1 v1.3 h-1Z M24.2 15.8 h1 v1.3 h-1Z M27 15.8 h1 v1.3 h-1Z", PAPER);
+    var small = P("M6.4 18 Q6.4 14.2 8.4 14 Q10.4 14.2 10.4 18Z M29.6 18 Q29.6 14.2 31.6 14 Q33.6 14.2 33.6 18Z") + S("M8.4 14 V12.6 M31.6 14 V12.6", 0.4);
+    var facade = B("M5 30.6 V18.4 H35 V30.6 Z") + B("M4.6 19.4 H35.4 V17.4 H4.6 Z") + P("M15.2 17.6 L20 15.6 L24.8 17.6 Z");
+    var statues = P("M6 17.4 v-1 h0.6 v1Z M8.6 17.4 v-1 h0.6 v1Z M11.2 17.4 v-1 h0.6 v1Z M13.8 17.4 v-1 h0.6 v1Z M25.6 17.4 v-1 h0.6 v1Z M28.2 17.4 v-1 h0.6 v1Z M30.8 17.4 v-1 h0.6 v1Z M33.4 17.4 v-1 h0.6 v1Z");
+    var cols = S("M7 20 V30 M9.6 20 V30 M12.2 20 V30 M14.8 20 V30 M17.4 20 V30 M22.6 20 V30 M25.2 20 V30 M27.8 20 V30 M30.4 20 V30 M33 20 V30", 0.45, PAPER) + P("M18.4 30.6 V25.6 Q20 23.6 21.6 25.6 V30.6Z M18.6 21 h2.8 v2 h-2.8Z", PAPER) + S("M5 24.2 H35", 0.35, PAPER);
+    var arms = P("M0 36.2 Q2 32.4 5 31.4 L5 33 Q2.8 34 1.6 36.6 Z M40 36.2 Q38 32.4 35 31.4 L35 33 Q37.2 34 38.4 36.6 Z") + P("M0 36.4 Q2.2 32.6 5 30.6 V31.6 Q2.6 33.2 0.8 36.6Z M40 36.4 Q37.8 32.6 35 30.6 V31.6 Q37.4 33.2 39.2 36.6Z");
+    var steps = P("M3 30.6 H37 V31.6 H3Z M6 31.6 H34 V32.4 H6Z");
+    var obel = P("M19.4 37 L19.7 32.6 L20 31.6 L20.3 32.6 L20.6 37Z M18.6 37 h2.8 v0.9 h-2.8Z");
+    return dome + ribs + small + facade + statues + cols + arms + steps + obel + S("M0 38.6 H40", 0.9); },
+
+  // Tower of London: the White Tower (square keep, 3 square + 1 round corner turret with ogee caps), curtain wall with towers, Thames
+  Q62378: function () { var h = H(), P = h.P, S = h.S, C = h.C, R = h.R, B = h.B, cren = h.cren, water = h.water;
+    var keep = B("M10 30 V12.4 H30 V30 Z");
+    var tur = P("M8.6 30 V9.2 H12.2 V30Z M27.8 30 V9.2 H31.4 V30Z M18.6 12.6 V9.6 H21.4 V12.6Z") + P(cren(12.2, 27.8, 12.4, 1, 1));
+    var caps = P("M8.4 9.4 Q8.6 7.4 10.4 6.6 Q12 7.4 12.4 9.4Z M27.6 9.4 Q27.8 7.4 29.6 6.6 Q31.2 7.4 31.6 9.4Z M18.4 9.8 Q18.6 8 20 7.2 Q21.4 8 21.6 9.8Z") + S("M10.4 6.6 V4.2 M29.6 6.6 V4.2 M20 7.2 V5", 0.45) + P("M10.6 4.2 L12.4 4.8 L10.6 5.4Z M29.8 4.2 L31.6 4.8 L29.8 5.4Z");
+    var roundT = B("M30.6 30 V10.8 Q33 9.8 35.4 10.8 V30 Z") + P("M30.4 11 Q31.2 7.6 33 6.6 Q34.8 7.6 35.6 11Z") + S("M33 6.6 V3.6", 0.45) + P("M33.2 3.6 L35 4.2 L33.2 4.8Z");
+    var win = P("M13.4 16 q0.7 -1.2 1.4 0 v2.2 h-1.4Z M16.4 16 q0.7 -1.2 1.4 0 v2.2 h-1.4Z M22.2 16 q0.7 -1.2 1.4 0 v2.2 h-1.4Z M25.2 16 q0.7 -1.2 1.4 0 v2.2 h-1.4Z M13.4 21.4 q0.7 -1.2 1.4 0 v2.2 h-1.4Z M16.4 21.4 q0.7 -1.2 1.4 0 v2.2 h-1.4Z M22.2 21.4 q0.7 -1.2 1.4 0 v2.2 h-1.4Z M25.2 21.4 q0.7 -1.2 1.4 0 v2.2 h-1.4Z M32.3 15 h1.4 v2 h-1.4Z M32.3 20 h1.4 v2 h-1.4Z", PAPER) + S("M10 19.4 H30", 0.35, PAPER);
+    var wall = B("M0.6 34.6 V28.6 H39.4 V34.6 Z") + P(cren(0.6, 39.4, 28.6, 1, 0.9)) + B("M2 34.6 V26.4 H6 V34.6 Z") + P(cren(2, 6, 26.4, 0.8, 0.8)) + B("M34 34.6 V26.6 Q36 25.8 38 26.6 V34.6 Z") + P(cren(34, 38, 26.6, 0.8, 0.8)) +
+      P("M18.4 34.6 V31.6 Q20 29.8 21.6 31.6 V34.6Z M3.4 29 h1.2 v1.8 h-1.2Z M35.4 29 h1.2 v1.8 h-1.2Z", PAPER);
+    return keep + tur + caps + roundT + win + wall + S("M0 35.6 H40", 0.9) + water(37.6, 1, 39); },
+
+  // Windsor Castle: Round Tower on its mound with the flag turret and royal standard; long crenellated ranges with towers
+  Q42646: function () { var h = H(), P = h.P, S = h.S, C = h.C, R = h.R, B = h.B, cren = h.cren;
+    var mound = P("M9 31 Q14 22.4 20 22.2 Q26 22.4 31 31 Z");
+    var rt = B("M13.6 23.6 V12 Q20 10.6 26.4 12 V23.6 Q20 25 13.6 23.6Z") + P(cren(13.6, 26.4, 12, 1.07, 1.1)) + B("M22.4 12 V7.4 H25 V12Z") + P(cren(22.4, 25, 7.4, 0.65, 0.7));
+    var flag = S("M23.7 6.8 V1.2", 0.5) + P("M24 1.2 H29.4 V4.6 H24Z") + P("M26.7 1.2 V4.6 M24 2.9 H29.4", 0) + S("M26.7 1.2 V4.6 M24 2.9 H29.4", 0.35, PAPER);
+    var win = P("M16 15.4 h1.2 v2.2 h-1.2Z M19.4 15.2 h1.2 v2.2 h-1.2Z M22.8 15.4 h1.2 v2.2 h-1.2Z M16 19.4 h1.2 v2 h-1.2Z M22.8 19.4 h1.2 v2 h-1.2Z", PAPER);
+    var left = B("M0.6 31.6 V22.6 H11 V31.6 Z") + P(cren(0.6, 11, 22.6, 0.9, 0.9)) + B("M1 31.6 V18.4 H4.6 V31.6Z") + P(cren(1, 4.6, 18.4, 0.6, 0.8)) + B("M7.6 31.6 V20 H10.8 V31.6Z") + P(cren(7.6, 10.8, 20, 0.53, 0.8));
+    var right = B("M29 31.6 V22.6 H39.4 V31.6 Z") + P(cren(29, 39.4, 22.6, 0.9, 0.9)) + B("M29.2 31.6 V19.4 H32.6 V31.6Z") + P(cren(29.2, 32.6, 19.4, 0.57, 0.8)) + B("M35.6 31.6 V17.6 H39.2 V31.6Z") + P(cren(35.6, 39.2, 17.6, 0.6, 0.8));
+    var wcut = P("M2.2 21.4 h1.2 v1.8 h-1.2Z M8.6 23 h1.2 v1.8 h-1.2Z M5.4 25.4 h1.2 v2 h-1.2Z M30.4 22 h1.2 v1.8 h-1.2Z M36.8 20.6 h1.2 v1.8 h-1.2Z M33.6 25.4 h1.2 v2 h-1.2Z", PAPER);
+    var front = B("M0 36 V31 H40 V36Z") + P("M17.6 36 V33 Q20 30.8 22.4 33 V36Z", PAPER) + S("M0 33.6 H16.6 M23.4 33.6 H40", 0.35, PAPER);
+    return mound + left + right + rt + flag + win + wcut + front + S("M0 38.4 H40", 1.1); },
+// Eilean Donan: square keep with parapet and bartizan on a small island, the long arched stone bridge, mountains behind, the loch
+  Q20816698: function () { var h = H(), P = h.P, S = h.S, C = h.C, R = h.R, B = h.B, cren = h.cren, water = h.water;
+    var mts = S("M0 19 L6 11 L10 15 L16 7 L22 14 L25 11.4 L32 17 L36 14 L40 17", 0.8);
+    var snow = "";
+    var isle = P("M2 32 Q4 28.6 10 28.4 H22 Q26 28.8 27 32Z");
+    var keep = B("M7 29 V14.6 H17 V29Z") + P(cren(6.6, 17.4, 14.6, 0.9, 1)) + B("M6.2 15.6 H17.8 V14.2 H6.2Z") + B("M15.6 15.4 V11.4 Q16.8 10.4 18 11.4 V15.4Z") + P("M15.4 11.6 L16.8 8.6 L18.2 11.6Z");
+    var low = B("M3 29.4 V22.4 L5.2 20.2 L7.4 22.4 V29.4Z") + B("M17 29.4 V21 H23 V29.4Z") + P(cren(17, 23, 21, 0.75, 0.8)) + B("M23 29.4 V24.4 H26 V29.4Z");
+    var cut = P("M9.2 18 h1.2 v2 h-1.2Z M12.6 18 h1.2 v2 h-1.2Z M9.2 23 h1.2 v2 h-1.2Z M12.6 23 h1.2 v2 h-1.2Z M18.8 23.6 h1 v1.8 h-1Z M21 23.6 h1 v1.8 h-1Z M4.6 24 h1.2 v1.8 h-1.2Z", PAPER);
+    var bridge = B("M24 30.4 L40 27.6 V31.4 L24 33Z") + P("M26.4 32.8 Q27.8 30.4 29.2 32.6Z M30.6 32.3 Q32 29.9 33.4 32Z M34.8 31.8 Q36.2 29.4 37.6 31.5Z", PAPER);
+    return mts + snow + isle + low + keep + cut + bridge + water(35, 0, 40) + water(37.8, 2, 38); },
+
+  // Urquhart Castle: the ruined Grant Tower with a broken top on the shore of Loch Ness, low ruined walls, hills, and a little Nessie
+  Q913981: function () { var h = H(), P = h.P, S = h.S, C = h.C, R = h.R, B = h.B, cren = h.cren, water = h.water;
+    var hills = P("M0 26 Q8 18 16 21 Q24 17 30 20 Q36 18 40 21 V27 H0Z", 0);
+    var hl = S("M0 22.4 Q8 15.4 16 18.6 Q24 14.6 30 17.6 Q36 15.6 40 18.4", 0.8);
+    var shore = P("M0 30.6 Q4 27 10 26.8 H28 Q32 27.4 34 30.6Z");
+    var tower = B("M4 27.4 V9.6 L5.4 8.4 L6.2 9.6 L7.2 7.4 L8.4 9 L9.6 6.6 L10.8 9.4 L12 8 V11 L14 9.6 V27.4Z") + B("M3.2 12.6 Q4 10.6 4.8 12.6 V14.6 H3.2Z M13.2 13 Q14 11 14.8 13 V15 H13.2Z");
+    var tcut = P("M6.6 13 h1.2 v2.2 h-1.2Z M10 13 h1.2 v2.2 h-1.2Z M6.6 18.4 h1.2 v2.2 h-1.2Z M10 18.4 h1.2 v2.2 h-1.2Z M8.2 23 q0.8 -1.4 1.6 0 v4.4 h-1.6Z", PAPER);
+    var ruins = B("M14 27.6 V22.6 L15.4 21.4 L16.6 23 L18 22 V27.6Z") + B("M18 27.6 V24.4 H22 L23 23 L24 24.6 L26 24 V27.6Z") + B("M26 27.6 V21.4 L27.2 20 L28.6 21.6 V27.6Z") + P("M19.6 25.4 h1 v1.4 h-1Z M27 23.2 h0.8 v1.4 h-0.8Z", PAPER);
+    var nessie = P("M29.4 34.4 Q30.6 31.2 31.8 34.4Z M33 34.4 Q34.2 31.8 35.4 34.4Z M35.8 34.4 Q36.2 30.6 37.6 30.2 Q38.8 30.2 38.8 31.2 L37.6 31.4 Q37 31.8 37.2 34.4Z") + C(38, 30.7, 0.25, PAPER);
+    return hl + shore + tower + tcut + ruins + nessie + water(34.6, 0, 28.4) + water(37.6, 3, 37); },
+
+  // Caernarfon Castle: polygonal towers with banded stone, the Eagle Tower with three slender turrets, on the water
+  Q275128: function () { var h = H(), P = h.P, S = h.S, C = h.C, R = h.R, B = h.B, cren = h.cren, water = h.water;
+    var wall = B("M2 32.4 V20.6 H38 V32.4Z") + P(cren(2, 38, 20.6, 0.95, 0.9));
+    var eagle = B("M3 32.4 V13 H12 V32.4Z") + P(cren(3, 12, 13, 0.9, 0.9)) + B("M3.6 13 V6.6 H5.2 V13Z M6.7 13 V5.6 H8.3 V13Z M9.8 13 V6.6 H11.4 V13Z") + P("M3.4 6.6 h2 v-0.8 h-2Z M6.5 5.6 h2 v-0.8 h-2Z M9.6 6.6 h2 v-0.8 h-2Z") + S("M7.5 4.8 V2.2", 0.45) + P("M7.8 2.2 L10.2 2.9 L7.8 3.6Z");
+    var t2 = B("M17 32.4 V16.4 H23 V32.4Z") + P(cren(17, 23, 16.4, 0.86, 0.9)) + B("M29.4 32.4 V15.2 H35.6 V32.4Z") + P(cren(29.4, 35.6, 15.2, 0.89, 0.9)) + B("M33.6 15.2 V11.4 H35 V15.2Z");
+    var bands = S("M3 17.4 H12 M3 22.6 H12 M3 27.8 H12 M17 21 H23 M17 26.4 H23 M29.4 20 H35.6 M29.4 25.6 H35.6 M12 24.6 H17 M23 24.6 H29.4 M35.6 24.6 H38", 0.5, PAPER);
+    var cut = P("M6.8 15 h1.4 v1.8 h-1.4Z M6.8 19.4 h1.4 v2 h-1.4Z M19.4 18.4 h1.2 v1.8 h-1.2Z M31.8 17.2 h1.2 v1.8 h-1.2Z M24.6 28 Q26.2 26 27.8 28 V32.4 H24.6Z", PAPER);
+    return wall + eagle + t2 + bands + cut + S("M0 33.4 H40", 0.9) + water(35.6, 0, 40) + water(38.2, 2, 38); },
+
+  // Neuschwanstein: the fairy-tale palace on its crag above the forest, tall round tower with a spire, pointed turrets, mountains
+  Q4152: function () { var h = H(), P = h.P, S = h.S, C = h.C, R = h.R, B = h.B, cren = h.cren;
+    var mts = S("M0 18 L5 12 L9 15 L14 9 M30 13 L35 8 L40 13", 0.8);
+    var rock = P("M4 39.4 L6 33 L9 30.4 L30 30 L33 32 L36 39.4Z");
+    var trees = P("M0 39.4 L1.4 34 L2.8 39.4Z M2.4 39.4 L4 32.6 L5.6 39.4Z M34.4 39.4 L36 32.2 L37.6 39.4Z M37 39.4 L38.6 34.4 L40 39.4Z M6 39.4 L7.2 35.6 L8.4 39.4Z M31.6 39.4 L32.8 35.4 L34 39.4Z");
+    var palace = B("M10 31 V14.6 L13 11.6 L16 14.6 V31Z") + B("M16 31 V18 H27 V31Z") + P("M15.8 18.2 L21.5 14.2 L27.2 18.2Z") + B("M8.6 31 V22 H10.4 V31Z") + P("M8.4 22.2 L9.5 18.6 L10.6 22.2Z");
+    var tower = B("M26.6 31 V12.4 H30.4 V31Z") + P("M26.2 12.6 L28.5 3.2 L30.8 12.6Z") + S("M28.5 3.2 V1.2", 0.45) + B("M30.4 31 V20.4 H33 V31Z") + P("M30.2 20.6 L31.7 15.6 L33.2 20.6Z") + B("M24.6 18.4 V14.6 H26.6 V18.4Z") + P("M24.4 14.8 L25.6 11.2 L26.8 14.8Z") + P("M15.4 15 L15.4 11 L16.4 9.6 L17.4 11 V15Z");
+    var cut = P("M11.6 16.4 h1 v2 h-1Z M13.6 16.4 h1 v2 h-1Z M11.6 21 h1 v2 h-1Z M13.6 21 h1 v2 h-1Z M17.6 20.4 h1 v1.8 h-1Z M20 20.4 h1 v1.8 h-1Z M22.4 20.4 h1 v1.8 h-1Z M24.8 20.4 h1 v1.8 h-1Z M17.6 24.6 h1 v1.8 h-1Z M20 24.6 h1 v1.8 h-1Z M22.4 24.6 h1 v1.8 h-1Z M24.8 24.6 h1 v1.8 h-1Z M28 15 h1 v1.8 h-1Z M28 19.4 h1 v1.8 h-1Z M28 24 h1 v1.8 h-1Z", PAPER) + S("M10 27.4 H33", 0.4, PAPER);
+    return mts + rock + palace + tower + cut + trees + P("M10.6 29.6 L9 33 L10.4 37 Z M28.4 30.4 L29 34 L28 38 L30 34Z", PAPER); }
+
+  };
+  Object.keys(MORE).forEach(function (q) { OWN[q] = MORE[q]; });
+  // The same drawing for a place that is the landmark (Vatican City is St Peter's; the Eilean Donan islet is its castle)
+  var ALIAS = { Q237: "Q12512", Q79182: "Q20816698" };
   Object.keys(OWN).forEach(function (q) { SA.GLYPHS["lm_" + q] = OWN[q]; });
-  function credit(q) { var c = CREDITS[q]; return c ? { name: c[0], artist: c[1], license: c[2], page: c[3] } : null; }
-  W.FS_LANDMARKS = { ids: Object.keys(D), own: Object.keys(OWN), credit: credit, has: function (q) { return !!D[q]; }, drawn: function (q) { return !!(D[q] || OWN[q]); } };
+  Object.keys(ALIAS).forEach(function (q) { if (!OWN[q] && !D[q]) OWN[q] = OWN[ALIAS[q]] || (D[ALIAS[q]] && SA.GLYPHS["lm_" + ALIAS[q]]); if (OWN[q]) SA.GLYPHS["lm_" + q] = OWN[q]; });
+  // v115: a stop saved without its Wikidata id still gets the drawing when its name and country match a drawn landmark exactly
+  // (built from our sights data; names shared by two places in a country are left out). Key: name slug + "-" + country.
+  var NAMES = {"empire-state-building-USA":"Q9188","350-5th-avenue-USA":"Q9188","350-fifth-avenue-USA":"Q9188","pyramids-of-gizeh-EGY":"Q12508","ahramat-al-jizah-EGY":"Q12508","giza-pyramid-complex-EGY":"Q12508","arc-de-triomphe-de-l-etoile-FRA":"Q64436","atomium-BEL":"Q180901","st-peter-s-basilica-VAT":"Q12512","st-peter-s-VAT":"Q12512","saint-peter-s-vatican-VAT":"Q12512","papal-basilica-of-saint-pete-VAT":"Q12512","basilica-of-saint-peter-VAT":"Q12512","basilica-di-san-pietro-VAT":"Q12512","big-ben-GBR":"Q41225","elizabeth-tower-GBR":"Q41225","tower-of-big-ben-GBR":"Q41225","st-stephen-s-tower-GBR":"Q41225","saint-stephen-tower-GBR":"Q41225","big-ben-tower-GBR":"Q41225","big-ben-bell-GBR":"Q41225","castell-caernarfon-GBR":"Q275128","carnarvon-castle-GBR":"Q275128","cn-tower-CAN":"Q134883","tour-cn-CAN":"Q134883","canadian-national-tower-CAN":"Q134883","canada-s-national-tower-CAN":"Q134883","eilean-donan-castle-GBR":"Q20816698","castle-donan-GBR":"Q20816698","saint-basil-s-cathedral-RUS":"Q129846","cathedral-of-vasily-the-bles-RUS":"Q129846","cathedral-of-the-intercessio-RUS":"Q129846","christ-the-redeemer-BRA":"Q79961","cristo-redentor-BRA":"Q79961","christ-the-redeemer-statue-BRA":"Q79961","vatican-city-VAT":"Q237","vatican-VAT":"Q237","vatican-city-state-VAT":"Q237","status-civitatis-vaticanae-VAT":"Q237","stato-della-citta-del-vatica-VAT":"Q237","state-of-vatican-city-VAT":"Q237","citta-del-vaticano-VAT":"Q237","roman-colosseum-ITA":"Q10285","roman-coliseum-ITA":"Q10285","flavius-amphitheatre-ITA":"Q10285","colosseo-ITA":"Q10285","crown-of-the-palace-IND":"Q9141","easter-island-moai-CHL":"Q14452","rapa-nui-CHL":"Q14452","easter-island-CHL":"Q14452","te-pito-o-te-kainga-a-hau-ma-CHL":"Q14452","isla-de-pascua-CHL":"Q14452","edinburgh-castle-GBR":"Q212065","eiffel-tower-FRA":"Q243","tour-eiffel-FRA":"Q243","eilean-donan-GBR":"Q79182","eilean-donnan-GBR":"Q79182","great-pyramid-of-giza-EGY":"Q37200","pyramid-of-khufu-EGY":"Q37200","pyramid-of-cheops-EGY":"Q37200","tower-of-london-GBR":"Q62378","tower-of-london-london-engla-GBR":"Q62378","his-majesty-s-royal-palace-a-GBR":"Q62378","her-majesty-s-royal-palace-a-GBR":"Q62378","tower-GBR":"Q62378","india-gate-IND":"Q245347","lady-liberty-USA":"Q9202","leaning-tower-of-pisa-ITA":"Q39054","tower-of-pisa-ITA":"Q39054","torre-di-pisa-ITA":"Q39054","pisa-tower-ITA":"Q39054","leaning-tower-pisa-ITA":"Q39054","leaning-tower-ITA":"Q39054","neuschwanstein-castle-DEU":"Q4152","schloss-neuschwanstein-DEU":"Q4152","neuschwanstein-DEU":"Q4152","sydney-opera-house-AUS":"Q45178","sydney-opera-AUS":"Q45178","opera-house-AUS":"Q45178","parthenon-GRC":"Q10288","pathenonas-GRC":"Q10288","rialto-bridge-ITA":"Q52505","ponte-di-rialto-ITA":"Q52505","space-needle-USA":"Q5317","stirling-castle-GBR":"Q756268","tower-bridge-GBR":"Q83125","urquhart-castle-GBR":"Q913981"};
+  SA.LM_NAMES = SA.LM_NAMES || {}; Object.keys(NAMES).forEach(function (k) { if (SA.GLYPHS["lm_" + NAMES[k]]) SA.LM_NAMES[k] = NAMES[k]; });
+  function credit(q) { var c = CREDITS[q] || (ALIAS[q] && CREDITS[ALIAS[q]]); return c ? { name: c[0], artist: c[1], license: c[2], page: c[3] } : null; }
+  W.FS_LANDMARKS = { ids: Object.keys(D), own: Object.keys(OWN), credit: credit, has: function (q) { return !!(D[q] || (ALIAS[q] && D[ALIAS[q]])); }, drawn: function (q) { return !!(D[q] || OWN[q]); } };
 })();
