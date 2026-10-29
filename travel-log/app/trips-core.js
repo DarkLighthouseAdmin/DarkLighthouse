@@ -8,7 +8,7 @@
   "use strict";
 
   var EARTH_MI = 3958.8, KM_PER_MI = 1.609344, AROUND_WORLD = 24901;
-  var MAX_POINTS = 12, MAX_STAYS = 8, MAX_FAVS = 12;
+  var MAX_POINTS = 50, MAX_STAYS = 8, MAX_FAVS = 12;
   // Flights: time in the air is a rough "gate to gate" guess (525 mph cruise plus 30 minutes for taxi, climb and landing).
   // A drive to or from the airport counts once it's 25 miles or more (closer than that and it's just the airport run).
   var CRUISE_MPH = 525, TAXI_MIN = 30, GROUND_MIN_MI = 25;

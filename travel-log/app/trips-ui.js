@@ -139,6 +139,8 @@
   function searchPlaces(q, d, near) {
     q = normQ(q.trim()); if (q.length < 2) return [];
     var parts = q.split(","), head = parts[0].trim(), tail = (parts[1] || "").trim(), out = [];
+    // v99: a whole UK nation, US state or country comes first when its name is typed ("Scotland", "Wales", "Florida", "Japan")
+    var whole = !tail && head.length >= 3 ? wholePlaces(d, head) : [];
     M.ALL_PARKS.forEach(function (p) { var n = p.full.toLowerCase(); if (n.indexOf(head) === 0 || (head.length > 3 && n.indexOf(head) > 0)) out.push(parkPoint(d, p)); });
     out = out.slice(0, 3);
     var al = ALIASES.filter(function (a) { return a.k.some(function (k) { return k.indexOf(head) === 0 && (head.length >= 3 || k === head); }); });
@@ -180,7 +182,26 @@
     }
     cities.forEach(function (c) { delete c._pop; delete c._exact; delete c._i; delete c._score; delete c._famous; });
     if (near) cities = cities.filter(function (p) { return p.country === near; }).concat(cities.filter(function (p) { return p.country !== near; }));
-    return out.concat(cities).slice(0, Math.max(9, nParks + 6));
+    return whole.concat(out.concat(cities).slice(0, Math.max(9, nParks + 6)));
+  }
+  /** v99: UK nations, US states and countries whose name starts with what was typed, as whole-place stops (exact names first, at most 3). */
+  function wholePlaces(d, head) {
+    var hits = [];
+    function add(name, country, region, sub) {
+      var n = normQ(name); if (n.indexOf(head) !== 0) return;
+      hits.push({ name: name, kind: "place", country: country, region: region || undefined, sub: sub, label: (region ? "🗺️ " : "🌍 ") + name, _exact: n === head ? 1 : 0, _o: hits.length });
+    }
+    ["ENG", "SCT", "WLS", "NIR"].forEach(function (c) { var n = d.admin["GBR." + c]; if (n) add(n, "GBR", c, "UK nation"); });
+    Object.keys(d.admin).forEach(function (k) { var m = /^USA\.([A-Z]{2})$/.exec(k); if (m) add(d.admin[k], "USA", m[1], "US state"); });
+    Object.keys(d.countries).forEach(function (c) { add(d.countries[c], c, "", "Country"); });
+    hits.sort(function (a, b) { return (b._exact - a._exact) || (a._o - b._o); });
+    return hits.slice(0, 3).map(function (h) {
+      var o = { name: h.name, kind: "place", country: h.country, sub: h.sub, label: h.label };
+      if (h.region) o.region = h.region;
+      var b = null; for (var i = 0; i < d.rows.length; i++) { var r = d.rows[i]; if (r.country === h.country && (!h.region || r.admin1 === h.region) && (!b || r.pop > b.pop)) b = r; }
+      if (b) { o.lat = b.lat; o.lon = b.lon; }
+      return o;
+    });
   }
   // v1.8 wishlist search: countries, US states and UK nations first, then towns and parks, then airports (by code or city)
   function areaPoints(d, q) {
@@ -201,7 +222,7 @@
   function findPlaces(q) {
     return Promise.all([loadPlaces(), loadAirports().catch(function () { return null; }), ensureTowns(q)]).then(function (r) {
       var d = r[0], aps = r[1], nq = normQ((q || "").trim()); if (nq.length < 2) return [];
-      var out = areaPoints(d, nq.split(",")[0].trim()).concat(searchPlaces(q, d));
+      var out = areaPoints(d, nq.split(",")[0].trim()).concat(searchPlaces(q, d).filter(function (p) { return p.kind !== "place"; }));   // v99: whole places come from areaPoints here
       if (aps) searchAirports(q, aps).slice(0, 3).forEach(function (a) {
         var p = { name: a.city || a.town || a.name, kind: "city", lat: a.lat, lon: a.lon, country: a.country, region: a.country === "USA" || a.country === "GBR" ? a.region : "", sub: a.code + " · " + a.name };
         if (!out.some(function (o) { return o.lat != null && T.gcMiles(o, p) < 15; })) out.push(p);

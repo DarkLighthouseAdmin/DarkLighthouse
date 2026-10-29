@@ -2717,3 +2717,15 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   for (const [q, cc] of [["Moscow Kremlin", "RUS"], ["Dome of the Rock", ""], ["Château Frontenac", "CAN"], ["Royal Mile", "GBR"], ["Salar de Uyuni", "BOL"], ["The Bund", "CHN"], ["Real Alcázar of Seville", "ESP"]])
     ok(rows(q).some(r => !cc || r.country === cc), "v98: '" + q + "' is found by its English name");
 }
+{ // v99: a whole UK nation, US state or country comes first in Add a stop; a trip holds up to 50 stops
+  const T = require("../travel-log/app/trips-core.js"), tui = read("trips-ui.js");
+  ok(T.MAX_POINTS === 50, "v99: a trip can hold 50 stops (was 12)");
+  const many = []; for (let i = 0; i < 70; i++) many.push({ name: "Zz Test stop " + i, kind: "sight", type: "castle", town: "Zz Test town", lat: 55 + i / 100, lon: -3 - i / 100, country: "GBR", region: "SCT", sub: "Castle · Zz Test town, Scotland, UK", mode: "car", nights: 1, ref: "Q" + (1000 + i), fame: 12 });
+  const r = T.cleanRoute(many); ok(r.length === 50, "v99: cleanRoute keeps 50 stops and drops the rest (" + r.length + ")");
+  ok(JSON.stringify({ route: r }).length < 16000, "v99: a 50-stop trip of sights still fits the cloud's 16 KB trip row (" + JSON.stringify({ route: r }).length + " bytes)");
+  ok(/function wholePlaces\(d, head\)/.test(tui) && /\["ENG", "SCT", "WLS", "NIR"\]\.forEach/.test(tui) && /var whole = !tail && head\.length >= 3 \? wholePlaces\(d, head\) : \[\];/.test(tui), "v99: Add a stop offers UK nations, US states and countries by name");
+  ok(/searchPlaces\(q, d\)\.filter\(function \(p\) \{ return p\.kind !== "place"; \}\)/.test(tui), "v99: the wish list doesn't show a whole place twice");
+  const P = require("../travel-log/app/passport-core.js");
+  const v = P.tripVisits({ date: "2026-06-01", route: [{ name: "Orlando", kind: "city", country: "USA", region: "FL" }, { name: "Scotland", kind: "place", country: "GBR", region: "SCT", nights: 3 }, { name: "Wales", kind: "place", country: "GBR", region: "WLS" }] }, {});
+  ok(v.some(x => x.kind === "place" && x.area === "SCT") && v.some(x => x.kind === "place" && x.area === "WLS"), "v99: a 'Scotland' stop stamps Scotland, a 'Wales' stop stamps Wales");
+}
