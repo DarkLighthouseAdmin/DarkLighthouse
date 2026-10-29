@@ -1179,6 +1179,10 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .want { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.4rem; padding:.45rem 0; border-bottom:1px solid rgba(0,0,0,.08); }
 .want.did .wtext { opacity:.75; }
 .wacts { display:flex; gap:.35rem; align-items:center; }
+.wacts { flex-wrap:wrap; justify-content:flex-end; }
+/* v114: the experience stamp a typed idea earned, shown on the ticked idea */
+.wexp { display:inline-flex; align-items:center; gap:.3rem; font-size:.85rem; font-weight:600; padding:.1rem .5rem .1rem .15rem; border:1px solid var(--kid); border-radius:999px; }
+.wexp .expst { font-size:1.05rem; width:1.7rem; height:1.7rem; display:inline-flex; align-items:center; justify-content:center; border:2px dashed var(--kid); border-radius:50%; transform:rotate(-8deg); }
 .wheart { border:1px solid #e3c4c4; background:#fff; border-radius:999px; padding:.25rem .6rem; font-size:.9rem; min-height:36px; cursor:pointer; }
 .wheart.on { background:#fde8ec; border-color:#e48a9b; }
 .wchips { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.3rem; }

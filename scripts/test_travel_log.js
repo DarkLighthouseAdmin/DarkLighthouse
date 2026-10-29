@@ -2772,7 +2772,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   const before = P.stampsFor(kid, [t], {}).filter(s => s.kind === "sight").length;
   ok(M.didWant(t, w1, "2026-10-21", "zz-leo") === true && w1.did === "2026-10-21" && t.route[1].ref === "Q212065" && t.route[1].arrive === "2026-10-21" && t.route.length === 2, "v102: We did it! puts the sight in right after its stop");
   ok(P.stampsFor(kid, [t], {}).filter(s => s.kind === "sight").length === before + 1, "v102: ...and it stamps");
-  ok(M.didWant(t, w1, "2026-10-22") === false && t.route.length === 2 && M.didWant(t, w2, "2026-10-22") === false && w2.did === "2026-10-22", "v102: ticking again changes nothing; a free-text idea just gets ticked");
+  ok(M.didWant(t, w1, "2026-10-22") === false && t.route.length === 2 && M.didWant(t, w2, "2026-10-22") === "exp" && w2.did === "2026-10-22", "v102: ticking again changes nothing; a free-text idea gets ticked (v114: and earns an experience stamp)");
   // sync: both phones' ideas kept; did never lost
   const a = JSON.parse(JSON.stringify(t)), b = JSON.parse(JSON.stringify(t)); a.wants[1].did = ""; delete a.wants[1].did; b.wants.push(M.newWant({ text: "Zz Test ice cream", by: "zz-leo" }));
   SC.mergeTripPieces(a, b); ok(a.wants.length === 3 && a.wants[1].did === "2026-10-22", "v102: sync merges ideas from both phones and keeps We did it");
@@ -2953,7 +2953,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   const t2 = JSON.parse(JSON.stringify(t)); M.removeExp(t2, e2.id, "2099-01-01T00:00:00Z");
   SC.mergeTripPieces(t, t2);
   ok(M.liveExps(t).length === 1 && t.exps.some(e => e.id === e2.id && e.gone), "v110: a removed experience stays removed after sync (kept, marked gone)");
-  ok(M.BADGES.some(b => b.id === "exp-1") && M.EXPS.length === 11, "v110: 11 experience kinds and new badges");
+  ok(M.BADGES.some(b => b.id === "exp-1") && M.EXPS.length >= 11, "v110: 11 experience kinds (v114: more added after them) and new badges");
   const tc = { id: "tc", kidIds: ["k"], date: "2025-07-01", route: [{ name: "Home", country: "USA", region: "PA" }, { name: "Banff", country: "CAN", region: "01", lat: 51.2, lon: -115.6 }, { name: "Calgary airport", country: "CAN", region: "AB", lat: 51.1, lon: -114 }, { name: "Vancouver", country: "CAN", region: "02" }] };
   const st = P.stampsFor({ id: "k" }, [tc]);
   ok(st.filter(s => s.kind === "region").map(s => s.area).join() === "CAN.01,CAN.02" && st.some(s => s.kind === "place" && s.area === "CAN"), "v110: Canada AND Alberta + British Columbia stamped (airport code AB counted once)");
@@ -2995,4 +2995,31 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   const d = SA.design("sight", "Q212065", "Edinburgh Castle", null, { kind: "sight", ref: "Q212065", type: "castle", name: "Edinburgh Castle" });
   ok(d.motif === "lm_Q212065" && d.landmark, "v113: the Edinburgh Castle Sights stamp uses the drawing");
   ok(/"edinburgh", "Edinburgh", "Scotland", UK, 55\.95, -3\.19, "lm_Q212065"/.test(read("spots-data.js")), "v113: the Edinburgh city stamp uses it too");
+}
+{ // v114: "We did it!" on a typed idea earns the matching experience stamp (generic "Something fun" otherwise); Undo takes it back; nothing deleted
+  const M = require("../travel-log/app/log-core.js"), SC = require("../travel-log/app/sync-core.js");
+  [["Beach day", "beach"], ["See a castle", "sightsee"], ["water park!", "themepark"], ["Go snowboarding", "snowboard"], ["ski day", "ski"], ["ice cream at the pier", "food"], ["Zoo", "zoo"], ["Hike to the falls", "hike"], ["Zz Test nap", "fun"]]
+    .forEach(([x, k]) => ok(M.expForText(x) === k, "v114: \"" + x + "\" -> " + k + " (" + M.expForText(x) + ")"));
+  ok(M.EXPS.slice(0, 11).map(e => e[0]).join() === "hike,swim,ski,snowboard,concert,game,festival,show,cruise,camp,themepark", "v114: the v110 kinds are unchanged (new kinds only added after them)");
+  const t = { id: "zz-w14", kidIds: ["zz-ana", "zz-leo"], place: "Zz Test Rivera beach trip", date: "2026-10-20", route: [{ name: "Zz Test Town", kind: "city", lat: 34, lon: -118, country: "USA", region: "CA" }], exps: [{ id: "exp-old", kind: "hike", day: "2026-10-20", who: [], at: "2026-10-20T00:00:00.000Z" }] };
+  const w = M.newWant({ text: "Beach day", by: "zz-leo" }), wc = M.newWant({ text: "See a castle", by: "zz-ana" }), wf = M.newWant({ text: "Zz Test something silly" }); [w, wc, wf].forEach(x => M.addWant(t, x));
+  const c0 = M.expCounts("zz-ana", [t]).total;
+  ok(M.didWant(t, w, "2026-10-21", "zz-leo") === "exp" && w.expId && M.wantExp(t, w).exp.kind === "beach" && M.wantExp(t, w).def[2] === "Beach day" && M.wantExp(t, w).exp.day === "2026-10-21", "v114: We did it on 'Beach day' earns a Beach day stamp");
+  ok(M.didWant(t, wc, "2026-10-21") === "exp" && M.wantExp(t, wc).exp.kind === "sightsee" && M.didWant(t, wf, "2026-10-21") === "exp" && M.wantExp(t, wf).exp.kind === "fun", "v114: 'See a castle' -> Sightseeing; anything else -> Something fun");
+  ok(M.expCounts("zz-ana", [t]).total === c0 + 3 && M.expCounts("zz-leo", [t]).by.beach === 1 && M.didWant(t, w, "2026-10-22") === false && M.liveExps(t).length === 4, "v114: they count for everyone on the trip; ticking again adds nothing");
+  ok(M.expCounts("zz-ana", [Object.assign({}, t, { planned: true })]).total === 0, "v114: nothing counts on a planned trip");
+  const id = w.expId, n = t.exps.length;
+  ok(M.undoWant(t, w) && !w.did && w.undid && !w.expId && t.wants.length === 3 && t.exps.length === n && t.exps.find(e => e.id === id).gone && !M.liveExps(t).some(e => e.id === id) && t.exps.find(e => e.id === "exp-old") && !t.exps.find(e => e.id === "exp-old").gone, "v114: Undo un-ticks (idea kept) and marks just its stamp removed (kept, not deleted)");
+  ok(!M.undoWant(t, w) && M.didWant(t, w, "2026-10-23") === "exp" && w.expId !== id && M.wantExp(t, w).exp.kind === "beach", "v114: undo again does nothing; ticking again earns a fresh stamp");
+  // sync: an undo on one phone beats an older tick on the other; a newer tick beats an older undo; old phones (no didAt) lose to an undo
+  const base = { id: "zz-s", wants: [{ id: "ws", text: "Beach day", at: "2026-10-21T00:00:00.000Z", did: "2026-10-21", didAt: "2026-10-21T00:00:00.000Z", expId: "e1" }], exps: [{ id: "e1", kind: "beach", day: "2026-10-21", who: [], at: "2026-10-21T00:00:00.000Z" }] };
+  const undone = JSON.parse(JSON.stringify(base)); Object.assign(undone.wants[0], { did: "", undid: "2026-10-22T00:00:00.000Z", at: "2026-10-22T00:00:00.000Z" }); delete undone.wants[0].expId; Object.assign(undone.exps[0], { gone: "2026-10-22T00:00:00.000Z", at: "2026-10-22T00:00:00.000Z" });
+  let x = JSON.parse(JSON.stringify(base)); SC.mergeTripPieces(x, undone); ok(!x.wants[0].did && x.exps[0].gone, "v114: sync: an undo wins over the older tick");
+  x = JSON.parse(JSON.stringify(undone)); SC.mergeTripPieces(x, base); ok(!x.wants[0].did && x.exps[0].gone, "v114: sync: the older tick doesn't come back over an undo");
+  const old = JSON.parse(JSON.stringify(base)); delete old.wants[0].didAt; delete old.wants[0].expId; old.wants[0].at = "2026-10-21T00:00:00.000Z";
+  x = JSON.parse(JSON.stringify(undone)); SC.mergeTripPieces(x, old); ok(!x.wants[0].did, "v114: sync: a tick from an older app (no didAt) doesn't undo an undo");
+  const redo = JSON.parse(JSON.stringify(undone)); Object.assign(redo.wants[0], { did: "2026-10-23", didAt: "2026-10-23T00:00:00.000Z", expId: "e2", at: "2026-10-23T00:00:00.000Z" }); redo.exps.push({ id: "e2", kind: "beach", day: "2026-10-23", who: [], at: "2026-10-23T00:00:00.000Z" });
+  x = JSON.parse(JSON.stringify(undone)); SC.mergeTripPieces(x, redo); ok(x.wants[0].did === "2026-10-23" && x.wants[0].expId === "e2" && M.liveExps(x).length === 1 && x.exps.length === 2, "v114: sync: a newer tick beats an older undo; both stamps kept, only the new one live");
+  const tui = read("trips-ui.js");
+  ok(/data-wundo=/.test(tui) && /M\.undoWant\(t, w\)/.test(tui) && /class="wexp"/.test(tui) && /M\.wantExp\(t, w\)/.test(tui), "v114: a ticked idea shows its earned stamp and an Undo button");
 }

@@ -634,8 +634,14 @@
   /** "We did it!": the idea is ticked; a sight or park idea joins the trip's stops (right after its own stop), so it stamps like any stop. Returns true when a stop was added. */
   function didWant(t, w, today0, by) {
     if (!t || !w || w.did) return false;
-    w.did = today0 || todayStr(); if (by) w.didBy = by; w.at = new Date().toISOString();
-    if (!w.sight || typeof w.sight.lat !== "number") return false;
+    var now = new Date().toISOString();
+    w.did = today0 || todayStr(); if (by) w.didBy = by; w.at = now; w.didAt = now;
+    if (!w.sight || typeof w.sight.lat !== "number") {
+      // v114: a typed idea ("beach day", "see a castle") earns an experience stamp (everyone on the trip), linked so Undo can take it back
+      var e = newExp({ kind: expForText(w.text), day: w.did, who: [] });
+      if (e && addExp(t, e)) { w.expId = e.id; return "exp"; }
+      return false;
+    }
     t.route = Array.isArray(t.route) ? t.route : [];
     var k = wantKey(w); if (t.route.some(function (r) { return r && (wantKey({ ref: r.ref, text: r.name }) === k || (r.ref && r.ref === w.sight.ref)); })) return false;
     var stop = JSON.parse(JSON.stringify(w.sight)); stop.arrive = w.did; delete stop.label;
@@ -643,6 +649,17 @@
     if (at >= 0) t.route.splice(at + 1, 0, stop); else t.route.push(stop);
     return true;
   }
+  /** v114: undo a "We did it!": the idea is un-ticked (kept, with when it was undone so sync doesn't bring the tick back) and the experience stamp it
+      earned is marked removed (kept with { gone }, like any removed experience). A sight it added stays a stop on the trip (stops are never deleted here). */
+  function undoWant(t, w) {
+    if (!t || !w || !w.did) return false;
+    var now = new Date().toISOString();
+    if (w.expId) removeExp(t, w.expId, now);
+    w.did = ""; w.undid = now; w.at = now; delete w.expId;
+    return true;
+  }
+  /** v114: the experience stamp a ticked idea earned (null when none or removed). */
+  function wantExp(t, w) { if (!w || !w.expId) return null; var e = liveExps(t).filter(function (x) { return x.id === w.expId; })[0]; return e ? { exp: e, def: EXP_BY[e.kind] } : null; }
   /** Ideas grouped: [{ stop: "" | name, items: [...] }] ("" = whole trip first), most hearts first, done ones last. */
   function wantGroups(t) {
     var stops = [""], by = { "": [] };
@@ -668,7 +685,24 @@
   // Kept on the trip as t.exps = [{ id, kind, day, who: [personId], at }]; a removed one keeps { gone } so a merge can't bring it back.
   var EXPS = [["hike", "🥾", "Hike", "hikes"], ["swim", "🏊", "Swim", "swims"], ["ski", "⛷️", "Ski day", "ski days"], ["snowboard", "🏂", "Snowboard day", "snowboard days"],
               ["concert", "🎵", "Concert", "concerts"], ["game", "🏟️", "Big game", "big games"], ["festival", "🎪", "Festival", "festivals"], ["show", "🎭", "Show", "shows"],
-              ["cruise", "🛳️", "Cruise", "cruises"], ["camp", "🏕️", "Camping night", "camping nights"], ["themepark", "🎢", "Theme park day", "theme park days"]];
+              ["cruise", "🛳️", "Cruise", "cruises"], ["camp", "🏕️", "Camping night", "camping nights"], ["themepark", "🎢", "Theme park day", "theme park days"],
+              // v114: more kinds, so a typed "We did it!" idea ("beach day", "see a castle") earns a matching stamp; "fun" is the catch-all
+              ["beach", "🏖️", "Beach day", "beach days"], ["zoo", "🦁", "Zoo or aquarium day", "zoo and aquarium days"], ["museum", "🖼️", "Museum visit", "museum visits"],
+              ["sightsee", "🏰", "Sightseeing", "sightseeing outings"], ["boat", "🚣", "Boat ride", "boat rides"], ["bike", "🚲", "Bike ride", "bike rides"],
+              ["food", "🍦", "Food adventure", "food adventures"], ["fun", "✨", "Something fun", "fun things"]];
+  // v114: typed idea text -> experience kind (first match wins; order matters: "water park" before "swim", "snowboard" before "ski")
+  var EXP_WORDS = [["themepark", /theme ?park|amusement|roller ?coaster|disney|universal studios|six flags|legoland|water ?park|\brides?\b/],
+    ["snowboard", /snowboard/], ["ski", /\bski(s|ing|ed)?\b|slopes/], ["zoo", /\bzoo|aquarium|safari|wildlife|animals?\b|whales?\b|dolphins?|penguins?|petting farm/],
+    ["beach", /beach|seaside|sand ?castle|\bshore\b|boardwalk|tide ?pools?|\bsurf/], ["swim", /swim|\bpool\b|snorkel|hot ?springs?|splash/],
+    ["hike", /hik(e|es|ing)|\btrail|\bwalk|trek|climb|summit|waterfall|canyon|\bcave/], ["camp", /\bcamp|\btent\b|campfire|s'?mores|stargaz/],
+    ["concert", /concert|\bgig\b|live music|\bband\b|symphony|orchestra/], ["game", /\bgame\b|ball ?game|baseball|football|soccer|basketball|hockey|stadium|\bmatch\b|race day/],
+    ["festival", /festival|\bfair\b|parade|carnival|fireworks|market/], ["show", /\bshow|theat(er|re)|musical|\bplay\b|circus|broadway|ballet|movie|magic/],
+    ["cruise", /cruise|ferry/], ["boat", /\bboat|kayak|canoe|paddle|raft|\bsail|gondola/], ["bike", /\bbike|biking|cycl/],
+    ["museum", /museum|gallery|exhibit|science cent(er|re)|planetarium|library/],
+    ["sightsee", /castle|palace|tower|landmark|cathedral|church|abbey|temple|monument|ruins|\bsights?\b|sightsee|lighthouse|bridge|statue|\bfort\b|tour\b|skyline|lookout|view/],
+    ["food", /\beat\b|food|restaurant|ice ?cream|pizza|\btaste|tasting|dinner|lunch|breakfast|brunch|bakery|candy|chocolate|pancake|donut|doughnut|bbq|barbecue|picnic|gelato|crepe|cafe|tea\b/]];
+  /** v114: which experience stamp a typed idea earns ("beach day" -> beach, "see a castle" -> sightseeing); anything else -> "fun". */
+  function expForText(text) { var s = String(text || "").toLowerCase(); for (var i = 0; i < EXP_WORDS.length; i++) if (EXP_WORDS[i][1].test(s)) return EXP_WORDS[i][0]; return "fun"; }
   var EXP_BY = {}; EXPS.forEach(function (e) { EXP_BY[e[0]] = e; });
   function newExp(o) {
     o = o || {}; if (!EXP_BY[o.kind]) return null;
@@ -873,7 +907,7 @@
     return { trip: c, photo: ph };
   }
 
-  return { newWant: newWant, addWant: addWant, heartWant: heartWant, didWant: didWant, wantGroups: wantGroups, wantSuggestions: wantSuggestions, wantKey: wantKey, WANT_MILES: WANT_MILES,
+  return { newWant: newWant, addWant: addWant, heartWant: heartWant, didWant: didWant, undoWant: undoWant, wantExp: wantExp, expForText: expForText, wantGroups: wantGroups, wantSuggestions: wantSuggestions, wantKey: wantKey, WANT_MILES: WANT_MILES,
            isPlanned: isPlanned, plannedTrips: plannedTrips, startPlanned: startPlanned, extraPhotoIds: extraPhotoIds, onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, EXPS: EXPS, newExp: newExp, addExp: addExp, removeExp: removeExp, liveExps: liveExps, expCounts: expCounts, expLine: expLine, nearSights: nearSights, SIGHT_NEAR_MILES: SIGHT_NEAR_MILES, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PREF_KEYS: PREF_KEYS, cleanPrefs: cleanPrefs, addOnlyRestore: addOnlyRestore, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,

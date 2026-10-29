@@ -30,6 +30,7 @@ Bump `VERSION` in `app/app.js` and `CACHE` in `app/sw.js` for every release, the
 
 - **v68**: Search (`#/search`, Home search bar, 🔎 in the header on wide screens, menu item, `/` key); "What's new" after updates
 - **v69**: Sample family demo (`?demo` / Home "Try a sample family": separate local database, fake names, no sync or telemetry, "Start my own family" wipes it); homeschool field-trip log (`#/fieldtrips`, subjects/hours/learned per trip, printable sheet → PDF); time capsules (`#/capsules`, open on a date or when the kid gets their own login; sealed, not encrypted); kid graduates to own login (`#/graduate/<id>` parent confirms 13+, teen redeems code at `#/grad/<code>` while signed in; history kept, parent keeps family view); invite-a-family referral link + tracking (`#/invite`, no rewards or billing). SQL: `supabase/migrations/20261025020000_graduate_referrals.sql` (additive, not applied).
+- **v114** We did it! on a typed idea earns the matching experience stamp (beach day, sightseeing, food, zoo... or Something fun); Undo un-ticks and takes the stamp back
 - **v113** Edinburgh Castle stamp redrawn: the castle high on Castle Rock's crags, Half Moon Battery, Palace and Great Hall, gatehouse and esplanade, flagpole
 - **v112** Parks-tab stamps in search: cities, food spots, pubs, travel hubs and airports open a place page with visits, a count and the same buttons
 - **v111** search opens a place page for every place: its stamp, visits grouped by trip, Stamp it / Add a visit / Add to a trip, and sights in it

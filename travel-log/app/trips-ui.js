@@ -369,10 +369,12 @@
       var hs = w.hearts || [], mine = hs.indexOf(wantBy()) >= 0, em = w.sight ? typeEmoji(w.sight.type) + " " : "💭 ";
       return '<li class="want' + (w.did ? " did" : "") + '" data-w="' + esc(w.id) + '"><span class="wtext">' + em + esc(w.text) + (w.by ? '<span class="muted small"> · ' + esc(nm(w.by)) + "'s idea</span>" : "") + '</span>' +
         '<span class="wacts"><button type="button" class="wheart' + (mine ? " on" : "") + '" data-wheart="' + esc(w.id) + '" aria-pressed="' + mine + '" title="' + esc(hs.map(nm).join(", ")) + '">' + (mine ? "❤️" : "🤍") + (hs.length ? " " + hs.length : "") + '</button>' +
-        (w.did ? '<span class="wdid small">✅ We did it! ' + esc(M.prettyDate(w.did) || "") + '</span>' : t.planned === true ? "" : '<button type="button" class="btn btn-ghost btn-sm" data-wdid="' + esc(w.id) + '">✓ We did it!</button>') + '</span></li>';
+        (w.did ? '<span class="wdid small">✅ We did it! ' + esc(M.prettyDate(w.did) || "") + '</span>' + wexp(w) + '<button type="button" class="linkbtn sm wundo" data-wundo="' + esc(w.id) + '" aria-label="Undo We did it for ' + esc(w.text) + '">Undo</button>' : t.planned === true ? "" : '<button type="button" class="btn btn-ghost btn-sm" data-wdid="' + esc(w.id) + '">✓ We did it!</button>') + '</span></li>';
     }
+    // v114: the experience stamp a typed idea earned, shown right on the ticked idea
+    function wexp(w) { var x = M.wantExp && M.wantExp(t, w); return x ? '<span class="wexp" title="Experience stamp earned"><span class="expst" aria-hidden="true">' + x.def[1] + '</span> ' + esc(x.def[2]) + ' stamp</span>' : ""; }
     function wantBy() { return (WBY[t.id] && t.kidIds.concat(fam.map(function (p) { return p.id; })).indexOf(WBY[t.id]) >= 0) ? WBY[t.id] : me; }
-    var html = '<section class="panel wants" id="wants"><h3>✨ What we want to do</h3><p class="small muted">Everyone can add ideas and heart the ones they love.' + (t.planned === true ? " Tick them off once the trip starts; sights you do get stamped." : " Tap “We did it!” and a sight gets stamped.") + '</p>' +
+    var html = '<section class="panel wants" id="wants"><h3>✨ What we want to do</h3><p class="small muted">Everyone can add ideas and heart the ones they love.' + (t.planned === true ? " Tick them off once the trip starts; what you do gets stamped." : " Tap “We did it!” and it gets stamped: a sight joins the trip, anything else (a beach day, a castle) earns an experience stamp.") + '</p>' +
       '<div class="field wby"><label for="wby">Who\'s adding?</label><select id="wby">' + fam.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === wantBy() ? " selected" : "") + '>' + esc(p.name) + '</option>'; }).join("") + '</select></div>';
     groups.forEach(function (g, gi) {
       var stop = g.stop ? (t.route || []).filter(function (r) { return r && r.name === g.stop; })[0] : null;
@@ -398,7 +400,9 @@
     }
     function add(o) { var w = M.newWant(Object.assign({ by: who(), stop: ($("#wstop") || {}).value || "" }, o)); if (!w) return; if (!M.addWant(t, w)) { A().toast("That's already on the list"); return; } save(false).then(function () { A().toast("Added to what we want to do ✨"); }); }
     $$("[data-wheart]").forEach(function (b) { b.onclick = function () { var w = (t.wants || []).filter(function (x) { return x.id === b.getAttribute("data-wheart"); })[0]; if (w) { M.heartWant(w, who()); save(false); } }; });
-    $$("[data-wdid]").forEach(function (b) { b.onclick = function () { var w = (t.wants || []).filter(function (x) { return x.id === b.getAttribute("data-wdid"); })[0]; if (!w) return; var st = M.didWant(t, w, M.today(), who()); save(st).then(function () { A().toast(st ? "We did it! Stamped ✅" : "We did it! ✅"); }); }; });
+    $$("[data-wdid]").forEach(function (b) { b.onclick = function () { var w = (t.wants || []).filter(function (x) { return x.id === b.getAttribute("data-wdid"); })[0]; if (!w) return; var st = M.didWant(t, w, M.today(), who()), x = st === "exp" && M.wantExp(t, w); save(st === true).then(function () { A().toast(x ? "We did it! Stamped: " + x.def[1] + " " + x.def[2] + " 🎟️" : st ? "We did it! Stamped ✅" : "We did it! ✅"); }); }; });
+    // v114: undo a tick (the idea stays; its experience stamp is marked removed; a sight stop it added stays on the trip)
+    $$("[data-wundo]").forEach(function (b) { b.onclick = function () { var w = (t.wants || []).filter(function (x) { return x.id === b.getAttribute("data-wundo"); })[0]; if (w && M.undoWant(t, w)) save(false).then(function () { A().toast("Undone. It's back on the list"); }); }; });
     var add_ = $("#wadd"), tx = $("#wtext"), res = $("#wres"), tm = null;
     if (add_) add_.onclick = function () { var v = tx.value.trim(); if (v) add({ text: v }); };
     if (tx) {

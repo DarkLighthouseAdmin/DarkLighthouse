@@ -276,9 +276,12 @@
       from.wants.forEach(function (x) {
         if (!x || !x.id) return;
         if (!(x.id in wi)) { wl.push(JSON.parse(JSON.stringify(x))); wi[x.id] = wl.length - 1; changed = true; return; }
-        var a = wl[wi[x.id]], did = a.did || x.did, didBy = a.didBy || x.didBy;
+        var a = wl[wi[x.id]], dc = a.did ? a : x.did ? x : null, did = dc && dc.did, didBy = dc && dc.didBy;
+        // v114: a tick can be undone ({ undid }); the latest of "did" / "undo" across both copies wins (a tick from an older phone has no didAt and loses to an undo)
+        var dAt = function (o) { return o && o.did ? (o.didAt || "0") : ""; }, lastDid = dAt(a) > dAt(x) ? dAt(a) : dAt(x), lastUndo = (a.undid || "") > (x.undid || "") ? (a.undid || "") : (x.undid || "");
         if (newer(x.at, a.at) && JSON.stringify(x) !== JSON.stringify(a)) { a = wl[wi[x.id]] = JSON.parse(JSON.stringify(x)); changed = true; }
-        if (did && !a.did) { a.did = did; if (didBy) a.didBy = didBy; changed = true; }
+        if (did && !a.did && lastDid > lastUndo) { a.did = did; if (didBy) a.didBy = didBy; if (dc.didAt) a.didAt = dc.didAt; if (dc.expId) a.expId = dc.expId; changed = true; }
+        else if (a.did && lastUndo && lastUndo > lastDid) { a.did = ""; a.undid = lastUndo; delete a.expId; changed = true; }
       });
       into.wants = wl;
     }
