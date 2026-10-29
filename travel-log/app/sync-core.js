@@ -468,6 +468,16 @@
   }
 
   /** Long edge capped for the shared photo copy. */
+  // ---------- v107: one request per sync ----------
+  var BUNDLE_LIMIT = 1000, PLAN_EVERY = 6 * 3600000, SYNC_TABLES = ["people", "visits", "trips", "photos"];
+  /** The cursors sent to sync_since: one per table, null for "from the start". */
+  function cursorArgs(cur) { var o = {}; SYNC_TABLES.forEach(function (t) { o[t] = (cur && cur[t]) || null; }); return o; }
+  /** A real sync_since answer (anything else means an older server: use the separate requests). */
+  function bundleShape(b) { return !!(b && typeof b === "object" && "family" in b && Array.isArray(b.members) && SYNC_TABLES.every(function (t) { return Array.isArray(b[t]); })); }
+  /** A table that came back full may have more waiting: fetch that one page by page instead. */
+  function bundleFull(b, t) { return !b || !Array.isArray(b[t]) || b[t].length >= BUNDLE_LIMIT; }
+  /** Background check spacing after n quiet syncs in a row: 90 s, then 3 min, then 5 min. */
+  function idleGap(n) { return n < 2 ? 90000 : n < 4 ? 180000 : 300000; }
   var SHARED_PX = 800, SHARED_BYTES = 60000, TRICKLE = 6;   // v106: smaller shared photo copies; a few downloads per sync
   /** v106: note other phones' photos to fetch later (on view, or a few per sync). Deleted ones are forgotten. */
   function notePhotos(remote, downloads, photoRows) {
@@ -539,7 +549,7 @@
 
   return { splitTrip: splitTrip, tripBatches: tripBatches, TRIP_DATA_MAX: TRIP_DATA_MAX, splitPerson: splitPerson, personRow: personRow, rowData: rowData, peopleBatches: peopleBatches, moreHash: moreHash, utf8Len: utf8Len, DATA_MAX: DATA_MAX, mergeTripPieces: mergeTripPieces, mergePersonPieces: mergePersonPieces, pendingCount: pendingCount, tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
            ms: ms, iso: iso, newer: newer, personRow: personRow, tripRow: tripRow, flatVisits: flatVisits, emptyShadow: emptyShadow,
-           notePhotos: notePhotos, SHARED_PX: SHARED_PX, SHARED_BYTES: SHARED_BYTES, TRICKLE: TRICKLE, planPush: planPush, afterPush: afterPush, applyPull: applyPull, nextCursor: nextCursor, photoPath: photoPath,
+           cursorArgs: cursorArgs, bundleShape: bundleShape, bundleFull: bundleFull, idleGap: idleGap, BUNDLE_LIMIT: BUNDLE_LIMIT, PLAN_EVERY: PLAN_EVERY, notePhotos: notePhotos, SHARED_PX: SHARED_PX, SHARED_BYTES: SHARED_BYTES, TRICKLE: TRICKLE, planPush: planPush, afterPush: afterPush, applyPull: applyPull, nextCursor: nextCursor, photoPath: photoPath,
            matchPeople: matchPeople, remapPeople: remapPeople, access: access, allows: allows, FREE: FREE,
            joinLine: joinLine, newMembers: newMembers, ago: ago, feed: feed, thumbDims: thumbDims, cleanName: cleanName,
            LOGS_KEY: LOGS_KEY, DEFAULT_DB: DEFAULT_DB, MAX_FAMILIES: MAX_FAMILIES, readLogs: readLogs, writeLogs: writeLogs, cleanLogs: cleanLogs, findLog: findLog,

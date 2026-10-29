@@ -2892,3 +2892,18 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok((app.match(/MLTL_SYNC\.keepPhotos\(\)/g) || []).length === 2 && /S\.fetchPhoto\(id\)/.test(app), "v106: backups include every photo; looking at a photo fetches it");
   ok(/S\.SHARED_PX/.test(sy) && /q = 0\.65/.test(sy) && /S\.SHARED_BYTES/.test(sy), "v106: new shared copies are smaller");
 }
+{ // v107: one request per sync (sync_since), plan check every 6 h, quieter background checks
+  const S = require("../travel-log/app/sync-core.js");
+  ok(JSON.stringify(S.cursorArgs({ trips: "2026-10-29T10:00:00.000Z" })) === JSON.stringify({ people: null, visits: null, trips: "2026-10-29T10:00:00.000Z", photos: null }), "v107: cursors sent per table");
+  const b = { family: { id: "f" }, members: [], people: [], visits: [], trips: [], photos: [] };
+  ok(S.bundleShape(b) && !S.bundleShape(null) && !S.bundleShape({ missing: true }) && !S.bundleShape(Object.assign({}, b, { trips: null })), "v107: only a real sync_since answer is used");
+  ok(S.bundleShape(Object.assign({}, b, { family: null })), "v107: a removed member still gets an answer (family null -> 'not in the family')");
+  ok(!S.bundleFull(b, "trips") && S.bundleFull(Object.assign({}, b, { trips: new Array(1000).fill({}) }), "trips") && S.bundleFull(null, "trips"), "v107: a full table is fetched page by page");
+  ok(S.idleGap(0) === 90000 && S.idleGap(1) === 90000 && S.idleGap(2) === 180000 && S.idleGap(4) === 300000 && S.idleGap(99) === 300000, "v107: quiet syncs slow to 3 then 5 min");
+  ok(S.PLAN_EVERY === 6 * 3600000, "v107: plan re-checked every 6 h");
+  const sy = read("sync.js");
+  ok(/cupRpc\("sync_since", \{ p_family: fid, p_cursors: S\.cursorArgs\(c\.cursor\) \}\)/.test(sy) && /if \(e && e\.missing\) \{ bundleOk = false;/.test(sy), "v107: sync_since first, separate requests on an older server");
+  ok(/got0 && !S\.bundleFull\(got0, tb\)/.test(sy) && /r\.pull\(tb, fid, c\.cursor\[tb\]\)/.test(sy), "v107: pull uses the answer, falls back per table");
+  ok(/S\.idleGap\(idleN\)/.test(sy) && /idleN = changed \|\| sent \? 0 : idleN \+ 1/.test(sy) && /}, 30000\);/.test(sy), "v107: background check spacing follows what's happening");
+  ok(/planDue && r\.rpc \? r\.rpc\("refresh_my_plan"/.test(sy), "v107: refresh_my_plan only when due");
+}

@@ -299,6 +299,7 @@
 
   // ---------- the sync loop ----------
   var running = null, again = false, timer = null;
+  var lastPlanAt = 0, bundleOk = true, idleN = 0, lastRun = 0;   // v107
   function schedule(ms) { if (!on()) return; clearTimeout(timer); timer = setTimeout(function () { syncNow(); }, ms == null ? 2500 : ms); }
   var wantNow = false;
   function syncNow(opts) {
@@ -307,7 +308,7 @@
     if (opts && opts.throwErrors) wantNow = true;   // someone is waiting on this one: redraw right away when it lands
     if (running) { again = true; return wantNow ? running.then(function (x) { if (rrWaiting) rerender(true); return x; }) : running; }
     if (navigator.onLine === false) { setStatus("offline", "Changes are saved on this phone and will sync when you're back online."); return Promise.resolve(); }
-    setStatus("syncing");
+    setStatus("syncing"); lastRun = Date.now();
     running = doSync(opts || {}).then(function (ch) {
       setStatus("synced"); countPending(0); if (window.FS_CUP && window.FS_CUP.report) window.FS_CUP.report(); return ch;
     }).catch(function (e) {
@@ -327,11 +328,24 @@
   function nameOf(members, uid) { var m = (members || []).filter(function (x) { return x.user_id === uid; })[0]; return m ? m.display_name || "" : ""; }
 
   function doSync(opts) {
-    var c = cfg(), fid = c.familyId, r, acc, changed = false, photosIn = 0, celebrate = [], mergedIn = 0;
+    var c = cfg(), fid = c.familyId, r, acc, changed = false, photosIn = 0, celebrate = [], mergedIn = 0, pre = null, sent = 0;
     var metaWas = metaHash(c);   // who's in, names, role, plan: shown in the header and on Family Sync
     return remote().then(function (x) { r = x; return r.session(); }).then(function (sess) {
       if (!sess) throw new Error("Signed out. Open Family Sync to sign back in.");
-      return (r.rpc ? r.rpc("refresh_my_plan", {}).catch(function () {}) : Promise.resolve()).then(function () { return Promise.all([r.family(fid), r.members(fid)]); });   // founder plan is decided on the server
+      // v107: the founder plan is re-checked on the server when the app opens, every 6 hours, or on a sync someone asked for
+      var planDue = !lastPlanAt || Date.now() - lastPlanAt > S.PLAN_EVERY || !!opts.throwErrors;
+      return (planDue && r.rpc ? r.rpc("refresh_my_plan", {}).then(function () { lastPlanAt = Date.now(); }, function () {}) : Promise.resolve()).then(function () {
+        // v107: one request (sync_since) brings the family, members and every table's changes; older servers: the separate requests
+        if (!bundleOk || !r.cupRpc) return Promise.all([r.family(fid), r.members(fid)]);
+        return r.cupRpc("sync_since", { p_family: fid, p_cursors: S.cursorArgs(c.cursor) }).then(function (b) {
+          b = Array.isArray(b) ? b[0] : b;
+          if (!S.bundleShape(b)) { bundleOk = false; return Promise.all([r.family(fid), r.members(fid)]); }
+          pre = b; return [b.family, b.members || []];
+        }, function (e) {
+          if (e && e.missing) { bundleOk = false; return Promise.all([r.family(fid), r.members(fid)]); }
+          throw e;
+        });
+      });
     }).then(function (fm) {
       var fam = fm[0], members = fm[1] || [];
       if (!fam) return dropped();
@@ -351,6 +365,7 @@
     }).then(function () {
       return trickle(r, S.TRICKLE).then(function (n) { if (n) { changed = true; photosIn += n; } });
     }).then(function () {
+      idleN = changed || sent ? 0 : idleN + 1;   // v107: nothing new either way -> the background check slows down
       c.lastSync = new Date().toISOString();
       if (c.failed) Object.keys(c.failed).forEach(function (id) { if (c.shadow.photos[id]) delete c.failed[id]; });
       return save(c);
@@ -366,6 +381,7 @@
       return snapshot().then(function (local) {
         var plan = S.planPush(local, c.shadow, fid);
         if (!S.allows(acc, "photos")) plan.uploads = [];
+        sent += S.pendingCount(plan);
         var firstShared = !c.sharedTrip && plan.trips.some(function (t) { return !t.deleted && !c.shadow.trips[t.id]; }) && c.lastSync;
         plan.trips.forEach(function (t) { if (!t.deleted && !c.authors[t.id]) c.authors[t.id] = nameOf(c.members, c.userId) || "you"; });
         var jobs = Promise.resolve();
@@ -409,8 +425,10 @@
       });
     }
     function pull() {
-      var rows = {}, tables = ["people", "visits", "trips", "photos"];
+      var rows = {}, tables = ["people", "visits", "trips", "photos"], got0 = pre; pre = null;
       return tables.reduce(function (p, tb) {
+        // v107: from the one sync_since answer; a table with a full page (more waiting) is fetched the old way, from the same cursor
+        if (got0 && !S.bundleFull(got0, tb)) { rows[tb] = got0[tb] || []; return p; }
         return p.then(function () { return r.pull(tb, fid, c.cursor[tb]); }).then(function (got) { rows[tb] = got; });
       }, Promise.resolve()).then(function () {
         if (!tables.some(function (tb) { return rows[tb].length; })) return;
@@ -1554,7 +1572,9 @@
   window.addEventListener("online", function () { offlineChip(); schedule(500); if (window.FS_HL && window.FS_HL.flush) window.FS_HL.flush(); });
   window.addEventListener("offline", function () { countPending(0); offlineChip(); if (on()) setStatus("offline", "Changes are saved on this phone and will sync when you're back online."); });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") schedule(800); });
-  setInterval(function () { if (document.visibilityState === "visible") syncNow(); }, 90000);
+  // v107: a background check every 90 s while things are happening; after quiet ones, every 3 then 5 minutes. Any change
+  // on this phone still syncs within seconds (schedule), and opening the app or coming back to it syncs right away.
+  setInterval(function () { if (document.visibilityState === "visible" && Date.now() - lastRun >= S.idleGap(idleN) - 1000) syncNow(); }, 30000);
   A.ready.then(function () {
     var c = cfg(), l = S.findLog(reg(), HERE);
     if (!l || (c && c.familyId ? l.familyId !== c.familyId || (c.familyName && l.name !== c.familyName) : l.familyId)) noteLog(c);   // keep the list in step with this log
