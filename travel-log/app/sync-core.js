@@ -468,6 +468,14 @@
   }
 
   /** Long edge capped for the shared photo copy. */
+  var SHARED_PX = 800, SHARED_BYTES = 60000, TRICKLE = 6;   // v106: smaller shared photo copies; a few downloads per sync
+  /** v106: note other phones' photos to fetch later (on view, or a few per sync). Deleted ones are forgotten. */
+  function notePhotos(remote, downloads, photoRows) {
+    var out = Object.assign({}, remote || {});
+    (downloads || []).forEach(function (d) { if (d && d.id && d.path) out[d.id] = { path: d.path, mime: d.mime || "image/jpeg" }; });
+    (photoRows || []).forEach(function (r) { if (r && r.deleted) delete out[r.id]; });
+    return out;
+  }
   function thumbDims(w, h, max) {
     max = max || 1024; if (!(w > 0 && h > 0)) return { w: 0, h: 0 };
     var s = Math.min(1, max / Math.max(w, h)); return { w: Math.round(w * s), h: Math.round(h * s) };
@@ -531,7 +539,7 @@
 
   return { splitTrip: splitTrip, tripBatches: tripBatches, TRIP_DATA_MAX: TRIP_DATA_MAX, splitPerson: splitPerson, personRow: personRow, rowData: rowData, peopleBatches: peopleBatches, moreHash: moreHash, utf8Len: utf8Len, DATA_MAX: DATA_MAX, mergeTripPieces: mergeTripPieces, mergePersonPieces: mergePersonPieces, pendingCount: pendingCount, tripPhotos: tripPhotos, WORDS: WORDS, normCode: normCode, isCode: isCode, makeCode: makeCode, codeFromLink: codeFromLink, inviteLink: inviteLink, familyTitle: familyTitle,
            ms: ms, iso: iso, newer: newer, personRow: personRow, tripRow: tripRow, flatVisits: flatVisits, emptyShadow: emptyShadow,
-           planPush: planPush, afterPush: afterPush, applyPull: applyPull, nextCursor: nextCursor, photoPath: photoPath,
+           notePhotos: notePhotos, SHARED_PX: SHARED_PX, SHARED_BYTES: SHARED_BYTES, TRICKLE: TRICKLE, planPush: planPush, afterPush: afterPush, applyPull: applyPull, nextCursor: nextCursor, photoPath: photoPath,
            matchPeople: matchPeople, remapPeople: remapPeople, access: access, allows: allows, FREE: FREE,
            joinLine: joinLine, newMembers: newMembers, ago: ago, feed: feed, thumbDims: thumbDims, cleanName: cleanName,
            LOGS_KEY: LOGS_KEY, DEFAULT_DB: DEFAULT_DB, MAX_FAMILIES: MAX_FAMILIES, readLogs: readLogs, writeLogs: writeLogs, cleanLogs: cleanLogs, findLog: findLog,

@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v105";
+  var VERSION = "v106";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -123,7 +123,8 @@
     return { home: state.meta.home || "", homePoint: state.meta.homePoint, units: state.meta.units, prefs: prefs };
   }
   function doBackup() {
-    return all("photos").then(function (photos) {
+    // v106: photos from other phones that haven't come down yet are fetched first, so the backup has every photo
+    return (window.MLTL_SYNC && window.MLTL_SYNC.keepPhotos ? window.MLTL_SYNC.keepPhotos() : Promise.resolve()).then(function () { return all("photos"); }).then(function (photos) {
       var data = M.makeBackup(state.kids, state.trips.concat(state.bin), photos, null, backupSettings()), blob = new Blob([JSON.stringify(data)], { type: "application/json" });
       var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "famstamp-backup-" + ((window.MLTL_SYNC && window.MLTL_SYNC.backupTag && window.MLTL_SYNC.backupTag()) || "") + M.today() + ".json";
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
@@ -597,7 +598,12 @@
   function photoURL(id) {
     if (!id) return Promise.resolve(null);
     if (photoCache[id]) return Promise.resolve(photoCache[id]);
-    return getOne("photos", id).then(function (p) { if (p) photoCache[id] = p.dataUrl; return p ? p.dataUrl : null; });
+    return getOne("photos", id).then(function (p) {
+      if (p && p.dataUrl) { photoCache[id] = p.dataUrl; return p.dataUrl; }   // (getOne hands back the request itself when nothing is stored)
+      // v106: a photo from another phone that hasn't come down yet is fetched now that someone is looking at it
+      var S = window.MLTL_SYNC; if (!S || !S.fetchPhoto) return null;
+      return S.fetchPhoto(id).then(function (u) { if (u) photoCache[id] = u; return u || null; });
+    });
   }
   function kidTrips(k) {
     return state.trips.filter(function (t) { return t.kidIds.indexOf(k.id) >= 0; })
@@ -1058,7 +1064,7 @@
   });
   // What sync.js needs from the app. Nothing here talks to the network.
   var readyRes; var ready = new Promise(function (r) { readyRes = r; });
-  window.MLTL_APP = { version: VERSION, state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, doBackupData: function () { return all("photos").then(function (photos) { return M.makeBackup(state.kids, state.trips.concat(state.bin), photos, null, backupSettings()); }); }, setMeta: setMeta,
+  window.MLTL_APP = { version: VERSION, state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, doBackupData: function () { return (window.MLTL_SYNC && window.MLTL_SYNC.keepPhotos ? window.MLTL_SYNC.keepPhotos() : Promise.resolve()).then(function () { return all("photos"); }).then(function (photos) { return M.makeBackup(state.kids, state.trips.concat(state.bin), photos, null, backupSettings()); }); }, setMeta: setMeta,
                       kidById: kidById, myPersonId: myPersonId, doBackup: doBackup, restoreBackup: restoreBackup, readBackup: function (o) { return M.readBackup(o); }, setMeta: setMeta, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
                       dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
                       // for trips-ui.js

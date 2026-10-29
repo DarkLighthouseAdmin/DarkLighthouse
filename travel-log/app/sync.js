@@ -230,12 +230,13 @@
   // ---------- photos ----------
   function dataUrlToImage(u) { return new Promise(function (res, rej) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = rej; i.src = u; }); }
   function canvasBlob(c, type, q) { return new Promise(function (res) { c.toBlob(res, type, q); }); }
-  /** The small shared copy: 1024px long edge, WebP (JPEG where WebP can't be made), aiming for about 100 KB. */
+  /** The small shared copy. v106: 800px long edge, WebP (JPEG where WebP can't be made), aiming for about 50 KB
+      (was 1024px / ~80 KB). Only new uploads; copies already shared stay as they are. The full photo stays on the phone. */
   function makeThumb(dataUrl) {
     return dataUrlToImage(dataUrl).then(function (img) {
-      var d = S.thumbDims(img.naturalWidth, img.naturalHeight, 1024), c = document.createElement("canvas");
+      var d = S.thumbDims(img.naturalWidth, img.naturalHeight, S.SHARED_PX), c = document.createElement("canvas");
       c.width = d.w; c.height = d.h; c.getContext("2d").drawImage(img, 0, 0, d.w, d.h);
-      var q = 0.72, type = "image/webp";
+      var q = 0.65, type = "image/webp";
       function go() {
         return canvasBlob(c, type, q).then(function (b) {
           if (!b || (type === "image/webp" && b.type !== "image/webp")) { type = "image/jpeg"; return canvasBlob(c, type, q).then(fin); }
@@ -243,11 +244,56 @@
         });
       }
       function fin(b) {
-        if (b.size > 110000 && q > 0.42) { q -= 0.1; return go(); }
+        if (b.size > S.SHARED_BYTES && q > 0.4) { q -= 0.08; return go(); }
         return { blob: b, mime: b.type === "image/webp" ? "image/webp" : "image/jpeg", w: d.w, h: d.h };
       }
       return go();
     });
+  }
+  // ---------- v106: other phones' photos, fetched when needed ----------
+  var fetching = {};
+  function okImage(u) { return /^data:image\/(jpeg|webp|png);base64,/.test(u); }
+  function getRemote(r, id, info) {
+    return r.download(info.path).then(blobToDataUrl).then(function (u) {
+      if (!okImage(u)) return null;
+      return A.put("photos", { id: id, dataUrl: u, thumb: true }, true).then(function () { return u; });
+    });
+  }
+  /** One photo someone is looking at. Resolves to its data URL, or null (not shared / offline). */
+  function waitList() { return A.state.meta.photoWait || {}; }
+  function doneWaiting(ids) {
+    if (!ids.length) return Promise.resolve();
+    var w = Object.assign({}, waitList()); ids.forEach(function (id) { delete w[id]; }); return A.setMeta("photoWait", w);
+  }
+  function fetchPhoto(id) {
+    var info = waitList()[id];
+    if (!info || !on()) return Promise.resolve(null);
+    if (window.FS_KIDLOCK && window.FS_KIDLOCK.on()) return Promise.resolve(null);
+    if (fetching[id]) return fetching[id];
+    fetching[id] = remote().then(function (r) { return getRemote(r, id, info); }).then(function (u) { return u ? doneWaiting([id]).then(function () { return u; }) : u; }).catch(function () { return null; })
+      .then(function (u) { delete fetching[id]; return u; });
+    return fetching[id];
+  }
+  /** A few waiting photos per sync (all of them when max is 0), oldest note first. Drops notes for photos already here. */
+  function trickle(r, max) {
+    var w = waitList(), ids = Object.keys(w), done = []; if (!ids.length) return Promise.resolve(0);
+    var n = 0, tries = 0, cn = navigator.connection || {};
+    if (max && (cn.saveData || /2g/.test(cn.effectiveType || ""))) max = 1;
+    return ids.reduce(function (p, id) {
+      return p.then(function () {
+        if (max && tries >= max) return;
+        return A.getOne("photos", id).then(function (have) {
+          if (have && have.dataUrl) { done.push(id); return; }   // (getOne hands back the request itself when nothing is stored)
+          tries++;
+          return getRemote(r, id, w[id]).then(function (u) { if (u) { n++; done.push(id); } }, function (e) { if (/offline|fetch/i.test(String(e && e.message))) throw e; });
+        });
+      });
+    }, Promise.resolve()).catch(function () {}).then(function () { return doneWaiting(done); }).then(function () { return n; }, function () { return n; });
+  }
+  /** Before leaving, deleting or backing up: bring every waiting photo onto this phone so "this phone keeps everything" holds. */
+  function keepPhotos() {
+    if (!on() || !Object.keys(waitList()).length) return Promise.resolve(0);
+    return remote().then(function (r) { return trickle(r, 0); }).catch(function () { return 0; });
   }
   function blobToDataUrl(b) { return new Promise(function (res, rej) { var f = new FileReader(); f.onload = function () { res(f.result); }; f.onerror = rej; f.readAsDataURL(b); }); }
 
@@ -302,6 +348,8 @@
       return push();
     }).then(function () { return pull(); }).then(function () {
       if (mergedIn) { mergedIn = 0; return push(); }   // v71 (B4): pages/boards merged from another phone go straight back up
+    }).then(function () {
+      return trickle(r, S.TRICKLE).then(function (n) { if (n) { changed = true; photosIn += n; } });
     }).then(function () {
       c.lastSync = new Date().toISOString();
       if (c.failed) Object.keys(c.failed).forEach(function (id) { if (c.shadow.photos[id]) delete c.failed[id]; });
@@ -380,14 +428,12 @@
             ch.removedTrips.forEach(function (id) { s[1].delete(id); });
           }) : Promise.resolve();
           if (write) changed = true;
-          return jobs.then(function () {
-            return ch.downloads.reduce(function (p, d) {
-              return p.then(function () { return r.download(d.path); }).then(blobToDataUrl).then(function (u) {
-                if (!/^data:image\/(jpeg|webp|png);base64,/.test(u)) return;
-                changed = true; photosIn++; return A.put("photos", { id: d.id, dataUrl: u, thumb: true }, true);
-              }).catch(function () {});
-            }, Promise.resolve());
-          }).then(function () { return touched; });
+          // v106: other phones' photos aren't all downloaded right away any more. They're noted here and fetched when
+          // someone looks at them (photoURL -> fetchPhoto), plus a few each sync in the background so every phone still
+          // ends up with its own copy. Leaving, deleting or backing up fetches the rest first (keepPhotos).
+          // (kept in their own setting, "photoWait", so a join or family switch that rewrites the sync settings can't lose them)
+          var pw = S.notePhotos(waitList(), ch.downloads, rows.photos), pwNew = JSON.stringify(pw) !== JSON.stringify(waitList());
+          return jobs.then(function () { return pwNew ? A.setMeta("photoWait", pw) : null; }).then(function () { return touched; });
         });
       });
     }
@@ -1065,7 +1111,7 @@
     function wipeFiles(r) { return r.listFiles(c.familyId).then(function (paths) { return r.removeFiles(paths); }).catch(function () {}); }
     document.getElementById("lleave").onclick = function () {
       if (!confirm(alone ? "Leave and delete the family's cloud copy? This phone keeps everything." : "Leave " + (c.familyName || "the family") + "? This phone keeps everything.")) return;
-      var r; remote().then(function (x) { r = x; return alone ? wipeFiles(r) : null; }).then(function () { return r.rpc("leave_family", { p_family: c.familyId }); })
+      var r; remote().then(function (x) { r = x; return keepPhotos(); }).then(function () { return alone ? wipeFiles(r) : null; }).then(function () { return r.rpc("leave_family", { p_family: c.familyId }); })
         .then(function () { return finish("You've left the family log. Everything is still on this phone."); }).catch(function (e) { err("lerr", friendly(e)); });
     };
     var dw = document.getElementById("delword"), dg = document.getElementById("delgo");
@@ -1075,7 +1121,7 @@
       var here = document.getElementById("delhere").checked;
       if (!confirm("Last check: delete " + (c.familyName || "the family") + "'s cloud copy for everyone and your sign-in" + (here ? ", and everything on this phone" : "") + "? This can't be undone.")) return;
       dg.disabled = true;
-      var r; remote().then(function (x) { r = x; return wipeFiles(r); })
+      var r; remote().then(function (x) { r = x; return here ? null : keepPhotos(); }).then(function () { return wipeFiles(r); })
         .then(function () { return r.cupRpc("delete_my_account_and_data", { p_family: c.familyId }); })
         .then(function (res) {
           // v67: before the new function is installed, the two older owner functions do the same job
@@ -1094,12 +1140,12 @@
     var w = document.getElementById("lwipe");
     if (w) w.onclick = function () {
       if (!confirm("Delete the shared log for everyone in " + c.familyName + "? Phones keep their own copies.")) return;
-      var r; remote().then(function (x) { r = x; return wipeFiles(r); }).then(function () { return r.rpc("delete_family", { p_family: c.familyId }); })
+      var r; remote().then(function (x) { r = x; return keepPhotos(); }).then(function () { return wipeFiles(r); }).then(function () { return r.rpc("delete_family", { p_family: c.familyId }); })
         .then(function () { return finish("The family's cloud copy is deleted."); }).catch(function (e) { err("lerr", friendly(e)); });
     };
     document.getElementById("lacct").onclick = function () {
       if (!confirm("Delete your cloud account and leave the family? This phone keeps everything.")) return;
-      var r; remote().then(function (x) { r = x; return alone ? wipeFiles(r) : null; }).then(function () { return r.rpc("delete_my_account"); }).then(function () { return r.signOut(); })
+      var r; remote().then(function (x) { r = x; return keepPhotos(); }).then(function () { return alone ? wipeFiles(r) : null; }).then(function () { return r.rpc("delete_my_account"); }).then(function () { return r.signOut(); })
         .then(function () { return finish("Your cloud account is deleted. Everything is still on this phone."); }).catch(function (e) { err("lerr", friendly(e)); });
     };
   }
@@ -1461,6 +1507,7 @@
       if (h[0] === "feed") { viewFeed(); return true; }
       return false;
     },
+    fetchPhoto: fetchPhoto, keepPhotos: keepPhotos, waitingPhotos: function () { return Object.keys(waitList()).length; },
     homeCard: homeCard, homeTop: homeTop, settingsPanel: settingsPanel, isOn: on, syncNow: syncNow, status: function () { return status; },
     pending: function () { return pendingN; },
     // v71 (B3): what the "sync stuck" and "photos didn't upload" cards read

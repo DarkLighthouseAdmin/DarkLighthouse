@@ -2872,3 +2872,23 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok((sy.match(/inv\.role === "kid"\) return kidCodeOff\(\)/g) || []).length === 2, "v105: an old kid code says kid codes are off (both join paths)");
   ok(/redeem_graduation/.test(sy + read("more.js")), "v105: graduating (13+) still works");
 }
+{ // v106: smaller shared photos, other phones' photos fetched when looked at (plus a few per sync)
+  const S = require("../travel-log/app/sync-core.js");
+  ok(S.SHARED_PX === 800 && S.SHARED_BYTES === 60000 && S.TRICKLE > 0 && S.TRICKLE <= 10, "v106: shared copies 800px, ~50-60 KB; a few downloads per sync");
+  ok(S.thumbDims(4032, 3024, S.SHARED_PX).w === 800 && S.thumbDims(3024, 4032, S.SHARED_PX).h === 800 && S.thumbDims(640, 480, S.SHARED_PX).w === 640, "v106: 800px long edge, never upscaled");
+  let rm = S.notePhotos(null, [{ id: "photo_zz1", path: "f/photo_zz1.webp", mime: "image/webp" }, { id: "photo_zz2", path: "f/photo_zz2.jpg" }], []);
+  ok(rm.photo_zz1.path === "f/photo_zz1.webp" && rm.photo_zz2.mime === "image/jpeg", "v106: other phones' photos noted to fetch later");
+  const rm2 = S.notePhotos(rm, [], [{ id: "photo_zz1", deleted: true }]);
+  ok(!rm2.photo_zz1 && rm2.photo_zz2 && rm.photo_zz1, "v106: a deleted photo is forgotten (input not changed)");
+  const sh = S.emptyShadow(), loc = { people: [], trips: [], photoIds: [] };
+  const ch = S.applyPull(loc, sh, { photos: [{ id: "photo_zz3", path: "f/photo_zz3.webp", mime: "image/webp", deleted: false }] });
+  ok(ch.downloads.length === 1 && sh.photos.photo_zz3 === "image/webp", "v106: pulled photo rows still go in the shadow (never re-uploaded or removed)");
+  const trip = { id: "t_zz106", kidIds: [], place: "Zz Test Bay", date: "2026-07-01", photoId: "photo_zz3", updatedAt: "2026-10-29T10:00:00.000Z" };
+  const plan = S.planPush({ people: [], trips: [trip], photoIds: [] }, sh, "f");
+  ok(!plan.uploads.length && !plan.photos.length && !plan.removes.length, "v106: a photo not downloaded yet is never removed from the cloud or re-sent");
+  const sy = read("sync.js"), app = read("app.js");
+  ok(!/r\.download\(d\.path\)/.test(sy) && /S\.notePhotos\(waitList\(\), ch\.downloads, rows\.photos\)/.test(sy) && /A\.setMeta\("photoWait", pw\)/.test(sy) && /trickle\(r, S\.TRICKLE\)/.test(sy), "v106: sync notes photos and fetches a few, not all at once");
+  ok((sy.match(/keepPhotos\(\)/g) || []).length >= 5 && /here \? null : keepPhotos\(\)/.test(sy), "v106: leaving, deleting the family, deleting the account fetch every photo first");
+  ok((app.match(/MLTL_SYNC\.keepPhotos\(\)/g) || []).length === 2 && /S\.fetchPhoto\(id\)/.test(app), "v106: backups include every photo; looking at a photo fetches it");
+  ok(/S\.SHARED_PX/.test(sy) && /q = 0\.65/.test(sy) && /S\.SHARED_BYTES/.test(sy), "v106: new shared copies are smaller");
+}
