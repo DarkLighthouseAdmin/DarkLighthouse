@@ -353,7 +353,7 @@
     var html = '<h2>' + (old ? "Edit trip" : "Add a trip") + '</h2>' + (old ? "" : '<p class="small bkpaste">' + (fromBooking ? '✓ Filled in from your booking. Check it over, then Save. ' : "") + '<button type="button" class="linkbtn" id="tpaste">📋 Paste a flight or hotel booking</button></p>') + '<div class="panel builder">' +
       '<div class="field" style="margin-top:0"><label>Who went?</label><div class="kidpick">' + picks + '</div>' +
       (st.kids.length > 2 ? '<button type="button" class="linkbtn" id="tall">Everyone went</button>' : "") + '</div>' +
-      '<div class="bsec"><h3>Where did you go? <span class="muted small">Tap places in order</span></h3><ol class="route" id="broute"></ol>' +
+      '<div class="bsec"><h3>Where did you go? <span class="muted small">Tap places in order</span></h3><ol class="route" id="broute"></ol><div id="bundo" class="undobar" role="status" hidden></div>' +
       '<div class="addplace"><label for="psearch" id="pslabel">Add a stop</label><div class="pswhere" id="pswhere" hidden></div><input id="psearch" type="search" autocomplete="off" placeholder="City, town or national park" aria-controls="presults">' +
       '<div class="results" id="presults" role="listbox"></div></div>' +
       '<label class="check small"><input type="checkbox" id="tround"' + (d.roundTrip ? " checked" : "") + '> Round trip (came back home at the end)</label>' +
@@ -378,7 +378,7 @@
       '<div class="field"><label for="tmark">Color in one more place on the map? <span class="muted small">Stops above color in on their own</span></label><select id="tmark">' + A_.markOptions(d.mark) + '</select></div></details>' +
       (old && M.isDraft(old) ? '<div class="panel draftzone"><h3>From your photos</h3><p class="small muted">We made this trip from your photo dates and places. Fix anything that\'s off, then mark it reviewed.</p>' +
         '<div class="actions"><button type="button" class="btn btn-primary" id="treview">✓ Mark as reviewed</button></div></div>' : "") +
-      '<p class="err" id="terr" hidden></p><div class="actions sticky"><button class="btn btn-primary" id="tsave">Save trip</button>' +
+      '<p class="err" id="terr" hidden></p><div class="actions sticky"><button type="button" class="btn btn-beacon" id="addstopbig">＋ Add a stop</button><button class="btn btn-primary" id="tsave">Save trip</button>' +
       '<a class="btn btn-ghost" href="' + (old ? "#/p/" + esc(k.id) + "/trip/" + esc(old.id) : "#/p/" + esc(k.id) + "/trips") + '">Cancel</a>' + '</div>' +
       // Kept out of the pinned Save bar on purpose: on a phone that bar floats over the stays and favorites, and a tap meant for
       // a pub's Remove link once landed on Delete trip.
@@ -396,6 +396,7 @@
       var how = L.how === "manual" ? "your miles" : L.how === "flight" ? "flying distance" : L.how === "about" ? "about, by " + MODE_LABEL[b.mode || "car"].toLowerCase() : "add both places to work it out";
       return (L.how === "about" ? "about " : "") + dist(L.miles) + ' <span class="muted">· ' + how + '</span>';
     }
+    var replaceAt = null, undoStop = null;   // v95: "Change place" / "Change" start swaps a stop; undoStop = the last removed stop
     var insertAt = null;   // v80: "Add a stop here" puts the next pick between two stops
     function setRoute(res) { Array.prototype.splice.apply(d.route, [0, d.route.length].concat(res.route)); res.changed.forEach(function (i) { var p = d.route[i]; if (i > 0 && p.mode === "plane") fillAirports(d.route[i - 1], p); }); if (!planes()) d.back = null; flyPick.ti = 0; }
     function renderRoute() {
@@ -416,21 +417,27 @@
         }
         var nights = typeof p.nights === "number" ? p.nights : 0;
         var here = i > 0 ? '<button type="button" class="addhere' + (insertAt === i ? " on" : "") + '" data-addat="' + i + '" aria-label="Add a stop between ' + esc(r[i - 1].name) + ' and ' + esc(p.name) + '">＋ Add a stop here</button>' : "";
-        var mover = i > 0 && r.length > 2 ? '<div class="mover"><button type="button" data-mv="' + i + '" data-dir="-1" aria-label="Move ' + esc(p.name) + ' earlier"' + (i === 1 ? " disabled" : "") + '>▲</button>' +
+        var mover = i > 0 && r.length > 2 ? '<div class="mover"><button type="button" data-mv="' + i + '" data-dir="-1" aria-label="Move ' + esc(p.name) + ' up (earlier)"' + (i === 1 ? " disabled" : "") + '>▲<small>Up</small></button>' +
           '<span class="grip" data-grip="' + i + '" title="Drag to move" aria-hidden="true">⠿</span>' +
-          '<button type="button" data-mv="' + i + '" data-dir="1" aria-label="Move ' + esc(p.name) + ' later"' + (i === r.length - 1 ? " disabled" : "") + '>▼</button></div>' : "";
+          '<button type="button" data-mv="' + i + '" data-dir="1" aria-label="Move ' + esc(p.name) + ' down (later)"' + (i === r.length - 1 ? " disabled" : "") + '>▼<small>Down</small></button></div>' : "";
         return '<li class="rp" data-ri="' + i + '">' + here + leg + '<div class="pt' + (T.hasLoc(p) ? "" : " noloc") + '">' + mover + '<span class="pin" aria-hidden="true">' + (i === 0 ? "🏠" : p.kind === "park" ? "🌲" : p.kind === "sight" ? typeEmoji(p.type) : i) + '</span>' +
           '<div class="nm"><b>' + esc(p.name) + '</b><span>' + (i === 0 ? "Start · " : "") + esc(p.sub || (p.near ? "near " + p.near : T.hasLoc(p) ? "Your own place" : "No location yet")) + '</span>' +
+          (p.date || p.note ? '<span class="stopmeta">' + (p.date ? '📅 ' + esc(stopDay(p.date)) : "") + (p.date && p.note ? " · " : "") + (p.note ? '📝 ' + esc(p.note) : "") + '</span>' : "") +
           (T.hasLoc(p) ? "" : '<button type="button" class="linkbtn sm" data-locate="' + i + '">📍 Find it on the map</button>') + '</div>' +
-          (i > 0 ? '<div class="stepper" aria-label="Nights in ' + esc(p.name) + '"><button type="button" data-n="-1" data-ni="' + i + '" aria-label="One less night">−</button><span>' + nights + '<small>' + (nights === 1 ? "night" : "nights") + '</small></span><button type="button" data-n="1" data-ni="' + i + '" aria-label="One more night">+</button></div>' : "") +
-          '<button type="button" class="rm" data-rm="' + i + '" aria-label="Remove ' + esc(p.name) + '">×</button></div>' +
+          '<div class="ptact">' + (i > 0 ? '<div class="stepper" aria-label="Nights in ' + esc(p.name) + '"><button type="button" data-n="-1" data-ni="' + i + '" aria-label="One less night">−</button><span>' + nights + '<small>' + (nights === 1 ? "night" : "nights") + '</small></span><button type="button" data-n="1" data-ni="' + i + '" aria-label="One more night">+</button></div>' : "") +
+          (i === 0 ? '<button type="button" class="btn btn-ghost btn-small startchg" data-startchg="1" aria-label="Change where the trip starts">Change</button>' :
+            '<button type="button" class="editstop" data-edit="' + i + '" aria-label="Edit stop ' + esc(p.name) + '"><span aria-hidden="true">✏️</span>Edit</button>') + '</div></div>' +
           (i === 0 && !st.meta.homePoint && !old ? '<label class="check small homechk"><input type="checkbox" id="thome"' + (saveHome ? " checked" : "") + '> Save as our home, so new trips start here</label>' : "") +
           '<div class="locate" data-loc="' + i + '" hidden><input type="search" autocomplete="off" data-near="' + i + '" placeholder="A town nearby, or lat, lon like 57.27, -6.20"><div class="results" data-nearres="' + i + '"></div></div></li>';
       }).join("");
-      $("#pslabel").textContent = insertAt != null ? "Add a stop between " + r[insertAt - 1].name + " and " + r[insertAt].name : r.length ? "Add the next stop" : "Where did the trip start? (home)";
-      var pw = $("#pswhere"); pw.hidden = insertAt == null;
-      pw.innerHTML = insertAt != null ? '<button type="button" class="linkbtn sm" id="pscancel">Add it at the end instead</button>' : "";
-      if (insertAt != null) $("#pscancel").onclick = function () { insertAt = null; renderRoute(); };
+      if (replaceAt != null && replaceAt >= r.length) replaceAt = null;
+      $("#pslabel").textContent = replaceAt === 0 ? "Change where the trip starts" : replaceAt != null ? "Change " + r[replaceAt].name + " to…" : insertAt != null ? "Add a stop between " + r[insertAt - 1].name + " and " + r[insertAt].name : r.length ? "Add the next stop" : "Where did the trip start? (home)";
+      var pw = $("#pswhere"); pw.hidden = insertAt == null && replaceAt == null;
+      pw.innerHTML = replaceAt != null ? '<button type="button" class="linkbtn sm" id="pscancel">Cancel, keep ' + esc(r[replaceAt].name) + '</button>' : insertAt != null ? '<button type="button" class="linkbtn sm" id="pscancel">Add it at the end instead</button>' : "";
+      if (insertAt != null || replaceAt != null) $("#pscancel").onclick = function () { insertAt = null; replaceAt = null; renderRoute(); };
+      var ub = $("#bundo"); ub.hidden = !undoStop;
+      ub.innerHTML = undoStop ? 'Removed ' + esc(undoStop.p.name) + '. <button type="button" class="btn btn-ghost btn-small" id="undostop">Undo</button>' : "";
+      if (undoStop) $("#undostop").onclick = undoRemove;
       search.placeholder = r.length ? "City, town or national park" : "Your town, e.g. Orlando";
       $("#tround").parentNode.hidden = r.length < 2;
       var s = T.summary(Object.assign({}, d, { roundTrip: $("#tround").checked }));
@@ -568,6 +575,7 @@
       });
     });
     function addPoint(p) {
+      if (replaceAt != null && replaceAt < d.route.length) return replacePoint(p);
       var c = T.cleanPoint(p, d.route.length === 0); if (!c) return;
       if (d.route.length >= T.MAX_POINTS) { A_.toast("That's the most stops one trip can hold (" + T.MAX_POINTS + ")"); return; }
       if (insertAt != null && insertAt >= 1 && insertAt < d.route.length) {
@@ -584,6 +592,59 @@
       if (d.route.length) { c.mode = guessMode(d.route[d.route.length - 1], c); if (c.mode === "plane") fillAirports(d.route[d.route.length - 1], c); }
       d.route.push(c); search.value = ""; results.innerHTML = ""; renderRoute();
       if (wishDest && d.route.length === 1) { var wdst = wishDest; wishDest = null; addPoint(wdst); }
+    }
+    // v95: swap one stop for another place (or the start), keeping its spot, nights, date and notes
+    function replacePoint(p) {
+      var at = replaceAt, old0 = d.route[at], c = T.cleanPoint(p, at === 0); replaceAt = null; if (!c) return;
+      ["nights", "date", "note"].forEach(function (k) { if (old0[k] != null && c[k] == null) c[k] = old0[k]; });
+      var before = d.route.slice(), r = d.route.slice(); r[at] = c;
+      if (at > 0) c.mode = guessMode(r[at - 1], c);   // a new place is a new trip there: re-guess car or plane
+      setRoute({ route: r, changed: T.relink(before, r) });
+      if (at > 0 && c.mode === "plane") fillAirports(r[at - 1], c);
+      if (at === 0 && r[1]) { var g1 = guessMode(c, r[1]); if (g1 === "plane" && r[1].mode !== "plane") r[1].mode = "plane"; if (r[1].mode === "plane") fillAirports(c, r[1]); }
+      search.value = ""; results.innerHTML = ""; undoStop = null; renderRoute();
+      A_.toast(at === 0 ? "The trip now starts in " + c.name : "Changed " + old0.name + " to " + c.name);
+    }
+    function stopDay(x) { var t = new Date(x + "T12:00:00"); return isNaN(t) ? x : t.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }); }
+    function focusSearch(msg) { setTimeout(function () { search.scrollIntoView({ block: "center" }); search.focus(); if (msg) A_.toast(msg); }, 60); }
+    function removeStop(i) {
+      var before = d.route.slice(), p = d.route[i]; d.route.splice(i, 1);
+      setRoute({ route: d.route.slice(), changed: T.relink(before, d.route) });
+      if (insertAt != null && i < insertAt) insertAt--; if (replaceAt != null) replaceAt = null;
+      undoStop = { p: p, i: i, route: before }; renderRoute(); A_.toast("Removed " + p.name + ". Tap Undo to bring it back");
+    }
+    function undoRemove() {
+      var u = undoStop; undoStop = null; if (!u) return;
+      var before = d.route.slice(), r = d.route.slice(), at = Math.min(u.i, r.length); r.splice(at, 0, u.p);
+      // put back the exact stop (its miles and airports too) when nothing else changed since
+      var same = u.route.length === r.length && u.route.every(function (x, j) { return x === r[j]; });
+      setRoute(same ? { route: u.route.slice(), changed: [] } : { route: r, changed: T.relink(before, r) });
+      renderRoute(); A_.toast(u.p.name + " is back");
+    }
+    // v95: one sheet for everything about a stop: change the place, its date, notes, move it, or remove it (with a confirm and Undo)
+    function editStop(i) {
+      var p = d.route[i]; if (!p || i < 1) return; var last = i === d.route.length - 1;
+      var el = sheet('<h3>Edit stop</h3><p class="esname"><b>' + esc(p.name) + '</b><span class="muted small">' + esc(p.sub || "") + '</span></p>' +
+        '<button type="button" class="btn btn-ghost esrow" id="es-place">🔁 Change place</button>' +
+        '<div class="field"><label for="es-date">Date you were there <span class="muted small">(optional)</span></label><input id="es-date" type="date" value="' + esc(p.date || "") + '"></div>' +
+        '<div class="field"><label for="es-note">Notes <span class="muted small">(optional)</span></label><textarea id="es-note" maxlength="300" rows="2" placeholder="What you did here">' + esc(p.note || "") + '</textarea></div>' +
+        '<div class="esmove"><button type="button" class="btn btn-ghost" id="es-up"' + (i === 1 ? " disabled" : "") + '>▲ Move up</button><button type="button" class="btn btn-ghost" id="es-down"' + (last ? " disabled" : "") + '>▼ Move down</button></div>' +
+        '<div class="esrm" id="es-rmbox"><button type="button" class="btn btn-ghost esdanger" id="es-rm">Remove this stop</button></div>' +
+        '<div class="actions"><button type="button" class="btn btn-primary" id="es-save">Done</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
+      function keep() { var dt = $("#es-date", el).value, nt = $("#es-note", el).value.trim().slice(0, 300); if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) p.date = dt; else delete p.date; if (nt) p.note = nt; else delete p.note; }
+      $("#es-save", el).onclick = function () { keep(); closeSheet(); undoStop = null; renderRoute(); };
+      $("#es-place", el).onclick = function () { keep(); closeSheet(); insertAt = null; replaceAt = i; renderRoute(); focusSearch(); };
+      function mv(dir) { keep(); closeSheet(); setRoute(T.moveStop(d.route, i, i + dir)); undoStop = null; renderRoute(); A_.toast("Moved " + p.name + (dir < 0 ? " up" : " down")); }
+      $("#es-up", el).onclick = function () { mv(-1); };
+      $("#es-down", el).onclick = function () { mv(1); };
+      $("#es-rm", el).onclick = function () {
+        // trip stamps come from the stops, so say so: nothing is deleted until Save, and Undo puts it back
+        $("#es-rmbox", el).innerHTML = '<p class="small">Remove <b>' + esc(p.name) + '</b> from this trip? Its stamp from this trip goes too when you save. Your photos stay.</p>' +
+          '<div class="actions"><button type="button" class="btn btn-danger" id="es-rmyes">Yes, remove</button><button type="button" class="btn btn-ghost" id="es-rmno">Keep it</button></div>';
+        $("#es-rmyes", el).onclick = function () { closeSheet(); removeStop(i); };
+        $("#es-rmno", el).onclick = function () { editStop(i); };
+        $("#es-rmyes", el).focus();
+      };
     }
     function guessMode(a, b) { var g = T.gcMiles(a, b); return g == null ? "car" : g > 600 || T.mustFly(a, b) || (a.country && b.country && a.country !== b.country && g > 300) ? "plane" : "car"; }
     function fillAirports(a, b) { if (!airports) return; if (!b.dep) { var x = nearestAirport(a, airports); if (x) b.dep = x; } if (!b.arr) { var y = nearestAirport(b, airports); if (y) b.arr = y; } }
@@ -627,13 +688,16 @@
       showResults(results, searchPlaces(q, places, d.route.length > 1 ? d.route[d.route.length - 1].country : null), function (p) { addPoint(p || { name: q, kind: "place" }); if (!p) A_.toast("Added. Tap 📍 to put it on the map, or type the real miles."); }, q);
     }
     search.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if (typeT) { clearTimeout(typeT); runSearch(); } var b = $("[data-pick]", results); if (b) b.click(); } });
+    $("#addstopbig").onclick = function () { replaceAt = null; renderRoute(); focusSearch(); };
     routeEl.addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       if (b.dataset.mode) { var i = +b.closest(".leg").dataset.i, p = d.route[i]; p.mode = b.dataset.mode; if (p.mode === "plane") { fillAirports(d.route[i - 1], p); fly = "yes"; flyOpen = false; } else { delete p.dep; delete p.arr; if (!planes()) d.back = null; } renderRoute(); }
       else if (b.dataset.ni) { var q = d.route[+b.dataset.ni]; q.nights = Math.max(0, Math.min(366, (q.nights || 0) + (+b.dataset.n))); renderRoute(); }
-      else if (b.dataset.rm) { var before = d.route.slice(); d.route.splice(+b.dataset.rm, 1); setRoute({ route: d.route.slice(), changed: T.relink(before, d.route) }); if (insertAt != null && +b.dataset.rm < insertAt) insertAt--; renderRoute(); }
+      else if (b.dataset.rm) { if (confirm("Remove " + d.route[+b.dataset.rm].name + " from this trip?")) removeStop(+b.dataset.rm); }
+      else if (b.dataset.edit) editStop(+b.dataset.edit);
+      else if (b.dataset.startchg) { insertAt = null; replaceAt = 0; renderRoute(); focusSearch(); }
       else if (b.dataset.mv) { var from = +b.dataset.mv, to = from + (+b.dataset.dir); setRoute(T.moveStop(d.route, from, to)); renderRoute(); var mb = $('[data-mv="' + to + '"][data-dir="' + b.dataset.dir + '"]', routeEl) || $('[data-mv="' + to + '"]', routeEl); if (mb && !mb.disabled) mb.focus(); A_.toast("Moved " + d.route[to].name); }
-      else if (b.dataset.addat) { insertAt = +b.dataset.addat === insertAt ? null : +b.dataset.addat; renderRoute(); if (insertAt != null) { search.scrollIntoView({ block: "center" }); search.focus(); } }
+      else if (b.dataset.addat) { insertAt = +b.dataset.addat === insertAt ? null : +b.dataset.addat; replaceAt = null; renderRoute(); if (insertAt != null) { search.scrollIntoView({ block: "center" }); search.focus(); } }
       else if (b.dataset.realmi) { var box = $('[data-mi="' + b.dataset.realmi + '"]', routeEl); box.hidden = false; $("input", box).focus(); }
       else if (b.dataset.clearmi) { delete d.route[+b.dataset.clearmi].miles; renderRoute(); }
       else if (b.dataset.locate) { var l = $('[data-loc="' + b.dataset.locate + '"]', routeEl); l.hidden = !l.hidden; if (!l.hidden) $("input", l).focus(); }

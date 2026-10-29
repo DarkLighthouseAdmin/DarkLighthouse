@@ -208,6 +208,20 @@ body.kidview .foot { display:none; }
 .rp .mover { flex:none; display:flex; flex-direction:column; align-items:center; margin:-.3rem 0; }
 .rp .mover button { width:30px; height:22px; border:0; background:none; color:var(--navy); font-size:.7rem; cursor:pointer; padding:0; }
 .rp .mover button:disabled { opacity:.25; cursor:default; }
+.rp .mover button { display:flex; flex-direction:column; align-items:center; width:40px; height:34px; line-height:1; } .rp .mover button small { font-size:.62rem; font-weight:700; }
+/* v95: plain-labelled stop buttons, a stop's date and notes, the Edit stop sheet and Undo */
+.rp .editstop { flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.1rem; min-width:44px; min-height:44px; border:1px solid var(--line); background:var(--cream); color:var(--navy); border-radius:12px; font:inherit; font-size:.72rem; font-weight:700; cursor:pointer; padding:.2rem .3rem; }
+.rp .startchg { flex:none; min-height:40px; }
+.rp .stopmeta { display:block; font-size:.78rem; color:var(--sage-deep); margin-top:.15rem; overflow-wrap:anywhere; }
+.realmi[hidden] { display:none; }
+.rp .pt { flex-wrap:wrap; row-gap:.4rem; } .rp .nm { flex:1 1 8.5rem; } .rp .nm b { overflow-wrap:break-word; word-break:normal; }
+.rp .ptact { display:flex; align-items:center; gap:.35rem; margin-left:auto; flex:none; }
+.undobar { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin:.4rem 0; padding:.45rem .7rem; border-radius:12px; background:var(--navy); color:#fff; font-size:.9rem; }
+.undobar[hidden] { display:none; } .undobar .btn { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.6); font-weight:800; }
+#addstopbig { font-weight:800; }
+.sheetbox .esname b { display:block; font-size:1.1rem; } .sheetbox .esrow { width:100%; margin:.3rem 0; }
+.sheetbox .esmove { display:flex; gap:.5rem; margin:.6rem 0; } .sheetbox .esmove .btn { flex:1; }
+.sheetbox .esrm { margin:.4rem 0; } .sheetbox .esdanger { width:100%; color:#a33; }
 .rp .grip { cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; color:var(--muted); font-size:1.1rem; line-height:1; padding:.1rem .35rem; }
 .rp.dragging { position:relative; z-index:3; opacity:.92; box-shadow:0 8px 24px rgba(0,0,0,.18); border-radius:14px; }
 .rp.dropat > .pt { outline:3px dashed var(--sage-deep); outline-offset:2px; }

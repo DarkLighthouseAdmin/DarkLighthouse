@@ -2669,3 +2669,19 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(mz.indexOf("var cr = labels.length ? ctl.getBoundingClientRect()") < mz.indexOf("dotEls.forEach(function (c) {\n        c.setAttribute"), "v94: map labels read layout before writing");
   ok(P.addDays("2026-02-27", 3) === "2026-03-02" && P.addDays("2026-02-27", 3) === "2026-03-02" && P.addDays("x", 1) === "", "v94: remembered date sums still right");
 }
+{ // v95: stops you can add, edit, change, move and remove (with Undo), and change where the trip starts
+  const T = require("../travel-log/app/trips-core.js"), P = require("../travel-log/app/passport-core.js");
+  const tui = read("trips-ui.js"), css = read("app.css");
+  const c = T.cleanPoint({ name: "Edinburgh Castle", kind: "sight", lat: 55.95, lon: -3.2, country: "GBR", region: "SCT", mode: "walk", date: "2026-07-03", note: "Zz Test note" }, false);
+  ok(c.date === "2026-07-03" && c.note === "Zz Test note", "v95: a stop keeps its own date and notes");
+  ok(!T.cleanPoint({ name: "X", date: "2026-13-45" }, true).date && !T.cleanPoint({ name: "X", date: "soon" }, true).date && T.cleanPoint({ name: "X", note: "y".repeat(400) }, true).note.length === 300, "v95: bad stop dates are dropped, notes capped");
+  const t = { date: "2026-07-01", route: [{ name: "Orlando", kind: "city", lat: 28.5, lon: -81.4, country: "USA", region: "FL" }, { name: "Edinburgh", kind: "city", lat: 55.95, lon: -3.19, country: "GBR", region: "SCT", mode: "plane", nights: 2 }, { name: "Paris", kind: "city", lat: 48.86, lon: 2.35, country: "FRA", mode: "plane", nights: 1, date: "2026-07-09" }] };
+  const v = P.tripVisits(t, {});
+  const fra = v.find(x => x.area === "FRA"), sct = v.find(x => x.area === "SCT" || x.area === "GBR");
+  ok(fra && fra.date === "2026-07-09" && sct && sct.date === "2026-07-01", "v95: a stop's own date sets its stamp date");
+  ok(/id="addstopbig"/.test(tui) && /data-startchg/.test(tui) && /data-edit="/.test(tui) && /<small>Up<\/small>/.test(tui) && /<small>Down<\/small>/.test(tui), "v95: big Add a stop, Change start, Edit and labelled Up/Down buttons");
+  ok(/id="es-place"/.test(tui) && /id="es-date"/.test(tui) && /id="es-note"/.test(tui) && /id="es-up"/.test(tui) && /id="es-down"/.test(tui) && /id="es-rm"/.test(tui) && /id="es-rmyes"/.test(tui), "v95: Edit stop sheet has place, date, notes, move and a confirmed remove");
+  ok(/function undoRemove/.test(tui) && /id="undostop"/.test(tui) && /undoStop = \{ p: p, i: i, route: before \}/.test(tui), "v95: removing a stop can be undone");
+  ok(/function replacePoint/.test(tui) && /\["nights", "date", "note"\]/.test(tui), "v95: changing a stop's place keeps its nights, date and notes");
+  ok(/\.realmi\[hidden\] \{ display:none; \}/.test(css) && /\.undobar/.test(css), "v95: the miles box stays hidden until asked for");
+}

@@ -186,6 +186,9 @@
     if (p.sub) o.sub = fixSub(clean(p.sub, 80), o);
     if (p.near) o.near = clean(p.near, 60);
     var n = num(p.nights, 0, 366); if (n != null) o.nights = n;
+    // v95: a stop's own date and notes (from Edit stop)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(p.date || "") && !isNaN(Date.parse(p.date))) o.date = p.date;
+    if (clean(p.note, 300)) o.note = clean(p.note, 300);
     if (!first) {
       o.mode = MODE[p.mode] ? p.mode : "car";
       var mi = num(p.miles, 0, 30000, 1); if (mi != null) o.miles = mi;

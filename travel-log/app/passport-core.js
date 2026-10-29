@@ -90,6 +90,7 @@
     var out = {}, order = [], day = start;
     var pts = r.length > 1 ? r.slice(1) : r;
     pts.forEach(function (p, i) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(p.date || "")) day = p.date;   // v95: a stop's own date wins over counting nights
       var arrive = day, leave = typeof p.nights === "number" && day ? addDays(day, p.nights) : "";
       if (i === pts.length - 1 && !leave && t.endDate) leave = t.endDate;
       var via = p.arr && p.arr.code ? p.arr.code + (p.arr.city ? " " + T.airportCity(p.arr.city, p.arr.name, p.arr.code) : "") : p.name;
