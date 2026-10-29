@@ -129,6 +129,26 @@
   function names() { var a = A(); return { state: function (id) { return a.placeName("state", id); }, place: function (id) { return a.placeName("place", id); }, park: function (id) { return a.placeName("park", id); } }; }
   var lastQ = "";
   var searchSeq = 0;
+  /** v112: the Parks-tab stamps (cities, food spots, pubs, travel hubs; airports, stations and food-list stamps a person has) that match a search. */
+  function kidLock() { try { return !!(window.FS_KIDLOCK && window.FS_KIDLOCK.on()); } catch (e) { return false; } }
+  var SPOT_IC = { cities: "🏙️", food: "🍽️", pubs: "🍺", hubs: "🚉" };
+  function spotMatches(q, max) {
+    var S = window.FS_SPOTS, a = A(); if (!S || !S.LIST) return [];
+    var words = norm(q).split(" ").filter(Boolean), adultOk = !kidLock(), seen = {}, out = [];
+    var hit = function (it) {
+      if (!it || seen[it.id] || (S.CATS[it.cat] && S.CATS[it.cat].adult && !adultOk)) return;
+      var n = norm([it.name, it.sub, it.extra, it.extra === "airport" ? it.id.slice(6) : ""].join(" ")); if (!words.every(function (w) { return n.indexOf(w) >= 0; })) return;
+      seen[it.id] = 1; out.push(it);
+    };
+    a.state.kids.forEach(function (k) {   // the family's own first: airports, stations and food-list stamps aren't in the curated lists
+      Object.keys(k.spots && typeof k.spots === "object" ? k.spots : {}).forEach(function (id) { hit(S.itemFor(id, [k])); });
+      (Array.isArray(k.eats) ? k.eats : []).forEach(function (e) { if (e && e.stamp) hit(S.entryItem(e)); });
+    });
+    ["cities", "hubs", "food", "pubs"].forEach(function (c) { (S.LIST[c] || []).forEach(hit); });
+    return out.slice(0, max || 6);
+  }
+  function spotHref(it) { return "#/place/spot/" + encodeURIComponent(it.id); }
+  function spotSub(it) { var S = window.FS_SPOTS, c = S && S.CATS[it.cat]; return [c ? c.one.charAt(0).toUpperCase() + c.one.slice(1) : "", it.sub].filter(Boolean).join(" · "); }
   function tripStamps(q, r) {
     var U = window.FS_UI, a = A(); if (!U || !U.stampsOf) return;
     var words = norm(q).split(" "), seen = {};
@@ -142,6 +162,12 @@
         if (!g.who.some(function (w) { return w.id === k.id; })) g.who.push({ id: k.id, name: k.name });
       });
     });
+    var S = window.FS_SPOTS;
+    if (S) spotMatches(q, 40).forEach(function (it) {
+      var who = a.state.kids.filter(function (k) { return (k.spots && k.spots[it.id]) || (Array.isArray(k.eats) && k.eats.some(function (e) { return e && e.id === it.id && e.stamp; })); });
+      if (!who.length || seen["spot:" + it.id]) return;
+      seen["spot:" + it.id] = 1; r.stamps.push({ kind: "spot", id: it.id, name: it.name, who: who.map(function (k) { return { id: k.id, name: k.name }; }), href: spotHref(it) });
+    });
     r.stamps.sort(function (x, y) { return x.name < y.name ? -1 : 1; });
   }
   // v110: places from the place search (states, countries, provinces, parks, towns, sights, airports), each to its own page
@@ -154,10 +180,12 @@
       if (P && P.REGIONS && nq.length >= 3) Object.keys(P.REGIONS).forEach(function (c) { var R = P.REGIONS[c]; Object.keys(R.names).forEach(function (a) { if (regs.length < 3 && norm(R.names[a]).indexOf(nq) === 0) regs.push({ kind: "region", area: c + "." + a, name: R.names[a], sub: R.label.charAt(0) + R.label.slice(1).toLowerCase() + " · " + R.country }); }); });
       // the USA is stamped state by state, so the country search list leaves it out; it still gets its own page
       if (/^(us|usa|u s a|united states( of america)?|america)$/.test(nq) || (nq.length >= 4 && "united states of america".indexOf(nq) === 0)) regs.unshift({ kind: "area", area: "place:USA", name: "United States", sub: "Country · stamped state by state" });
-      var all = regs.concat(list || []); if (!all.length) { if (box.previousElementSibling && box.previousElementSibling.classList.contains("nolog")) box.innerHTML = '<p class="muted small">No places called that either. Try fewer letters.</p>'; return; }
-      var ic = function (r) { return r.kind === "area" ? (/^state:/.test(r.area) ? "🇺🇸" : "🌍") : r.kind === "region" ? "🗺️" : r.kind === "park" ? "🏞️" : r.kind === "sight" ? (r.type === "airport" ? "✈️" : "📍") : /·/.test(r.sub || "") && /^[A-Z]{3} · /.test(r.sub || "") ? "✈️" : "🏘️"; };
-      box.innerHTML = '<h2>Places</h2><ul class="sresl splaces">' + all.slice(0, 14).map(function (r) {
-        return '<li><a href="' + esc(placeHref(r)) + '" data-pkind="' + esc(r.kind) + '"><span aria-hidden="true">' + ic(r) + '</span> <b>' + esc(r.name) + '</b>' + (r.sub ? ' <span class="muted small">' + esc(r.sub) + '</span>' : "") + '</a></li>'; }).join("") + '</ul>';
+      var spots = spotMatches(q, 6).map(function (it) { return { kind: "spot", spot: it, name: it.name, sub: spotSub(it) }; });
+      var byName = function (x) { var n = norm(x.name); return nq.split(" ").every(function (w) { return n.indexOf(w) >= 0; }); };
+      var all = regs.concat(spots.filter(byName), list || [], spots.filter(function (x) { return !byName(x); }));   // a Parks-tab stamp found only by its town goes last if (!all.length) { if (box.previousElementSibling && box.previousElementSibling.classList.contains("nolog")) box.innerHTML = '<p class="muted small">No places called that either. Try fewer letters.</p>'; return; }
+      var ic = function (r) { if (r.kind === "spot") return r.spot.extra === "airport" ? "✈️" : SPOT_IC[r.spot.cat] || "📍"; return r.kind === "area" ? (/^state:/.test(r.area) ? "🇺🇸" : "🌍") : r.kind === "region" ? "🗺️" : r.kind === "park" ? "🏞️" : r.kind === "sight" ? (r.type === "airport" ? "✈️" : "📍") : /·/.test(r.sub || "") && /^[A-Z]{3} · /.test(r.sub || "") ? "✈️" : "🏘️"; };
+      box.innerHTML = '<h2>Places</h2><ul class="sresl splaces">' + all.slice(0, 18).map(function (r) {
+        return '<li><a href="' + esc(r.kind === "spot" ? spotHref(r.spot) : placeHref(r)) + '" data-pkind="' + esc(r.kind) + '"><span aria-hidden="true">' + ic(r) + '</span> <b>' + esc(r.name) + '</b>' + (r.sub ? ' <span class="muted small">' + esc(r.sub) + '</span>' : "") + '</a></li>'; }).join("") + '</ul>';
     }).catch(function () {});
   }
   function searchView() {
@@ -195,6 +223,14 @@
     }
     if (kind === "region") { var ri = P.regionInfo(id); if (!ri || P.regionName(id) === id) return null; return { stampKind: "region", area: id, name: P.regionName(id), sub: ri.countryName, parent: "#/place/place/" + ri.country, stop: { kind: "place", country: ri.country, region: id.split(".")[1] } }; }
     if (kind === "park") { var pk = M.parkById(id); if (!pk) return null; return { stampKind: "park", area: id, name: pk.full, sub: pk.states, park: pk, canStamp: true }; }
+    if (kind === "spot") {   // v112: a Parks-tab stamp (city, food spot, pub, travel hub, airport, station, food-list stamp)
+      var S = window.FS_SPOTS, it = S && S.itemFor(id, a.state.kids); if (!it) return null;
+      var cat = S.CATS[it.cat] || {}; if (cat.adult && kidLock()) return null;
+      var loc = typeof it.lat === "number" && typeof it.lon === "number";
+      var entry = null; a.state.kids.some(function (k) { entry = (Array.isArray(k.eats) ? k.eats : []).filter(function (e) { return e && e.id === id; })[0] || null; return !!entry; });
+      return { spot: it, entry: entry, adult: !!cat.adult, name: it.name, sub: spotSub(it), canStamp: true, stop: loc ? { name: it.name, kind: "city", lat: it.lat, lon: it.lon } : { name: it.name, kind: "city" },
+        pt: loc ? { name: it.name, kind: "spot", lat: it.lat, lon: it.lon } : null, radius: (S.NEAR && S.NEAR[it.cat]) || 10 };
+    }
     if (kind === "pt" && pt) {
       var par = pt.country === "USA" && pt.region ? "#/place/state/" + pt.region : P.regionKey && P.regionKey(pt.country, pt.region) ? "#/place/region/" + P.regionKey(pt.country, pt.region) : pt.country === "GBR" && NATIONS.indexOf(pt.region) >= 0 ? "#/place/place/" + pt.region : pt.country ? "#/place/place/" + pt.country : "";
       var o = { name: pt.name, sub: pt.sub || "", parent: par, stop: JSON.parse(JSON.stringify(pt)), pt: pt };
@@ -211,6 +247,11 @@
     if (!info) { a.main.innerHTML = back + '<h1>Place not found</h1><p class="muted">We couldn\'t find that place. Try searching again.</p>'; return; }
     document.title = info.name + " · " + B().NAME;
     var rows = [], mapOnly = [];
+    if (info.spot) st.kids.forEach(function (k) {
+      if (info.adult && window.FS_SPOTS.kidOf(k)) return;
+      var v = k.spots && k.spots[info.spot.id]; if (v) rows.push({ person: k.id, stamp: { date: v.at || "", tripId: v.tripId || "", source: "hand" } });
+      (Array.isArray(k.eats) ? k.eats : []).forEach(function (e) { if (e && e.id === info.spot.id) rows.push({ person: k.id, stamp: { date: e.at || "", tripId: e.tripId || "", source: "hand" } }); });
+    });
     st.kids.forEach(function (k) {
       if (info.stampKind) U.stampsOf(k).forEach(function (s) { if (s.kind === info.stampKind && s.area === info.area) rows.push({ person: k.id, stamp: s }); });
       var bag = info.stampKind === "state" ? k.states : info.stampKind === "park" ? k.parks : info.stampKind === "place" ? k.places : null;
@@ -218,9 +259,10 @@
     });
     if (info.pt && T.hasLoc(info.pt)) st.trips.forEach(function (t) {   // a town / airport / sight: trips that stopped within 15 miles
       if (t.deletedAt || t.planned === true) return;
+      if (info.adult && !(t.kidIds || []).some(function (pid) { var k = a.kidById(pid); return k && !window.FS_SPOTS.kidOf(k); })) return;
       var stops = (T.stops ? T.stops(t.route) : (t.route || [])).slice(1);
-      if (!stops.some(function (p) { return T.hasLoc(p) && T.gcMiles(p, info.pt) < (info.pt.kind === "sight" && info.pt.type !== "airport" ? 1 : 15); })) return;
-      (t.kidIds || []).forEach(function (pid) { if (!rows.some(function (r) { return r.person === pid && r.stamp.tripId === t.id; })) rows.push({ person: pid, stamp: { tripId: t.id, trip: t.place, date: t.date || "", end: t.endDate || "", source: "trip" } }); });
+      if (!stops.some(function (p) { return T.hasLoc(p) && T.gcMiles(p, info.pt) < (info.radius || (info.pt.kind === "sight" && info.pt.type !== "airport" ? 1 : 15)); })) return;
+      (t.kidIds || []).forEach(function (pid) { if (info.adult) { var kk = a.kidById(pid); if (kk && window.FS_SPOTS.kidOf(kk)) return; } if (!rows.some(function (r) { return r.person === pid && r.stamp.tripId === t.id; })) rows.push({ person: pid, stamp: { tripId: t.id, trip: t.place, date: t.date || "", end: t.endDate || "", source: "trip" } }); });
     });
     if (kind === "place" && /^[A-Z]{3}$/.test(id)) st.trips.forEach(function (t) {   // a country: every trip with a stop in it (the USA is stamped by state)
       if (t.deletedAt || t.planned === true) return;
@@ -230,7 +272,7 @@
     var visits = groupVisits(rows), n = visits.length, first = visits.length ? visits[visits.length - 1].date : "";
     var stampObj = info.stampKind ? { kind: info.stampKind, area: info.area, date: first, who: [], name: info.pt ? info.pt.name : undefined, type: info.pt ? info.pt.type : undefined, ref: info.pt ? info.pt.ref : undefined }
       : { kind: "place", area: (info.pt && info.pt.country) || "", date: first, who: [] };
-    var art = ""; try { art = P.stampSVG(stampObj, info.name, { kid: false }); } catch (e) {}
+    var art = ""; try { art = info.spot ? window.FS_SPOTS.stampSVG(info.spot, first) : P.stampSVG(stampObj, info.name, { kid: false }); } catch (e) {}
     var planned = st.trips.filter(function (t) { return !t.deletedAt && t.planned === true; }).slice(0, 4);
     var me = a.kidById(a.myPersonId && a.myPersonId()) || st.kids[0];
     var tripLink = function (v) { var t = v.tripId ? st.trips.filter(function (x) { return x.id === v.tripId; })[0] : null; return t ? '<a href="#/p/' + esc(t.kidIds[0] || v.who[0]) + '/trip/' + esc(t.id) + '">' + esc(t.title || t.place || "Trip") + '</a>' : v.source === "hand" ? "Stamped by hand" : ""; };
@@ -256,7 +298,12 @@
       });
     };
     var sb = document.getElementById("plstamp");
-    if (sb) sb.onclick = function () { if (!window.FS_WHO || !me) return a.toast("Add someone to the family first."); window.FS_WHO.open({ kind: info.stampKind, area: info.area, page: me, mode: "add", after: function () { placeView(kind, rawId); } }); };
+    if (sb && info.spot) sb.onclick = function () {   // the Parks tab's own who-was-there sheet (pubs list grown-ups only)
+      if (!me) return a.toast("Add someone to the family first.");
+      var again = function () { placeView(kind, rawId); };
+      if (info.entry) window.FS_SPOTS.openEntry(me, info.entry, again); else window.FS_SPOTS.openSpot(me, info.spot.id, again);
+    };
+    else if (sb) sb.onclick = function () { if (!window.FS_WHO || !me) return a.toast("Add someone to the family first."); window.FS_WHO.open({ kind: info.stampKind, area: info.area, page: me, mode: "add", after: function () { placeView(kind, rawId); } }); };
     Array.prototype.forEach.call(a.main.querySelectorAll("[data-pltrip]"), function (b) { b.onclick = function () { stopOf().then(function (s) { U.startTripTo(s, b.dataset.pltrip === "plan"); }); }; });
     Array.prototype.forEach.call(a.main.querySelectorAll("[data-pladd]"), function (b) { b.onclick = function () {
       var t = st.trips.filter(function (x) { return x.id === b.dataset.pladd; })[0]; if (!t) return;

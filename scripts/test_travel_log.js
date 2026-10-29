@@ -2982,3 +2982,8 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   const ex = read("extras.js");
   ok(/h\[0\] !== "place"/.test(ex) && /s\.href \|\| "#\/place\/"/.test(ex), "v111: search stamps link to the place page, not the passport");
 }
+{ // v112: the Parks-tab stamps (cities, food spots, pubs, travel hubs) are in search with their own place page
+  const ex = read("extras.js");
+  ok(/kind === "spot"/.test(ex) && /#\/place\/spot\//.test(ex) && /FS_SPOTS\.stampSVG\(info\.spot/.test(ex) && /openSpot\(me, info\.spot\.id/.test(ex), "v112: a city, food, pub or hub stamp opens its own place page with its stamp and Add a visit");
+  ok(/cat\.adult && kidLock\(\)/.test(ex) && /S\.CATS\[it\.cat\]\.adult && !adultOk/.test(ex), "v112: pubs stay out of search and place pages in Kid mode");
+}
