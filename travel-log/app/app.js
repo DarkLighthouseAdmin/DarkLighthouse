@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v108";
+  var VERSION = "v109";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -97,7 +97,19 @@
     if (kind === "park") { var p = M.parkById(id); return p ? p.full : id; }
     return (SHAPE[id] && SHAPE[id].name) || (COUNTRY[id] && COUNTRY[id].name) || id;
   }
-  function summaryLine(k) {
+  // v109: big logs (1,500 trips) made Home and the Year tab redo the same stamp math on every visit. memo(key, make) keeps
+  // one result per key until the trips, people or settings change (same signature idea as trips-ui's stamp memo).
+  var MEMO = {};
+  function dataSig() {
+    var t = state.trips, out = t.length + "#" + ((state.meta && state.meta.adultInKid) ? 1 : 0) + "#" + ((state.meta && state.meta.units) || "") + "#" + M.today();
+    for (var i = 0; i < t.length; i++) out += "|" + t[i].id + (t[i].updatedAt || "") + (t[i].kidIds || []).length + (t[i].stops || []).length + (t[i].route || []).length + (t[i].date || "") + (t[i].planned ? "p" : "");
+    state.kids.forEach(function (p) { out += "#" + p.id + "|" + (p.updatedAt || "") + "|" + p.birthday + "|" + p.role + "|" + JSON.stringify([p.stamps, p.places, p.states, p.parks, p.sights]); });
+    return out;
+  }
+  function memo(key, make) { var sig = dataSig(), m = MEMO[key]; if (m && m.sig === sig) return m.val; var v = make(); MEMO[key] = { sig: sig, val: v }; return v; }
+
+  function summaryLine(k) { return memo("sumline|" + k.id, function () { return summaryLineNow(k); }); }
+  function summaryLineNow(k) {
     var s = M.stats(k, state.trips, MAPS.world);
     return s.states + " states · " + s.countries + (s.countries === 1 ? " country" : " countries") + " · " + s.parks + (s.parks === 1 ? " park" : " parks");
   }
@@ -1064,7 +1076,7 @@
   });
   // What sync.js needs from the app. Nothing here talks to the network.
   var readyRes; var ready = new Promise(function (r) { readyRes = r; });
-  window.MLTL_APP = { version: VERSION, state: state, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, doBackupData: function () { return (window.MLTL_SYNC && window.MLTL_SYNC.keepPhotos ? window.MLTL_SYNC.keepPhotos() : Promise.resolve()).then(function () { return all("photos"); }).then(function (photos) { return M.makeBackup(state.kids, state.trips.concat(state.bin), photos, null, backupSettings()); }); }, setMeta: setMeta,
+  window.MLTL_APP = { version: VERSION, state: state, memo: memo, load: load, route: route, tx: tx, all: all, put: put, del: del, getOne: getOne, toast: toast, doBackupData: function () { return (window.MLTL_SYNC && window.MLTL_SYNC.keepPhotos ? window.MLTL_SYNC.keepPhotos() : Promise.resolve()).then(function () { return all("photos"); }).then(function (photos) { return M.makeBackup(state.kids, state.trips.concat(state.bin), photos, null, backupSettings()); }); }, setMeta: setMeta,
                       kidById: kidById, myPersonId: myPersonId, doBackup: doBackup, restoreBackup: restoreBackup, readBackup: function (o) { return M.readBackup(o); }, setMeta: setMeta, fillPhotos: fillPhotos, clearPhotos: function () { photoCache = {}; }, ready: ready,
                       dbName: DB_NAME, txIn: txIn, deleteDb: deleteDb,
                       // for trips-ui.js

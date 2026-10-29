@@ -11,19 +11,19 @@
 
   function jr() { if (typeof window !== "undefined") return window.FS_JOURNAL || null; try { return require("./journal.js"); } catch (e) { return null; } }
   /** Every year that has at least one dated stamp or trip, newest first. */
-  function years(people, trips) {
+  function years(people, trips, fam) {
     var ys = {};
     (trips || []).forEach(function (t) { if (/^\d{4}/.test(t.date || "")) ys[t.date.slice(0, 4)] = 1; });
-    P.familyStamps(people, trips, CTX).forEach(function (s) { if (/^\d{4}/.test(s.date || "")) ys[s.date.slice(0, 4)] = 1; });
+    (fam || P.familyStamps(people, trips, CTX)).forEach(function (s) { if (/^\d{4}/.test(s.date || "")) ys[s.date.slice(0, 4)] = 1; });
     people.forEach(function (p) { Object.keys(p.parks || {}).forEach(function (id) { var at = p.parks[id] && p.parks[id].at; if (/^\d{4}/.test(at || "")) ys[at.slice(0, 4)] = 1; }); });
     return Object.keys(ys).sort().reverse();
   }
 
   /** What the family (or one person) collected in one year. A place counts once; parks colored in with a date count too. */
-  function summary(people, trips, year) {
+  function summary(people, trips, year, fam) {
     year = String(year);
     var ids = people.map(function (p) { return p.id; }), seen = {}, stamps = [];
-    P.familyStamps(people, trips, CTX).forEach(function (s) {
+    (fam || P.familyStamps(people, trips, CTX)).forEach(function (s) {
       if (String(s.date || "").slice(0, 4) !== year) return;
       var key = s.kind + ":" + s.area; if (seen[key]) return; seen[key] = 1; stamps.push(s);
     });
@@ -47,7 +47,7 @@
       if (s.miles && (!far || s.miles > far.miles)) far = { id: t.id, miles: s.miles, label: M.tripLabel ? M.tripLabel(t).replace(/^\s*draft:\s*/i, "") : t.place };
     });
     var earlier = {};
-    P.familyStamps(people, trips, CTX).forEach(function (s) { if (/^\d{4}/.test(s.date || "") && s.date.slice(0, 4) < year) earlier[s.kind + ":" + s.area] = 1; });
+    (fam || P.familyStamps(people, trips, CTX)).forEach(function (s) { if (/^\d{4}/.test(s.date || "") && s.date.slice(0, 4) < year) earlier[s.kind + ":" + s.area] = 1; });
     people.forEach(function (p) { [["park", p.parks], ["state", p.states], ["place", p.places]].forEach(function (b) { Object.keys(b[1] || {}).forEach(function (id) { var at = String((b[1][id] && b[1][id].at) || ""); if (/^\d{4}/.test(at) && at.slice(0, 4) < year) earlier[b[0] + ":" + id] = 1; }); }); });
     var fresh = stamps.filter(function (s) { return !earlier[s.kind + ":" + s.area]; }).length;
     return { year: year, stamps: stamps, states: n.state, countries: n.place, parks: n.park, trips: tr.length, stateIds: Object.keys(states),
@@ -152,14 +152,20 @@
   function view(personId) {
     var app = A(), st = app.state, one = personId && app.kidById(personId), people = one ? [one] : st.kids.slice();
     document.title = "Year in stamps · Famstamp";
-    var ys = years(people, st.trips), now = String(new Date().getFullYear());
+    // v109: the family's stamps are worked out once (not three times) and kept until the log changes.
+    var mm = app.memo || function (k, f) { return f(); }, who_ = one ? one.id : "";
+    var fam = mm("yfam|" + who_, function () { return P.familyStamps(people, st.trips, CTX); });
+    var ys = mm("yys|" + who_, function () { return years(people, st.trips, fam); }), now = String(new Date().getFullYear());
     var year = view.year && ys.indexOf(view.year) >= 0 ? view.year : (ys.indexOf(now) >= 0 ? now : ys[0] || now);
     var back = one ? "#/p/" + esc(one.id) + "/stats" : "#/";
     var who = '<div class="field"><label for="yr-who">Whose year</label><select id="yr-who"><option value="">The whole family</option>' +
       st.kids.map(function (k) { return '<option value="' + esc(k.id) + '"' + (one && one.id === k.id ? " selected" : "") + '>' + esc(window.MLTL.who(k)) + '</option>'; }).join("") + '</select></div>';
     var yearSel = ys.length > 1 ? '<div class="field"><label for="yr-year">Year</label><select id="yr-year">' + ys.map(function (y) { return '<option' + (y === year ? " selected" : "") + '>' + y + '</option>'; }).join("") + '</select></div>' : "";
-    var sum = summary(people, st.trips, year);
-    sum.firsts = window.FS_FIRSTS ? window.FS_FIRSTS.forYear(people, st.trips, year, window.FS_FIRSTS.ctx()) : [];
+    var sum = mm("ysum|" + who_ + "|" + year, function () {
+      var x = summary(people, st.trips, year, fam);
+      x.firsts = window.FS_FIRSTS ? window.FS_FIRSTS.forYear(people, st.trips, year, window.FS_FIRSTS.ctx()) : [];
+      return x;
+    });
     var head = '<a class="back" href="' + back + '">← Back</a><h1>' + esc(year) + ' in stamps</h1>' +
       '<p class="lede">A card of the year to send to grandparents or post. It\'s made right here on your phone.</p><div class="yr-pick">' + who + yearSel + '</div>';
     if (!sum.stamps.length && !sum.trips) {

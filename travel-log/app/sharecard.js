@@ -77,13 +77,20 @@
   }
   /** Home: the newest stamp from the last 3 days gets a share-card nudge. */
   function homeCard() {
+    var best = A().memo ? A().memo("sharecard-home", bestNew) : bestNew();   // v109: memoized for big logs
+    if (!best) return "";
+    return homeCardHTML(best);
+  }
+  function bestNew() {
     var P = window.WK_PASSPORT, since = M().addDays(M().today(), -3), best = null;
     (A().state.kids || []).forEach(function (p) {
       P.stampsFor(p, A().state.trips, { parkStates: M().PARK_STATES }).forEach(function (s) {
         if (s.source !== "map" && s.date && s.date >= since && s.date <= M().today() && (!best || s.date > best.s.date)) best = { p: p, s: s };
       });
     });
-    if (!best) return "";
+    return best;
+  }
+  function homeCardHTML(best) {
     return '<a class="panel familycard sccard" href="#/sharecard/' + X().path(best.s, best.p.id) + '"><span class="fam-ic" aria-hidden="true">📲</span><span><h3>Share the new ' + M().esc(X().name(best.s)) + ' stamp</h3><span class="small">A story-size card, made on this phone. No names or photos unless you add them.</span></span></a>';
   }
   (window.FS_ROUTES = window.FS_ROUTES || []).push(function (h) { if (h[0] !== "sharecard") return false; view(decodeURIComponent(h[1] || ""), h[2], decodeURIComponent(h[3] || "")); return true; });

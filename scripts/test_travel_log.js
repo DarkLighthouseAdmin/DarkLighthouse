@@ -2922,3 +2922,14 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(out.length <= K.TARGET_LEN && qs[0] === 0.72 && qs.every(q => q >= 0.35), "v108: new drawings saved at ~30 KB (" + qs.join(",") + ")");
   ok(/shrink\(function \(q\) \{ return c\.toDataURL\("image\/jpeg", q\); \}\)/.test(read("kidart.js")), "v108: the save uses the smaller size");
 }
+{ // v109: Home and the Year tab keep their stamp math until the log changes (1,500-trip logs: Home 306 -> 39 ms, Year 523 -> 31 ms)
+  const Y = require("../travel-log/app/year.js"), P = require("../travel-log/app/passport-core.js");
+  const a = M.newKid({ name: "Zz Test", birthYear: 2016 }); a.parks = { zion: { at: "2026-06-02", jr: false } };
+  const trips = [{ id: "t1", kidIds: [a.id], place: "Sample", date: "2026-03-10", route: [{ kind: "state", ref: "UT", name: "Utah", country: "USA", region: "UT" }] }];
+  const fam = P.familyStamps([a], trips, { parkStates: M.PARK_STATES });
+  ok(JSON.stringify(Y.summary([a], trips, 2026, fam)) === JSON.stringify(Y.summary([a], trips, 2026)) && Y.years([a], trips, fam).join() === Y.years([a], trips).join(), "v109: the year card is the same with the stamps worked out once");
+  const app = read("app.js"), yr = read("year.js"), sc = read("sharecard.js");
+  ok(/function memo\(key, make\) \{ var sig = dataSig\(\)/.test(app) && /memo: memo,/.test(app) && /memo\("sumline\|" \+ k\.id/.test(app), "v109: app keeps results until trips, people or settings change");
+  ok(/mm\("yfam\|" \+ who_/.test(yr) && /mm\("ysum\|" \+ who_ \+ "\|" \+ year/.test(yr) && /A\(\)\.memo\("sharecard-home", bestNew\)/.test(sc), "v109: Year and the Home share nudge use the memo");
+  ok(/M\.today\(\)/.test(app.slice(app.indexOf("function dataSig"), app.indexOf("function memo("))), "v109: the memo resets when the day changes");
+}
