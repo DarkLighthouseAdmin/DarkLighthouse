@@ -33,6 +33,7 @@
     if (c[7]) r.town = c[7];
     if (c[8]) r.rank = +c[8] || 0;
     if (c[9]) r.wd = c[9];
+    if (c[10] === "U") r.unesco = true;   // v97: UNESCO World Heritage (Wikidata P1435)
     return r;
   }
   function parse(j) {

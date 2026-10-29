@@ -552,7 +552,7 @@ ok(/@media \(max-width:479px\) \{\s*\.topbar:has\(\.navback:not\(\[hidden\]\)\):
   ok(idx.sights > 50000, "lots of sights worldwide: " + idx.sights);
   const ec = find("Edinburgh Castle", "GBR");
   ok(ec && ec.type === "castle" && ec.town === "Edinburgh" && ec.rank >= 40 && /^Q\d+$/.test(ec.wd), "Edinburgh Castle: a famous castle in Edinburgh: " + JSON.stringify(ec));
-  const SIGHT_CASES = [["Tintern Abbey", "GBR", "ruin"], ["Urquhart Castle", "GBR", "ruin"], ["Tunnel View", "USA", "viewpoint"], ["Ladies View", "IRL", "viewpoint"], ["Niagara Falls", "CAN", "waterfall"], ["Notre Dame de Paris", "FRA", "cathedral"], ["Tikal", "GTM", "ancient"], ["Ben Nevis", "GBR", "peak"]];
+  const SIGHT_CASES = [["Tintern Abbey", "GBR", "abbey"], ["Urquhart Castle", "GBR", "castle"], ["Tunnel View", "USA", "viewpoint"], ["Ladies View", "IRL", "viewpoint"], ["Niagara Falls", "CAN", "waterfall"], ["Notre Dame de Paris", "FRA", "cathedral"], ["Tikal", "GTM", "ancient"], ["Ben Nevis", "GBR", "peak"]];
   for (const [q, cc, type] of SIGHT_CASES) ok(find(q, cc, type), q + " is a " + type + (cc ? " in " + cc : ""));
   const big = fs.readdirSync(dir).map(f => fs.statSync(dir + f).size).sort((a, b) => b - a)[0];
   ok(big < 500000, "every sights file is small enough to load on a phone: biggest " + big);
@@ -2691,4 +2691,19 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/ptripsTok/.test(app) && /window\.FS_REDRAW \? list\.length : 24/.test(app), "v96: a person's trips list draws in pieces too");
   ok(/window\.FS_REDRAW = true; var r; try \{ r = routeView\(\); \} finally \{ window\.FS_REDRAW = false; \}/.test(app), "v96: a same-screen redraw draws everything so your scroll spot holds");
   ok(/ResizeObserver/.test(mz) && /sizeDirty/.test(mz) && /ctlBox/.test(mz), "v96: the map measures only when its size changes, not after every pan");
+}
+{ // v97: worldwide, culturally complete sights from Wikidata: worship of every faith, right types, aliases, UNESCO
+  const TW = require("../travel-log/app/towns-core.js"), SA = require("../travel-log/app/stamp-art.js");
+  const dir = __dirname + "/../travel-log/app/data/sights/", idx = JSON.parse(fs.readFileSync(dir + "index.json", "utf8"));
+  const rows = q => { const k = TW.keyFor(q, idx); if (!k || !fs.existsSync(dir + k + ".json")) return []; return TW.match(q, TW.parse(JSON.parse(fs.readFileSync(dir + k + ".json", "utf8"))), { words: true, limit: 30 }).map(h => h.row); };
+  const bm = rows("Blue Mosque").find(r => r.country === "TUR");
+  ok(bm && bm.wd === "Q80541" && bm.type === "mosque" && bm.town === "Istanbul" && bm.rank >= 40, "v97: 'Blue Mosque' finds the Sultan Ahmed Mosque, a famous mosque in Istanbul: " + JSON.stringify(bm && [bm.names[0], bm.type, bm.town, bm.rank]));
+  const sa = rows("Sultan Ahmed").find(r => r.wd === "Q80541"); ok(sa && sa.type === "mosque", "v97: 'Sultan Ahmed' finds it too");
+  const CASES = [["Basilica Cistern", "TUR", "cistern"], ["Cistern of Aetius", "TUR", "cistern"], ["Taj Mahal", "IND", "tomb"], ["Forbidden City", "CHN", "palace"], ["Hagia Sophia", "TUR", "mosque"], ["Golden Temple", "IND", "gurdwara"], ["Colosseum", "ITA", "amphitheater"], ["Edinburgh Castle", "GBR", "castle"], ["Notre Dame de Paris", "FRA", "cathedral"]];
+  for (const [q, cc, type] of CASES) { const r = rows(q).filter(x => x.country === cc).sort((a, b) => (b.rank || 0) - (a.rank || 0))[0]; ok(r && r.type === type, "v97: " + q + " is a " + type + ": " + (r ? r.type : "not found")); }
+  const T = idx.types || {};
+  for (const t of ["mosque", "synagogue", "gurdwara", "pagoda", "stupa", "shrine", "temple", "cathedral", "basilica", "church", "monastery", "cistern", "tomb", "amphitheater", "market", "square", "onsen"]) ok((T[t] || 0) > 0 && SA.typeOf(t).id === t, "v97: " + t + " sights exist (" + (T[t] || 0) + ") and have their own stamp");
+  ok((T.mosque || 0) > 1500 && (T.temple || 0) > 2000 && (T.synagogue || 0) > 500, "v97: places of worship of every faith are in: mosques " + T.mosque + ", temples " + T.temple + ", synagogues " + T.synagogue);
+  ok(idx.unesco > 1000 && TW.parse({ rows: "X|Y\t1\t2\tTUR\t34\t0\tmosque\tIstanbul\t50\tQ1\tU" }).rows[0].unesco === true, "v97: UNESCO World Heritage flag read from column 11 (" + idx.unesco + " sites)");
+  const tui = read("trips-ui.js"); ok(/if \(r\.unesco\) \{ o\.unesco = true; o\.sub \+= " · UNESCO World Heritage"; \}/.test(tui) && /"⭐ Famous landmark"/.test(tui), "v97: search shows UNESCO World Heritage and keeps the Famous landmark badge");
 }

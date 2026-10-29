@@ -1,1 +1,1 @@
-{"v":1,"key":"34","admin":{"GBR.ENG":"England"},"countries":{"GBR":"United Kingdom"},"rows":"34, Abbey Street\t51.3189\t0.8945\tGBR\tENG\t0\tpub\tFaversham\t1\tQ26586742"}
+{"v":1,"key":"34","admin":{"GBR.ENG":"England","USA.NY":"New York"},"countries":{"GBR":"United Kingdom","USA":"United States"},"rows":"34, Abbey Street\t51.3189\t0.8945\tGBR\tENG\t0\tpub\tFaversham\t1\tQ26586742\nBrooklyn Tower|9 DeKalb Avenue|340 Flatbush Avenue Extension|340 Flatbush Avenue\t40.6906\t-73.9822\tUSA\tNY\t0\ttower\tNew York City\t16\tQ22329554"}

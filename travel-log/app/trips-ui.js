@@ -108,6 +108,7 @@
     var o = { name: name, kind: "sight", type: ty.id, lat: r.lat, lon: r.lon, country: r.country, region: regionOf(r.country, r.admin1),
       sub: ty.label + " · " + (r.town ? r.town + ", " : "") + where, label: ty.emoji + " " + name };
     if (r.town) o.town = r.town; if (r.wd) o.ref = r.wd; if (r.rank) o.fame = Math.min(999, r.rank); if (famous) o.badge = "⭐ Famous landmark";
+    if (r.unesco) { o.unesco = true; o.sub += " · UNESCO World Heritage"; }
     return o;
   }
   function cityPoint(d, r) { return { name: r.name, kind: "city", lat: r.lat, lon: r.lon, country: r.country, region: regionOf(r.country, r.admin1), sub: subOf(d, r.country, r.admin1) }; }
