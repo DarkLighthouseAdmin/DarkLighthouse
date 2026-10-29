@@ -112,6 +112,20 @@
     if (r.unesco) { o.unesco = true; o.sub += " · UNESCO World Heritage"; }
     return o;
   }
+  function airportPoints(d, head) {
+    var res = { code: false, list: [] }; if (!DATA.airports || !d || !d.countries) return res;
+    var isCode = /^[a-z]{3}$/.test(head), q = head.replace(/\b(international )?airports?\b/g, "").trim();
+    if (!isCode && q === head) return res;
+    if (q.length < 2) return res;
+    var hits = searchAirports(q, DATA.airports).filter(function (a) { return !isCode || a.code.toLowerCase() === q; }).slice(0, isCode ? 1 : 4);
+    res.code = isCode && hits.length > 0;
+    res.list = hits.map(function (a) {
+      var o = { name: a.name, kind: "sight", type: "airport", lat: a.lat, lon: a.lon, country: a.country, region: a.country === "USA" || a.country === "GBR" ? a.region : "",
+        sub: "Airport · " + a.code + " · " + (a.city || a.town || "") + (a.city || a.town ? ", " : "") + subOf(d, a.country, a.region), label: "✈️ " + a.name + " (" + a.code + ")" };
+      if (a.town) o.town = a.town; return o;
+    });
+    return res;
+  }
   function cityPoint(d, r) { return { name: r.name, kind: "city", lat: r.lat, lon: r.lon, country: r.country, region: regionOf(r.country, r.admin1), sub: subOf(d, r.country, r.admin1) }; }
   function parkPoint(d, p) {
     var ll = (d && d.parks[p.id]) || (p.lat != null ? [p.lat, p.lon] : null), st = p.states.split(/,\s*/);
@@ -183,7 +197,9 @@
     }
     cities.forEach(function (c) { delete c._pop; delete c._exact; delete c._i; delete c._score; delete c._famous; });
     if (near) cities = cities.filter(function (p) { return p.country === near; }).concat(cities.filter(function (p) { return p.country !== near; }));
-    return whole.concat(out.concat(cities).slice(0, Math.max(9, nParks + 6)));
+    // v100: airports by their code ("MCO", "JFK") or by name with "airport" in it, stamped as an airport sight
+    var air = airportPoints(d, head), list = out.concat(cities).slice(0, Math.max(9, nParks + 6));
+    return air.code ? whole.concat(air.list, list) : whole.concat(list, air.list);
   }
   /** v99: UK nations, US states and countries whose name starts with what was typed, as whole-place stops (exact names first, at most 3). */
   function wholePlaces(d, head) {
@@ -803,6 +819,7 @@
       if (q.length < 2) { results.innerHTML = ""; return; }
       if (!places) { results.innerHTML = '<p class="small muted">Loading places…</p>'; loadPlaces().then(function (x) { places = x; search.dispatchEvent(new Event("input")); }).catch(function () { showResults(results, [], function () { addPoint({ name: q, kind: "place" }); }, q); }); return; }
       if (!townsReady(q)) ensureTowns(q).then(function (got) { if (got && search.value.trim() === q) search.dispatchEvent(new Event("input")); });
+      if (!DATA.airports && (/^[a-z]{3}$/i.test(q) || /airport/i.test(q))) loadAirports().then(function () { if (search.value.trim() === q) search.dispatchEvent(new Event("input")); }).catch(function () {});   // v100
       showResults(results, searchPlaces(q, places, d.route.length > 1 ? d.route[d.route.length - 1].country : null), function (p) { addPoint(p || { name: q, kind: "place" }); if (!p) A_.toast("Added. Tap 📍 to put it on the map, or type the real miles."); }, q);
     }
     search.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if (typeT) { clearTimeout(typeT); runSearch(); } var b = $("[data-pick]", results); if (b) b.click(); } });

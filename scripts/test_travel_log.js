@@ -2788,3 +2788,22 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(os_.some(x => /themepark|zoo|aquarium|waterpark/.test(x.row.type)), "v102: kid-friendly picks near Orlando: " + os_.map(x => x.row.names[0] + "/" + x.row.type).join(", "));
   const tui = read("trips-ui.js"); ok(/wantsBlock\(t, k\)/.test(tui) && /bindWants\(k, t\)/.test(tui) && /What we want to do/.test(tui) && /data\/near\//.test(tui), "v102: the trip page has What we want to do");
 }
+{ // v103: volcanoes, ski resorts, campgrounds, universities, airports and cruise ports; family places search was missing
+  const SA = require("../travel-log/app/stamp-art.js"), TW = require("../travel-log/app/towns-core.js"), tui = read("trips-ui.js");
+  for (const [t, label, motif] of [["volcano", "Volcano", "volcano"], ["ski", "Ski resort", "ski"], ["campground", "Campground", "tent"], ["university", "University", "mortarboard"], ["airport", "Airport", "plane"], ["cruise", "Cruise port", "ship"]]) {
+    ok(SA.typeOf(t).id === t && SA.typeOf(t).label === label && SA.TYPES[t][2] === motif && typeof SA.GLYPHS[motif] === "function", "v103: " + t + " stamps read '" + label + "' with the " + motif + " picture");
+    const svg = SA.stampSVG({ id: "stamp_zz" + t, kind: "sight", area: "zz-" + t, name: "Zz Test " + label, type: t, country: "USA" }, { name: "Zz Test " + label, date: "29 OCT 2026" }); ok(/<svg/.test(svg) && !/NaN|undefined/.test(svg), "v103: a " + t + " stamp draws cleanly");
+  }
+  const dir = __dirname + "/../travel-log/app/data/sights/", idx = JSON.parse(fs.readFileSync(dir + "index.json", "utf8"));
+  const rows = q => { const k = TW.keyFor(q, idx); return fs.existsSync(dir + k + ".json") ? TW.match(q, TW.parse(JSON.parse(fs.readFileSync(dir + k + ".json", "utf8"))), { words: true, limit: 40 }).map(h => h.row) : []; };
+  for (const [q, cc] of [["Vesuvius", "ITA"], ["Mount Etna", "ITA"], ["Kilauea", "USA"], ["Arenal Volcano", "CRI"], ["Mount Fuji", "JPN"]]) { const r = rows(q).filter(x => x.country === cc).sort((a, b) => (b.rank || 0) - (a.rank || 0))[0]; ok(r && r.type === "volcano", "v103: " + q + " is a volcano (" + (r ? r.type : "not found") + ")"); }
+  for (const [q, cc, type] of [["Banff National Park", "CAN", "park"], ["Peak District", "GBR", "park"], ["Kennedy Space Center", "USA", "museum"], ["Grand Central", "USA", "station"], ["Whistler Blackcomb", "CAN", "ski"], ["Napa Valley", "USA", "winery"],
+    ["Big Island", "USA", "island"], ["Disney Springs", "USA", ""], ["SeaWorld Orlando", "USA", "themepark"], ["Hersheypark", "USA", "themepark"], ["Cedar Point", "USA", "themepark"], ["Port Canaveral", "USA", "cruise"], ["PortMiami", "USA", "cruise"],
+    ["Fort Wilderness", "USA", "campground"], ["Harvard University", "USA", "university"], ["Snowdonia", "GBR", "park"], ["Universal Studios Florida", "USA", "themepark"]]) {
+    const r = rows(q).filter(x => x.country === cc); ok(r.length && (!type || r.some(x => x.type === type)), "v103: '" + q + "' is found" + (type ? " as a " + type : "") + " (" + r.map(x => x.type).join(",") + ")");
+  }
+  const us = rows("Universal Studios Florida").find(x => x.country === "USA"); ok(us && us.town === "Orlando", "v103: Universal Studios Florida is in Orlando, not Oak Ridge (" + (us && us.town) + ")");
+  const T = idx.types || {}; ok((T.volcano || 0) > 800 && (T.ski || 0) > 400 && (T.campground || 0) > 100 && (T.university || 0) > 1500 && (T.cruise || 0) > 40, "v103: new kinds have rows: " + ["volcano", "ski", "campground", "university", "cruise"].map(t => t + " " + T[t]).join(", "));
+  ok(idx.sights >= 229478, "v103: no sights lost (" + idx.sights + ")");
+  ok(/function airportPoints\(d, head\)/.test(tui) && /type: "airport"/.test(tui) && /loadAirports\(\)\.then\(function \(\) \{ if \(search\.value\.trim\(\) === q\)/.test(tui), "v103: Add a stop finds airports by code and stamps them");
+}

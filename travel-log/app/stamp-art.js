@@ -175,6 +175,10 @@
     olive: function () { return S("M4 36 Q18 24 34 6", 1.8) + [[10, 30, -60], [15, 25, 20], [19, 21, -60], [24, 16, 20], [27, 12, -60], [31, 8, 20]].map(function (l) { return E(l[0], l[1], 5, 1.8, l[2]); }).join("") + E(13, 32, 2.2, 3) + E(22, 23, 2.2, 3) + E(29, 15, 2, 2.6); },
     clock: function () { return P("M14 39 V12 L20 2 L26 12 V39 Z") + C(20, 16, 3.6, PAPER) + S("M20 16 V14 M20 16 H21.6", 1) + P("M17.6 39 V31 Q20 28 22.4 31 V39 Z", PAPER) + S("M14 22 H26 M14 26 H26", 0.9, PAPER) + S("M2 39 H38", 1.3); },
     compass: function () { return C(20, 20, 16) + C(20, 20, 13, PAPER) + P("M20 6 L24 20 L20 34 L16 20 Z") + P("M20 20 L24 20 L20 34 Z", PAPER) + S("M20 20 L24 20 L20 34", 0.9) + P("M6 20 L20 17.6 L34 20 L20 22.4 Z") + C(20, 20, 1.6, PAPER); },
+    // v100: ski resort, campground and university stamps
+    ski: function () { return P("M-1 30 L13 10 L19 17 L26 6 L41 30 Z") + P("M13 10 L10 15 L13.6 14 L16 15.4 Z M26 6 L22.4 12 L26 11 L29.4 12 Z", PAPER) + S("M3 39 L37 32", 1.8) + S("M3 32.4 L37 39", 1.8) + C(36, 31.6, 1.2) + C(36, 39.4, 1.2); },
+    tent: function () { return P("M20 5 L38 34 H2 Z") + P("M20 16 L26 34 H14 Z", PAPER) + S("M20 5 L16.6 0.6 M20 5 L23.4 0.6", 1.2) + S("M0 37 H40", 1.3) + C(5, 9, 1.3) + C(33, 7, 1) + C(36, 15, 0.8); },
+    mortarboard: function () { return P("M20 6 L39 14 L20 22 L1 14 Z") + P("M10 18 V27 Q20 32 30 27 V18 L20 22 Z") + S("M20 14 L35 15.6 V28", 1.2) + C(35, 29.6, 1.7) + S("M4 37 H36", 1.3); },
     plane: function () { return P("M2 21 L14 20 L22 6 H26 L21 20 L33 19.6 L37 14 H40 L38 21 L40 28 H37 L33 22.4 L21 22 L26 36 H22 L14 22 L2 21 Z") + S("M0 32 Q6 30 12 32", 1); },
     leaf: function () { return P("M6 34 Q4 12 34 6 Q36 34 6 34 Z") + S("M6 34 Q18 22 30 10 M14 26 L12 19 M14 26 L22 25 M21 19 L20 13 M21 19 L28 18", 1, PAPER); },
     mountainlake: function () { return P("M0 26 L12 10 L18 18 L26 6 L40 26 Z") + P("M12 10 L15 14 L12 13.4 L9.6 13.4 Z M26 6 L30 12 L27 11 L24 12.6 L22.6 11 Z", PAPER) + S("M2 30 H38 M6 34 H34 M10 38 H30", 1.3); }
@@ -753,7 +757,10 @@
     cistern: ["Cistern", "🏛️", "cistern", "#17608a", "sights"], market: ["Market or bazaar", "🛍️", "market", "#962043", "sights"], square: ["Square", "⛲", "square", "#2b4f5e", "sights"],
     fort: ["Fort", "🏯", "fort", "#6b3a2a", "sights"], oldtown: ["Old town", "🏘️", "oldtown", "#8a4a17", "sights"], street: ["Famous street", "🪧", "street", "#3b4048", "sights"],
     tomb: ["Mausoleum", "🕌", "tomb", "#5f35a0", "sights"], amphitheater: ["Amphitheater", "🏟️", "amphi", "#8a4a17", "sights"], onsen: ["Hot spring", "♨️", "onsen", "#b02a2a", "nature"],
-    deck: ["Observation deck", "🔭", "deck", "#2b4f5e", "sights"]
+    deck: ["Observation deck", "🔭", "deck", "#2b4f5e", "sights"],
+    // v100: volcanoes, ski resorts, campgrounds, universities, airports and cruise ports
+    volcano: ["Volcano", "🌋", "volcano", "#b02a2a", "nature"], ski: ["Ski resort", "⛷️", "ski", "#17608a", "fun"], campground: ["Campground", "🏕️", "tent", "#2f5d3a", "nature"],
+    university: ["University", "🎓", "mortarboard", "#5f35a0", "sights"], airport: ["Airport", "✈️", "plane", "#1f4f9e", "getting"], cruise: ["Cruise port", "🛳️", "ship", "#17608a", "getting"]
   };
   function typeOf(t) { var x = TYPES[t] || TYPES.landmark; return { id: TYPES[t] ? t : "landmark", label: x[0], emoji: x[1], motif: x[2], ink: x[3], group: x[4] }; }
 
