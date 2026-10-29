@@ -54,6 +54,45 @@
     Q10285: ["Colosseum", "Delapouite", "CC BY 3.0", "https://commons.wikimedia.org/wiki/File:Coliseum_-_Delapouite_-_game-icons.svg"]
   };
   Object.keys(D).forEach(function (q) { var d = D[q]; SA.GLYPHS["lm_" + q] = function () { return '<path fill-rule="evenodd" d="' + d + '"/>'; }; });
+  // v113: our own drawings (not traced from an icon), made from reference photos. Edinburgh Castle: the castle high on the steep
+  // volcanic Castle Rock with its crags, the long skyline (west ranges, Great Hall, Palace and its tower), the curved Half Moon
+  // Battery facing the city, the gatehouse over the esplanade, and the flagpole on top.
+  var PAPER = "#fff";
+  var OWN = {
+    Q212065: function () {
+      var P = function (d, f) { return '<path d="' + d + '"' + (f ? ' fill="' + f + '"' : "") + '/>'; };
+      var B = function (d) { return '<path d="' + d + '" stroke="' + PAPER + '" stroke-width="0.5" stroke-linejoin="round"/>'; };   // a building: ink with a paper edge so the masses read apart
+      var S = function (d, w, c) { return '<path d="' + d + '" fill="none" stroke="' + (c || "currentColor") + '" stroke-width="' + w + '" stroke-linecap="round" stroke-linejoin="round"/>'; };
+      // Castle Rock: sheer volcanic crags on the west and north, the long tail sloping east under the esplanade
+      var rock = P("M0.4 39.4 L0.8 37 L2 35.8 L1.6 33.6 L2.8 31.8 L2.4 30.4 L3.8 28.8 L3.6 27.4 L5.2 26.6 L12 26.4 L20 26.2 L27 26 L31 26.4 L34.6 27.2 L37 27.8 L39.6 28.6 L39.6 39.4 Z");
+      // basalt crags: tapering fissures down the cliff faces
+      var crag = P("M4.6 28 L5.6 28 L5 33.4 L4.3 31 Z M7.6 27.2 L8.5 27.2 L8.2 31 L9 35.6 L7.6 31.4 Z M11.6 27.4 L12.4 27.4 L11.8 31.8 L12.6 38.4 L11 32 Z M15.2 27 L16.2 27 L15.8 30 L16.6 34 L15.2 30.6 Z" +
+        " M19 27.2 L19.9 27.2 L19.4 32.6 L20.2 38.6 L18.7 33 Z M22.4 27 L23.2 27 L22.9 30.6 L23.6 34.8 L22.2 31 Z M26 27 L26.9 27 L26.4 32 L27.2 37.6 L25.8 32.4 Z M29.6 27.6 L30.4 27.8 L30 31 L30.8 34.6 L29.4 31.4 Z" +
+        " M33 28.4 L33.8 28.6 L33.4 32.6 L34 36.6 L32.8 33 Z M36.4 29 L37.1 29.2 L36.8 31.8 L36.1 30.2 Z", PAPER);
+      // the castle's long irregular skyline, back to front, west (left) to east (right)
+      var build =
+        B("M3.4 26.6 V22.4 H4.2 V21.6 H5 V22.4 H5.8 V21.6 H6.6 V22.4 H30 V26.6 Z") +                       // curtain wall along the top of the crag
+        B("M4 22.6 V19 L4.8 18.4 H11.4 V22.6 Z") +                                                        // the long west ranges (barracks)
+        B("M11 22.6 V18 L12.5 16.2 L14 18 V22.6 Z") +                                                     // a gable on Crown Square
+        B("M13.6 22.6 V15.6 L15.4 13.6 H21.4 L23.2 15.6 V22.6 Z") +                                       // the Great Hall
+        B("M22.8 22.6 V11.8 H23.6 V10.8 H24.4 V11.8 H25.2 V10.8 H26 V11.8 H28.8 V22.6 Z") +               // the Palace block
+        B("M26 12 V7.8 H26.6 V7 H27.3 V7.8 H28 V7 H28.7 V7.8 H29.4 V12 Z") +                               // the Palace tower
+        B("M27.4 26.8 V16.8 H29.4 C33.6 17, 34.8 20.4, 34.6 26.8 Z") +                                   // Half Moon Battery: the big curved wall facing the city
+        B("M34 27 V22 H34.3 V20.4 L34.9 19.4 L35.5 20.4 V22 H36.5 V20.4 L37.1 19.4 L37.7 20.4 V22 H38 V27.4 Z") +   // the gatehouse and its turrets
+        P("M37.6 27.2 L39.6 27.9 L39.6 28.9 L37.6 28.2 Z");                                              // the esplanade running down to the Royal Mile
+      var flag = S("M27.65 7.2 V1.4", 0.6) + P("M27.95 1.4 L31.8 2.5 L27.95 3.7 Z");                      // the flagpole on top
+      var cut = P(
+          "M5.4 19.9 h0.9 v1.3 h-0.9 Z M7.6 19.9 h0.9 v1.3 h-0.9 Z M9.8 19.9 h0.9 v1.3 h-0.9 Z" +           // windows
+          " M15.4 16.8 h0.8 v1.7 h-0.8 Z M17.5 16.8 h0.8 v1.7 h-0.8 Z M19.6 16.8 h0.8 v1.7 h-0.8 Z" +
+          " M23.8 13.6 h0.9 v1.4 h-0.9 Z M25.8 13.6 h0.9 v1.4 h-0.9 Z M23.8 16.8 h0.9 v1.4 h-0.9 Z M25.8 16.8 h0.9 v1.4 h-0.9 Z" +
+          " M27.3 9 h0.8 v1.3 h-0.8 Z" +
+          " M29.6 19.4 h1 v0.9 h-1 Z M32 20.2 h0.9 v0.9 h-0.9 Z" +                                          // gun ports in the Half Moon
+          " M35.3 27.2 V24.6 Q36 23.4 36.7 24.6 V27.2 Z", PAPER) +                                         // the gate arch
+        S("M28 22.6 C30.6 22.6, 32.8 23.2, 34 24.2", 0.45, PAPER);                                        // the battery's curved string course
+      return rock + crag + build + flag + cut;
+    }
+  };
+  Object.keys(OWN).forEach(function (q) { SA.GLYPHS["lm_" + q] = OWN[q]; });
   function credit(q) { var c = CREDITS[q]; return c ? { name: c[0], artist: c[1], license: c[2], page: c[3] } : null; }
-  W.FS_LANDMARKS = { ids: Object.keys(D), credit: credit, has: function (q) { return !!D[q]; } };
+  W.FS_LANDMARKS = { ids: Object.keys(D), own: Object.keys(OWN), credit: credit, has: function (q) { return !!D[q]; }, drawn: function (q) { return !!(D[q] || OWN[q]); } };
 })();

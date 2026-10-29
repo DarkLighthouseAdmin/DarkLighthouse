@@ -26,3 +26,11 @@ Each famous-landmark stamp uses an icon from Wikimedia Commons under CC0, public
 | Parthenon | Q10288 | Thomas Helbig | CC BY 3.0 us | https://commons.wikimedia.org/wiki/File:Noun_project_-_Museum_-_Acropolis.svg |
 | CN Tower | Q134883 | chris 論 | Public domain | https://commons.wikimedia.org/wiki/File:CNTower-outline.svg |
 | Colosseum | Q10285 | Delapouite | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Coliseum_-_Delapouite_-_game-icons.svg |
+
+## Our own drawings
+
+These landmark stamps are our own drawings, made by looking at reference photos (not traced or copied from any image).
+
+| Landmark | Wikidata | Drawn | Reference photos looked at |
+|---|---|---|---|
+| Edinburgh Castle (v113) | Q212065 | Famstamp | https://commons.wikimedia.org/wiki/File:Edinburgh_Castle_from_Princes_Street_-_geograph.org.uk_-_2441979.jpg , https://commons.wikimedia.org/wiki/File:Edinburgh_Castle_from_Princes_Street_-_geograph.org.uk_-_3150306.jpg |

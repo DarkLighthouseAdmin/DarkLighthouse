@@ -2987,3 +2987,12 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/kind === "spot"/.test(ex) && /#\/place\/spot\//.test(ex) && /FS_SPOTS\.stampSVG\(info\.spot/.test(ex) && /openSpot\(me, info\.spot\.id/.test(ex), "v112: a city, food, pub or hub stamp opens its own place page with its stamp and Add a visit");
   ok(/cat\.adult && kidLock\(\)/.test(ex) && /S\.CATS\[it\.cat\]\.adult && !adultOk/.test(ex), "v112: pubs stay out of search and place pages in Kid mode");
 }
+{ // v113: Edinburgh Castle gets its own drawing (castle on Castle Rock, Half Moon Battery, gatehouse, flagpole)
+  const SA = require("../travel-log/app/stamp-art.js"); globalThis.WK_STAMPART = SA; delete globalThis.FS_LANDMARKS;
+  delete require.cache[require.resolve("../travel-log/app/landmark-art.js")]; require("../travel-log/app/landmark-art.js");
+  const LM = globalThis.FS_LANDMARKS, g = SA.GLYPHS.lm_Q212065 && SA.GLYPHS.lm_Q212065();
+  ok(LM.drawn("Q212065") && !LM.has("Q212065") && LM.own.indexOf("Q212065") >= 0 && /<path/.test(g || "") && !/NaN|undefined/.test(g), "v113: Edinburgh Castle has our own drawing (not in the traced-icon credits)");
+  const d = SA.design("sight", "Q212065", "Edinburgh Castle", null, { kind: "sight", ref: "Q212065", type: "castle", name: "Edinburgh Castle" });
+  ok(d.motif === "lm_Q212065" && d.landmark, "v113: the Edinburgh Castle Sights stamp uses the drawing");
+  ok(/"edinburgh", "Edinburgh", "Scotland", UK, 55\.95, -3\.19, "lm_Q212065"/.test(read("spots-data.js")), "v113: the Edinburgh city stamp uses it too");
+}

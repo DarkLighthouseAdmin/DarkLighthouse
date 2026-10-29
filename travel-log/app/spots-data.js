@@ -28,7 +28,7 @@
     ["charlotte", "Charlotte", "NC", US, 35.23, -80.84, "sky3"], ["san-juan", "San Juan", "PR", US, 18.47, -66.11, "castle"],
     ["toronto", "Toronto", "ON, Canada", US, 43.65, -79.38, "needle"], ["montreal", "Montréal", "QC, Canada", US, 45.5, -73.57, "dome"],
     ["quebec-city", "Québec City", "QC, Canada", US, 46.81, -71.21, "castle"], ["vancouver", "Vancouver", "BC, Canada", US, 49.28, -123.12, "peaks"],
-    ["london", "London", "England", UK, 51.51, -0.13, "clock"], ["edinburgh", "Edinburgh", "Scotland", UK, 55.95, -3.19, "castle"],
+    ["london", "London", "England", UK, 51.51, -0.13, "clock"], ["edinburgh", "Edinburgh", "Scotland", UK, 55.95, -3.19, "lm_Q212065"],
     ["glasgow", "Glasgow", "Scotland", UK, 55.86, -4.25, "sky3"], ["inverness", "Inverness", "Scotland", UK, 57.48, -4.22, "thistle"],
     ["dublin", "Dublin", "Ireland", UK, 53.35, -6.26, "shamrock"], ["galway", "Galway", "Ireland", UK, 53.27, -9.05, "ship"],
     ["cork", "Cork", "Ireland", UK, 51.9, -8.47, "shamrock"], ["belfast", "Belfast", "Northern Ireland", UK, 54.6, -5.93, "ship"],
