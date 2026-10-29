@@ -3041,3 +3041,10 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/"rome", "Rome", "Italy", EU, 41\.9, 12\.5, "lm_Q10285"/.test(sp) && /"athens", "Athens", "Greece", EU, 37\.98, 23\.73, "lm_Q10288"/.test(sp) && /"cairo", "Cairo", "Egypt", MA, 30\.04, 31\.24, "lm_Q37200"/.test(sp), "v115: Rome, Athens and Cairo city stamps use their landmark drawings");
 }
 { const SA = require("../travel-log/app/stamp-art.js"); ok(SA.design("sight", "Q12512", "x", null, { kind: "sight", type: "cathedral", ref: "Q12512" }).ink === "#34507a" && SA.design("sight", "cathedral-x-FRA", "x", null, { kind: "sight", type: "cathedral", ref: "" }).ink === "#23262c", "v115: a drawn cathedral landmark uses slate blue (legible in dark mode); plain cathedrals unchanged"); }
+{ // v116: Notre-Dame, Trevi, Stonehenge, Pantheon, Hagia Sophia, Blue Mosque, Sagrada Familia; Acropolis + Sistine aliases; Istanbul/Barcelona city stamps
+  const SA = require("../travel-log/app/stamp-art.js"), LM = globalThis.FS_LANDMARKS;
+  ["Q2981", "Q185382", "Q39671", "Q99309", "Q12506", "Q80541", "Q48435"].forEach(q => ok(LM.own.indexOf(q) >= 0 && /<path/.test(SA.GLYPHS["lm_" + q]()), "v116: own drawing for " + q));
+  ok(SA.GLYPHS.lm_Q131013 === SA.GLYPHS.lm_Q10288 && LM.has("Q131013") && LM.credit("Q131013") && SA.GLYPHS.lm_Q2943 === SA.GLYPHS.lm_Q12512, "v116: Acropolis uses the Parthenon (with its credit); Sistine Chapel uses St Peter's");
+  ok(SA.design("sight", "attraction-trevi-fountain-ITA", "x", null, { kind: "sight", type: "attraction" }).motif === "lm_Q185382" && SA.design("sight", "mosque-blue-mosque-TUR", "x", null, { kind: "sight", type: "mosque" }).motif === "lm_Q80541", "v116: name fallback finds Trevi and the Blue Mosque");
+  const sp = read("spots-data.js"); ok(/"istanbul", "Istanbul", "Türkiye", EU, 41\.01, 28\.98, "lm_Q12506"/.test(sp) && /"barcelona", "Barcelona", "Spain", EU, 41\.39, 2\.17, "lm_Q48435"/.test(sp), "v116: Istanbul and Barcelona city stamps use Hagia Sophia and the Sagrada Familia");
+}

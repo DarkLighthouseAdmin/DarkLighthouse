@@ -42,3 +42,12 @@ These landmark stamps are our own drawings, made by looking at reference photos 
 | Urquhart Castle (v115) | Q913981 | Famstamp | https://commons.wikimedia.org/wiki/File:Urquhart_Castle_distance_2.jpg |
 | Caernarfon Castle (v115) | Q275128 | Famstamp | https://commons.wikimedia.org/wiki/File:Caernarfon_Castle_-_geograph.org.uk_-_6566342.jpg |
 | Neuschwanstein Castle (v115) | Q4152 | Famstamp | https://commons.wikimedia.org/wiki/File:Neuschwanstein_Castle_2024.jpg |
+| Notre-Dame de Paris (v116) | Q2981 | Famstamp | https://commons.wikimedia.org/wiki/File:Notre-Dame_de_Paris_2013-07-24.jpg |
+| Trevi Fountain (v116) | Q185382 | Famstamp | https://commons.wikimedia.org/wiki/File:Fontaine_Trevi_-_Rome.jpg |
+| Stonehenge (v116) | Q39671 | Famstamp | https://commons.wikimedia.org/wiki/File:Stonehenge_2007.jpg |
+| Pantheon, Rome (v116) | Q99309 | Famstamp | https://commons.wikimedia.org/wiki/File:Pantheon_Rom_1_cropped.jpg |
+| Hagia Sophia (v116; also the Istanbul city stamp) | Q12506 | Famstamp | https://commons.wikimedia.org/wiki/File:Hagia_Sophia_Mars_2013.jpg |
+| Blue Mosque / Sultan Ahmed Mosque (v116) | Q80541 | Famstamp | https://commons.wikimedia.org/wiki/File:Exterior_of_Sultan_Ahmed_I_Mosque_in_Istanbul,_Turkey_002.jpg |
+| Sagrada Família (v116; also the Barcelona city stamp) | Q48435 | Famstamp | https://commons.wikimedia.org/wiki/File:Sagrada_Familia,_Barcelona_(P1170687).jpg |
+
+Aliases (no new drawing): Vatican City Q237 and the Sistine Chapel Q2943 use St. Peter's Q12512; the Eilean Donan islet Q79182 uses the castle Q20816698; the Acropolis of Athens Q131013 uses the traced Parthenon Q10288 (credited above). Rome, Athens, Cairo, Istanbul, Barcelona and Edinburgh city stamps reuse their landmark's drawing.
