@@ -2707,3 +2707,13 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(idx.unesco > 1000 && TW.parse({ rows: "X|Y\t1\t2\tTUR\t34\t0\tmosque\tIstanbul\t50\tQ1\tU" }).rows[0].unesco === true, "v97: UNESCO World Heritage flag read from column 11 (" + idx.unesco + " sites)");
   const tui = read("trips-ui.js"); ok(/if \(r\.unesco\) \{ o\.unesco = true; o\.sub \+= " · UNESCO World Heritage"; \}/.test(tui) && /"⭐ Famous landmark"/.test(tui), "v97: search shows UNESCO World Heritage and keeps the Famous landmark badge");
 }
+{ // v98: 'tomb' sights read "Mausoleum" (the type key stays "tomb", so stamps, ids and counts don't change); top sights found by English name
+  const SA = require("../travel-log/app/stamp-art.js"), TW = require("../travel-log/app/towns-core.js");
+  ok(SA.typeOf("tomb").label === "Mausoleum" && SA.typeOf("tomb").id === "tomb" && SA.TYPES.tomb[2] === "tomb", "v98: tomb shows as Mausoleum, key unchanged");
+  ok(SA.typeOf("tomb").label.length <= SA.typeOf("amphitheater").label.length, "v98: Mausoleum is no longer than labels that already fit on a stamp");
+  const dir = __dirname + "/../travel-log/app/data/sights/", idx = JSON.parse(fs.readFileSync(dir + "index.json", "utf8"));
+  const rows = q => { const k = TW.keyFor(q, idx); return fs.existsSync(dir + k + ".json") ? TW.match(q, TW.parse(JSON.parse(fs.readFileSync(dir + k + ".json", "utf8"))), { words: true, limit: 30 }).map(h => h.row) : []; };
+  const tj = rows("Taj Mahal").find(r => r.country === "IND"); ok(tj && tj.type === "tomb" && tj.town === "Agra" && tj.rank >= 40, "v98: Taj Mahal is a famous mausoleum in Agra");
+  for (const [q, cc] of [["Moscow Kremlin", "RUS"], ["Dome of the Rock", ""], ["Château Frontenac", "CAN"], ["Royal Mile", "GBR"], ["Salar de Uyuni", "BOL"], ["The Bund", "CHN"], ["Real Alcázar of Seville", "ESP"]])
+    ok(rows(q).some(r => !cc || r.country === cc), "v98: '" + q + "' is found by its English name");
+}

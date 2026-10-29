@@ -752,7 +752,7 @@
     pagoda: ["Pagoda", "🏯", "pagoda", "#962043", "worship"], stupa: ["Stupa", "🪷", "stupa", "#8a4a17", "worship"], gurdwara: ["Gurdwara", "🪯", "gurdwara", "#c26a00", "worship"],
     cistern: ["Cistern", "🏛️", "cistern", "#17608a", "sights"], market: ["Market or bazaar", "🛍️", "market", "#962043", "sights"], square: ["Square", "⛲", "square", "#2b4f5e", "sights"],
     fort: ["Fort", "🏯", "fort", "#6b3a2a", "sights"], oldtown: ["Old town", "🏘️", "oldtown", "#8a4a17", "sights"], street: ["Famous street", "🪧", "street", "#3b4048", "sights"],
-    tomb: ["Tomb", "🕌", "tomb", "#5f35a0", "sights"], amphitheater: ["Amphitheater", "🏟️", "amphi", "#8a4a17", "sights"], onsen: ["Hot spring", "♨️", "onsen", "#b02a2a", "nature"],
+    tomb: ["Mausoleum", "🕌", "tomb", "#5f35a0", "sights"], amphitheater: ["Amphitheater", "🏟️", "amphi", "#8a4a17", "sights"], onsen: ["Hot spring", "♨️", "onsen", "#b02a2a", "nature"],
     deck: ["Observation deck", "🔭", "deck", "#2b4f5e", "sights"]
   };
   function typeOf(t) { var x = TYPES[t] || TYPES.landmark; return { id: TYPES[t] ? t : "landmark", label: x[0], emoji: x[1], motif: x[2], ink: x[3], group: x[4] }; }
