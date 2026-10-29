@@ -26,17 +26,30 @@
     return f.length >= 3 ? f.slice(0, 3) : k2 + "_";
   }
   /** One file's rows: names (first = the place's own name), position, country (ISO3), admin1, population, and for sights type/town. */
+  function row(l) {
+    var c = l.split("\t"), names = c[0].split("|");
+    var r = { names: names, folds: names.map(fold), lat: +c[1], lon: +c[2], country: c[3], admin1: c[4] || "", pop: +c[5] || 0 };
+    if (c[6]) r.type = c[6];
+    if (c[7]) r.town = c[7];
+    if (c[8]) r.rank = +c[8] || 0;
+    if (c[9]) r.wd = c[9];
+    return r;
+  }
   function parse(j) {
-    var rows = String((j && j.rows) || "").split("\n").filter(Boolean).map(function (l) {
-      var c = l.split("\t"), names = c[0].split("|");
-      var r = { names: names, folds: names.map(fold), lat: +c[1], lon: +c[2], country: c[3], admin1: c[4] || "", pop: +c[5] || 0 };
-      if (c[6]) r.type = c[6];
-      if (c[7]) r.town = c[7];
-      if (c[8]) r.rank = +c[8] || 0;
-      if (c[9]) r.wd = c[9];
-      return r;
-    });
+    var rows = String((j && j.rows) || "").split("\n").filter(Boolean).map(row);
     return { key: j && j.key, admin: (j && j.admin) || {}, countries: (j && j.countries) || {}, rows: rows };
+  }
+  /** v94: the same, in small slices with breaks between, so a big file doesn't freeze typing. Resolves to what parse() gives. */
+  function parseAsync(j) {
+    var lines = String((j && j.rows) || "").split("\n").filter(Boolean), rows = new Array(lines.length), i = 0;
+    return new Promise(function (done) {
+      (function slice() {
+        var t0 = Date.now();
+        for (; i < lines.length && (i % 100 || Date.now() - t0 < 12); i++) rows[i] = row(lines[i]);
+        if (i < lines.length) return setTimeout(slice, 0);
+        done({ key: j && j.key, admin: (j && j.admin) || {}, countries: (j && j.countries) || {}, rows: rows });
+      })();
+    });
   }
   /** Rows whose name (any spelling) starts with the query's first part, best first: an exact name, then famous / big places.
       Each hit: { row, name (the spelling they typed), exact }. Words inside a name match too ("castle" finds "Edinburgh Castle")
@@ -57,5 +70,5 @@
     out.sort(function (a, b) { return (b.exact - a.exact) || ((b.row.rank || 0) - (a.row.rank || 0)) || (b.row.pop - a.row.pop); });
     return out.slice(0, lim);
   }
-  return { fold: fold, keyFor: keyFor, parse: parse, match: match };
+  return { fold: fold, keyFor: keyFor, parse: parse, parseAsync: parseAsync, match: match };
 });

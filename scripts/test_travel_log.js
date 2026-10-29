@@ -2632,3 +2632,40 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   const wsrc = read("welcome.js");
   ok(/data-wl="skip"/.test(wsrc) && !/Matt|Hill/.test(wsrc), "v93: Skip on every step; no personal names");
 }
+
+// ---- v94: one stamp per place with its visit count; faster tab switches ----
+{
+  const P = require("../travel-log/app/passport-core.js");
+  const zz = { id: "zz-rivera-1", name: "Zz Test", role: "kid", stamps: [], places: {}, states: {}, parks: {} };
+  const codes = ["FL", "CA", "NY", "TX", "WI", "UT", "AZ", "CO", "ME", "OR"], trips = [];
+  for (let i = 0; i < 202; i++) {
+    const st = codes[i % codes.length], fmt = i % 3 === 0 ? st : i % 3 === 1 ? "US-" + st : ({ FL: "Florida", CA: "California", NY: "New York", TX: "Texas", WI: "Wisconsin", UT: "Utah", AZ: "Arizona", CO: "Colorado", ME: "Maine", OR: "Oregon" })[st];
+    const d = new Date(Date.UTC(2010, 0, 1) + i * 9 * 864e5).toISOString().slice(0, 10);
+    trips.push({ id: "zzt" + i, kidIds: [zz.id], place: "Zz Test trip " + i, date: d, route: [{ name: "Zz Home", country: "USA", region: "WI" }, { name: "Zz stop " + i, country: "USA", region: fmt, nights: 2 }] });
+  }
+  const raw = P.stampsFor(zz, trips, {}), states = raw.filter(s => s.kind === "state");
+  ok(states.length === 202, "v94: 202 trips give 202 state visits (each visit kept), got " + states.length);
+  const g = P.groupStamps(raw), gs = g.filter(s => s.kind === "state");
+  ok(gs.length === 10 && gs.reduce((n, s) => n + s.count, 0) === 202, "v94: 202 visits across 10 states show 10 stamps and 202 visits");
+  const fl = gs.find(s => s.area === "FL");
+  ok(fl && fl.count === 21 && fl.first === trips[0].date && fl.last && fl.last > fl.first && fl.visits.length === 21, "v94: a state stamp knows its visits, first and latest dates");
+  ok(raw.length === P.stampsFor(zz, trips, {}).length && trips.length === 202 && raw.length >= 202, "v94: grouping removes no records");
+  ok(["FL", "fl", "US-FL", "Florida", " florida "].every(x => P.stateCode(x) === "FL") && P.stateCode("DC") === "DC" && P.stateCode("ON") === "" && P.stateCode("34") === "" && P.stateCode("SCT") === "", "v94: one state in any format; not a state otherwise");
+  const c = P.passportCounts(raw);
+  ok(c.states === 10 && c.stateVisits === 202 && !c.dc, "v94: counts say 10 of 50 states and 202 state visits");
+  const mixed = [
+    { id: "a", kind: "state", area: "DC", who: [zz.id], date: "2020-01-01", source: "hand" },
+    { id: "b", kind: "place", area: "TUR", who: [zz.id], date: "2020-01-01", source: "hand" }, { id: "c", kind: "place", area: "TUR", who: [zz.id], date: "2021-01-01", source: "hand" },
+    { id: "d", kind: "place", area: "SCT", who: [zz.id], date: "2020-01-01", source: "hand" }, { id: "e", kind: "place", area: "CAN", who: [zz.id], date: "", source: "map" }];
+  const cm = P.passportCounts(mixed);
+  ok(cm.states === 0 && cm.dc && cm.countries === 2 && cm.nations === 1 && cm.countryVisits === 4, "v94: DC noted on its own; UK nations, Turkey and Canada never count as states");
+  ok(P.groupStamps(mixed).find(s => s.area === "TUR").count === 2 && P.groupStamps(mixed).find(s => s.area === "CAN").count === 1, "v94: a country visited twice is one stamp with 2 visits");
+  const sights = [{ id: "s1", kind: "sight", area: "Q80541", who: [zz.id], date: "2019-03-01", source: "trip" }, { id: "s2", kind: "sight", area: "Q80541", who: [zz.id], date: "2024-03-01", source: "trip" }];
+  ok(P.groupStamps(sights).length === 1 && P.groupStamps(sights)[0].count === 2 && P.groupStamps(sights)[0].id === "s1", "v94: sights group too, keeping the first visit's look");
+  const tui = read("trips-ui.js"), yr = read("year.js"), mz = read("mapzoom.js");
+  ok(/P\.groupStamps\(stamps\)/.test(tui) && /coverLine\(pc\)/.test(tui) && /" of 50 states"/.test(tui) && /Visited ' \+ vs\.length \+ ' times/.test(tui), "v94: passport shows one stamp per place, 'X of 50 states' and the visits list");
+  ok(/STAMPMEMO/.test(tui) && /data-lazy/.test(tui) && /warmPlaces\(\)/.test(tui) && /setTimeout\(runSearch, 140\)/.test(tui), "v94: stamps worked out once per change, pages drawn as you swipe, search waits for a typing pause");
+  ok(/cardKey === key && lastBlob/.test(yr), "v94: the year card is kept, not redrawn on every visit");
+  ok(mz.indexOf("var cr = labels.length ? ctl.getBoundingClientRect()") < mz.indexOf("dotEls.forEach(function (c) {\n        c.setAttribute"), "v94: map labels read layout before writing");
+  ok(P.addDays("2026-02-27", 3) === "2026-03-02" && P.addDays("2026-02-27", 3) === "2026-03-02" && P.addDays("x", 1) === "", "v94: remembered date sums still right");
+}

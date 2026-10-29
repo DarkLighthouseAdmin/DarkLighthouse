@@ -34,15 +34,26 @@
       .catch(function (e) { pending[name] = null; throw e; });
     return pending[name];
   }
+  // v94: the big places list is read in small slices with breaks between, so typing the first letters of a stop no longer
+  // freezes the phone for most of a second; it also starts loading in the background as soon as a trip form opens.
+  var placesP = null;
   function loadPlaces() {
     if (DATA.places) return Promise.resolve(DATA.places);
-    return getJSON("places").then(function (j) {
-      var rows = j.rows.split("\n").map(function (l) {
-        var c = l.split("\t"); return { name: c[0], low: normQ(c[1] || c[0]), nlow: normQ(c[0]), lat: +c[2], lon: +c[3], country: c[4], admin1: c[5], pop: +c[6] || 0 };
+    if (placesP) return placesP;
+    placesP = getJSON("places").then(function (j) {
+      var lines = j.rows.split("\n"), rows = new Array(lines.length), i = 0;
+      return new Promise(function (done) {
+        (function slice() {
+          var t0 = Date.now();
+          for (; i < lines.length && (i % 200 || Date.now() - t0 < 12); i++) { var c = lines[i].split("\t"); rows[i] = { name: c[0], low: normQ(c[1] || c[0]), nlow: normQ(c[0]), lat: +c[2], lon: +c[3], country: c[4], admin1: c[5], pop: +c[6] || 0 }; }
+          if (i < lines.length) return setTimeout(slice, 0);
+          DATA.places = { rows: rows, countries: j.countries, admin: j.admin, parks: j.parks }; done(DATA.places);
+        })();
       });
-      DATA.places = { rows: rows, countries: j.countries, admin: j.admin, parks: j.parks }; return DATA.places;
-    });
+    }).catch(function (e) { placesP = null; throw e; });
+    return placesP;
   }
+  function warmPlaces() { var go = function () { loadPlaces().catch(function () {}); if (TW) layerIndex(TOWNS).catch(function () {}), layerIndex(SIGHTS).catch(function () {}); }; if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 1500 }); else setTimeout(go, 400); }
   // v78: every town worldwide, one small file per name prefix (towns-core.js). Searches use what's loaded and
   // redraw when the file for what they typed arrives. A missing file (offline, or no such prefix) just means no extra towns.
   var TW = window.FS_TOWNS, TOWNS = { index: null, files: {}, loading: {}, admin: {}, countries: {} };
@@ -60,7 +71,7 @@
     return layerIndex(L).then(function () {
       var k = layerKey(L, q); if (!k || L.files[k]) return false;
       if (!L.loading[k]) L.loading[k] = fetch(L.dir + k + ".json").then(function (r) { return r.ok ? r.json() : { rows: "" }; })
-        .then(function (j) { var f = TW.parse(j); Object.keys(f.admin).forEach(function (a) { L.admin[a] = f.admin[a]; TOWNS.admin[a] = TOWNS.admin[a] || f.admin[a]; }); Object.keys(f.countries).forEach(function (c) { L.countries[c] = f.countries[c]; TOWNS.countries[c] = TOWNS.countries[c] || f.countries[c]; }); L.files[k] = f; return true; }).catch(function () { L.loading[k] = null; return false; });
+        .then(function (j) { return TW.parseAsync ? TW.parseAsync(j) : TW.parse(j); }).then(function (f) { Object.keys(f.admin).forEach(function (a) { L.admin[a] = f.admin[a]; TOWNS.admin[a] = TOWNS.admin[a] || f.admin[a]; }); Object.keys(f.countries).forEach(function (c) { L.countries[c] = f.countries[c]; TOWNS.countries[c] = TOWNS.countries[c] || f.countries[c]; }); L.files[k] = f; return true; }).catch(function () { L.loading[k] = null; return false; });
       return L.loading[k];
     }).catch(function () { return false; });
   }
@@ -605,14 +616,17 @@
         findLocal: function (q) { var x = searchPlaces(q, places || [], null)[0]; return x && x.lat != null ? x : null; },
         onDone: function (pt) { addPoint(pt); A_.toast("Added " + pt.name + " 📍"); } });
     }
-    search.addEventListener("input", function () {
-      var q = search.value.trim();
+    warmPlaces();
+    var typeT = 0;   // v94: wait for a short pause in typing before searching (each search walks thousands of places)
+    search.addEventListener("input", function (e) { clearTimeout(typeT); if (e.isTrusted) typeT = setTimeout(runSearch, 140); else runSearch(); });
+    function runSearch() {
+      typeT = 0; var q = search.value.trim();
       if (q.length < 2) { results.innerHTML = ""; return; }
       if (!places) { results.innerHTML = '<p class="small muted">Loading places…</p>'; loadPlaces().then(function (x) { places = x; search.dispatchEvent(new Event("input")); }).catch(function () { showResults(results, [], function () { addPoint({ name: q, kind: "place" }); }, q); }); return; }
       if (!townsReady(q)) ensureTowns(q).then(function (got) { if (got && search.value.trim() === q) search.dispatchEvent(new Event("input")); });
       showResults(results, searchPlaces(q, places, d.route.length > 1 ? d.route[d.route.length - 1].country : null), function (p) { addPoint(p || { name: q, kind: "place" }); if (!p) A_.toast("Added. Tap 📍 to put it on the map, or type the real miles."); }, q);
-    });
-    search.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); var b = $("[data-pick]", results); if (b) b.click(); } });
+    }
+    search.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if (typeT) { clearTimeout(typeT); runSearch(); } var b = $("[data-pick]", results); if (b) b.click(); } });
     routeEl.addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       if (b.dataset.mode) { var i = +b.closest(".leg").dataset.i, p = d.route[i]; p.mode = b.dataset.mode; if (p.mode === "plane") { fillAirports(d.route[i - 1], p); fly = "yes"; flyOpen = false; } else { delete p.dep; delete p.arr; if (!planes()) d.back = null; } renderRoute(); }
@@ -1210,7 +1224,13 @@
   var CTX = { parkStates: M.PARK_STATES };
   // v81: kids' passports skip drink stamps (distillery, brewery, winery, pub) unless the family turned on grown-up bits on kids' pages
   function sctx() { return Object.assign({}, CTX, { adultInKid: !!S().meta.adultInKid }); }
-  function stampsOf(p) { return P.stampsFor(p, S().trips, sctx()); }
+  // v94: stamps are worked out once per change, not on every tab switch (the passport was the slowest switch on a big family)
+  var STAMPMEMO = {};
+  function tripsSig() { var t = S().trips, out = t.length + ""; for (var i = 0; i < t.length; i++) out += "|" + t[i].id + (t[i].updatedAt || "") + (t[i].kidIds || []).length + (t[i].stops || []).length; return out; }
+  function personSig(p) { return p.id + "|" + (p.updatedAt || "") + "|" + p.birthday + "|" + p.role + "|" + JSON.stringify([p.stamps, p.places, p.states, p.parks, p.sights]); }
+  function memo(key, sig, make) { var m = STAMPMEMO[key]; if (m && m.sig === sig) return m.val; var v = make(); STAMPMEMO[key] = { sig: sig, val: v }; return v; }
+  function stampsOf(p) { var c = sctx(); return memo("p:" + p.id, tripsSig() + "#" + personSig(p) + "#" + c.adultInKid, function () { return P.stampsFor(p, S().trips, sctx()); }).slice(); }
+  function familyStampsMemo() { var c = sctx(); return memo("fam", tripsSig() + "#" + S().kids.map(personSig).join(",") + "#" + c.adultInKid, function () { return P.familyStamps(S().kids, S().trips, c); }).slice(); }
   function stampName(s) { return s.kind === "sight" ? s.name || s.area : s.kind === "park" ? parkName(s.area) : areaName(s.kind, s.area); }
   function stampKeys(ids) { var out = {}; people(ids).forEach(function (p) { stampsOf(p).forEach(function (s) { out[p.id + "|" + s.id] = 1; if (s.kind === "state") out["sign|" + p.id + "|" + s.area] = 1; }); }); return out; }
   function newStamps(before, ids) {
@@ -1220,6 +1240,9 @@
   }
   var SECTIONS = [["world", "🌍 Countries"], ["states", "🇺🇸 States"], ["parks", "🌲 Parks"], ["sights", "🏰 Sights"]];
   var psec = "world";
+  // v94: the Sights pages can show just the places of worship (mosques, churches, temples, shrines...), or just the other sights
+  var pgrp = "all";
+  function sightGroup(s) { var SA = window.WK_STAMPART; return SA && SA.typeOf ? (SA.typeOf(s.type).group === "worship" ? "worship" : "other") : "other"; }
   function inSection(s, sec) { return sec === "parks" ? s.kind === "park" : sec === "states" ? s.kind === "state" : sec === "sights" ? s.kind === "sight" : s.kind === "place"; }
   // State stamps can show the state's bird, flower or animal (or a mix). Each person (and the family passport) keeps
   // their own choice on this device, like the State Signs seen list; press and hold one stamp to switch just that one.
@@ -1243,24 +1266,46 @@
     return P.stampSVG(s, stampName(s), { art: s.kind === "state" ? artFor(personId, s.area) : "", holder: personId || s.holder || "",
       sub: s.kind === "park" ? M.parkSub(PARK_BY[s.area]) : "" });
   }
+  var LAZY_FROM = 2, lazyPages = {}, bookStamps = [];
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many || one + "s"); }
+  /** v94: "12 of 50 states + DC · 9 countries · 3 parks · 14 sights": unique places. */
+  function coverLine(c) {
+    return [c.states + " of 50 states" + (c.dc ? " + DC" : ""), plural(c.countries, "country", "countries") + (c.nations ? " (+ " + plural(c.nations, "UK nation") + ")" : ""), plural(c.parks, "park"), c.sights ? plural(c.sights, "sight") : ""].filter(Boolean).join(" · ");
+  }
+  /** v94: "202 state visits · 31 country visits": every visit, repeats included. */
+  function visitLine(c) {
+    return [c.stateVisits ? plural(c.stateVisits, "state visit") : "", c.countryVisits ? plural(c.countryVisits, "country visit") : "", c.parkVisits ? plural(c.parkVisits, "park visit") : "", c.sightVisits ? plural(c.sightVisits, "sight visit") : ""].filter(Boolean).join(" · ");
+  }
   function bookHTML(title, color, stamps, who, pid) {
-    var life = T.lifetime(pid || null, S().trips), counts = { world: 0, states: 0, parks: 0, sights: 0 }; stamps.forEach(function (s) { counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : s.kind === "sight" ? "sights" : "world"]++; });
-    var list = stamps.filter(function (s) { return inSection(s, psec); }), pages = P.pages(list, 4);
-    var secName = { world: "Countries", states: "Domestic stamps", parks: "National parks", sights: "Sights and places" }[psec];
+    // v94: one stamp per place, with how many visits (each visit stays its own record underneath)
+    var life = T.lifetime(pid || null, S().trips), pc = P.passportCounts(stamps); stamps = P.groupStamps(stamps);
+    var counts = { world: 0, states: 0, parks: 0, sights: 0 }; stamps.forEach(function (s) { counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : s.kind === "sight" ? "sights" : "world"]++; });
+    bookStamps = stamps; lazyPages = {};
+    var all = stamps.filter(function (s) { return inSection(s, psec); }), nWor = psec === "sights" ? all.filter(function (s) { return sightGroup(s) === "worship"; }).length : 0;
+    if (psec !== "sights" || !nWor) pgrp = "all";
+    var list = pgrp === "all" ? all : all.filter(function (s) { return sightGroup(s) === pgrp; }), pages = P.pages(list, 4);
+    var secName = { world: "Countries", states: "Domestic stamps", parks: "National parks", sights: "Sights and places" }[psec]
+    if (pgrp === "worship") secName = "Places of worship"; else if (pgrp === "other") secName = "Other sights";
     var art = readArt(pid);
     var html = '<div class="seg" role="group" aria-label="Passport section">' + SECTIONS.map(function (x) { return '<button type="button" data-psec="' + x[0] + '" aria-pressed="' + (psec === x[0]) + '">' + x[1] + ' <small>' + counts[x[0]] + '</small></button>'; }).join("") + '</div>' +
+      (psec === "sights" && nWor ? '<div class="seg pgrpseg" role="group" aria-label="Which sights">' + [["all", "All sights", all.length], ["worship", "🕌 Places of worship", nWor], ["other", "🏰 Other sights", all.length - nWor]].map(function (x) {
+        return '<button type="button" data-pgrp="' + x[0] + '" aria-pressed="' + (pgrp === x[0]) + '">' + x[1] + ' <small>' + x[2] + '</small></button>'; }).join("") + '</div>' : "") +
       (psec === "states" ? '<div class="seg artseg" role="group" aria-label="State stamp pictures">' + ART_MODES.map(function (x) { return '<button type="button" data-art="' + x[0] + '" aria-pressed="' + (art.mode === x[0]) + '">' + x[1] + '</button>'; }).join("") + '</div>' +
         '<p class="small muted arthint">Each state stamp shows its state bird, flower or animal. Press and hold a stamp to switch just that one.</p>' : "") +
       '<div class="pbook" style="--pc:' + esc(color) + '"><div class="pages" id="pages" tabindex="0" aria-label="Passport pages. Swipe to turn.">' +
       '<section class="ppage cover"><div class="crest" aria-hidden="true"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="3"/><ellipse cx="50" cy="50" rx="18" ry="40" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M10 50h80M16 30h68M16 70h68" stroke="currentColor" stroke-width="2.5" fill="none"/></svg></div>' +
-      '<p class="ptype">PASSPORT</p><h2>' + esc(title) + '</h2><p class="pcount">' + counts.world + (counts.world === 1 ? " country stamp" : " country stamps") + ' · ' + counts.states + ' states · ' + counts.parks + ' parks' + (counts.sights ? ' · ' + counts.sights + ' sights' : '') + '</p>' +
+      '<p class="ptype">PASSPORT</p><h2>' + esc(title) + '</h2><p class="pcount">' + esc(coverLine(pc)) + '</p>' + (pc.visits > pc.places ? '<p class="pvisits">' + esc(visitLine(pc)) + '</p>' : "") +
       (life.flights ? '<p class="pfly">✈️ ' + life.flights + (life.flights === 1 ? " flight" : " flights") + ' · ' + esc(dist(life.flightMiles)) + ' in the air</p>' : "") + '<p class="pswipe">Swipe to open →</p></section>' +
       (pid && A().kidById(pid) ? idPageHTML(A().kidById(pid)) : "") +
       (pages.length ? pages.map(function (pg, n) {
-        return '<section class="ppage"><header><span>' + esc(secName.toUpperCase()) + '</span><span>' + (n + 1) + '</span></header>' + pg.map(function (c) {
-          return '<button type="button" class="stamp" data-sid="' + esc(c.stamp.id) + '" style="left:' + (c.x / 3).toFixed(1) + '%;top:' + (c.y / 4).toFixed(1) + '%;--r:' + c.rot + 'deg" aria-label="' + esc(stampName(c.stamp) + (c.stamp.kind === "state" ? ", " + artFor(pid, c.stamp.area) : "") + (P.fmtDate(c.stamp.date) ? ", " + P.fmtDate(c.stamp.date) : "")) + '">' + stampSVG(c.stamp, pid) +
+        // v94: only the first pages are drawn now; the rest draw as you swipe to them (a big passport no longer freezes the phone)
+        var body = function () { return pg.map(function (c) {
+          return '<button type="button" class="stamp" data-sid="' + esc(c.stamp.id) + '" style="left:' + (c.x / 3).toFixed(1) + '%;top:' + (c.y / 4).toFixed(1) + '%;--r:' + c.rot + 'deg" aria-label="' + esc(stampName(c.stamp) + (c.stamp.kind === "state" ? ", " + artFor(pid, c.stamp.area) : "") + (P.fmtDate(c.stamp.date) ? ", " + P.fmtDate(c.stamp.date) : "") + (c.stamp.count > 1 ? ", visited " + c.stamp.count + " times" : "")) + '">' + stampSVG(c.stamp, pid) +
+            (c.stamp.count > 1 ? '<span class="vcount" aria-hidden="true">×' + c.stamp.count + '</span>' : "") +
             (who && c.stamp.who.length ? '<span class="dots">' + A().avatars(c.stamp.who) + '</span>' : "") + '</button>';
-        }).join("") + '</section>';
+        }).join(""); };
+        if (n >= LAZY_FROM) lazyPages[n] = body;
+        return '<section class="ppage"' + (n >= LAZY_FROM ? ' data-lazy="' + n + '"' : "") + '><header><span>' + esc(secName.toUpperCase()) + '</span><span>' + (n + 1) + '</span></header>' + (n >= LAZY_FROM ? "" : body()) + '</section>';
       }).join("") : '<section class="ppage empty"><header><span>' + esc(secName.toUpperCase()) + '</span><span>1</span></header><p>' + esc({ world: "No country stamps yet.", states: "No state stamps yet.", parks: "No national park stamps yet.", sights: "No sight stamps yet." }[psec]) + '<br>' +
         (psec === "sights" ? "Add a castle, a viewpoint, a beach or any sight as a stop on a trip." : psec === "parks" ? "Mark a park on the Parks tab, or add one to a trip." : psec === "states" ? "Color a state on the USA map, or add a trip." : "Color a country on the World map, or add a trip abroad.") + '</p></section>') +
       '</div><div class="pager"><button type="button" class="btn btn-ghost" id="pprev" aria-label="Previous page">‹</button><span id="pgn">Cover</span><button type="button" class="btn btn-ghost" id="pnext" aria-label="Next page">›</button></div></div>';
@@ -1309,18 +1354,25 @@
   }
   function bindBook(again, stamps, owner) {
     $$("[data-psec]").forEach(function (b) { b.onclick = function () { psec = b.dataset.psec; again(1); }; });
+    $$("[data-pgrp]").forEach(function (b) { b.onclick = function () { pgrp = b.dataset.pgrp; again(1); }; });
     var pages = $("#pages"), n = $$(".ppage", pages).length, pid = owner ? owner.id : null;
     var ide = $("[data-idedit]"); if (ide && owner) ide.onclick = function () { idSheet(owner, again); };
     function at() { return Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth)); }
     $$("[data-art]").forEach(function (b) { b.onclick = function () { writeArt(pid, { mode: b.dataset.art, one: {} }); again(Math.max(1, at())); var f = $('[data-art="' + b.dataset.art + '"]'); if (f) f.focus(); }; });
     function label() { var i = at(); $("#pgn").textContent = i === 0 ? "Cover" : "Page " + i + " of " + (n - 1); }
-    pages.addEventListener("scroll", function () { label(); }, { passive: true });
+    var fillAt = -1;
+    function fill() {   // v94: draw the pages near the one showing
+      var i = at(); if (i === fillAt) return; fillAt = i;
+      $$("[data-lazy]", pages).forEach(function (sec) { var k = +sec.dataset.lazy; if (k <= i + 1 && lazyPages[k]) { var f = lazyPages[k]; delete lazyPages[k]; sec.removeAttribute("data-lazy"); sec.insertAdjacentHTML("beforeend", f()); bindStamps(sec); } });
+    }
+    pages.addEventListener("scroll", function () { label(); fill(); }, { passive: true });
     $("#pprev").onclick = function () { pages.scrollTo({ left: (at() - 1) * pages.clientWidth, behavior: reduced() ? "auto" : "smooth" }); };
     $("#pnext").onclick = function () { pages.scrollTo({ left: (at() + 1) * pages.clientWidth, behavior: reduced() ? "auto" : "smooth" }); };
     pages.addEventListener("keydown", function (e) { if (e.key === "ArrowRight") $("#pnext").click(); if (e.key === "ArrowLeft") $("#pprev").click(); });
-    $$(".stamp", pages).forEach(function (b) {
-      var s = stamps.filter(function (x) { return x.id === b.dataset.sid; })[0], timer = 0, held = false;
-      b.onclick = function (e) { if (held || Date.now() - heldAt < 900) { held = false; e.preventDefault(); return; } if (s) stampSheet(s, owner, again); };
+    var byId = {}; (bookStamps.length ? bookStamps : stamps).forEach(function (x) { byId[x.id] = x; });
+    function bindStamps(root) { $$(".stamp", root).forEach(function (b) {
+      var s = byId[b.dataset.sid], timer = 0, held = false;
+      b.onclick = function (e) { if (held || Date.now() - heldAt < 900) { held = false; e.preventDefault(); return; } if (s) openStamp(s, owner, again); };
       if (!s || s.kind !== "state") return;
       // press and hold a state stamp: bird → flower → animal → back to the page's choice
       var stop = function () { clearTimeout(timer); timer = 0; };
@@ -1336,9 +1388,10 @@
       });
       ["pointerup", "pointerleave", "pointercancel"].forEach(function (ev) { b.addEventListener(ev, stop); });
       b.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-    });
+    }); }
+    bindStamps(pages);
     label();
-    return { open: function (i) { pages.scrollLeft = i * pages.clientWidth; label(); } };
+    return { open: function (i) { pages.scrollLeft = i * pages.clientWidth; label(); fill(); } };
   }
   function passport(k, openAt) {
     var A_ = A(); document.title = k.name + "'s passport · Famstamp";
@@ -1358,12 +1411,12 @@
   }
   function passportFamily(openAt) {
     var A_ = A(); document.title = "Family passport · Famstamp";
-    var stamps = P.familyStamps(S().kids, S().trips, sctx()), title = S().meta.familyName ? "The " + S().meta.familyName + " Family Passport" : "Our Family's Famstamp Passport";
+    var stamps = familyStampsMemo(), title = S().meta.familyName ? "The " + S().meta.familyName + " Family Passport" : "Our Family's Famstamp Passport";
     A_.main.innerHTML = '<a class="back" href="#/family">← Family map</a><h1>Family passport</h1><div class="seg pswitch" role="group" aria-label="Passport or State Signs"><a class="btn" aria-current="page">🛂 Passport</a><a class="btn" href="#/family/signs">🪧 State Signs</a></div><p class="lede small">Every stamp anyone in the family has, with who was there. A trip you took together is one stamp.</p>' +
       bookHTML(title, "#16283a", stamps, true, null) +
       '<h2>Passports</h2><div class="stats">' + S().kids.map(function (p) {
-        var n = stampsOf(p).length;
-        return '<a class="stat person" href="#/p/' + esc(p.id) + '/passport" style="' + A_.kidStyle(p) + '"><div class="v"><span class="dotp">' + A_.initial(p) + '</span> ' + esc(M.who(p)) + '</div><div class="k">' + n + (n === 1 ? " stamp" : " stamps") + '</div></a>'; }).join("") + '</div>';
+        var n = P.groupStamps(stampsOf(p)).length;
+        return '<a class="stat person" href="#/p/' + esc(p.id) + '/passport" style="' + A_.kidStyle(p) + '"><div class="v"><span class="dotp">' + A_.initial(p) + '</span> ' + esc(M.who(p)) + '</div><div class="k">' + n + (n === 1 ? " place" : " places") + '</div></a>'; }).join("") + '</div>';
     var bk = bindBook(function (pg) { passportFamily(pg); }, stamps, null);
     if (openAt) bk.open(openAt);
   }
@@ -1522,6 +1575,19 @@
     var others = (s.with || []).filter(function (id) { return !owner || id !== owner.id; }).map(function (id) { return A().kidById(id); }).filter(Boolean);
     if (!others.length || !owner) return "";
     return '<p class="small withline"><span class="dots">' + A().avatars(others.map(function (p) { return p.id; })) + '</span> With ' + esc(window.FS_WHO ? window.FS_WHO.names(others.map(function (p) { return p.id; })) : others.map(M.who).join(", ")) + '</p>';
+  }
+  /** v94: a place visited more than once opens the list of its visits; tap one for that visit's own sheet. */
+  function openStamp(g, owner, again) {
+    var vs = (g.visits || [g]).filter(function (v) { return v.source !== "map"; });
+    if (vs.length <= 1) return stampSheet(vs[0] || (g.visits || [g])[0], owner, again);
+    var span = P.fmtDate(g.first) ? "First " + P.fmtDate(g.first) + (g.last && g.last !== g.first ? " · latest " + P.fmtDate(g.last) : "") : "";
+    sheet('<div class="sheethead"><h3>' + esc(stampName(g)) + '</h3><button type="button" class="sheetx" data-close aria-label="Close">✕</button></div>' +
+      '<div class="bigstamp">' + stampSVG(g, owner ? owner.id : null) + '</div><p class="vtimes"><b>Visited ' + vs.length + ' times</b></p>' + (span ? '<p class="muted">' + esc(span) + '</p>' : "") +
+      '<ul class="pvisitlist">' + vs.map(function (v, i) {
+        var t = v.tripId ? tripById(v.tripId) : null, d = P.fmtDate(v.date) ? P.fmtDate(v.date) + (v.end && v.end !== v.date ? " to " + P.fmtDate(v.end) : "") : "No date yet";
+        return '<li><button type="button" class="btn btn-ghost visitbtn" data-visit="' + i + '"><span>' + esc(d) + '</span><span class="muted small">' + esc(t ? "Trip: " + t.place : v.source === "hand" ? "Stamped by hand" : "") + '</span></button></li>';
+      }).join("") + '</ul><div class="actions"><button type="button" class="btn btn-ghost" data-close>Close</button></div>');
+    $$("[data-visit]").forEach(function (b) { b.onclick = function () { stampSheet(vs[+b.dataset.visit], owner, again); }; });
   }
   function stampSheet(s, owner, again) {
     var A_ = A(), name = stampName(s), dates = P.fmtDate(s.date) ? P.fmtDate(s.date) + (s.end ? " to " + P.fmtDate(s.end) : "") : "";

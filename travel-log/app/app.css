@@ -312,6 +312,12 @@ h2 .units { margin-left:.4rem; }
 .ppage.cover .pcount { font-size:.82rem; opacity:.9; } .ppage.cover .pswipe { position:absolute; bottom:1rem; font-size:.78rem; opacity:.8; }
 .stamp { position:absolute; width:44%; transform:translate(-50%,-50%) rotate(var(--r)); background:none; border:0; padding:0; cursor:pointer; mix-blend-mode:multiply; }
 .stamp .dots { position:absolute; bottom:-2px; right:6%; } .stamp .dotp { width:20px; height:20px; font-size:.62rem; }
+/* v94: one stamp per place; a small ×N shows how many visits */
+.stamp .vcount { position:absolute; top:-4px; right:4%; min-width:1.5rem; padding:0 .3rem; border-radius:999px; background:#16283a; color:#fff; font:700 .7rem/1.35rem system-ui, sans-serif; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+.ppage.cover .pvisits { font-size:.74rem; opacity:.8; margin:.2rem 0 0; }
+.pvisitlist { list-style:none; padding:0; margin:.6rem 0; display:grid; gap:.4rem; }
+.pvisitlist .visitbtn { width:100%; display:flex; justify-content:space-between; gap:.6rem; text-align:left; min-height:44px; }
+.ppage[data-lazy] { content-visibility:auto; }
 .stampsvg { display:block; width:100%; height:auto; overflow:visible; }
 .pager { display:flex; align-items:center; justify-content:center; gap:1rem; margin-top:.7rem; } .pager .btn { min-width:48px; font-size:1.3rem; padding:.2rem .6rem; } #pgn { font-weight:600; color:var(--muted); min-width:7rem; text-align:center; }
 .seg button small { font-weight:400; opacity:.75; }
@@ -399,8 +405,8 @@ h2 .units { margin-left:.4rem; }
 @media (prefers-color-scheme: dark) { .brand, .topbar a.brand { color:#f2b862; } }
 @media (prefers-reduced-motion: reduce) { .brand.thunk .logomark { animation:none; } }
 /* v1.5 state stamp pictures: Bird / Flower / Animal / Mix */
-.artseg { margin-top:.5rem; gap:.3rem; }
-.artseg button { min-height:36px; padding:.3rem .7rem; font-size:.85rem; }
+.artseg, .pgrpseg { margin-top:.5rem; gap:.3rem; }
+.artseg button, .pgrpseg button { min-height:36px; padding:.3rem .7rem; font-size:.85rem; }
 .arthint { margin:.35rem 0 0; }
 .ppage .stamp { -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
 .symline { margin:.2rem 0; }

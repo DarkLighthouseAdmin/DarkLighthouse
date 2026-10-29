@@ -37,7 +37,7 @@
     var pin = null, cx, cy;
     function setCenter(lat, lon) { var t = O().tileXY(lat, lon, z); cx = t.x; cy = t.y; }
     setCenter(c0.lat, c0.lon);
-    var groups = { sights: "Sights", nature: "Nature", fun: "Fun and kids", drinks: "Drinks (grown-ups)", getting: "Getting there" };
+    var groups = { sights: "Sights", worship: "Places of worship", nature: "Nature", fun: "Fun and kids", drinks: "Drinks (grown-ups)", getting: "Getting there" };
     var opt = Object.keys(groups).map(function (g) {
       var ts = types.filter(function (t) { return S.TYPES[t][4] === g; });
       return ts.length ? '<optgroup label="' + groups[g] + '">' + ts.map(function (t) { var ty = S.typeOf(t); return '<option value="' + t + '"' + (t === (opts.type || "pin") ? " selected" : "") + '>' + ty.emoji + " " + esc(ty.label) + '</option>'; }).join("") + '</optgroup>' : "";

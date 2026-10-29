@@ -102,6 +102,7 @@
     var focusId = null;
     function layout() {
       var W = rect.width, H = rect.height, ks = v.k * s, placed = [], cw = FPX * 0.58, lh = FPX * 1.25;
+      var cr = labels.length ? ctl.getBoundingClientRect() : null;   // v94: read before the writes below, so the phone lays out once, not twice
       // dots mark places too small to tap. At the whole-world view they're just clutter (and too close together to tap), so they
       // appear from 2x zoom; a steady 4.5px on screen, hidden again once the place itself is big enough to tap.
       dotEls.forEach(function (c) {
@@ -110,7 +111,7 @@
         c.style.display = (type === "world" && v.k < 2 && !c.classList.contains("on")) || (a && Math.max(a[5], a[6]) * ks > 22) ? "none" : "";
       });
       if (!labels.length) return;
-      var cr = ctl.getBoundingClientRect();   // keep names out from under the + / − / fit buttons
+      // keep names out from under the + / − / fit buttons (cr, read above)
       if (cr.width) placed.push([cr.left - rect.left - 4, cr.top - rect.top - 4, cr.right - rect.left + 4, cr.bottom - rect.top + 4]);
       // Pass 1: labels that only fit in one spot (small countries like Wales). Pass 2: big countries, which can slide inside
       // their own outline to make room. Within a pass, bigger first. A label is never drawn over another.

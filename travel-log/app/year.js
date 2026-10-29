@@ -59,7 +59,7 @@
   if (typeof document === "undefined") return { years: years, summary: summary };
 
   // ---------- screen ----------
-  var esc = M.esc, main = document.getElementById("main"), lastBlob = null, lastURL = null;
+  var esc = M.esc, main = document.getElementById("main"), lastBlob = null, lastURL = null, cardKey = "", drawTok = 0;
   function A() { return window.MLTL_APP; }
   function plural(n, one, many) { return n + " " + (n === 1 ? one : many || one + "s"); }
   function svgURL(svg) {
@@ -170,11 +170,14 @@
       '<div class="actions yr-actions"><button type="button" class="btn btn-beacon" id="yr-share" disabled>Share</button><button type="button" class="btn btn-ghost" id="yr-dl" disabled>Download</button></div>';
     bind(one);
     var title = one ? window.MLTL.who(one) + "'s " + year + " in stamps" : "Our " + year + " in stamps";
-    draw(sum, title).then(function (cv) {
-      cv.toBlob(function (blob) {
+    // v94: the card is drawn once per change and kept; coming back to this tab shows it at once instead of redrawing it,
+    // and a new drawing waits until the page has painted so the tab switch itself stays quick.
+    var key = title + "|" + JSON.stringify(sum);
+    if (cardKey === key && lastBlob) show(lastBlob, true);
+    else { var tok = ++drawTok; setTimeout(function () { if (tok !== drawTok || !document.getElementById("yr-share")) return; draw(sum, title).then(function (cv) { cv.toBlob(function (blob) { if (tok !== drawTok || !blob) return; if (lastURL) URL.revokeObjectURL(lastURL); lastBlob = blob; lastURL = URL.createObjectURL(blob); cardKey = key; show(blob, true); }, "image/png"); }); }, 60); }
+    function show(blob, same) {
         if (!blob || !document.getElementById("yr-share")) return;
-        if (lastURL) URL.revokeObjectURL(lastURL);
-        lastBlob = blob; lastURL = URL.createObjectURL(blob);
+        if (!same) { if (lastURL) URL.revokeObjectURL(lastURL); lastBlob = blob; lastURL = URL.createObjectURL(blob); }
         var box = main.querySelector(".yr-card"); box.innerHTML = '<img src="' + lastURL + '" alt="' + esc(title) + ': ' + plural(sum.trips, "trip") + ', ' + plural(sum.states, "state") + ', ' + plural(sum.countries, "country", "countries") + ', ' + plural(sum.parks, "park") + '">';
         var ex = extraLine(sum);
         box.insertAdjacentHTML("afterend", '<ul class="yr-facts">' + (sum.miles ? '<li><b>' + commas(distNum(sum.miles)) + '</b> ' + unitWord() + ' traveled</li>' : "") +
@@ -189,8 +192,7 @@
         if (!canShare) sh.hidden = true;
         sh.onclick = function () { navigator.share({ files: [file], title: title }).catch(function () {}); };
         dl.onclick = function () { var a = document.createElement("a"); a.href = lastURL; a.download = fname; document.body.appendChild(a); a.click(); a.remove(); A().toast("Saved " + fname); };
-      }, "image/png");
-    });
+    }
   }
   function bind(one) {
     var w = document.getElementById("yr-who"), y = document.getElementById("yr-year");

@@ -31,7 +31,13 @@
     var m = MON[+d.slice(5, 7) - 1];
     return d.length === 7 ? m + " " + d.slice(0, 4) : (+d.slice(8, 10)) + " " + m + " " + d.slice(0, 4);
   }
-  function addDays(d, n) { if (!/^\d{4}-\d{2}-\d{2}$/.test(d || "")) return ""; var t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
+  // v94: remembered, so a big family's passport doesn't redo the same date sums on every tab switch
+  var DAYS = {}, nDays = 0;
+  function addDays(d, n) {
+    var k = d + "|" + n; if (DAYS[k] !== undefined) return DAYS[k];
+    var out = ""; if (/^\d{4}-\d{2}-\d{2}$/.test(d || "")) { var t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + n); out = t.toISOString().slice(0, 10); }
+    if (++nDays > 20000) { DAYS = {}; nDays = 0; } DAYS[k] = out; return out;
+  }
   function rid() { var r = ""; for (var i = 0; i < 12; i++) r += "0123456789abcdef"[Math.floor(Math.random() * 16)]; return "stamp_" + r; }
   function validKind(k) { return k === "state" || k === "park" ? k : "place"; }
 
@@ -61,10 +67,19 @@
   }
 
   /** What one route point counts as: [{kind, area}] (a park in one state also counts the state; UK stops count their nation). */
+  // v94: a US state written any way ("FL", "fl", "US-FL", "Florida") is the same state; anything else is not a state
+  var STATE_NAMES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware", DC: "District of Columbia", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming" };
+  var STATE_BY_NAME = {}; Object.keys(STATE_NAMES).forEach(function (c) { STATE_BY_NAME[STATE_NAMES[c].toLowerCase()] = c; }); STATE_BY_NAME["washington dc"] = STATE_BY_NAME["washington, d.c."] = STATE_BY_NAME["d.c."] = "DC";
+  function stateCode(x) {
+    var v = String(x == null ? "" : x).trim(); if (!v) return "";
+    var u = v.toUpperCase().replace(/^US[-.\s]/, "");
+    if (STATE_NAMES[u]) return u;
+    return STATE_BY_NAME[v.toLowerCase().replace(/\s+/g, " ")] || "";
+  }
   function pointAreas(p, parkStates) {
     var out = [];
     if (p.kind === "park" && p.ref) { out.push({ kind: "park", area: p.ref }); var st = parkStates && parkStates[p.ref]; if (st && st.length === 1) out.push({ kind: "state", area: st[0] }); }
-    if (p.country === "USA") { if (T.US_STATES.indexOf(p.region) >= 0 && !out.some(function (a) { return a.kind === "state" && a.area === p.region; })) out.push({ kind: "state", area: p.region }); }
+    if (p.country === "USA") { var sc = stateCode(p.region); if (sc && !out.some(function (a) { return a.kind === "state" && a.area === sc; })) out.push({ kind: "state", area: sc }); }
     else if (p.country === "GBR") { if (NATIONS.indexOf(p.region) >= 0) out.push({ kind: "place", area: p.region }); }
     else if (p.country) out.push({ kind: "place", area: p.country });
     return out;
@@ -141,6 +156,38 @@
     });
     out.forEach(function (s) { s.section = section(s.kind, s.area); s.nation = s.kind === "place" && NATIONS.indexOf(s.area) >= 0; });
     return sortStamps(out);
+  }
+  /** v94: one stamp per place. Every visit stays a record of its own (nothing is removed or merged in the data); the passport
+      shows each state, country, park or sight once, with how many times and the first and latest visit. The group keeps the first
+      visit's id, so its look stays the same. visits = the underlying stamps, oldest first. */
+  function groupStamps(list) {
+    var by = {}, out = [];
+    sortStamps((list || []).slice()).forEach(function (s) {
+      var k = s.kind + ":" + s.area, g = by[k];
+      if (!g) { g = by[k] = Object.assign({}, s, { visits: [], who: (s.who || []).slice() }); out.push(g); }
+      g.visits.push(s);
+      (s.who || []).forEach(function (w) { if (g.who.indexOf(w) < 0) g.who.push(w); });
+      if (!g.date && s.date) { g.date = s.date; g.end = s.end; g.via = s.via; g.tripId = s.tripId; g.trip = s.trip; g.source = s.source; g.id = s.id; }
+    });
+    out.forEach(function (g) {
+      var real = g.visits.filter(function (v) { return v.source !== "map"; }), dated = real.filter(function (v) { return v.date; });
+      g.count = Math.max(1, real.length); g.first = dated.length ? dated[0].date : g.date || ""; g.last = dated.length ? dated[dated.length - 1].date : g.date || "";
+    });
+    return out;
+  }
+  /** v94: what a passport adds up to: unique places and every visit. US states are the 50 (DC is noted on its own); other
+      countries' regions never count as states. */
+  function passportCounts(list) {
+    var g = groupStamps(list), c = { states: 0, dc: false, stateVisits: 0, countries: 0, countryVisits: 0, parks: 0, parkVisits: 0, sights: 0, sightVisits: 0, nations: 0, places: g.length, visits: 0 };
+    g.forEach(function (x) {
+      c.visits += x.count;
+      if (x.kind === "state") { if (STATES50.indexOf(x.area) >= 0) c.states++; else if (x.area === "DC") c.dc = true; c.stateVisits += x.count; }
+      else if (x.kind === "park") { c.parks++; c.parkVisits += x.count; }
+      else if (x.kind === "sight") { c.sights++; c.sightVisits += x.count; }
+      else if (NATIONS.indexOf(x.area) >= 0) { c.nations++; c.countryVisits += x.count; }
+      else { c.countries++; c.countryVisits += x.count; }
+    });
+    return c;
   }
   function sortStamps(list) { return list.sort(function (a, b) { return ((a.date || "9999") < (b.date || "9999") ? -1 : (a.date || "9999") > (b.date || "9999") ? 1 : a.id < b.id ? -1 : 1); }); }
   /** The family passport: a shared trip is one stamp with everyone on it; the same hand stamp for two people merges too. */
@@ -255,7 +302,7 @@
     return +b.slice(0, 2) === mo && +b.slice(3) === d; }
 
   return { newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits, sightArea: sightArea, sightSub: sightSub, drinkHidden: drinkHidden, section: section,
-           stampsFor: stampsFor, familyStamps: familyStamps, pages: pages, look: look, flag: flag, stampSVG: stampSVG, ISO32: ISO32, NATIONS: NATIONS, MAX_STAMPS: MAX_STAMPS, SHAPES: SHAPES,
+           stampsFor: stampsFor, familyStamps: familyStamps, groupStamps: groupStamps, passportCounts: passportCounts, stateCode: stateCode, pages: pages, look: look, flag: flag, stampSVG: stampSVG, ISO32: ISO32, NATIONS: NATIONS, MAX_STAMPS: MAX_STAMPS, SHAPES: SHAPES,
            STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook, signTier: signTier, signInfo: SG.look, ID_FIELDS: ID_FIELDS, MONTHS: MONTHS, cleanBday: cleanBday, cleanIdPage: cleanIdPage, bdayText: bdayText, isBirthday: isBirthday,
            stampArtMode: function (id, art) { return SA.stateMode(id, art); }, stampDesign: SA.design, STATE_SYMBOLS: SA.SYM ? SA.SYM.DATA : null };
 });

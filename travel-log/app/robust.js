@@ -137,7 +137,13 @@
   function M() { return window.MLTL; }
   function UI() { return window.FS_UI; }
   function dbKey() { var a = A(); return (a && a.dbName) || "famstamp"; }
-  function when(isoS) { if (!isoS) return ""; var d = new Date(isoS); if (isNaN(d)) return ""; return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
+  // v94: the date and time formats are made once (making them on every call was slow on long lists)
+  var FMT_D = null, FMT_T = null;
+  function when(isoS) {
+    if (!isoS) return ""; var d = new Date(isoS); if (isNaN(d)) return "";
+    if (!FMT_D && typeof Intl !== "undefined") { FMT_D = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }); FMT_T = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }); }
+    return FMT_D ? FMT_D.format(d) + ", " + FMT_T.format(d) : d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
   function dayOnly(isoS) { return isoS && M() ? M().prettyDate(String(isoS).slice(0, 10)) : ""; }
   function sheetAsk(html, answers) {
     return new Promise(function (res) {

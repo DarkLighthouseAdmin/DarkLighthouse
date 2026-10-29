@@ -685,11 +685,54 @@
     star5: function () { return P("M20 3 L24.5 15 L37 15.4 L27 23.2 L30.8 36 L20 28.4 L9.2 36 L13 23.2 L3 15.4 L15.5 15 Z") + C(20, 20, 3.6, PAPER); }
   };
   Object.keys(TG).forEach(function (k) { G[k] = TG[k]; });
+
+  // ---------- v94: places of worship and more cultural sights, each with its own picture (our own drawings, same style) ----------
+  var WG = {
+    mosque: function () { return P("M9 38 V27 Q9 16 20 12 Q31 16 31 27 V38 Z") + P("M19.2 12 V8.5 H20.8 V12 Z") + S("M21.6 4.2 A2.6 2.6 0 1 0 21.6 8.2 A2 2 0 1 1 21.6 4.2", 0.8) +
+      P("M2.4 38 V13 H5.6 V38 Z M2.4 13 L4 6 L5.6 13 Z M34.4 38 V13 H37.6 V38 Z M34.4 13 L36 6 L37.6 13 Z") + P("M1.6 19 H6.4 V20.4 H1.6Z M33.6 19 H38.4 V20.4 H33.6Z") +
+      P("M17 38 V31 Q20 27.5 23 31 V38 Z M12.5 27 Q13.5 25 14.5 27 V31 H12.5Z M25.5 27 Q26.5 25 27.5 27 V31 H25.5Z", PAPER) + S("M0 39 H40", 1.3); },
+    church: function () { return P("M6 38 V22 L18 13 L18 38 Z") + P("M18 38 V12 L23.5 4.5 L29 12 V38 Z") + P("M29 38 V24 H35 V38 Z") + S("M23.5 4.5 V0.8 M21.8 2.2 H25.2", 0.9) +
+      P("M21.3 38 V31 Q23.5 28 25.7 31 V38 Z M22 16 Q23.5 13.6 25 16 V20 H22Z M10 27 h3 v5 h-3Z", PAPER) + S("M0 39 H40", 1.3); },
+    basilica: function () { return P("M12 21 Q12 10 20 7.5 Q28 10 28 21 Z") + P("M18.8 7.6 V4 H21.2 V7.6Z") + S("M20 4 V0.8 M18.6 2.1 H21.4", 0.9) + P("M3 38 V23 L20 17 L37 23 V38 Z") +
+      P("M7 38 V27 h2.4 V38Z M12 38 V27 h2.4 V38Z M25.6 38 V27 h2.4 V38Z M30.6 38 V27 h2.4 V38Z M17.6 38 V30 Q20 27 22.4 30 V38Z", PAPER) + S("M14 14.5 Q20 11.5 26 14.5", 0.8, PAPER) + S("M0 39 H40", 1.3); },
+    synagogue: function () { return P("M4 38 V18 L20 9 L36 18 V38 Z") + S("M20 12.6 L23.7 19 H16.3 Z M20 21.4 L16.3 15 H23.7 Z", 1.1, PAPER) +
+      P("M16 38 V30 Q20 25.5 24 30 V38 Z M8 26 Q9.5 23.5 11 26 V32 H8Z M29 26 Q30.5 23.5 32 26 V32 H29Z", PAPER) + S("M0 39 H40", 1.3); },
+    torii: function () { return P("M2 7 Q20 11 38 7 L37 11.4 Q20 14.6 3 11.4 Z") + P("M6 15 H34 V18 H6Z") + P("M9 11.6 H12.4 V38 H9Z M27.6 11.6 H31 V38 H27.6Z") + P("M18.6 13 H21.4 V15 H18.6Z") +
+      P("M7.6 36 H13.8 V38.6 H7.6Z M26.2 36 H32.4 V38.6 H26.2Z") + S("M0 39 H40", 1.3); },
+    bell: function () { return P("M14 38 V10 L20 4 L26 10 V38 Z") + P("M16.4 13 Q20 9.5 23.6 13 V19 H16.4Z", PAPER) + P("M18 13.6 Q20 12 22 13.6 L22.6 17.6 H17.4 Z") + C(20, 18.4, 0.8) +
+      P("M2 38 V26 L8 22 L14 26 V38Z M26 38 V26 L32 22 L38 26 V38Z") + P("M17.6 38 V31 Q20 28.5 22.4 31 V38Z M5 30 h2 v4 h-2Z M33 30 h2 v4 h-2Z", PAPER) + S("M0 39 H40", 1.3); },
+    stupa: function () { return P("M7 38 V34 H33 V38Z M9 34 V31 H31 V34Z") + P("M10 31 Q10 17 20 15 Q30 17 30 31 Z") + P("M17 15 V12 H23 V15Z") + P("M18 12 L20 1.5 L22 12 Z") +
+      S("M18.6 9 H21.4 M18.9 6 H21.1", 0.7, PAPER) + E(16, 19.6, 1.3, 0.7, 0, PAPER) + E(24, 19.6, 1.3, 0.7, 0, PAPER) + S("M0 39 H40", 1.3); },
+    gurdwara: function () { return P("M11 24 Q11 14 20 10 Q29 14 29 24 Z") + P("M19.2 10 L20 3.5 L20.8 10Z") + P("M4 38 V24 H36 V38 Z") + C(6, 21.6, 2.4) + C(34, 21.6, 2.4) +
+      P("M5.6 19.2 L6 16.4 L6.4 19.2Z M33.6 19.2 L34 16.4 L34.4 19.2Z") + P("M8 38 V31 Q10 28.5 12 31 V38Z M17 38 V30 Q20 26.5 23 30 V38Z M28 38 V31 Q30 28.5 32 31 V38Z", PAPER) +
+      S("M0 39.4 Q5 38 10 39.4 T20 39.4 T30 39.4 T40 39.4", 0.9); },
+    cistern: function () { var s = P("M1 4 H39 V8 H1Z"); [3, 12, 21, 30].forEach(function (x) { s += P("M" + x + " 8 Q" + (x + 4.5) + " 1 " + (x + 9) + " 8 Z", PAPER) + P("M" + x + " 8 H" + (x + 2) + " V30 H" + x + "Z"); });
+      return s + P("M37 8 H39 V30 H37Z") + S("M0 33 Q5 31 10 33 T20 33 T30 33 T40 33 M0 37.5 Q5 35.5 10 37.5 T20 37.5 T30 37.5 T40 37.5", 1.2); },
+    market: function () { return P("M3 12 L7 4 H33 L37 12 Z") + P("M3 12 Q5.5 16 8 12 Q10.5 16 13 12 Q15.5 16 18 12 Q20.5 16 23 12 Q25.5 16 28 12 Q30.5 16 33 12 Q35.5 16 37 12 Z") +
+      S("M11 4 L9 12 M17 4 L16 12 M23 4 L24 12 M29 4 L31 12", 0.9, PAPER) + P("M5 16 H7.6 V38 H5Z M32.4 16 H35 V38 H32.4Z M6 27 H34 V30.5 H6Z") +
+      C(12, 25, 2.2) + C(17, 25, 2.2) + C(22.5, 25, 2.2) + C(28, 25, 2.2) + S("M0 39 H40", 1.3); },
+    square: function () { return S("M2 30 L20 22 L38 30 L20 38 Z", 1.2) + S("M11 26 L29 34 M11 34 L29 26", 0.7) + P("M17 26 H23 V29 H17Z") + P("M19 13 H21 V26 H19Z") +
+      S("M20 13 Q15 11 13.6 17 M20 13 Q25 11 26.4 17", 1) + C(20, 11.6, 1.6) + P("M3 8 V22 H6 V8Z M34 8 V22 H37 V8Z") + C(4.5, 7, 3) + C(35.5, 7, 3); },
+    fort: function () { return P("M2 38 L5 22 H35 L38 38 Z") + P("M5 22 V18 H8 V20 H11 V18 H14 V20 H17 V18 H23 V20 H26 V18 H29 V20 H32 V18 H35 V22 Z") + P("M15 18 V8 H25 V18 Z") +
+      P("M15 8 V5 H17.5 V8Z M18.75 8 V5 H21.25 V8Z M22.5 8 V5 H25 V8Z") + S("M20 5 V1", 0.9) + P("M20 1 L24 2.4 L20 3.8Z") + P("M16.5 38 V31 Q20 27 23.5 31 V38Z M19 11 h2 v4 h-2Z", PAPER) + S("M0 39 H40", 1.3); },
+    oldtown: function () { return P("M1 38 V20 L6 15 L11 20 V38Z") + P("M11 38 V16 L16 8 L21 16 V38Z") + P("M21 38 V22 L26 17 L31 22 V38Z") + P("M31 38 V14 L33.5 6 L36 14 H39 V38Z") +
+      P("M4.4 24 h3 v3 h-3Z M14.4 20 h3 v3 h-3Z M14.4 27 h3 v3 h-3Z M24.4 26 h3 v3 h-3Z M32.4 19 h3 v3 h-3Z M4.4 31 h3 v7 h-3Z M24.4 32 h3 v6 h-3Z", PAPER) + S("M0 39 H40", 1.3); },
+    street: function () { return P("M18.6 4 H21.4 V38 H18.6Z") + P("M6 7 H30 L34 10.5 L30 14 H6Z") + P("M34 17 H10 L6 20.5 L10 24 H34Z") + S("M9 10.5 H26 M13 20.5 H30", 1.1, PAPER) +
+      C(20, 3, 1.6) + P("M14 38 H26 V39.6 H14Z") + S("M0 39.6 H40", 1); },
+    tomb: function () { return P("M12 23 Q12 12 20 9 Q28 12 28 23 Z") + P("M19.2 9 L20 4 L20.8 9Z") + P("M7 38 V23 H33 V38Z") + P("M2 38 V12 H4.4 V38Z M35.6 38 V12 H38 V38Z M2 12 L3.2 8.6 L4.4 12Z M35.6 12 L36.8 8.6 L38 12Z") +
+      C(10.5, 21, 2.2) + C(29.5, 21, 2.2) + P("M16.5 38 V29 Q20 24.5 23.5 29 V38Z", PAPER) + P("M0 38 H40 V40 H0Z"); },
+    amphi: function () { var s = P("M2 14 Q20 4 38 14 V34 Q20 42 2 34 Z"); [6, 12, 18, 24, 30].forEach(function (x) { s += P("M" + (x + 0.6) + " 20 Q" + (x + 2.6) + " 16.6 " + (x + 4.6) + " 20 V25 H" + (x + 0.6) + "Z M" + (x + 0.6) + " 29.5 Q" + (x + 2.6) + " 26.4 " + (x + 4.6) + " 29.5 V34 H" + (x + 0.6) + "Z", PAPER); });
+      return s + S("M2 16 Q20 7 38 16", 0.8, PAPER) + S("M0 39 H40", 1.3); },
+    onsen: function () { return P("M4 26 Q4 38 20 38 Q36 38 36 26 Z") + E(20, 26, 16, 3.2) + E(20, 26, 13, 2, 0, PAPER) + S("M12 21 Q9 17 12 13 T12 5 M20 21 Q17 17 20 13 T20 3 M28 21 Q25 17 28 13 T28 5", 1.7); },
+    deck: function () { return P("M18.4 13 H21.6 L24 38 H16 Z") + P("M9 9 H31 L28 14 H12 Z") + S("M7 9 V5 H33 V9", 1.1) + S("M11 5 V9 M15 5 V9 M19 5 V9 M23 5 V9 M27 5 V9", 0.8) + P("M19.4 0.6 H20.6 V5 H19.4Z") +
+      S("M17.4 20 H22.6 M17 27 H23", 0.8, PAPER) + S("M0 39 H40", 1.3); }
+  };
+  Object.keys(WG).forEach(function (k) { G[k] = WG[k]; });
   /** Place types for sights and other stops (search, trip stops, their passport stamps). label, emoji, picture, ink, group. */
   var TYPES = {
     castle: ["Castle", "🏰", "castle", "#6b3a2a", "sights"], palace: ["Palace", "👑", "dome", "#5f35a0", "sights"], ruin: ["Ruins", "🏚️", "ruin", "#5b4a2f", "sights"],
-    ancient: ["Ancient site", "🏺", "pyramid", "#8a4a17", "sights"], historic: ["Historic site", "📜", "columns", "#5b4a2f", "sights"], abbey: ["Abbey", "⛪", "abbey", "#3b4048", "sights"],
-    cathedral: ["Cathedral", "⛪", "cathedral", "#23262c", "sights"], temple: ["Temple", "🛕", "pagoda", "#962043", "sights"], monument: ["Monument", "🗿", "obelisk", "#1f4f9e", "sights"],
+    ancient: ["Ancient site", "🏺", "pyramid", "#8a4a17", "sights"], historic: ["Historic site", "📜", "columns", "#5b4a2f", "sights"], abbey: ["Abbey", "⛪", "abbey", "#3b4048", "worship"],
+    cathedral: ["Cathedral", "⛪", "cathedral", "#23262c", "worship"], temple: ["Temple", "🛕", "pagoda", "#962043", "worship"], monument: ["Monument", "🗿", "obelisk", "#1f4f9e", "sights"],
     tower: ["Tower", "🗼", "tower", "#3b4048", "sights"], landmark: ["Landmark", "📍", "star5", "#b02a2a", "sights"], museum: ["Museum", "🏛️", "temple", "#17608a", "sights"],
     viewpoint: ["Viewpoint", "🔭", "viewer", "#2b4f5e", "sights"], waterfall: ["Waterfall", "💦", "waterfall", "#17608a", "nature"],
     beach: ["Beach", "🏖️", "beach", "#17608a", "nature"], lake: ["Lake", "🏞️", "mountainlake", "#1f4f9e", "nature"], island: ["Island", "🏝️", "palm", "#2b7340", "nature"],
@@ -702,7 +745,15 @@
     pub: ["Pub", "🍺", "pint", "#6c3a1f", "drinks"], lighthouse: ["Lighthouse", "🚨", "lighthouse", "#b02a2a", "sights"],
     ferry: ["Ferry port", "⛴️", "ship", "#1f4f9e", "getting"], station: ["Train station", "🚉", "train", "#3b4048", "getting"], drive: ["Scenic drive", "🛣️", "road", "#4a6a24", "getting"],
     stadium: ["Stadium", "🏟️", "stadium", "#2b7340", "fun"], film: ["Film location", "🎬", "clapper", "#23262c", "sights"], bridge: ["Bridge", "🌉", "bridge", "#2b4f5e", "sights"],
-    pin: ["Pinned place", "📍", "pin", "#b02a2a", "sights"]
+    pin: ["Pinned place", "📍", "pin", "#b02a2a", "sights"],
+    // v94: places of worship (each its own stamp; they count like every sight) and more of the world's sights
+    mosque: ["Mosque", "🕌", "mosque", "#17608a", "worship"], church: ["Church", "⛪", "church", "#3b4048", "worship"], basilica: ["Basilica", "⛪", "basilica", "#5f35a0", "worship"],
+    synagogue: ["Synagogue", "🕍", "synagogue", "#1f4f9e", "worship"], shrine: ["Shrine", "⛩️", "torii", "#b02a2a", "worship"], monastery: ["Monastery", "🔔", "bell", "#5b4a2f", "worship"],
+    pagoda: ["Pagoda", "🏯", "pagoda", "#962043", "worship"], stupa: ["Stupa", "🪷", "stupa", "#8a4a17", "worship"], gurdwara: ["Gurdwara", "🪯", "gurdwara", "#c26a00", "worship"],
+    cistern: ["Cistern", "🏛️", "cistern", "#17608a", "sights"], market: ["Market or bazaar", "🛍️", "market", "#962043", "sights"], square: ["Square", "⛲", "square", "#2b4f5e", "sights"],
+    fort: ["Fort", "🏯", "fort", "#6b3a2a", "sights"], oldtown: ["Old town", "🏘️", "oldtown", "#8a4a17", "sights"], street: ["Famous street", "🪧", "street", "#3b4048", "sights"],
+    tomb: ["Tomb", "🕌", "tomb", "#5f35a0", "sights"], amphitheater: ["Amphitheater", "🏟️", "amphi", "#8a4a17", "sights"], onsen: ["Hot spring", "♨️", "onsen", "#b02a2a", "nature"],
+    deck: ["Observation deck", "🔭", "deck", "#2b4f5e", "sights"]
   };
   function typeOf(t) { var x = TYPES[t] || TYPES.landmark; return { id: TYPES[t] ? t : "landmark", label: x[0], emoji: x[1], motif: x[2], ink: x[3], group: x[4] }; }
 
