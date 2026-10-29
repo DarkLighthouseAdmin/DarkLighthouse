@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v104";
+  var VERSION = "v105";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -44,8 +44,10 @@
   function all(store) { return tx(store, "readonly", function (s) { return s.getAll(); }); }
   // Family Sync (sync.js) listens for saves so it can share them in the background. silent = a change that came from sync itself.
   function changed(store, silent) { if (!silent && window.MLTL_onChange) try { window.MLTL_onChange(store); } catch (e) {} }
-  function put(store, v, silent) { return tx(store, "readwrite", function (s) { s.put(v); }).then(function (x) { changed(store, silent); return x; }); }
-  function del(store, id, silent) { return tx(store, "readwrite", function (s) { s.delete(id); }).then(function (x) { changed(store, silent); return x; }); }
+  // v105: Kid mode keeps nothing a kid does (no writes at all); the phone reloads the saved log when a grown-up ends it.
+  function kidLocked() { try { return !!(window.FS_KIDLOCK && window.FS_KIDLOCK.on()); } catch (e) { return false; } }
+  function put(store, v, silent) { if (kidLocked()) return Promise.resolve(); return tx(store, "readwrite", function (s) { s.put(v); }).then(function (x) { changed(store, silent); return x; }); }
+  function del(store, id, silent) { if (kidLocked()) return Promise.resolve(); return tx(store, "readwrite", function (s) { s.delete(id); }).then(function (x) { changed(store, silent); return x; }); }
   function getOne(store, id) { return tx(store, "readonly", function (s) { return s.get(id); }); }
 
   var state = { kids: [], trips: [], bin: [], meta: {} };

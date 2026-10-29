@@ -1187,3 +1187,21 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .wadd .wrow { display:flex; gap:.35rem; flex-wrap:wrap; }
 .wadd .wrow input { flex:1 1 12rem; min-width:0; }
 .wby select { max-width:100%; }
+/* v105 Kid mode (kidlock.js): big buttons, nothing to type, no grown-up controls */
+body.kidlock .topright, body.kidlock #famchip, body.kidlock .youreon, body.kidlock .nt-stamp, body.kidlock .fab, body.kidlock .back { display:none !important; }
+body.kidlock main a.btn[href*="/edit"], body.kidlock main [data-fs-stamp], body.kidlock main [data-fs-addtrip] { display:none !important; }
+.kidhello { display:flex; align-items:center; gap:.7rem; margin:.4rem 0 1rem; }
+.kidhello .avatar { width:56px; height:56px; font-size:1.6rem; }
+.kidhello h1 { margin:0; font-size:2rem; }
+.kidtiles { display:grid; grid-template-columns:repeat(2, 1fr); gap:.8rem; }
+.kidtile { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.35rem; min-height:128px; border-radius:22px; background:var(--card); border:3px solid var(--line, #ddd); text-decoration:none; color:inherit; font-weight:800; font-size:1.25rem; box-shadow:0 3px 10px rgba(0,0,0,.08); }
+.kidtile .ic { font-size:3rem; line-height:1; }
+.kidtile:active { transform:scale(.97); }
+.kidnote { text-align:center; margin-top:1rem; }
+.kidpick { display:flex; flex-wrap:wrap; gap:.5rem; margin:.4rem 0 .8rem; }
+.kidchip { display:inline-flex; align-items:center; gap:.4rem; padding:.45rem .8rem .45rem .45rem; border-radius:999px; border:2px solid var(--line, #ddd); background:var(--card); font:inherit; cursor:pointer; }
+.kidchip[aria-checked="true"] { border-color:var(--beacon, #e8a33d); box-shadow:0 0 0 3px rgba(232,163,61,.3); font-weight:700; }
+.pindots { text-align:center; font-size:2rem; letter-spacing:.5rem; margin:.4rem 0; }
+.pinpad { display:grid; grid-template-columns:repeat(3, 1fr); gap:.6rem; max-width:300px; margin:.6rem auto; }
+.pinpad button { min-height:60px; font-size:1.5rem; font-weight:700; border-radius:16px; border:1px solid var(--line, #ddd); background:var(--card); color:inherit; cursor:pointer; }
+.kidcodesoff { margin-top:.5rem; }

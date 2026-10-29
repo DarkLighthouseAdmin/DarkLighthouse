@@ -222,6 +222,9 @@ html[data-theme="dark"] .drafttag.plantag { background:#121c26; color:#c7d2e4; }
 html[data-theme="dark"] .want { border-bottom:1px solid rgba(230,236,242,0.08); }
 html[data-theme="dark"] .wheart { background:#121a21; }
 html[data-theme="dark"] .wheart.on { background:#261216; }
+html[data-theme="dark"] .kidtile { border:3px solid var(--line, #2f4357); box-shadow:0 3px 10px rgba(0,0,0,0.144); }
+html[data-theme="dark"] .kidchip { border:2px solid var(--line, #2f4357); }
+html[data-theme="dark"] .pinpad button { border:1px solid var(--line, #2f4357); }
 /* sync.css */
 html[data-theme="dark"] .syncpill { background:rgba(19,27,39,0.12); }
 html[data-theme="dark"] .syncstate .syncpill { background:#17241a; color:var(--sage-ink) !important; }

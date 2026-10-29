@@ -69,7 +69,7 @@
   function name(p) { return M().who(p); }
   function isGrand() { try { return !!(window.FS_HL && window.FS_HL.iAmGrand()); } catch (e) { return false; } }
   function grandView() { return isGrand() && ls("fs-full-app") !== "1"; }
-  function kidMode() { return ls("fs-kidmode") === "1" && !grandView(); }
+  function kidMode() { return !!(window.FS_KIDLOCK && window.FS_KIDLOCK.on()); }   // v105: locked Kid mode (kidlock.js)
   function syncOn() { return !!(window.MLTL_SYNC && window.MLTL_SYNC.isOn && window.MLTL_SYNC.isOn()); }
   function mapHref() {
     var m = ls("fs-map-who") || "", sub = ls("fs-map-sub") || "us"; if (!MAPSUB[sub]) sub = "us";
@@ -95,7 +95,7 @@
     var cur = tabOf(location.hash), h = parts(location.hash)[0] || "";
     function t(id, href, ic, label, curNow) { return '<a href="' + href + '" class="nt-' + id + '"' + (curNow ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">' + ic + '</span><span class="tl">' + label + '</span></a>'; }
     if (grandView()) return t("hl", "#/highlights", "✨", "Highlights", h === "highlights" || h === "") + t("recap", "#/recap", "📬", "Weekly recap", h === "recap") + t("news", "#/news", "💬", "Reactions &amp; news", h === "news");
-    if (kidMode()) return t("map", mapHref(), "🗺️", "My map", cur === "map") + '<button type="button" class="nt-stamp" data-fs-stamp><span class="ic" aria-hidden="true">＋</span><span class="tl">Stamp</span></button>' + t("games", "#/games", "🎲", "Games", h === "games") + '<button type="button" class="nt-exit" data-kidmode-off><span class="ic" aria-hidden="true">👋</span><span class="tl">Grown-ups</span></button>';
+    if (kidMode()) { var kk = window.FS_KIDLOCK.kid(); return t("home", "#/kidmode", "🏠", "Home", h === "kidmode") + t("map", "#/p/" + esc(kk) + "/us", "🗺️", "My map", cur === "map") + t("games", "#/games", "🎲", "Games", h === "games") + t("pass", "#/p/" + esc(kk) + "/passport", "🛂", "Passport", /\/passport/.test(location.hash)); }
     return t("home", "#/", "🏠", "Home", cur === "home") + t("map", mapHref(), "🗺️", "Map", cur === "map") +
       '<button type="button" class="nt-stamp" data-fs-stamp aria-label="Stamp: add a trip or a place"><span class="ic" aria-hidden="true">＋</span><span class="tl">Stamp</span></button>' +
       t("trips", "#/trips", "📖", "Trips", cur === "trips") + t("more", "#/more", "☰", "More", cur === "more");
@@ -156,8 +156,8 @@
     if (t.hasAttribute("data-fs-stamp")) { e.preventDefault(); openStamp(); }
     else if (t.hasAttribute("data-fs-addtrip")) { e.preventDefault(); if (window.FS_UI) { window.FS_UI.closeSheet(); setTimeout(function () { window.FS_UI.whoWentSheet(); }, 0); } }
     else if (t.hasAttribute("data-fs-stop")) { window.FS_FOCUS_STOP = true; }
-    else if (t.hasAttribute("data-kidmode-off")) { ls("fs-kidmode", null); refresh(); A().toast && A().toast("Kid mode is off"); }
-    else if (t.hasAttribute("data-kidmode-on")) { e.preventDefault(); ls("fs-kidmode", "1"); location.hash = mapHref(); refresh(); }
+    else if (t.hasAttribute("data-kidmode-off")) { e.preventDefault(); if (window.FS_KIDLOCK) window.FS_KIDLOCK.askExit(); }
+    else if (t.hasAttribute("data-kidmode-on")) { e.preventDefault(); location.hash = "#/kidsetup"; }
     else if (t.hasAttribute("data-open-fam")) { var fc = document.getElementById("famchip"); if (fc) { e.stopPropagation(); fc.click(); } }
     else if (t.hasAttribute("data-full-app")) { e.preventDefault(); ls("fs-full-app", "1"); location.hash = "#/"; refresh(); }
     else if (t.hasAttribute("data-grand-view")) { e.preventDefault(); ls("fs-full-app", null); location.hash = "#/highlights"; refresh(); }
@@ -235,7 +235,7 @@
       html += '<section class="moregroup"><h2>' + esc(g[0]) + '</h2><ul class="morelist">' + g[1].map(function (l) {
         var ext = l[1].charAt(0) === "/"; return '<li><a href="' + esc(l[1]) + '"' + (ext ? ' target="_blank" rel="noopener"' : "") + '><span class="ic" aria-hidden="true">' + l[2] + '</span>' + esc(l[0]) + '</a></li>';
       }).join("") + (g[0] === "Our family" ? kids().map(function (p) { return '<li class="sub"><a href="#/p/' + esc(p.id) + '"><span class="ic" aria-hidden="true">·</span>' + esc(name(p)) + '\'s page</a></li>'; }).join("") : "") +
-        (g[0] === "Account" ? '<li><button type="button" class="linkbtn" data-kidmode-on><span class="ic" aria-hidden="true">🧒</span>Kid mode (one-handed: Map, Stamp, Games)</button></li>' +
+        (g[0] === "Account" ? '<li><button type="button" class="linkbtn" data-kidmode-on><span class="ic" aria-hidden="true">🧒</span>Kid mode (games, quests and stamps, locked with a PIN)</button></li>' +
           (isGrand() ? '<li><a href="#/highlights"><span class="ic" aria-hidden="true">✨</span>Highlights</a></li><li><button type="button" class="linkbtn" data-grand-view><span class="ic" aria-hidden="true">👵</span>Simple grandparent view</button></li>' : "") +
           '<li><button type="button" class="linkbtn" data-tour-again><span class="ic" aria-hidden="true">🧭</span>Take the 3-step tour again</button></li>' : "") + '</ul></section>';
     });
@@ -265,6 +265,7 @@
   }
   (window.FS_ROUTES = window.FS_ROUTES || []).unshift(function (h) {
     var a = h[0];
+    if (window.FS_KIDLOCK && window.FS_KIDLOCK.guard && window.FS_KIDLOCK.guard(h)) return true;   // v105 Kid mode
     if (grandView() && !grandAllowed("#/" + h.join("/"))) { location.replace("#/highlights"); return true; }
     if (a === "" && grandView()) { location.replace("#/highlights"); return true; }
     if (a === "map") { var t = h[1] === "family" ? "#/family" : (h[1] && A().kidById(h[1]) ? "#/p/" + h[1] + "/" + (MAPSUB[h[2]] ? h[2] : "us") : mapHref()); location.replace(t); return true; }
@@ -310,7 +311,7 @@
     // Help: how to get around
     if (h[0] === "help" && !main.querySelector(".navhelp")) {
       var hp = document.createElement("section"); hp.className = "panel navhelp";
-      hp.innerHTML = '<h2>Getting around</h2><ul><li><b>Home</b>: today\'s cards, On this day, and trips from your photos to review.</li><li><b>Map</b>: one person\'s map or the whole family\'s (pick at the top), with USA, World and Parks.</li><li><b>＋ Stamp</b> (the big middle button): add a trip, quick-add places, make trips from photos, find what\'s near you, or stamp a stop on the trip you\'re on.</li><li><b>Trips</b>: every trip, with its journal, games, photos and postcards. The homeschool field-trip log and its PDF are here too.</li><li><b>More</b>: our family, badges and rewards, games and postcards, sharing and keepsakes, and your account (Family Sync, backups, Recently deleted, help and privacy).</li><li><b>Back</b> (top left) goes to the screen you were on, just like your phone\'s Back button. <b>Search</b> is at the top right.</li><li><b>Kid mode</b> (More → Account) puts Map, Stamp and Games in big buttons for one hand. Grandparents get a simple 3-tab view with big text.</li></ul>';
+      hp.innerHTML = '<h2>Getting around</h2><ul><li><b>Home</b>: today\'s cards, On this day, and trips from your photos to review.</li><li><b>Map</b>: one person\'s map or the whole family\'s (pick at the top), with USA, World and Parks.</li><li><b>＋ Stamp</b> (the big middle button): add a trip, quick-add places, make trips from photos, find what\'s near you, or stamp a stop on the trip you\'re on.</li><li><b>Trips</b>: every trip, with its journal, games, photos and postcards. The homeschool field-trip log and its PDF are here too.</li><li><b>More</b>: our family, badges and rewards, games and postcards, sharing and keepsakes, and your account (Family Sync, backups, Recently deleted, help and privacy).</li><li><b>Back</b> (top left) goes to the screen you were on, just like your phone\'s Back button. <b>Search</b> is at the top right.</li><li><b>Kid mode</b> (More → Account) hands a kid the phone with just their map, passport, games, quests and Firsts in big buttons. Nothing they do is saved or sent, and a grown-up PIN ends it. Grandparents get a simple 3-tab view with big text.</li></ul>';
       main.insertBefore(hp, main.children[1] || null);
     }
     if (window.FS_ROBUST && window.FS_ROBUST.decorate) { try { window.FS_ROBUST.decorate(h, gv); } catch (e) {} }

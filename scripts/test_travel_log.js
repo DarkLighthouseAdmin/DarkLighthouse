@@ -2854,3 +2854,21 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   const huge = Object.assign({}, mid, { id: "t_zz104h", journal: [{ kid: "p_zz1", day: "2026-06-01", text: "z".repeat(30000) }] });
   ok(!S.tripBatches(S.planPush({ people: [], trips: [huge], photoIds: [] }, S.emptyShadow(), "f").trips).big[0].alt, "v104: a 30 KB trip has no whole fallback (it would fail); it waits instead");
 }
+{ // v105: Kid mode (locked, nothing collected) and kid codes off
+  const K = require("../travel-log/app/kidlock.js");
+  ok(K.allowed(["kidmode"], "p_zz1") && K.allowed(["games"], "p_zz1") && K.allowed(["games", "t1", "2026-06-01", "bingo"], "p_zz1") && !K.allowed(["games", "print"], "p_zz1"), "v105: Kid mode allows its home and games (not printing)");
+  ok(K.allowed(["p", "p_zz1", "us"], "p_zz1") && K.allowed(["p", "p_zz1", "passport"], "p_zz1") && K.allowed(["p", "p_zz1", "quests"], "p_zz1") && K.allowed(["p", "p_zz1", "firsts"], "p_zz1") && K.allowed(["p", "p_zz1"], "p_zz1"), "v105: the kid's own map, passport, quests and Firsts");
+  ok(!K.allowed(["p", "p_zz2", "us"], "p_zz1") && !K.allowed(["p", "p_zz1", "firsts", "first-flight"], "p_zz1") && !K.allowed(["p", "p_zz1", "journal"], "p_zz1") && !K.allowed(["p", "p_zz1", "edit"], "p_zz1"), "v105: no other kid, no editing a First, no journal, no edit page");
+  ok(["", "trips", "more", "sync", "add", "stamp", "search", "backup", "join", "kidsetup", "settings"].every(a => !K.allowed([a], "p_zz1")), "v105: no grown-up screens (home, trips, more, family, add, stamp, search, backup, join)");
+  ok(K.validPin("0427") && !K.validPin("427") && !K.validPin("04a7") && !K.validPin("04271"), "v105: PIN is exactly 4 numbers");
+  ok(K.slowHash("s1", "0427") === K.slowHash("s1", "0427") && K.slowHash("s1", "0427") !== K.slowHash("s2", "0427") && K.slowHash("s1", "0427") !== K.slowHash("s1", "0428") && !/0427/.test(K.slowHash("s1", "0427")), "v105: PIN kept only as a salted hash");
+  ok(K.waitAfter(4) === 0 && K.waitAfter(5) === 60000 && K.waitAfter(6) === 120000 && K.waitAfter(30) === 900000, "v105: 5 wrong PINs -> wait 1, 2, 4... up to 15 min");
+  const app = read("app.js"), sy = read("sync.js"), nav = read("nav.js"), ix = read("index.html"), kl = read("kidlock.js");
+  ok(/function put\(store, v, silent\) \{ if \(kidLocked\(\)\) return Promise\.resolve\(\);/.test(app) && /function del\(store, id, silent\) \{ if \(kidLocked\(\)\) return Promise\.resolve\(\);/.test(app), "v105: nothing is saved on the phone in Kid mode");
+  ok(/FS_KIDLOCK\.on\(\)\) return Promise\.resolve\(\);/.test(sy), "v105: nothing is sent or fetched in Kid mode");
+  ok(/FS_KIDLOCK\.guard\(h\)\) return true;/.test(nav) && ix.indexOf("kidlock.js") > 0 && ix.indexOf("kidlock.js") < ix.indexOf('"nav.js"'), "v105: every screen goes through the Kid mode check first");
+  ok(/a\.load \? a\.load\(\)/.test(kl) && /input, textarea, select, \[contenteditable\]/.test(kl) && /fs-kidmode", null/.test(kl), "v105: ending reloads the saved log; typing is off; the old open Kid mode is retired");
+  ok(!/data-irole="kid"/.test(sy) && !/A kid with their own phone/.test(sy), "v105: no new kid codes");
+  ok((sy.match(/inv\.role === "kid"\) return kidCodeOff\(\)/g) || []).length === 2, "v105: an old kid code says kid codes are off (both join paths)");
+  ok(/redeem_graduation/.test(sy + read("more.js")), "v105: graduating (13+) still works");
+}

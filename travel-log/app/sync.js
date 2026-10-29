@@ -257,6 +257,7 @@
   var wantNow = false;
   function syncNow(opts) {
     if (!on()) { setStatus("off"); return Promise.resolve(); }
+    if (window.FS_KIDLOCK && window.FS_KIDLOCK.on()) return Promise.resolve();   // v105: Kid mode sends and fetches nothing; sync picks up after
     if (opts && opts.throwErrors) wantNow = true;   // someone is waiting on this one: redraw right away when it lands
     if (running) { again = true; return wantNow ? running.then(function (x) { if (rrWaiting) rerender(true); return x; }) : running; }
     if (navigator.onLine === false) { setStatus("offline", "Changes are saved on this phone and will sync when you're back online."); return Promise.resolve(); }
@@ -618,12 +619,18 @@
     try { localStorage.setItem(FOR_KEY, JSON.stringify(m)); } catch (e) {}
     remote().then(function (r) { return r.rpc("set_invite_for", { p_code: code, p_person: pid || "" }); }).catch(function () {});
   }
+  // v105: kids no longer join from their own phone. Old kid codes stop taking joins (the server says no too); kids already
+  // in the family and everything they added stay. Kids play in Kid mode on a grown-up's phone instead.
+  function kidCodeOff() {
+    main.innerHTML = back("#/", "Home") + '<div class="synchero"><div class="beam" aria-hidden="true">🧒</div><h1>Kid codes are turned off</h1><p class="lede small">Kids don\'t join from their own phone any more. ' +
+      'A grown-up can turn on <b>Kid mode</b> on their phone: games, quests and your stamps, locked with a grown-up PIN. Nothing is lost: kids already in the family keep all their stamps.</p></div>';
+  }
   function invFor(i) { return (i && (i.for_person || forMap()[i.code])) || ""; }
   function viewInvite() {
     var c = cfg(); if (!c) { location.hash = "#/sync"; return; }
     document.title = "Invite · Famstamp";
     main.innerHTML = back("#/sync", "Family") + '<h1>Invite the crew</h1><p class="lede small">Send the link, or let them scan the code. It works for 7 days, up to 10 people.</p>' +
-      '<div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" data-irole="adult" aria-pressed="true">A grown-up</button><button type="button" data-irole="grand" aria-pressed="false">A grandparent</button><button type="button" data-irole="kid" aria-pressed="false">A kid with their own phone</button></div>' +
+      '<div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" data-irole="adult" aria-pressed="true">A grown-up</button><button type="button" data-irole="grand" aria-pressed="false">A grandparent</button></div><p class="small muted kidcodesoff">Kids don\'t get their own codes any more: hand them this phone in <a href="#/kidsetup">Kid mode</a> instead. Kids already in the family keep everything.</p>' +
       (A.state.kids.length ? '<div class="field"><label for="ifor">Who is it for?</label><select id="ifor"><option value="">Anyone (they pick themselves)</option>' +
         A.state.kids.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(M.who(k)) + '</option>'; }).join("") + '</select></div>' : "") +
       '<div class="panel invite" id="invbox"><p class="muted">Making a code…</p></div><p class="err" id="ierr" hidden></p>' +
@@ -708,7 +715,7 @@
         function line(i) {
           var st = state(i), shown = lastInvite && lastInvite.code === i.code;
           var fp = invFor(i), fk = fp && A.state.kids.filter(function (k) { return k.id === fp; })[0];
-          var meta = (fk ? "For " + M.who(fk) + " · " : "") + (i.role === "kid" ? "Kid" : "Grown-up") + " · " + (i.uses ? "used " + i.uses + " of " + i.max_uses : "not used yet") + " · " + (st === "Expired" ? "ended " : "ends ") + M.prettyDate(String(i.expires_at).slice(0, 10)) + " · made " + M.prettyDate(String(i.created_at).slice(0, 10));
+          var meta = (fk ? "For " + M.who(fk) + " · " : "") + (i.role === "kid" ? "Kid code (turned off)" : "Grown-up") + " · " + (i.uses ? "used " + i.uses + " of " + i.max_uses : "not used yet") + " · " + (st === "Expired" ? "ended " : "ends ") + M.prettyDate(String(i.expires_at).slice(0, 10)) + " · made " + M.prettyDate(String(i.created_at).slice(0, 10));
           return '<div class="row invrow' + (st ? " invdone" : "") + '"><span class="nm"><b class="mono">' + esc(i.code) + (st ? ' <span class="invtag">' + esc(st) + '</span>' : shown ? ' <span class="invtag invon">Shown above</span>' : "") + '</b><span>' + esc(meta) + '</span></span>' +
             (st ? "" : '<span class="invbtns">' + (shown ? "" : '<button type="button" class="pill" data-ishow="' + esc(i.code) + '" aria-label="Show code and QR for ' + esc(i.code) + '">Show</button>') +
               '<button type="button" class="pill" data-ishare="' + esc(i.code) + '" aria-label="Share ' + esc(i.code) + '">Share</button><button type="button" class="pill" data-icp="' + esc(i.code) + '" aria-label="Copy the link for ' + esc(i.code) + '">Copy</button>' +
@@ -775,6 +782,7 @@
         return Promise.all([r.rpc("invite_preview", { p_code: code }), r.myFamilies(sess.userId)]).then(function (x) {
           var inv = Array.isArray(x[0]) ? x[0][0] : x[0];
           if (!inv) { main.innerHTML = back("#/join", "Try another code") + '<div class="synchero"><div class="beam" aria-hidden="true">🤔</div><h1>That invite didn\'t work</h1><p class="lede small">It may have expired, been used up, or been turned off. Ask for a fresh one.</p></div>'; return; }
+          if (inv.role === "kid") return kidCodeOff();   // v105: kid codes stopped taking joins
           return identityJoin(code, inv, sess, r, x[1] || []);
         });
       });
@@ -798,6 +806,7 @@
       if (!x.inv) {
         main.innerHTML = back("#/join", "Try another code") + '<div class="synchero"><div class="beam" aria-hidden="true">🤔</div><h1>That invite didn\'t work</h1><p class="lede small">It may have expired, been used up, or been turned off. Ask for a fresh one; it only takes a second.</p></div>'; return;
       }
+      if (x.inv.role === "kid") return kidCodeOff();   // v105
       joinScreen(code, x.inv, x.sess, r);
     }).catch(function (e) {
       main.innerHTML = back("#/", "Home") + '<div class="panel"><h3>Couldn\'t open the invite</h3><p class="muted">' + esc(friendly(e).message) + '</p><div class="actions"><button class="btn btn-primary" id="jretry">Try again</button></div></div>';
