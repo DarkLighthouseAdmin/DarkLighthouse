@@ -174,6 +174,7 @@
       return '<a href="' + hrefFor(p.id) + '" style="' + A().kidStyle(p) + '"' + (cur === p.id ? ' aria-current="page"' : "") + '><span class="dotp" aria-hidden="true">' + A().initial(p) + '</span>' + esc(name(p)) + (p.id === m ? ' <small>(you)</small>' : "") + '</a>';
     }).join("") + '</nav>';
   }
+  var tripsTok = 0;
   function viewTrips(pid) {
     var a = A(), p = pid && a.kidById(pid); if (pid && !p) pid = "";
     var list = tripList(a.state.trips, pid), UI = window.FS_UI, html = '<h1>Trips</h1>';
@@ -182,13 +183,28 @@
     var drafts = M().draftTrips ? M().draftTrips(a.state.trips).length : 0;
     if (drafts) html += '<p><a class="tapline" href="#/p/' + esc(pid || who()) + '/trips/review">📷 ' + drafts + (drafts === 1 ? " trip" : " trips") + ' from your photos to review →</a></p>';
     if (!list.length) html += '<div class="panel empty"><p><b>' + (p ? esc(name(p)) + " has no trips yet." : "No trips yet.") + '</b></p><p class="small muted">Add your first one, even a trip from years ago. Each trip keeps its own journal, road-trip games, photos and postcards.</p><button type="button" class="btn btn-primary" data-fs-addtrip>Add a trip</button></div>';
-    var year = "";
-    list.forEach(function (t) {
-      var y = String(t.date || "").slice(0, 4) || "No date"; if (y !== year) { html += '<h2 class="tyear">' + esc(y) + '</h2>'; year = y; }
-      html += UI ? UI.tripCard(t, p || a.kidById((t.kidIds || [])[0])) : '<p>' + esc(t.place) + '</p>';
-    });
+    var year = "", FIRST = window.FS_REDRAW ? 1e9 : 24, CHUNK = 30, tok = ++tripsTok;
+    function card(t) {
+      var y = String(t.date || "").slice(0, 4) || "No date", h = "";
+      if (y !== year) { h += '<h2 class="tyear">' + esc(y) + '</h2>'; year = y; }
+      return h + (UI ? UI.tripCard(t, p || a.kidById((t.kidIds || [])[0])) : '<p>' + esc(t.place) + '</p>');
+    }
+    // v96: a long list draws its first cards now and the rest in small slices right after, so switching to Trips never freezes
+    list.slice(0, FIRST).forEach(function (t) { html += card(t); });
+    if (list.length > FIRST) html += '<div id="tripsrest" aria-busy="true"></div>';
     a.main.innerHTML = html; document.title = "Trips · Famstamp";
     if (a.fillPhotos) a.fillPhotos();
+    var at = FIRST;
+    (function more() {
+      if (at >= list.length) return;
+      setTimeout(function () {
+        var box = document.getElementById("tripsrest"); if (tok !== tripsTok || !box) return;
+        var h = ""; list.slice(at, at + CHUNK).forEach(function (t) { h += card(t); }); at += CHUNK;
+        box.insertAdjacentHTML("beforeend", h); if (at >= list.length) box.removeAttribute("aria-busy");
+        if (a.fillPhotos) a.fillPhotos();
+        more();
+      }, at === FIRST ? 60 : 0);
+    })();
     if (UI && UI.mailInbox) UI.mailInbox(a.main);   // v88: bookings forwarded by email
   }
   // v86: dark mode. Auto follows the phone's setting; Light or Dark pins it on this device (theme.js).

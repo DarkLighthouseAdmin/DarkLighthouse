@@ -2666,7 +2666,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/P\.groupStamps\(stamps\)/.test(tui) && /coverLine\(pc\)/.test(tui) && /" of 50 states"/.test(tui) && /Visited ' \+ vs\.length \+ ' times/.test(tui), "v94: passport shows one stamp per place, 'X of 50 states' and the visits list");
   ok(/STAMPMEMO/.test(tui) && /data-lazy/.test(tui) && /warmPlaces\(\)/.test(tui) && /setTimeout\(runSearch, 140\)/.test(tui), "v94: stamps worked out once per change, pages drawn as you swipe, search waits for a typing pause");
   ok(/cardKey === key && lastBlob/.test(yr), "v94: the year card is kept, not redrawn on every visit");
-  ok(mz.indexOf("var cr = labels.length ? ctl.getBoundingClientRect()") < mz.indexOf("dotEls.forEach(function (c) {\n        c.setAttribute"), "v94: map labels read layout before writing");
+  ok(!/getBoundingClientRect/.test(mz.slice(mz.indexOf("function layout()"), mz.indexOf("// ---- moving ----"))), "v94/v96: map labels never read layout while writing (the buttons' box comes from measure)");
   ok(P.addDays("2026-02-27", 3) === "2026-03-02" && P.addDays("2026-02-27", 3) === "2026-03-02" && P.addDays("x", 1) === "", "v94: remembered date sums still right");
 }
 { // v95: stops you can add, edit, change, move and remove (with Undo), and change where the trip starts
@@ -2684,4 +2684,11 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/function undoRemove/.test(tui) && /id="undostop"/.test(tui) && /undoStop = \{ p: p, i: i, route: before \}/.test(tui), "v95: removing a stop can be undone");
   ok(/function replacePoint/.test(tui) && /\["nights", "date", "note"\]/.test(tui), "v95: changing a stop's place keeps its nights, date and notes");
   ok(/\.realmi\[hidden\] \{ display:none; \}/.test(css) && /\.undobar/.test(css), "v95: the miles box stays hidden until asked for");
+}
+{ // v96: long trip lists draw in pieces, map labels never read layout after a pan
+  const nav = read("nav.js"), app = read("app.js"), mz = read("mapzoom.js");
+  ok(/tripsTok/.test(nav) && /id="tripsrest"/.test(nav) && /FIRST = window\.FS_REDRAW \? 1e9 : 24, CHUNK = 30/.test(nav), "v96: the family trips list draws 24 cards first, the rest in pieces");
+  ok(/ptripsTok/.test(app) && /window\.FS_REDRAW \? list\.length : 24/.test(app), "v96: a person's trips list draws in pieces too");
+  ok(/window\.FS_REDRAW = true; var r; try \{ r = routeView\(\); \} finally \{ window\.FS_REDRAW = false; \}/.test(app), "v96: a same-screen redraw draws everything so your scroll spot holds");
+  ok(/ResizeObserver/.test(mz) && /sizeDirty/.test(mz) && /ctlBox/.test(mz), "v96: the map measures only when its size changes, not after every pan");
 }

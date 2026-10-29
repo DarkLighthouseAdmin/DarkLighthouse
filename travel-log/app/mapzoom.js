@@ -44,8 +44,14 @@
     var hint = document.createElement("div"); hint.className = "pzhint"; hint.setAttribute("aria-hidden", "true"); box.appendChild(hint);
 
     var v = { k: 1, tx: 0, ty: 0 }, s = 1, ox = 0, oy = 0, rect = null, raf = 0, idle = 0, anim = 0;
+    // v96: the map's box only changes when its size does (ResizeObserver) or the window resizes, so the end of a pan or zoom
+    // doesn't have to read layout again (that read forced a full layout on phones). ctlBox = the zoom buttons, relative to the map.
+    var sizeDirty = true, ctlBox = null;
+    if (window.ResizeObserver) try { new ResizeObserver(function () { sizeDirty = true; }).observe(svg); } catch (e) {}
     function measure() {
-      rect = svg.getBoundingClientRect();
+      rect = svg.getBoundingClientRect(); sizeDirty = false;
+      var c = labels && labels.length ? ctl.getBoundingClientRect() : null;
+      ctlBox = c && c.width ? [c.left - rect.left, c.top - rect.top, c.right - rect.left, c.bottom - rect.top] : null;
       s = Math.min(rect.width / vb.w, rect.height / vb.h) || 1;
       ox = rect.left + (rect.width - vb.w * s) / 2; oy = rect.top + (rect.height - vb.h * s) / 2;
     }
@@ -79,7 +85,7 @@
       box.dataset.k = v.k.toFixed(3);
       clearTimeout(idle); idle = setTimeout(settle, 90);
     }
-    function settle() { saveViews(); measure(); layout(); }
+    function settle() { saveViews(); if (sizeDirty || !rect || !rect.width || !window.ResizeObserver) measure(); layout(); }
 
     // ---- labels ----
     var labels = [];
@@ -102,7 +108,7 @@
     var focusId = null;
     function layout() {
       var W = rect.width, H = rect.height, ks = v.k * s, placed = [], cw = FPX * 0.58, lh = FPX * 1.25;
-      var cr = labels.length ? ctl.getBoundingClientRect() : null;   // v94: read before the writes below, so the phone lays out once, not twice
+      // v94/v96: no layout reads here; the zoom buttons' box comes from measure()
       // dots mark places too small to tap. At the whole-world view they're just clutter (and too close together to tap), so they
       // appear from 2x zoom; a steady 4.5px on screen, hidden again once the place itself is big enough to tap.
       dotEls.forEach(function (c) {
@@ -112,7 +118,7 @@
       });
       if (!labels.length) return;
       // keep names out from under the + / − / fit buttons (cr, read above)
-      if (cr.width) placed.push([cr.left - rect.left - 4, cr.top - rect.top - 4, cr.right - rect.left + 4, cr.bottom - rect.top + 4]);
+      if (ctlBox) placed.push([ctlBox[0] - 4, ctlBox[1] - 4, ctlBox[2] + 4, ctlBox[3] + 4]);
       // Pass 1: labels that only fit in one spot (small countries like Wales). Pass 2: big countries, which can slide inside
       // their own outline to make room. Within a pass, bigger first. A label is never drawn over another.
       var cand = [];

@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v95";
+  var VERSION = "v96";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -145,7 +145,7 @@
     var y = window.scrollY, open = Array.prototype.map.call(main.querySelectorAll("details"), function (d) { return d.open; });
     var boxes = {}; main.querySelectorAll("input[type=search][id]").forEach(function (i) { if (i.value) boxes[i.id] = i.value; });
     var ae = document.activeElement, focusId = ae && main.contains(ae) && ae.id, sel = focusId && ae.selectionStart != null ? [ae.selectionStart, ae.selectionEnd] : null;
-    var r = routeView();
+    window.FS_REDRAW = true; var r; try { r = routeView(); } finally { window.FS_REDRAW = false; }   // v96: lazy lists draw in full so the scroll spot holds
     var ds = main.querySelectorAll("details"); if (ds.length === open.length) ds.forEach(function (d, i) { if (open[i]) d.open = true; });
     Object.keys(boxes).forEach(function (id) { var i = document.getElementById(id); if (i && !i.value) { i.value = boxes[id]; i.dispatchEvent(new Event("input")); } });
     if (focusId) { var f = document.getElementById(focusId); if (f) { f.focus({ preventScroll: true }); if (sel) try { f.setSelectionRange(sel[0], sel[1]); } catch (e) {} } }
@@ -626,12 +626,23 @@
     main.innerHTML = shell(k, "trips", '<div class="actions"><a class="btn btn-beacon" href="#/p/' + esc(k.id) + '/trips/new">+ Add a trip</a>' +
       (state.kids.length > 1 ? '<a class="btn btn-ghost" href="#/together/' + esc(k.id) + '">🤝 Trips together</a>' : "") + '</div>' + filt +
       (review && !drafts.length ? '<div class="panel"><h3>All reviewed 🎉</h3><p class="muted">Every trip from your photos has been checked. <a class="tapline" href="' + base + '">See all trips</a></p></div>' : "") +
-      (list.length ? '<div class="trips">' + list.map(function (t) { return tripCard(t, k); }).join("") + '</div>'
+      (list.length ? '<div class="trips" id="ptrips">' + list.slice(0, window.FS_REDRAW ? list.length : 24).map(function (t) { return tripCard(t, k); }).join("") + '</div>'
                    : review ? "" : '<div class="panel"><h3>No trips yet</h3><p class="muted">A weekend at Grandma\'s counts just as much as a plane to the other side of the world. Add the first one!</p>' +
                      (window.MLTL_IMPORT ? '<div class="actions">' + window.MLTL_IMPORT.emptyButton(k) + '</div>' : "") + '</div>') +
       (state.bin.length ? '<p class="small binlink"><a class="tapline" href="#/deleted">🗑 Recently deleted (' + state.bin.length + ')</a></p>' : ""));
     fillPhotos();
+    // v96: a long list draws its first 24 cards now and the rest in slices right after, so switching here never freezes
+    var at = window.FS_REDRAW ? list.length : 24, tok = ++ptripsTok;
+    (function more() {
+      if (at >= list.length) return;
+      setTimeout(function () {
+        var box = document.getElementById("ptrips"); if (tok !== ptripsTok || !box) return;
+        box.insertAdjacentHTML("beforeend", list.slice(at, at + 30).map(function (t) { return tripCard(t, k); }).join("")); at += 30;
+        fillPhotos(); more();
+      }, at === 24 ? 60 : 0);
+    })();
   }
+  var ptripsTok = 0;
   function markOptions(sel) {
     var v = sel ? sel.kind + ":" + sel.id : "";
     var o = '<option value="">No, just save the trip</option><optgroup label="US states">' +
