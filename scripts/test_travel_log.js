@@ -2017,8 +2017,8 @@ setTimeout(() => {
 // ---- v65: brand config, kid-drawn stamps, share cards, postcards, stamp stations, Cousin Cup ----
 {
   const app = f => fs.readFileSync(path.join(APP, f), "utf8");
-  ok(/var VERSION = "(?:v6[5-9]|v[7-9][0-9])"/.test(read("app.js")) && /mltl-(?:v6[5-9]|v[7-9][0-9])/.test(read("sw.js")), "v65: version and cache bumped");
-  ok(/var VERSION = "(?:v6[6-9]|v[7-9][0-9])"/.test(read("app.js")) && /mltl-(?:v6[6-9]|v[7-9][0-9])/.test(read("sw.js")), "v66: version and cache bumped");
+  ok(/var VERSION = "(?:v[1-9]\d\d|v6[5-9]|v[7-9][0-9])"/.test(read("app.js")) && /mltl-(?:v[1-9]\d\d|v6[5-9]|v[7-9][0-9])/.test(read("sw.js")), "v65: version and cache bumped");
+  ok(/var VERSION = "(?:v[1-9]\d\d|v6[6-9]|v[7-9][0-9])"/.test(read("app.js")) && /mltl-(?:v[1-9]\d\d|v6[6-9]|v[7-9][0-9])/.test(read("sw.js")), "v66: version and cache bumped");
   ok(/FS_BRAND/.test(read("book.js")) && !/"FAMSTAMP/.test(read("book.js")), "v66: book takes its brand name from FS_BRAND");
   ok(/FS_BRAND/.test(read("rewards.js")) && /FS_BRAND/.test(read("games.js")), "v66: certificate and game footer use FS_BRAND");
   ok(/bfamily/.test(read("book.js")) && /travel crew/.test(read("book.js")), "v66: book has a travel crew page");
@@ -2123,7 +2123,7 @@ setTimeout(() => {
 {
   const ROOTDIR = path.join(__dirname, "..");
   const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
-  ok(/var VERSION = "v(6[7-9]|[7-9][0-9])"/.test(read("app.js")) && /mltl-v(6[7-9]|[7-9][0-9])/.test(read("sw.js")), "v67: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|6[7-9]|[7-9][0-9])"/.test(read("app.js")) && /mltl-v([1-9]\d\d|6[7-9]|[7-9][0-9])/.test(read("sw.js")), "v67: version and cache bumped");
   const idx = read("index.html");
   ok(idx.indexOf('src="launch.js"') > idx.indexOf('src="brand.js"') && idx.indexOf('src="launch.js"') < idx.indexOf('src="app.js"') && /"launch\.js"/.test(read("sw.js")), "v67: launch.js loads right after brand.js and is cached");
   // one config spot for contacts and page links
@@ -2202,7 +2202,7 @@ setTimeout(() => {
   const ROOTDIR = path.join(__dirname, "..");
   const X = require(path.join(APP, "extras.js"));
   const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
-  ok(/var VERSION = "v(6[8-9]|[7-9][0-9])"/.test(read("app.js")) && /mltl-v(6[8-9]|[7-9][0-9])/.test(read("sw.js")), "v68: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|6[8-9]|[7-9][0-9])"/.test(read("app.js")) && /mltl-v([1-9]\d\d|6[8-9]|[7-9][0-9])/.test(read("sw.js")), "v68: version and cache bumped");
   ok(/"extras\.js"/.test(read("sw.js")) && /<script src="extras\.js"><\/script>/.test(read("index.html")), "v68: extras.js cached and loaded");
   ok(read("index.html").indexOf("launch.js") < read("index.html").indexOf("extras.js"), "v68: extras loads after launch");
   // Utah: the gull now fills the glyph box like the other states, on the set's 1.6 ground line; no new animal art
@@ -2444,7 +2444,7 @@ setTimeout(() => {
   const ROOTDIR = path.join(__dirname, "..");
   const site = f => fs.readFileSync(path.join(ROOTDIR, "travel-log", f), "utf8");
   const root = f => fs.readFileSync(path.join(ROOTDIR, f), "utf8");
-  ok(/var VERSION = "v(7[3-9]|[89]\d)"/.test(read("app.js")) && /mltl-v(7[3-9]|[89]\d)/.test(read("sw.js")), "v73: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|7[3-9]|[89]\d)"/.test(read("app.js")) && /mltl-v([1-9]\d\d|7[3-9]|[89]\d)/.test(read("sw.js")), "v73: version and cache bumped");
   const wl = site("waitlist/index.html");
   ok(!/DRAFT|Draft|not public/.test(wl) && /<title>Get notified when Famstamp launches<\/title>/.test(wl) && /<h1>Get notified when <span data-brand>Famstamp<\/span> launches<\/h1>/.test(wl), "v73: waitlist page is published with the brand name marked");
   ok(/data-mail="support" data-subject="\{name\} unsubscribe"/.test(wl) && /unsubscribe/i.test(wl) && /privacy\/#waitlist/.test(wl), "v73: waitlist says how to unsubscribe (support@) and links the policy");
@@ -2473,7 +2473,7 @@ setTimeout(() => {
 // ---- v74: one minified script bundle for a fast first visit ----
 {
   const ix = read("index.html"), live = ix.replace(/<!--[\s\S]*?-->/g, ""), bl = BUNDLE.list(), bun = read("app-bundle.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
-  ok(/var VERSION = "v(7[4-9]|[89]\d)"/.test(read("app.js")) && /mltl-v(7[4-9]|[89]\d)/.test(swr), "v74: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|7[4-9]|[89]\d)"/.test(read("app.js")) && /mltl-v([1-9]\d\d|7[4-9]|[89]\d)/.test(swr), "v74: version and cache bumped");
   ok((live.replace(/<script src="theme\.js"><\/script>/, "").match(/<script\b/g) || []).length === 1 && /<script src="app-bundle\.js"><\/script>/.test(live), "v74: the page loads only app-bundle.js (plus the tiny v86 theme.js in the head)");
   ok(bl.length >= 50 && bl[0] === "brand.js" && bl[1] === "launch.js" && bl[bl.length - 1] === "nav.js" && new Set(bl).size === bl.length && bl.every(f => fs.existsSync(path.join(APP, f))), "v74: bundle list in order, no repeats, every file exists");
   ok(bun.indexOf("/* Famstamp app bundle " + BUNDLE.hash(bl) + ":") === 0, "v74: app-bundle.js is up to date with its sources (rebuild: node scripts/build_app_bundle.js)");
@@ -2485,7 +2485,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
 // ---- v75: small-phone top bar + grandparent view fixes ----
 {
   const css = read("app.css"), nav = read("nav.js");
-  ok(/var VERSION = "v(7[5-9]|[89]\d)"/.test(read("app.js")) && /mltl-v(7[5-9]|[89]\d)/.test(fs.readFileSync(path.join(APP, "sw.js"), "utf8")), "v75: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|7[5-9]|[89]\d)"/.test(read("app.js")) && /mltl-v([1-9]\d\d|7[5-9]|[89]\d)/.test(fs.readFileSync(path.join(APP, "sw.js"), "utf8")), "v75: version and cache bumped");
   ok(/@media \(max-width:400px\)[\s\S]*\.topbar:has\(\.navback:not\(\[hidden\]\)\) \.navsearch \.tl/.test(css), "v75: inner pages on small phones hide the search label so the top bar fits");
   ok(/@media \(max-width:340px\)[\s\S]*\.topbar:has\(\.famchip:not\(\[hidden\]\)\) \.navsearch \.tl/.test(css) && /\.topright \.famchip \{ max-width:4\.4rem !important; \}/.test(css), "v75: 320px with the family chip fits");
   ok(/GRAND_OK[^;]*report: 1/.test(nav) && /GRAND_OK[^;]*sync: 1/.test(nav) && /href="#\/sync">Family and sign-in/.test(nav), "v75: grandparent view can report a problem and reach Family and sign-in");
@@ -2494,7 +2494,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
 // ---- v86: dark mode (follows the phone, plus Auto/Light/Dark in More) ----
 {
   const ix = read("index.html"), th = read("theme.js"), dk = read("dark.css"), ex = read("dark-extra.css"), nav = read("nav.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
-  ok(/var VERSION = "v(8[6-9]|9\d)"/.test(read("app.js")) && /mltl-v(8[6-9]|9\d)/.test(swr), "v86: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|8[6-9]|9\d)"/.test(read("app.js")) && /mltl-v([1-9]\d\d|8[6-9]|9\d)/.test(swr), "v86: version and cache bumped");
   ok(ix.indexOf('href="dark.css"') > ix.indexOf('href="map.css"') && ix.indexOf('src="theme.js"') < ix.indexOf("</head>"), "v86: dark.css after the light sheets; theme.js in the head (no white flash)");
   ok(/"dark\.css"/.test(swr) && /"theme\.js"/.test(swr), "v86: dark.css and theme.js cached for offline");
   ok(/prefers-color-scheme: dark/.test(th) && /fs-theme/.test(th) && /addEventListener\("change"/.test(th), "v86: Auto follows the phone setting, live");
@@ -2510,7 +2510,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
 // ---- v87: placeholder avatars (swappable set in avatars.js) ----
 {
   const AV = require(path.join(APP, "avatars.js")), ix = read("index.html"), app = read("app.js"), tu = read("trips-ui.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
-  ok(/var VERSION = "v(8[7-9]|9\d)"/.test(app) && /mltl-v(8[7-9]|9\d)/.test(swr), "v87: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|8[7-9]|9\d)"/.test(app) && /mltl-v([1-9]\d\d|8[7-9]|9\d)/.test(swr), "v87: version and cache bumped");
   ok(AV.list.length >= 16 && AV.list.some(a => a.group === "kid") && AV.list.some(a => a.group === "adult"), "v87: kid and grown-up avatars");
   ok(new Set(AV.list.map(a => a.id)).size === AV.list.length && AV.list.every(a => /^[a-z]\d+$/.test(a.id) && a.label), "v87: ids are unique and each has a spoken label");
   ok(AV.list.every(a => /^<svg class="avimg" viewBox="0 0 64 64"[^>]*>[\s\S]+<\/svg>$/.test(AV.html(a.id)) && !/<script|on\w+=|href/i.test(AV.html(a.id))), "v87: every avatar is a plain drawing");
@@ -2526,7 +2526,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
 {
   const tu = read("trips-ui.js"), nav = read("nav.js"), app = read("app.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
   const MAIL = path.join(APP, "..", "mail"), gs = fs.readFileSync(path.join(MAIL, "famstamp-mail.gs"), "utf8"), sql = fs.readFileSync(path.join(MAIL, "booking-inbox.sql"), "utf8");
-  ok(/var VERSION = "v(8[8-9]|9\d)"/.test(app) && /mltl-v(8[8-9]|9\d)/.test(swr), "v88: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|8[8-9]|9\d)"/.test(app) && /mltl-v([1-9]\d\d|8[8-9]|9\d)/.test(swr), "v88: version and cache bumped");
   ok(/mailInbox: mailInbox/.test(tu) && /UI\.mailInbox\(a\.main\)/.test(nav), "v88: Trips page shows the email inbox");
   ok(/"my_booking_address"/.test(tu) && /id="bkmail"[^>]*hidden/.test(tu), "v88: forward address only shows once the server has it");
   ok(/p_status: "used"/.test(tu) && /p_status: "dismissed"/.test(tu) && /var mailId = fromBooking \? pendingMail : null/.test(tu), "v88: marked used only after the trip is saved; Not ours dismisses");
@@ -2542,7 +2542,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
 // ---- v89: bearded young-adult avatars ----
 {
   const AV = require(path.join(APP, "avatars.js")), app = read("app.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
-  ok(/var VERSION = "v(89|9\d)"/.test(app) && /mltl-v(89|9\d)/.test(swr), "v89: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|89|9\d)"/.test(app) && /mltl-v([1-9]\d\d|89|9\d)/.test(swr), "v89: version and cache bumped");
   const by = {}; AV.list.forEach(a => { by[a.id] = a; });
   ok(by.a9 && by.a9.label === "Beard" && by.a9.group === "adult", "v89: a9 'Beard' is a grown-up");
   ok(by.a10 && by.a11 && by.a10.group === "adult" && by.a11.group === "adult", "v89: two beard variations");
@@ -2553,7 +2553,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
 // ---- v90: beard avatars get a full head of hair ----
 {
   const AV = require(path.join(APP, "avatars.js")), app = read("app.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
-  ok(/var VERSION = "v(9\d)"/.test(app) && /mltl-v(9\d)/.test(swr), "v90: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|9\d)"/.test(app) && /mltl-v([1-9]\d\d|9\d)/.test(swr), "v90: version and cache bumped");
   const by = {}; AV.list.forEach(a => { by[a.id] = a; });
   ok(by.a9.art.hair === "full" && by.a10.art.hair === "full" && by.a9.label === "Beard" && by.a10.label === "Short beard", "v90: a9 and a10 use the fuller hair, same labels");
   ok(by.a1.art.hair === "short" && by.a3.art.hair === "short" && by.a11.art.hair === "curly", "v90: other avatars unchanged");
@@ -2565,7 +2565,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
 // ---- v91: Download my Famstamp + add-only "Restore from a backup" ----
 {
   const app = read("app.js"), nav = read("nav.js"), rb = read("robust.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
-  ok(/var VERSION = "v(9[1-9])"/.test(app) && /mltl-v(9[1-9])/.test(swr), "v91: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|9[1-9])"/.test(app) && /mltl-v([1-9]\d\d|9[1-9])/.test(swr), "v91: version and cache bumped");
   const kidA = M.newPerson({ id: "kid_zzA1", name: "Zz Test Ava", role: "kid", color: "#2a6", now: "2026-10-01T00:00:00.000Z" });
   kidA.states = { CA: { at: "2026-07-04" } }; kidA.stamps = []; kidA.av = "k2";
   const kidB = M.newPerson({ id: "kid_zzB2", name: "Zz Test Ben", role: "adult", now: "2026-10-01T00:00:00.000Z" });
@@ -2600,7 +2600,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
 {
   const tu = read("trips-ui.js"), app = read("app.js"), swr = fs.readFileSync(path.join(APP, "sw.js"), "utf8");
   const MAIL = path.join(APP, "..", "mail"), gs = fs.readFileSync(path.join(MAIL, "famstamp-mail.gs"), "utf8"), sql = fs.readFileSync(path.join(MAIL, "booking-notes.sql"), "utf8");
-  ok(/var VERSION = "v(9[2-9])"/.test(app) && /mltl-v(9[2-9])/.test(swr), "v92: version and cache bumped");
+  ok(/var VERSION = "v([1-9]\d\d|9[2-9])"/.test(app) && /mltl-v([1-9]\d\d|9[2-9])/.test(swr), "v92: version and cache bumped");
   ok(/We got an email on " \+ day \+ " but couldn't read it\. Try Paste a booking instead\./.test(tu), "v92: the gentle note wording");
   ok(/"booking_notes_list"/.test(tu) && /"booking_note_seen"/.test(tu) && /id="bknote"/.test(tu), "v92: notes on Trips and under Paste a booking");
   const body = sql.replace(/--.*$/gm, "").replace(/on delete cascade/gi, "");
@@ -2728,4 +2728,17 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   const P = require("../travel-log/app/passport-core.js");
   const v = P.tripVisits({ date: "2026-06-01", route: [{ name: "Orlando", kind: "city", country: "USA", region: "FL" }, { name: "Scotland", kind: "place", country: "GBR", region: "SCT", nights: 3 }, { name: "Wales", kind: "place", country: "GBR", region: "WLS" }] }, {});
   ok(v.some(x => x.kind === "place" && x.area === "SCT") && v.some(x => x.kind === "place" && x.area === "WLS"), "v99: a 'Scotland' stop stamps Scotland, a 'Wales' stop stamps Wales");
+}
+{ // v100: games started when no trip is on are today's, not the last trip's; the family picks who's playing
+  const G = require("../travel-log/app/games.js"), gs = read("games.js");
+  ok(!/upcoming\(A\(\)\.state\.trips/.test(gs) && !/sort\(function \(a, b\) \{ return a\.date < b\.date \? 1 : -1; \}\)\[0\] \|\| null/.test(gs), "v100: games never fall back to the next or most recent trip");
+  ok(/return now\.length \? now\[0\]\.trip : homeT\(\);/.test(gs) && /\{ id: HOME, home: true, games: m\.homeGames \}/.test(gs), "v100: with no trip on today, the game is today's (kept in this log's settings)");
+  ok(/Add to a trip \(optional\)/.test(gs) && /\(not on a trip\)/.test(gs), "v100: the family can still choose to add the game to a trip");
+  ok(/data-pl="/.test(gs) && /nb\.players = ids;/.test(gs) && /b && Array\.isArray\(b\.players\)/.test(gs), "v100: players are chosen with chips and saved on the board");
+  ok(/A\(\)\.state\.kids\.slice\(\)/.test(gs), "v100: everyone in the family can play when not on a trip");
+  const home = { id: "home", games: {} }, day = "2026-10-29"; const list = G.items("hunt", "home:" + day);
+  list.forEach(it => G.tap(home, "hunt", day, it, "2026-10-29T12:00:00Z")); const a = { id: "a" }, b = { id: "b" };
+  const got = G.award(home, "hunt", day, [a, b], "Not on a trip");
+  ok(got.length === 2 && a.games["hunt:home:" + day].trip === "home" && a.games["hunt:home:" + day].place === "Not on a trip", "v100: a game finished at home stamps each chosen player, tied to no trip");
+  ok(G.award(home, "hunt", day, [a], "x").length === 0, "v100: a player gets the stamp once");
 }

@@ -21,7 +21,7 @@
     alpha: { name: "Road-sign alphabet", emoji: "🔤", goal: 26, how: "Find A to Z in order on signs, trucks and stores. Tap each letter as you spot it." },
     hunt: { name: "Scavenger hunt", emoji: "🔍", goal: 12, how: "Find all 12 things out the window. A new list every day." }
   };
-  var KINDS = ["plates", "alpha", "hunt"], DAY = /^\d{4}-\d{2}-\d{2}$/;
+  var HOME = "home", KINDS = ["plates", "alpha", "hunt"], DAY = /^\d{4}-\d{2}-\d{2}$/;
   function seedRand(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return function () { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; }; }
   /** The things on one day's scavenger hunt (12, the same on every phone). */
   function huntList(seed) {
@@ -75,27 +75,39 @@
   function stName(id) { var s = window.MLTL_MAPS.us.shapes.filter(function (x) { return x.id === id; })[0]; return s ? s.name : id; }
   function label(kind, it) { return kind === "plates" ? stName(it) : kind === "alpha" ? it : (HUNT_BY[it] ? HUNT_BY[it][1] + " " + HUNT_BY[it][2] : it); }
   function trips() { return A().state.trips.filter(function (t) { return !t.deletedAt && !M().isDraft(t); }); }
-  /** The trip to play on: one going on now, else the next one, else the most recent. */
+  /** v100: the trip to play on is one going on today. Otherwise the game is just today's (not tied to an old or future trip);
+      the family can still pick a trip to add it to. */
   function bestTrip() {
-    var td = M().today(), now = M().onTripNow(A().state.trips, td), up = M().upcoming(A().state.trips, td);
-    if (now.length) return now[0].trip;
-    if (up.length) return up[0].trip;
-    return trips().filter(function (t) { return DAY.test(t.date || ""); }).sort(function (a, b) { return a.date < b.date ? 1 : -1; })[0] || null;
+    var now = M().onTripNow(A().state.trips, M().today());
+    return now.length ? now[0].trip : homeT();
   }
-  function players(t) {
-    var ids = (t.kidIds || []).filter(function (id) { var p = A().kidById(id); return p && p.role === "kid"; });
-    return (ids.length ? ids : (t.kidIds || [])).map(A().kidById).filter(Boolean);
+  /** Games played when no trip is on: boards keyed by day, kept in this log's settings (state.meta.homeGames). */
+  function homeT() {
+    var m = A().state.meta; if (!m.homeGames || typeof m.homeGames !== "object") m.homeGames = {};
+    return { id: HOME, home: true, games: m.homeGames };
   }
-  function days(t) { var out = [], d = t.date, end = M().tripEnd(t); if (!DAY.test(d || "")) return [M().today()]; for (var i = 0; i < 31 && d <= end; i++) { out.push(d); d = M().addDays(d, 1); } return out; }
+  function findT(tid) { return tid === HOME ? homeT() : A().state.trips.filter(function (x) { return x.id === tid; })[0]; }
+  function where(t, day) { return t.home ? (day === M().today() ? "Today" : "Not on a trip") : M().tripLabel(t); }
+  function saveT(t) { if (t.home) return A().setMeta("homeGames", t.games); t.updatedAt = new Date().toISOString(); return A().put("trips", t); }
+  /** Who can play: everyone on the trip, or the whole family when not on a trip. */
+  function people(t) { return t.home ? A().state.kids.slice() : (t.kidIds || []).map(A().kidById).filter(Boolean); }
+  /** Who is playing this board: the family's pick (saved on the board), else everyone who can play. */
+  function players(t, kind, day) {
+    var all = people(t), b = kind ? board(t, kind, day) : null;
+    return b && Array.isArray(b.players) ? all.filter(function (p) { return b.players.indexOf(p.id) >= 0; }) : all;
+  }
+  function days(t) { var out = [], d = t.date, end = M().tripEnd(t); if (t.home || !DAY.test(d || "")) return [M().today()]; for (var i = 0; i < 31 && d <= end; i++) { out.push(d); d = M().addDays(d, 1); } return out; }
   function hub(tid, day) {
     document.title = "Road-trip games · Famstamp";
-    var t = tid ? A().state.trips.filter(function (x) { return x.id === tid; })[0] : bestTrip();
+    var t = tid ? findT(tid) : bestTrip();
     var html = '<a class="back" href="#/">← Home</a><h1>🚗 Road-trip games</h1><p class="lede small">Play in the car, earn a stamp. Works with no signal.</p>';
-    if (!t) { A().main.innerHTML = html + '<div class="panel"><p>Add a trip first, then the games are tied to its days.</p></div>' + printLink(); return; }
-    day = DAY.test(day || "") ? day : playDay(t, M().today(), M().tripEnd(t));
+    if (!t) t = homeT();
+    day = DAY.test(day || "") ? day : t.home ? M().today() : playDay(t, M().today(), M().tripEnd(t));
     var list = trips().filter(function (x) { return DAY.test(x.date || ""); }).sort(function (a, b) { return a.date < b.date ? 1 : -1; }).slice(0, 30);
-    html += '<div class="field"><label for="gtrip">Trip</label><select id="gtrip">' + list.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === t.id ? " selected" : "") + '>' + esc(M().tripLabel(x) + " · " + M().prettyDate(x.date)) + '</option>'; }).join("") + '</select></div>' +
-      '<div class="field"><label for="gday">Day</label><select id="gday">' + days(t).map(function (d, i) { return '<option value="' + d + '"' + (d === day ? " selected" : "") + '>Day ' + (i + 1) + ' · ' + esc(M().prettyDate(d)) + '</option>'; }).join("") + '</select></div>' +
+    html += '<div class="field"><label for="gtrip">' + (t.home ? "Add to a trip (optional)" : "Trip") + '</label><select id="gtrip"><option value="' + HOME + '"' + (t.home ? " selected" : "") + '>Today · ' + esc(M().prettyDate(M().today())) + ' (not on a trip)</option>' +
+      list.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === t.id ? " selected" : "") + '>' + esc(M().tripLabel(x) + " · " + M().prettyDate(x.date)) + '</option>'; }).join("") + '</select></div>' +
+      (t.home ? '<p class="small muted" id="gwhen">Today · ' + esc(M().prettyDate(day)) + '</p>' :
+      '<div class="field"><label for="gday">Day</label><select id="gday">' + days(t).map(function (d, i) { return '<option value="' + d + '"' + (d === day ? " selected" : "") + '>Day ' + (i + 1) + ' · ' + esc(M().prettyDate(d)) + '</option>'; }).join("") + '</select></div>') +
       '<div class="ggrid">' + KINDS.map(function (kd) {
         var G = GAMES[kd], b = board(t, kd, day), n = b ? b.found.length : 0;
         return '<a class="panel gcard' + (b && b.done ? " done" : "") + '" href="#/games/' + esc(t.id) + '/' + day + '/' + kd + '"><span class="gic" aria-hidden="true">' + G.emoji + '</span><b>' + esc(G.name) + '</b>' +
@@ -104,37 +116,49 @@
     A().main.innerHTML = html;
     var gt = document.getElementById("gtrip"), gd = document.getElementById("gday");
     gt.onchange = function () { location.hash = "#/games/" + gt.value; };
-    gd.onchange = function () { location.hash = "#/games/" + t.id + "/" + gd.value; };
+    if (gd) gd.onchange = function () { location.hash = "#/games/" + t.id + "/" + gd.value; };
   }
   function mine(t) {
-    var ps = players(t).filter(function (p) { return stampsOf(p).length; });
+    var ps = people(t).filter(function (p) { return stampsOf(p).length; });
     return ps.length ? '<h3 class="sec">Game stamps</h3>' + ps.map(function (p) { var s = stampsOf(p); return '<p class="small"><b>' + esc(M().who(p)) + '</b>: ' + s.length + ' · ' + esc(s.slice(0, 4).map(function (g) { return GAMES[g.kind].emoji + " " + (g.place || GAMES[g.kind].name); }).join(", ")) + '</p>'; }).join("") : "";
   }
   function printLink() { return '<p class="small"><a class="tapline" href="#/games/print">🖨️ Printable game sheets (print or save as PDF) →</a></p>'; }
   function play(tid, day, kind) {
-    var t = A().state.trips.filter(function (x) { return x.id === tid; })[0], G = GAMES[kind];
+    var t = findT(tid), G = GAMES[kind];
     if (!t || !G || !DAY.test(day || "")) { location.hash = "#/games"; return; }
     document.title = G.name + " · Famstamp";
-    var b = board(t, kind, day) || { found: [], done: "" }, ps = players(t), all = items(kind, t.id + ":" + day);
+    var b = board(t, kind, day) || { found: [], done: "" }, ps = players(t, kind, day), all = items(kind, t.id + ":" + day), everyone = people(t);
     var html = '<a class="back" href="#/games/' + esc(t.id) + '/' + day + '">← Games</a><h1>' + G.emoji + ' ' + esc(G.name) + '</h1>' +
-      '<p class="small muted">' + esc(M().tripLabel(t) + " · " + M().prettyDate(day)) + ' · ' + esc(G.how) + '</p>' +
+      '<p class="small muted" id="gwhere">' + esc(where(t, day) + " · " + M().prettyDate(day)) + ' · ' + esc(G.how) + '</p>' +
       '<p class="gcount" id="gcount" role="status"><b>' + b.found.length + '</b> / ' + (kind === "plates" ? G.goal + " (" + all.length + " in all)" : G.goal) + (b.done ? ' · ✓ Stamp earned for ' + esc(M().joinNames(ps.map(M().who))) : "") + '</p>' +
       '<div class="gboard g-' + kind + '">' + all.map(function (it) {
         var on = b.found.indexOf(it) >= 0, nxt = kind === "alpha" && LETTERS[b.found.length] === it;
         return '<button type="button" class="gtile' + (on ? " on" : "") + (nxt ? " next" : "") + '" data-gi="' + esc(it) + '" aria-pressed="' + on + '">' + esc(label(kind, it)) + '</button>';
-      }).join("") + '</div><p class="small muted">Players: ' + esc(M().joinNames(ps.map(M().who)) || "everyone on the trip") + '</p>';
+      }).join("") + '</div><div class="field"><span class="small muted">Who\'s playing? Tap to add or take someone off.</span><div class="chips gplayers">' +
+      everyone.map(function (p) { var on = ps.indexOf(p) >= 0; return '<button type="button" class="chip' + (on ? " on" : "") + '" data-pl="' + esc(p.id) + '" aria-pressed="' + on + '">' + (on ? "✓ " : "") + esc(M().who(p)) + '</button>'; }).join("") + '</div></div>';
     A().main.innerHTML = html;
+    function redraw() { var y = window.scrollY; play(tid, day, kind); window.scrollTo(0, y); }
+    A().main.querySelectorAll("[data-pl]").forEach(function (el) {
+      el.onclick = function () {
+        t.games = t.games && typeof t.games === "object" ? t.games : {};
+        var nb = t.games[key(kind, day)] = t.games[key(kind, day)] || { found: [], who: [], done: "" }, ids = players(t, kind, day).map(function (p) { return p.id; }), id = el.dataset.pl, i = ids.indexOf(id);
+        if (i >= 0) ids.splice(i, 1); else ids.push(id);
+        nb.players = ids; var jobs = [];
+        if (nb.done && i < 0) award(t, kind, day, [A().kidById(id)].filter(Boolean), t.home ? "Not on a trip" : M().tripLabel(t)).forEach(function (p) { p.updatedAt = new Date().toISOString(); jobs.push(A().saveKid(p)); });
+        jobs.push(saveT(t)); Promise.all(jobs).then(redraw);
+      };
+    });
     A().main.querySelectorAll("[data-gi]").forEach(function (el) {
       el.onclick = function () {
         var was = !!(board(t, kind, day) || {}).done, nb = tap(t, kind, day, el.dataset.gi);
         var jobs = [];
         if (nb && nb.done && !was) {
-          var got = award(t, kind, day, ps, M().tripLabel(t));
+          var got = award(t, kind, day, players(t, kind, day), t.home ? "Not on a trip" : M().tripLabel(t));
           got.forEach(function (p) { p.updatedAt = new Date().toISOString(); jobs.push(A().saveKid(p)); });
           setTimeout(function () { if (window.MLTL_SYNC && window.MLTL_SYNC._confetti) window.MLTL_SYNC._confetti(); A().toast(G.emoji + " Stamp earned: " + G.name + "!"); }, 50);
         }
-        t.updatedAt = new Date().toISOString(); jobs.push(A().put("trips", t));
-        Promise.all(jobs).then(function () { var y = window.scrollY; play(tid, day, kind); window.scrollTo(0, y); });
+        jobs.push(saveT(t));
+        Promise.all(jobs).then(redraw);
       };
     });
   }
