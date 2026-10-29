@@ -55,5 +55,15 @@ These landmark stamps are our own drawings, made by looking at reference photos 
 | Golden Gate Bridge (v117; also the San Francisco city stamp) | Q44440 | Famstamp | https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_2021.jpg |
 | Mount Rushmore (v117) | Q83497 | Famstamp | https://commons.wikimedia.org/wiki/File:Mount_Rushmore_detail_view.jpg |
 | Angkor Wat (v117) | Q43473 | Famstamp | https://commons.wikimedia.org/wiki/File:Angkor_Wat_with_its_reflection.jpg |
+| Louvre (v118) | Q19675 | Famstamp | https://commons.wikimedia.org/wiki/File:Louvre-Bannenhaff-mat-Pyramid--w.jpg |
+| White House (v118; also the Washington, DC city stamp) | Q35525 | Famstamp | https://commons.wikimedia.org/wiki/File:The_White_House_June_2024.jpg |
+| Burj Khalifa (v118; also the Dubai city stamp) | Q12495 | Famstamp | https://commons.wikimedia.org/wiki/File:Burj_Khalifa_View_with_Sun.jpg |
+| Chichen Itza, El Castillo (v118) | Q5859 | Famstamp | https://commons.wikimedia.org/wiki/File:Chichen_Itza_3.jpg |
+| Palace of Versailles (v118) | Q2946 | Famstamp | https://commons.wikimedia.org/wiki/File:Parterre_du_Midi_Garden_pond_and_Palace_of_Versailles_at_golden_hour_with_blue_sky_in_France.jpg |
+| Forbidden City (v118) | Q80290 | Famstamp | https://commons.wikimedia.org/wiki/File:Meridian_Gate_(Forbidden_City)_2018-08-18_170110.jpg |
+| Mount Fuji (v118; also the Tokyo city stamp) | Q39231 | Famstamp | https://commons.wikimedia.org/wiki/File:Chureito_Pagoda_and_Mount_Fuji_2023-03-07.jpg |
+| Niagara Falls (v118) | Q34221 | Famstamp | https://commons.wikimedia.org/wiki/File:Maid_of_the_Mist_VII_approaching_the_Horseshoe_Falls,_West_view_20170418_1.jpg |
+| Borobudur (v118) | Q42798 | Famstamp | https://commons.wikimedia.org/wiki/File:Borobudur_temple_panorama.jpg |
+| Pompeii (v118) | Q43332 | Famstamp | https://commons.wikimedia.org/wiki/File:Forum_(Pompeii)_and_the_Vesuvio.jpg |
 
-Aliases (no new drawing): Vatican City Q237 and the Sistine Chapel Q2943 use St. Peter's Q12512; the Eilean Donan islet Q79182 uses the castle Q20816698; the Acropolis of Athens Q131013 uses the traced Parthenon Q10288 (credited above). Rome, Athens, Cairo, Istanbul, Barcelona and Edinburgh city stamps reuse their landmark's drawing. v117: Angkor Q163607 uses Angkor Wat; Al-Khazneh Q1259626 uses Petra; Q65961372 (The Great Wall) uses the Great Wall. Cusco, Beijing and San Francisco city stamps reuse theirs.
+Aliases (no new drawing): Vatican City Q237 and the Sistine Chapel Q2943 use St. Peter's Q12512; the Eilean Donan islet Q79182 uses the castle Q20816698; the Acropolis of Athens Q131013 uses the traced Parthenon Q10288 (credited above). Rome, Athens, Cairo, Istanbul, Barcelona and Edinburgh city stamps reuse their landmark's drawing. v117: Angkor Q163607 uses Angkor Wat; Al-Khazneh Q1259626 uses Petra; Q65961372 (The Great Wall) uses the Great Wall. Cusco, Beijing and San Francisco city stamps reuse theirs. v118: Red Square Q41116 uses the traced St. Basil's Q129846 (credited above). New York (Statue of Liberty), Seattle (Space Needle), Toronto (CN Tower), Rio (Christ the Redeemer) and New Delhi (India Gate) city stamps reuse their traced icons; Paris already shows the Eiffel Tower. The Kaaba is deliberately not drawn.
