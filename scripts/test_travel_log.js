@@ -2907,3 +2907,18 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/S\.idleGap\(idleN\)/.test(sy) && /idleN = changed \|\| sent \? 0 : idleN \+ 1/.test(sy) && /}, 30000\);/.test(sy), "v107: background check spacing follows what's happening");
   ok(/planDue && r\.rpc \? r\.rpc\("refresh_my_plan"/.test(sy), "v107: refresh_my_plan only when due");
 }
+{ // v108: booking mail keeps going past one bad mail + weekly sweep; smaller kid stamp drawings
+  const gs = fs.readFileSync(path.join(APP, "..", "mail", "famstamp-mail.gs"), "utf8");
+  ok(/try \{ var out = one_\(msg, code, sender, url, key, secret, today\); \}\s*catch \(e\)/.test(gs) && /FS_MAX_TRIES = 18/.test(gs) && /"FS_TRY_" \+ msg\.getId\(\)/.test(gs), "v108: each mail tried on its own, tries counted");
+  ok(/function famstampWeeklySweep\(\)/.test(gs) && /older_than:7d";/.test(gs) && /FS_ADDR\.test\(hdr\)/.test(gs) && /everyWeeks\(1\)/.test(gs), "v108: weekly sweep of trips@ mail older than 7 days");
+  ok(!/throw new Error\("Famstamp said "[^\n]*\n[^\n]*out = JSON\.parse[\s\S]*?msg\.moveToTrash\(\);\s*else unmatched = true;\s*\}\);\s*if \(unmatched\)[\s\S]*?function one_/.test(gs.replace(/function one_[\s\S]*/, "")), "v108: the reader no longer throws out of the whole run");
+  const K = require(path.join(APP, "kidart.js")), u = n => "data:image/jpeg;base64," + "A".repeat(n);
+  const p = {}; let n = 0; for (let i = 0; i < 60; i++) if (K.set(p, "state", "S" + i, u(29000))) n++;
+  ok(n === 41 && K.total(p) <= K.TOTAL_MAX, "v108: one person's drawings stay under ~1.2 MB (" + n + " fit)");
+  ok(K.set(p, "state", "S0", u(20000)) && K.set(p, "state", "S1", "") && K.set(p, "state", "S41", u(29000)), "v108: replacing or removing a drawing makes room");
+  const old = { stampArt: { "state:CA": u(89000), "state:TX": u(89000) } };
+  ok(K.get(old, "state", "CA").length === u(89000).length && K.count(old) === 2, "v108: big drawings saved before stay exactly as they are");
+  let qs = []; const out = K.shrink(q => { qs.push(q); return u(Math.round(q * 60000)); });
+  ok(out.length <= K.TARGET_LEN && qs[0] === 0.72 && qs.every(q => q >= 0.35), "v108: new drawings saved at ~30 KB (" + qs.join(",") + ")");
+  ok(/shrink\(function \(q\) \{ return c\.toDataURL\("image\/jpeg", q\); \}\)/.test(read("kidart.js")), "v108: the save uses the smaller size");
+}

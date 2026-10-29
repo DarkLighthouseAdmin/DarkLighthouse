@@ -8,6 +8,9 @@
   else root.FS_KIDART = factory();
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
+  // v108: new drawings are saved smaller (about 30 KB, was up to 90 KB) and one person's drawings stay under ~1.2 MB in
+  // all, so drawn stamps don't fill the family's cloud space. Drawings already saved are kept exactly as they are.
+  var TARGET_LEN = 30000, TOTAL_MAX = 1200000;
   var MAX = 60, MAX_LEN = 90000, SIZE = 256, KINDS = { state: 1, place: 1, park: 1 };
   var INKS = ["#1f4f9e", "#b02a2a", "#2b7340", "#5f35a0", "#8a4a17", "#17608a"];
   var DATA = /^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/;
@@ -23,8 +26,13 @@
     if (!url) { if (!o[k]) return false; delete o[k]; p.stampArt = o; return true; }
     if (!okData(url)) return false;
     if (!o[k] && Object.keys(o).length >= MAX) return false;
+    if (total(p) - (okData(o[k]) ? o[k].length : 0) + url.length > TOTAL_MAX) return false;
     o[k] = url; p.stampArt = o; return true;
   }
+  /** v108: how much room one person's drawings take (characters of saved image). */
+  function total(p) { var o = p && p.stampArt, n = 0; if (o && typeof o === "object") Object.keys(o).forEach(function (k) { if (typeof o[k] === "string") n += o[k].length; }); return n; }
+  /** v108: the smallest good-looking JPEG: start at 0.72 and step down until it's under TARGET_LEN (never below 0.35). */
+  function shrink(enc) { var q = 0.72, u = enc(q); while (u.length > TARGET_LEN && q > 0.36) { q = Math.round((q - 0.08) * 100) / 100; u = enc(q); } return u; }
   function count(p) { return p && p.stampArt && typeof p.stampArt === "object" ? Object.keys(p.stampArt).length : 0; }
   var uidN = 0;
   /** The kid's stamp: their drawing in a perforated circle, the place name around the top and the date along the bottom.
@@ -51,7 +59,7 @@
     var cl = function (v) { return Math.max(-1, Math.min(1, +v || 0)); };
     return { x: fx + cl(ox) * fx, y: fy + cl(oy) * fy, s: side };
   }
-  var core = { MAX: MAX, MAX_LEN: MAX_LEN, SIZE: SIZE, key: key, okData: okData, get: get, set: set, count: count, svg: svg, cropRect: cropRect };
+  var core = { MAX: MAX, MAX_LEN: MAX_LEN, TARGET_LEN: TARGET_LEN, TOTAL_MAX: TOTAL_MAX, total: total, shrink: shrink, SIZE: SIZE, key: key, okData: okData, get: get, set: set, count: count, svg: svg, cropRect: cropRect };
   if (typeof document === "undefined") return core;
 
   // ---------- browser ----------
@@ -101,8 +109,13 @@
     cv.onpointerup = cv.onpointercancel = function () { drag = null; };
     $("#kasave").onclick = function () {
       var c = document.createElement("canvas"); c.width = c.height = SIZE; draw(c, SIZE);
-      var q = 0.82, u = c.toDataURL("image/jpeg", q); while (u.length > MAX_LEN && q > 0.4) { q -= 0.1; u = c.toDataURL("image/jpeg", q); }
-      if (!set(p, kind, area, u)) { A().toast(count(p) >= MAX ? "That's the most drawn stamps one person can have (" + MAX + ")." : "That photo didn't work. Try another."); return; }
+      var u = shrink(function (q) { return c.toDataURL("image/jpeg", q); });
+      if (!set(p, kind, area, u)) {
+        var key0 = key(kind, area), had = p.stampArt && p.stampArt[key0];
+        A().toast(!had && count(p) >= MAX ? "That's the most drawn stamps one person can have (" + MAX + ")." :
+          okData(u) && total(p) - (had ? had.length : 0) + u.length > TOTAL_MAX ? "There's no room for another drawn stamp. Remove one you like less, then try again." : "That photo didn't work. Try another.");
+        return;
+      }
       p.updatedAt = new Date().toISOString(); pick = null;
       A().saveKid(p).then(function () { A().toast("🎨 " + who + "'s own " + X.name + " stamp is in the passport"); location.hash = "#/p/" + p.id + "/passport"; });
     };
