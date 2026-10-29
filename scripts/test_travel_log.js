@@ -2759,3 +2759,32 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/opts\.plan \|\| fromWish\)\) \{ d\.planned = true;/.test(tui) && /"Where are you going\?"/.test(tui) && /"Who's going\?"/.test(tui) && /We're here: start the trip/.test(tui) && /We went! Stamp it/.test(tui), "v101: plan wording and the start button");
   ok(/c\("#\/plan", "✈️", "Plan a trip"/.test(nav) && /📅 Upcoming/.test(nav) && /h\[3\] === "plan"/.test(app) && /did you go\?/.test(app), "v101: Plan a trip in + Stamp, Trips and Home; Upcoming section; did-you-go card");
 }
+{ // v102: "What we want to do": ideas, hearts, suggestions from our own sights, "We did it!" stamps, sync keeps every idea
+  const M = require("../travel-log/app/log-core.js"), P = require("../travel-log/app/passport-core.js"), SC = require("../travel-log/app/sync-core.js"), TW = require("../travel-log/app/towns-core.js"), fs = require("fs"), path = require("path");
+  const t = { id: "zz-w", kidIds: ["zz-ana", "zz-leo"], place: "Zz Test Edinburgh", date: "2026-10-20", route: [{ name: "Edinburgh", kind: "city", lat: 55.95, lon: -3.19, country: "GBR", region: "SCT" }] };
+  const castle = { name: "Edinburgh Castle", kind: "sight", type: "castle", lat: 55.9486, lon: -3.2002, country: "GBR", region: "SCT", ref: "Q212065", label: "🏰 Edinburgh Castle" };
+  const w1 = M.newWant({ text: "", sight: castle, by: "zz-ana", stop: "Edinburgh" }), w2 = M.newWant({ text: "Beach day", by: "zz-leo" });
+  ok(w1 && w1.text === "Edinburgh Castle" && w1.sight.ref === "Q212065" && !w1.sight.label && w2.text === "Beach day" && !M.newWant({ text: "  " }), "v102: ideas from a sight or free text; blank ideas aren't added");
+  ok(M.addWant(t, w1) && M.addWant(t, w2) && !M.addWant(t, M.newWant({ sight: castle, stop: "Edinburgh" })) && t.wants.length === 2, "v102: the same idea isn't added twice for a stop");
+  ok(M.heartWant(w2, "zz-ana") === true && w2.hearts.join() === "zz-ana" && M.heartWant(w2, "zz-ana") === false && !w2.hearts.length && t.wants.length === 2, "v102: a heart toggles; the idea stays");
+  M.heartWant(w2, "zz-ana"); const g = M.wantGroups(t); ok(g[0].stop === "" && g[0].items[0] === w2 && g[1].stop === "Edinburgh" && g[1].items[0] === w1, "v102: ideas grouped as whole trip, then each stop");
+  const kid = { id: "zz-ana", name: "Zz Test Rivera Ana", role: "kid", states: {}, places: {}, parks: {} };
+  const before = P.stampsFor(kid, [t], {}).filter(s => s.kind === "sight").length;
+  ok(M.didWant(t, w1, "2026-10-21", "zz-leo") === true && w1.did === "2026-10-21" && t.route[1].ref === "Q212065" && t.route[1].arrive === "2026-10-21" && t.route.length === 2, "v102: We did it! puts the sight in right after its stop");
+  ok(P.stampsFor(kid, [t], {}).filter(s => s.kind === "sight").length === before + 1, "v102: ...and it stamps");
+  ok(M.didWant(t, w1, "2026-10-22") === false && t.route.length === 2 && M.didWant(t, w2, "2026-10-22") === false && w2.did === "2026-10-22", "v102: ticking again changes nothing; a free-text idea just gets ticked");
+  // sync: both phones' ideas kept; did never lost
+  const a = JSON.parse(JSON.stringify(t)), b = JSON.parse(JSON.stringify(t)); a.wants[1].did = ""; delete a.wants[1].did; b.wants.push(M.newWant({ text: "Zz Test ice cream", by: "zz-leo" }));
+  SC.mergeTripPieces(a, b); ok(a.wants.length === 3 && a.wants[1].did === "2026-10-22", "v102: sync merges ideas from both phones and keeps We did it");
+  // suggestions from data/near
+  const dir = path.join(__dirname, "../travel-log/app/data/near"), idx = JSON.parse(fs.readFileSync(path.join(dir, "index.json")));
+  ok(Object.keys(idx.cells).length > 300 && idx.block === 10, "v102: near-sights blocks built (" + Object.keys(idx.cells).length + ")");
+  const blk = TW.parse(JSON.parse(fs.readFileSync(path.join(dir, "50_-10.json"))));
+  const plan = { id: "zz-p", route: [{ name: "Edinburgh", lat: 55.95, lon: -3.19 }], wants: [] }, sug = M.wantSuggestions(blk.rows, plan.route[0], plan, 6);
+  ok(sug.length === 6 && sug.some(x => /Edinburgh Castle/.test(x.row.names[0])) && sug.every(x => x.miles <= 40), "v102: suggestions near Edinburgh include Edinburgh Castle: " + sug.map(x => x.row.names[0]).join(", "));
+  M.addWant(plan, M.newWant({ sight: { name: "Edinburgh Castle", ref: "Q212065", lat: 55.9486, lon: -3.2002 } }));
+  ok(!M.wantSuggestions(blk.rows, plan.route[0], plan, 6).some(x => x.row.wd === "Q212065"), "v102: an idea already on the list isn't suggested again");
+  const orl = TW.parse(JSON.parse(fs.readFileSync(path.join(dir, "20_-90.json")))), os_ = M.wantSuggestions(orl.rows, { lat: 28.42, lon: -81.58 }, { route: [] }, 8);
+  ok(os_.some(x => /themepark|zoo|aquarium|waterpark/.test(x.row.type)), "v102: kid-friendly picks near Orlando: " + os_.map(x => x.row.names[0] + "/" + x.row.type).join(", "));
+  const tui = read("trips-ui.js"); ok(/wantsBlock\(t, k\)/.test(tui) && /bindWants\(k, t\)/.test(tui) && /What we want to do/.test(tui) && /data\/near\//.test(tui), "v102: the trip page has What we want to do");
+}

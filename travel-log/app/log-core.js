@@ -610,6 +610,55 @@
     if (!/^\d{4}-\d{2}-\d{2}$/.test(t.date || "") || t.date > d) { if (t.endDate && t.endDate < d) t.endDate = ""; t.date = d; }
     return t;
   }
+  // ---------- "What we want to do" (v102): ideas for a trip or one of its stops. Additive: ideas are never removed, only ticked off. ----------
+  var WANT_KID = { zoo: 30, aquarium: 30, themepark: 30, waterpark: 25, beach: 15, park: 15, cave: 12, waterfall: 12, castle: 10, lighthouse: 8, geyser: 12, glacier: 8, canyon: 12, volcano: 12, ski: 8, campground: 6 };
+  var WANT_MILES = 40;
+  /** o = { text, stop, sight, by } -> a new idea. stop = the stop's name ("" = the whole trip); sight = a sight/park stop point, or null. */
+  function newWant(o, now) {
+    o = o || {}; var sight = o.sight && typeof o.sight === "object" ? JSON.parse(JSON.stringify(o.sight)) : null;
+    var text = String(o.text || (sight && sight.name) || "").trim().slice(0, 120);
+    if (!text) return null;
+    var w = { id: "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), text: text, stop: String(o.stop || "").slice(0, 80), by: o.by || "", hearts: [], at: now || new Date().toISOString() };
+    if (sight) { delete sight.label; w.sight = sight; }
+    return w;
+  }
+  function wantKey(x) { return x ? (x.ref || (x.sight && x.sight.ref) || String((x.sight && x.sight.name) || x.text || x.name || "").toLowerCase().trim()) : ""; }
+  function addWant(t, w) { if (!t || !w) return false; t.wants = Array.isArray(t.wants) ? t.wants : []; if (t.wants.some(function (x) { return x.id === w.id || (wantKey(x) === wantKey(w) && (x.stop || "") === (w.stop || "")); })) return false; t.wants.push(w); return true; }
+  /** One person's heart on an idea: on, or off again (their own tap; the idea itself stays). */
+  function heartWant(w, pid) { if (!w || !pid) return false; w.hearts = Array.isArray(w.hearts) ? w.hearts : []; var i = w.hearts.indexOf(pid); if (i >= 0) w.hearts.splice(i, 1); else w.hearts.push(pid); w.at = new Date().toISOString(); return i < 0; }
+  /** "We did it!": the idea is ticked; a sight or park idea joins the trip's stops (right after its own stop), so it stamps like any stop. Returns true when a stop was added. */
+  function didWant(t, w, today0, by) {
+    if (!t || !w || w.did) return false;
+    w.did = today0 || todayStr(); if (by) w.didBy = by; w.at = new Date().toISOString();
+    if (!w.sight || typeof w.sight.lat !== "number") return false;
+    t.route = Array.isArray(t.route) ? t.route : [];
+    var k = wantKey(w); if (t.route.some(function (r) { return r && (wantKey({ ref: r.ref, text: r.name }) === k || (r.ref && r.ref === w.sight.ref)); })) return false;
+    var stop = JSON.parse(JSON.stringify(w.sight)); stop.arrive = w.did; delete stop.label;
+    var at = -1; t.route.forEach(function (r, i) { if (w.stop && r && r.name === w.stop) at = i; });
+    if (at >= 0) t.route.splice(at + 1, 0, stop); else t.route.push(stop);
+    return true;
+  }
+  /** Ideas grouped: [{ stop: "" | name, items: [...] }] ("" = whole trip first), most hearts first, done ones last. */
+  function wantGroups(t) {
+    var stops = [""], by = { "": [] };
+    (t && t.route || []).forEach(function (r) { if (r && r.name && r.kind !== "home" && !by[r.name] && r.kind !== "sight") { by[r.name] = []; stops.push(r.name); } });
+    (t && t.wants || []).forEach(function (w) { var s = w.stop || ""; if (!by[s]) { by[s] = []; stops.push(s); } by[s].push(w); });
+    return stops.map(function (s) { return { stop: s, items: by[s].slice().sort(function (a, b) { return (!!a.did - !!b.did) || ((b.hearts || []).length - (a.hearts || []).length) || (a.at < b.at ? -1 : 1); }) }; });
+  }
+  /** Sights near a stop worth suggesting: within 40 miles, famous first, kid-friendly types and parks lifted; skips what's already an idea or a stop.
+      rows = parsed sights rows ({ names, lat, lon, type, rank, wd }). */
+  function wantSuggestions(rows, pt, t, n) {
+    if (!pt || typeof pt.lat !== "number" || !T || !T.gcMiles) return [];
+    var have = {}; (t && t.wants || []).forEach(function (w) { have[wantKey(w)] = 1; }); (t && t.route || []).forEach(function (r) { if (r) { have[wantKey({ ref: r.ref, text: r.name })] = 1; if (r.ref) have[r.ref] = 1; } });
+    var seen = {}, out = [];
+    (rows || []).forEach(function (r) {
+      if (typeof r.lat !== "number" || Math.abs(r.lat - pt.lat) > 0.8 || Math.abs(r.lon - pt.lon) > 1.6) return;
+      var key = r.wd || String(r.names[0]).toLowerCase(); if (seen[key] || have[key] || have[String(r.names[0]).toLowerCase()]) return;
+      var m = T.gcMiles(pt, r); if (m > WANT_MILES) return;
+      seen[key] = 1; out.push({ row: r, miles: Math.round(m), score: (r.rank || 0) + (WANT_KID[r.type] || 0) - m / 8 });
+    });
+    return out.sort(function (a, b) { return b.score - a.score; }).slice(0, n || 6);
+  }
   function isDraft(t) { return !!t && !t.deletedAt && (t.draft === true || DRAFT_RE.test(String(t.title || ""))); }
   function draftTrips(trips) { return (trips || []).filter(isDraft); }
   /** Mark a draft reviewed: draft off, "Draft:" taken off the name, and a fresh updatedAt so it syncs and wins over the file it came from. */
@@ -780,7 +829,8 @@
     return { trip: c, photo: ph };
   }
 
-  return { isPlanned: isPlanned, plannedTrips: plannedTrips, startPlanned: startPlanned, extraPhotoIds: extraPhotoIds, onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+  return { newWant: newWant, addWant: addWant, heartWant: heartWant, didWant: didWant, wantGroups: wantGroups, wantSuggestions: wantSuggestions, wantKey: wantKey, WANT_MILES: WANT_MILES,
+           isPlanned: isPlanned, plannedTrips: plannedTrips, startPlanned: startPlanned, extraPhotoIds: extraPhotoIds, onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PREF_KEYS: PREF_KEYS, cleanPrefs: cleanPrefs, addOnlyRestore: addOnlyRestore, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,

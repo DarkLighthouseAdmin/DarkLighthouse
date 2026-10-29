@@ -228,6 +228,19 @@
         if (f.length !== (a.found || []).length || w.length !== (a.who || []).length || d !== (a.done || "")) { a.found = f; a.who = w; a.done = d; changed = true; }
       });
     }
+    // v102: "What we want to do": ideas from every phone are kept (by id); the newer copy of one idea wins, and a "We did it!" is never lost
+    if (Array.isArray(from.wants) && from.wants.length) {
+      var wl = Array.isArray(into.wants) ? into.wants : [], wi = {};
+      wl.forEach(function (x, i) { if (x && x.id) wi[x.id] = i; });
+      from.wants.forEach(function (x) {
+        if (!x || !x.id) return;
+        if (!(x.id in wi)) { wl.push(JSON.parse(JSON.stringify(x))); wi[x.id] = wl.length - 1; changed = true; return; }
+        var a = wl[wi[x.id]], did = a.did || x.did, didBy = a.didBy || x.didBy;
+        if (newer(x.at, a.at) && JSON.stringify(x) !== JSON.stringify(a)) { a = wl[wi[x.id]] = JSON.parse(JSON.stringify(x)); changed = true; }
+        if (did && !a.did) { a.did = did; if (didBy) a.didBy = didBy; changed = true; }
+      });
+      into.wants = wl;
+    }
     return changed;
   }
   function mergePersonPieces(into, from) {

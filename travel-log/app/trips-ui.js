@@ -8,6 +8,7 @@
   function S() { return A().state; }
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
   function units() { return S().meta.units === "km" ? "km" : "mi"; }
   function dist(mi, long) { return T.fmtDist(mi, units(), long ? { long: true } : null); }
   function tripById(id) { return S().trips.filter(function (t) { return t.id === id; })[0]; }
@@ -322,6 +323,83 @@
     return '<section class="panel planbox" id="planbox"><h3>📅 ' + esc(planWhen(t)) + '</h3><p class="small muted">' + (past ? "The trip's dates have come. Did you go? Stamping it puts every stop in everyone's passport." :
       "This trip is planned, so it doesn't give stamps yet. When you get there, start it and the stamps come in.") + '</p><div class="actions">' +
       '<button type="button" class="btn btn-beacon" id="tstart">' + (past ? "✓ We went! Stamp it" : "🧳 We're here: start the trip") + '</button></div></section>';
+  }
+  // ---------- v102: "What we want to do": ideas for the trip and each stop, hearts, suggestions from our own sights, "We did it!" ----------
+  var NEARD = { files: {}, loading: {} };
+  function nearBlocks(pt) {
+    var keys = {}, f = function (x, y) { keys[Math.floor(x / 10) * 10 + "_" + Math.floor(y / 10) * 10] = 1; };
+    f(pt.lat, pt.lon); f(pt.lat + 0.8, pt.lon); f(pt.lat - 0.8, pt.lon); f(pt.lat, pt.lon + 1.6); f(pt.lat, pt.lon - 1.6);
+    return Promise.all(Object.keys(keys).map(function (k) {
+      if (NEARD.files[k]) return NEARD.files[k];
+      if (!NEARD.loading[k]) NEARD.loading[k] = fetch("data/near/" + k + ".json").then(function (r) { return r.ok ? r.json() : { rows: "" }; }).catch(function () { NEARD.loading[k] = null; return { rows: "" }; })
+        .then(function (j) { var f = TW ? TW.parse(j) : { rows: [], admin: {}, countries: {} }; if (j && j.key) NEARD.files[k] = f; return f; });
+      return NEARD.loading[k];
+    }));
+  }
+  function showWants(t) { return !t.deletedAt && (t.planned === true || (t.wants || []).length > 0 || (t.date && t.date >= M.today()) || M.onTripNow([t], M.today()).length > 0); }
+  function wantsBlock(t, k) {
+    if (!showWants(t)) return "";
+    var fam = S().kids, me = t.kidIds.indexOf(k.id) >= 0 ? k.id : t.kidIds[0], groups = M.wantGroups(t), stops = groups.map(function (g) { return g.stop; });
+    function nm(id) { var p = A().kidById(id); return p ? p.name : ""; }
+    function item(w) {
+      var hs = w.hearts || [], mine = hs.indexOf(wantBy()) >= 0, em = w.sight ? typeEmoji(w.sight.type) + " " : "💭 ";
+      return '<li class="want' + (w.did ? " did" : "") + '" data-w="' + esc(w.id) + '"><span class="wtext">' + em + esc(w.text) + (w.by ? '<span class="muted small"> · ' + esc(nm(w.by)) + "'s idea</span>" : "") + '</span>' +
+        '<span class="wacts"><button type="button" class="wheart' + (mine ? " on" : "") + '" data-wheart="' + esc(w.id) + '" aria-pressed="' + mine + '" title="' + esc(hs.map(nm).join(", ")) + '">' + (mine ? "❤️" : "🤍") + (hs.length ? " " + hs.length : "") + '</button>' +
+        (w.did ? '<span class="wdid small">✅ We did it! ' + esc(M.prettyDate(w.did) || "") + '</span>' : t.planned === true ? "" : '<button type="button" class="btn btn-ghost btn-sm" data-wdid="' + esc(w.id) + '">✓ We did it!</button>') + '</span></li>';
+    }
+    function wantBy() { return (WBY[t.id] && t.kidIds.concat(fam.map(function (p) { return p.id; })).indexOf(WBY[t.id]) >= 0) ? WBY[t.id] : me; }
+    var html = '<section class="panel wants" id="wants"><h3>✨ What we want to do</h3><p class="small muted">Everyone can add ideas and heart the ones they love.' + (t.planned === true ? " Tick them off once the trip starts; sights you do get stamped." : " Tap “We did it!” and a sight gets stamped.") + '</p>' +
+      '<div class="field wby"><label for="wby">Who\'s adding?</label><select id="wby">' + fam.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === wantBy() ? " selected" : "") + '>' + esc(p.name) + '</option>'; }).join("") + '</select></div>';
+    groups.forEach(function (g, gi) {
+      var stop = g.stop ? (t.route || []).filter(function (r) { return r && r.name === g.stop; })[0] : null;
+      html += '<div class="wgroup"><h4>' + (g.stop ? "📍 " + esc(g.stop) : "🧳 The whole trip") + '</h4>' + (g.items.length ? '<ul class="wlist">' + g.items.map(item).join("") + '</ul>' : "") +
+        (stop && typeof stop.lat === "number" ? '<div class="wsug" data-wsug="' + gi + '" data-stop="' + esc(g.stop) + '"><span class="muted small">Ideas near ' + esc(g.stop) + '…</span></div>' : "") + '</div>';
+    });
+    html += '<div class="wadd"><label for="wtext">Add an idea</label><div class="wrow"><select id="wstop" aria-label="For which stop">' + stops.map(function (x) { return '<option value="' + esc(x) + '">' + (x ? esc(x) : "Whole trip") + '</option>'; }).join("") + '</select>' +
+      '<input id="wtext" type="search" autocomplete="off" maxlength="120" placeholder="See a castle, beach day, or search a sight"><button type="button" class="btn btn-primary" id="wadd">Add</button></div><div class="results" id="wres"></div></div></section>';
+    return html;
+  }
+  var WBY = {};
+  function bindWants(k, t) {
+    if (!$("#wants")) return;
+    var by = $("#wby"), picks = [];
+    function who() { return (by && by.value) || k.id; }
+    if (by) by.onchange = function () { WBY[t.id] = by.value; redraw(); };
+    function redraw() { var y = window.scrollY; detail(k, t.id); window.scrollTo(0, y); }
+    function save(stamped) {
+      var before = stamped ? stampKeys(t.kidIds) : null, jobs = [];
+      if (stamped) { var ch = M.applyTripMark(t, S().kids) || []; S().kids.forEach(function (x) { if (ch.indexOf(x.id) >= 0) { x.updatedAt = new Date().toISOString(); jobs.push(A().saveKid(x)); } }); }
+      jobs.push(saveTrip(t));
+      return Promise.all(jobs).then(function () { var fresh = stamped ? newStamps(before, t.kidIds) : []; redraw(); if (fresh.length) setTimeout(function () { celebrate(fresh); }, 350); });
+    }
+    function add(o) { var w = M.newWant(Object.assign({ by: who(), stop: ($("#wstop") || {}).value || "" }, o)); if (!w) return; if (!M.addWant(t, w)) { A().toast("That's already on the list"); return; } save(false).then(function () { A().toast("Added to what we want to do ✨"); }); }
+    $$("[data-wheart]").forEach(function (b) { b.onclick = function () { var w = (t.wants || []).filter(function (x) { return x.id === b.getAttribute("data-wheart"); })[0]; if (w) { M.heartWant(w, who()); save(false); } }; });
+    $$("[data-wdid]").forEach(function (b) { b.onclick = function () { var w = (t.wants || []).filter(function (x) { return x.id === b.getAttribute("data-wdid"); })[0]; if (!w) return; var st = M.didWant(t, w, M.today(), who()); save(st).then(function () { A().toast(st ? "We did it! Stamped ✅" : "We did it! ✅"); }); }; });
+    var add_ = $("#wadd"), tx = $("#wtext"), res = $("#wres"), tm = null;
+    if (add_) add_.onclick = function () { var v = tx.value.trim(); if (v) add({ text: v }); };
+    if (tx) {
+      tx.onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); add_.click(); } };
+      tx.oninput = function () {
+        clearTimeout(tm); var q = tx.value.trim(); if (q.length < 3) { res.innerHTML = ""; return; }
+        tm = setTimeout(function () { findPlaces(q).then(function (list) { if (tx.value.trim() !== q) return;
+          picks = list.filter(function (p) { return p.kind === "sight" || p.kind === "park"; }).slice(0, 6);
+          res.innerHTML = picks.map(function (p, i) { return '<button type="button" class="res" data-wpick="' + i + '"><b>＋ ' + esc(p.label || p.name) + '</b><span class="muted small"> ' + esc(p.sub || "") + '</span></button>'; }).join("");
+          $$("[data-wpick]").forEach(function (b) { b.onclick = function () { var p = picks[+b.getAttribute("data-wpick")]; if (p) add({ text: p.name, sight: p }); }; });
+        }); }, 250);
+      };
+    }
+    $$("[data-wsug]").forEach(function (box) {
+      var name = box.getAttribute("data-stop"), stop = (t.route || []).filter(function (r) { return r && r.name === name; })[0]; if (!stop) return;
+      nearBlocks(stop).then(function (files) {
+        var rows = [], d = { countries: {}, admin: {} };
+        files.forEach(function (f) { rows = rows.concat(f.rows || []); Object.assign(d.countries, f.countries || {}); Object.assign(d.admin, f.admin || {}); });
+        var sug = M.wantSuggestions(rows, stop, t, 6); if (!document.body.contains(box)) return;
+        if (!sug.length) { box.innerHTML = ""; return; }
+        var pts = sug.map(function (x) { return sightPoint(d, x.row); });
+        box.innerHTML = '<span class="muted small">Ideas near ' + esc(name) + ' (tap to add):</span><div class="wchips">' + pts.map(function (p, i) { return '<button type="button" class="chip wsugpick" data-wsugpick="' + i + '">' + esc(p.label) + (p.badge ? " ⭐" : "") + '</button>'; }).join("") + '</div>';
+        box.querySelectorAll("[data-wsugpick]").forEach(function (b) { b.onclick = function () { var p = pts[+b.getAttribute("data-wsugpick")], w = M.newWant({ text: p.name, sight: p, by: who(), stop: name }); if (w && M.addWant(t, w)) save(false).then(function () { A().toast("Added to what we want to do ✨"); }); }; });
+      });
+    });
   }
   function tripCard(t, k) {
     var A_ = A(), age = k && M.isKid(k) ? M.ageOn(k.birthYear, t.date) : null, owner = k || A_.kidById(t.kidIds[0]), s = T.summary(t);
@@ -1000,7 +1078,7 @@
       (s.legs.length ? '<p class="routeline">' + t.route.map(function (p) { return esc(p.name); }).join(' <span aria-hidden="true">→</span> ') + (t.roundTrip ? ' <span aria-hidden="true">→</span> home' : "") +
         ' · <b>' + (s.milesKnown ? "" : "at least ") + esc(dist(s.miles, true)) + '</b> ' + unitToggle() + '</p>' : "") +
       (T.routeMap(t) ? '<div class="mapbox routebox">' + routeSVG(t) + '</div>' : (s.legs.length ? '<p class="hint">Find each stop on the map (Edit) to see the route drawn here.</p>' : "")) +
-      planBanner(t) + '<h3 class="sec">Trip stats</h3><div class="tstats">' + tstat("🧭", dist(s.miles), s.milesKnown || !s.legs.length ? "traveled" : "so far") +
+      planBanner(t) + wantsBlock(t, k) + '<h3 class="sec">Trip stats</h3><div class="tstats">' + tstat("🧭", dist(s.miles), s.milesKnown || !s.legs.length ? "traveled" : "so far") +
       (s.flights ? tstat("✈️", s.flights, s.flights === 1 ? "flight" : "flights") + (s.flightMiles ? tstat("🛫", dist(s.flightMiles), "flown") : "") + (s.airMin ? tstat("⏱️", "~" + T.fmtAir(s.airMin), "in the air") : "") : "") + (s.roadMiles ? tstat("🚗", dist(s.roadMiles), "on the road") : "") +
       (s.nights != null ? tstat("🌙", s.nights, s.nights === 1 ? "night" : "nights") : "") + (s.cities.length ? tstat("🏙️", s.cities.length, s.cities.length === 1 ? "town or city" : "towns & cities") : "") +
       (s.parks.length ? tstat("🌲", s.parks.length, s.parks.length === 1 ? "national park" : "national parks") : "") + (s.states.length ? tstat("🇺🇸", s.states.length, s.states.length === 1 ? "state" : "states") : "") +
@@ -1036,6 +1114,7 @@
       jobs.push(saveTrip(t));
       Promise.all(jobs).then(function () { var fresh = newStamps(before, ids); detail(k, t.id); A().toast("Trip started! Stamps are in ✈️"); if (fresh.length) setTimeout(function () { celebrate(fresh); }, 350); });
     };
+    bindWants(k, t);
     var storyRender = bindStory(k, t);
     bindWeather(k, t, function () { if (storyRender && !(t.story && t.story.edited)) storyRender(); });
   }

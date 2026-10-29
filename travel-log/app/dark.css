@@ -219,6 +219,9 @@ html[data-theme="dark"] .pinerr { color:#e1c1c1; }
 html[data-theme="dark"] .avpick { box-shadow:0 0 0 1px rgba(0,0,0,0.27); }
 html[data-theme="dark"] .wl-pick { border:1px solid rgba(230,236,242,0.15); }
 html[data-theme="dark"] .drafttag.plantag { background:#121c26; color:#c7d2e4; }
+html[data-theme="dark"] .want { border-bottom:1px solid rgba(230,236,242,0.08); }
+html[data-theme="dark"] .wheart { background:#121a21; }
+html[data-theme="dark"] .wheart.on { background:#261216; }
 /* sync.css */
 html[data-theme="dark"] .syncpill { background:rgba(19,27,39,0.12); }
 html[data-theme="dark"] .syncstate .syncpill { background:#17241a; color:var(--sage-ink) !important; }

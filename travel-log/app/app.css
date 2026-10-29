@@ -1173,3 +1173,17 @@ body.grandview .fsnav a { justify-content:flex-start; padding-top:.6rem; line-he
 .drafttag.plantag { text-transform:none; background:#e3f0ff; color:#1f4f9e; border-color:#9cc0ef; }
 .panel.planbox { border-left:4px solid #1f4f9e; }
 .homeplan { display:block; margin:.45rem 0 .2rem; }
+/* v102: What we want to do */
+.panel.wants h4 { margin:.8rem 0 .3rem; font-size:1rem; }
+.wlist { list-style:none; padding:0; margin:0; }
+.want { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.4rem; padding:.45rem 0; border-bottom:1px solid rgba(0,0,0,.08); }
+.want.did .wtext { opacity:.75; }
+.wacts { display:flex; gap:.35rem; align-items:center; }
+.wheart { border:1px solid #e3c4c4; background:#fff; border-radius:999px; padding:.25rem .6rem; font-size:.9rem; min-height:36px; cursor:pointer; }
+.wheart.on { background:#fde8ec; border-color:#e48a9b; }
+.wchips { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.3rem; }
+.wsugpick { font-size:.85rem; }
+.wadd { margin-top:.8rem; }
+.wadd .wrow { display:flex; gap:.35rem; flex-wrap:wrap; }
+.wadd .wrow input { flex:1 1 12rem; min-width:0; }
+.wby select { max-width:100%; }
