@@ -120,7 +120,7 @@
     var hits = searchAirports(q, DATA.airports).filter(function (a) { return !isCode || a.code.toLowerCase() === q; }).slice(0, isCode ? 1 : 4);
     res.code = isCode && hits.length > 0;
     res.list = hits.map(function (a) {
-      var o = { name: a.name, kind: "sight", type: "airport", lat: a.lat, lon: a.lon, country: a.country, region: a.country === "USA" || a.country === "GBR" ? a.region : "",
+      var o = { name: a.name, kind: "sight", type: "airport", lat: a.lat, lon: a.lon, country: a.country, region: a.country === "USA" || a.country === "GBR" || a.country === "CAN" || a.country === "AUS" ? a.region : "",
         sub: "Airport · " + a.code + " · " + (a.city || a.town || "") + (a.city || a.town ? ", " : "") + subOf(d, a.country, a.region), label: "✈️ " + a.name + " (" + a.code + ")" };
       if (a.town) o.town = a.town; return o;
     });
@@ -303,6 +303,14 @@
       if (L.mode === "plane" && L.dep && L.dep.lat != null) a = T.project(L.dep, map) || a;
       if (L.mode === "plane" && L.arr && L.arr.lat != null) b = T.project(L.arr, map) || b;
       if (!a || !b) return;
+      var ga = L.mode === "plane" && L.dep && L.dep.lat != null ? L.dep : r[L.i - 1], gb = L.mode === "plane" && L.arr && L.arr.lat != null ? L.arr : (L.home ? r[0] : r[L.i]);
+      var dl = map === "world" && T.dateLine ? T.dateLine(ga, gb) : null;
+      if (dl) {   // v110: across the date line, go off one edge and back in from the other (not the long way round)
+        var ea = T.project(dl.a, map), eb = T.project(dl.b, map), cls = L.mode === "plane" ? "plane" : esc(L.mode);
+        var sty = L.mode === "plane" ? '" stroke-width="' + (u * 2.2).toFixed(2) + '" stroke-dasharray="' + (u * 5).toFixed(2) + ' ' + (u * 3.5).toFixed(2) + '"/>' : '" stroke-width="' + (u * 2.6).toFixed(2) + '"/>';
+        line += '<path class="leg ' + cls + ' dl" d="M' + a[0] + ',' + a[1] + ' L' + ea[0] + ',' + ea[1] + sty + '<path class="leg ' + cls + ' dl" d="M' + eb[0] + ',' + eb[1] + ' L' + b[0] + ',' + b[1] + sty;
+        return;
+      }
       if (L.mode === "plane") {
         var mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1], len = Math.sqrt(dx * dx + dy * dy) || 1, k = len * 0.22;
         line += '<path class="leg plane" d="M' + a[0] + ',' + a[1] + ' Q' + (mx + dy / len * k).toFixed(1) + ',' + (my - dx / len * k).toFixed(1) + ' ' + b[0] + ',' + b[1] + '" stroke-width="' + (u * 2.2).toFixed(2) + '" stroke-dasharray="' + (u * 5).toFixed(2) + ' ' + (u * 3.5).toFixed(2) + '"/>';
@@ -1078,6 +1086,27 @@
   }
   function storyText(t, viewer, style, seed) { return T.makeStory(t, storyCtx(t, viewer), { style: style, seed: seed }).text; }
   function canStory(t) { return !!(t.done || (t.endDate && t.endDate <= M.today())); }
+  // v110: experience stamps: "What did you do?" on a trip (a hike, a concert, a ski day), counted toward badges
+  function expBlock(t, k) {
+    if (!M.EXPS || t.deletedAt || t.planned === true) return "";
+    var list = M.liveExps(t), ppl = people(t.kidIds);
+    return '<section class="panel exps" id="exps"><h3>🎟️ What did you do?</h3><p class="small muted">Stamp the fun things: they show on the trip and count toward badges.</p>' +
+      (list.length ? '<ul class="explist">' + list.map(function (e) { var d = M.EXPS.filter(function (x) { return x[0] === e.kind; })[0];
+        return '<li class="expitem"><span class="expst" aria-hidden="true">' + d[1] + '</span><span><b>' + esc(d[2]) + '</b><span class="muted small"> · ' + esc([M.prettyDate ? M.prettyDate(e.day) : e.day, e.who && e.who.length ? A().travelerNames(e.who) : "everyone"].filter(Boolean).join(" · ")) + '</span></span>' +
+          '<button type="button" class="linkbtn sm" data-expdel="' + esc(e.id) + '" aria-label="Remove ' + esc(d[2]) + '">Remove</button></li>'; }).join("") + '</ul>' : "") +
+      (ppl.length > 1 ? '<div class="field expwho"><label for="expwho">Who did it?</label><select id="expwho"><option value="">Everyone on the trip</option>' + ppl.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(M.who(p)) + '</option>'; }).join("") + '</select></div>' : "") +
+      '<div class="wchips expchips">' + M.EXPS.map(function (x) { return '<button type="button" class="chip expadd" data-expadd="' + x[0] + '">' + x[1] + ' ' + esc(x[2]) + '</button>'; }).join("") + '</div></section>';
+  }
+  function bindExps(k, t) {
+    if (!$("#exps")) return;
+    function redraw() { var y = window.scrollY; detail(k, t.id); window.scrollTo(0, y); }
+    $$("[data-expadd]").forEach(function (b) { b.onclick = function () {
+      var w = ($("#expwho") || {}).value || "", td = M.today(), day = M.onTripNow([t], td).length ? td : (/^\d{4}-\d{2}-\d{2}$/.test(t.date || "") ? t.date : "");
+      var e = M.newExp({ kind: b.getAttribute("data-expadd"), day: day, who: w ? [w] : [] }); if (!e || !M.addExp(t, e)) return;
+      saveTrip(t).then(function () { redraw(); A().toast("Stamped: " + b.textContent.trim() + " 🎟️"); });
+    }; });
+    $$("[data-expdel]").forEach(function (b) { b.onclick = function () { if (M.removeExp(t, b.getAttribute("data-expdel"))) saveTrip(t).then(function () { redraw(); A().toast("Removed"); }); }; });
+  }
   function saveTrip(t) { T.fitSize(t); t.updatedAt = new Date().toISOString(); return A().put("trips", t); }
 
   function detail(k, tid) {
@@ -1095,7 +1124,7 @@
       (s.legs.length ? '<p class="routeline">' + t.route.map(function (p) { return esc(p.name); }).join(' <span aria-hidden="true">→</span> ') + (t.roundTrip ? ' <span aria-hidden="true">→</span> home' : "") +
         ' · <b>' + (s.milesKnown ? "" : "at least ") + esc(dist(s.miles, true)) + '</b> ' + unitToggle() + '</p>' : "") +
       (T.routeMap(t) ? '<div class="mapbox routebox">' + routeSVG(t) + '</div>' : (s.legs.length ? '<p class="hint">Find each stop on the map (Edit) to see the route drawn here.</p>' : "")) +
-      planBanner(t) + wantsBlock(t, k) + '<h3 class="sec">Trip stats</h3><div class="tstats">' + tstat("🧭", dist(s.miles), s.milesKnown || !s.legs.length ? "traveled" : "so far") +
+      planBanner(t) + wantsBlock(t, k) + expBlock(t, k) + '<h3 class="sec">Trip stats</h3><div class="tstats">' + tstat("🧭", dist(s.miles), s.milesKnown || !s.legs.length ? "traveled" : "so far") +
       (s.flights ? tstat("✈️", s.flights, s.flights === 1 ? "flight" : "flights") + (s.flightMiles ? tstat("🛫", dist(s.flightMiles), "flown") : "") + (s.airMin ? tstat("⏱️", "~" + T.fmtAir(s.airMin), "in the air") : "") : "") + (s.roadMiles ? tstat("🚗", dist(s.roadMiles), "on the road") : "") +
       (s.nights != null ? tstat("🌙", s.nights, s.nights === 1 ? "night" : "nights") : "") + (s.cities.length ? tstat("🏙️", s.cities.length, s.cities.length === 1 ? "town or city" : "towns & cities") : "") +
       (s.parks.length ? tstat("🌲", s.parks.length, s.parks.length === 1 ? "national park" : "national parks") : "") + (s.states.length ? tstat("🇺🇸", s.states.length, s.states.length === 1 ? "state" : "states") : "") +
@@ -1131,7 +1160,7 @@
       jobs.push(saveTrip(t));
       Promise.all(jobs).then(function () { var fresh = newStamps(before, ids); detail(k, t.id); A().toast("Trip started! Stamps are in ✈️"); if (fresh.length) setTimeout(function () { celebrate(fresh); }, 350); });
     };
-    bindWants(k, t);
+    bindWants(k, t); bindExps(k, t);
     var storyRender = bindStory(k, t);
     bindWeather(k, t, function () { if (storyRender && !(t.story && t.story.edited)) storyRender(); });
   }
@@ -1440,7 +1469,7 @@
   function memo(key, sig, make) { var m = STAMPMEMO[key]; if (m && m.sig === sig) return m.val; var v = make(); STAMPMEMO[key] = { sig: sig, val: v }; return v; }
   function stampsOf(p) { var c = sctx(); return memo("p:" + p.id, tripsSig() + "#" + personSig(p) + "#" + c.adultInKid, function () { return P.stampsFor(p, S().trips, sctx()); }).slice(); }
   function familyStampsMemo() { var c = sctx(); return memo("fam", tripsSig() + "#" + S().kids.map(personSig).join(",") + "#" + c.adultInKid, function () { return P.familyStamps(S().kids, S().trips, c); }).slice(); }
-  function stampName(s) { return s.kind === "sight" ? s.name || s.area : s.kind === "park" ? parkName(s.area) : areaName(s.kind, s.area); }
+  function stampName(s) { return s.kind === "sight" ? s.name || s.area : s.kind === "park" ? parkName(s.area) : s.kind === "region" ? P.regionName(s.area) : areaName(s.kind, s.area); }
   function stampKeys(ids) { var out = {}; people(ids).forEach(function (p) { stampsOf(p).forEach(function (s) { out[p.id + "|" + s.id] = 1; if (s.kind === "state") out["sign|" + p.id + "|" + s.area] = 1; }); }); return out; }
   function newStamps(before, ids) {
     var seen = {}, out = [];
@@ -1452,7 +1481,7 @@
   // v94: the Sights pages can show just the places of worship (mosques, churches, temples, shrines...), or just the other sights
   var pgrp = "all";
   function sightGroup(s) { var SA = window.WK_STAMPART; return SA && SA.typeOf ? (SA.typeOf(s.type).group === "worship" ? "worship" : "other") : "other"; }
-  function inSection(s, sec) { return sec === "parks" ? s.kind === "park" : sec === "states" ? s.kind === "state" : sec === "sights" ? s.kind === "sight" : s.kind === "place"; }
+  function inSection(s, sec) { return sec === "parks" ? s.kind === "park" : sec === "states" ? s.kind === "state" : sec === "sights" ? s.kind === "sight" : s.kind === "place" || s.kind === "region"; }   // v110: provinces sit with their country
   // State stamps can show the state's bird, flower or animal (or a mix). Each person (and the family passport) keeps
   // their own choice on this device, like the State Signs seen list; press and hold one stamp to switch just that one.
   var ART_MODES = [["bird", "🐦 Bird"], ["flower", "🌸 Flower"], ["animal", "🦌 Animal"], ["mix", "🔀 Mix"]];
@@ -1488,7 +1517,7 @@
   function bookHTML(title, color, stamps, who, pid) {
     // v94: one stamp per place, with how many visits (each visit stays its own record underneath)
     var life = T.lifetime(pid || null, S().trips), pc = P.passportCounts(stamps); stamps = P.groupStamps(stamps);
-    var counts = { world: 0, states: 0, parks: 0, sights: 0 }; stamps.forEach(function (s) { counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : s.kind === "sight" ? "sights" : "world"]++; });
+    var counts = { world: 0, states: 0, parks: 0, sights: 0 }; stamps.forEach(function (s) { if (s.kind === "region") return; counts[s.kind === "park" ? "parks" : s.kind === "state" ? "states" : s.kind === "sight" ? "sights" : "world"]++; });
     bookStamps = stamps; lazyPages = {};
     var all = stamps.filter(function (s) { return inSection(s, psec); }), nWor = psec === "sights" ? all.filter(function (s) { return sightGroup(s) === "worship"; }).length : 0;
     if (psec !== "sights" || !nWor) pgrp = "all";
@@ -1902,10 +1931,18 @@
       tstat("🧭", dist(L.miles), "traveled") + tstat("🌍", (Math.round(L.aroundWorld * 100) / 100) + "×", "around the world") + tstat("✈️", L.flights, L.flights === 1 ? "flight" : "flights") +
       (L.flightMiles ? tstat("🛫", dist(L.flightMiles), "flown") : "") + (L.airMin ? tstat("⏱️", "~" + T.fmtAir(L.airMin), "in the air") : "") +
       (L.bigRoad ? tstat("🚗", dist(L.bigRoad), "biggest road trip") : "") + (L.topState ? tstat("📍", areaName("state", L.topState.id), "most visited · " + L.topState.count + (L.topState.count === 1 ? " trip" : " trips")) : "") + '</div>' +
+      (personId && M.expCounts && M.expCounts(personId, S().trips).total ? '<p class="small expline">🎟️ ' + esc(M.expLine(M.expCounts(personId, S().trips))) + '</p>' : "") +
+      (personId && P.regionCounts ? regionLine(personId) : "") +
       (lt ? '<p class="small">Longest trip: <a href="#/p/' + esc(pid) + '/trip/' + esc(lt.id) + '">' + esc(lt.place) + '</a>, ' + esc(dist(L.longest.miles, true)) + '</p>' : "") +
       (L.restaurants.length ? '<h3 class="sec">Favorite restaurants</h3><ol class="rlist">' + L.restaurants.slice(0, 8).map(function (r) {
         var tt = tripById(r.tripId);
         return '<li><b>' + esc(r.name) + '</b>' + stars(r.rating) + '<span class="meta">' + esc([r.where, tt ? tt.place : ""].filter(Boolean).join(" · ")) + '</span></li>'; }).join("") + '</ol>' : "");
+  }
+  // v110: "Canada: 3 of 13 provinces and territories" under a person's lifetime stats
+  function regionLine(personId) {
+    var k = (S().kids || []).filter(function (x) { return x.id === personId; })[0]; if (!k) return "";
+    var rc = P.regionCounts(stampsOf(k)); if (!rc.length) return "";
+    return '<p class="small regionline">🗺️ ' + rc.map(function (r) { return esc(r.countryName + ": " + r.n + " of " + r.total + " " + r.of); }).join(" · ") + '</p>';
   }
   function bindLifetime(again) { bindUnits(A().main, again); }
 
@@ -2047,7 +2084,7 @@
       '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
   }
 
-  window.FS_UI = { mailInbox: mailInbox, mailAddress: mailAddress, findPlaces: findPlaces, builder: builder, planWhen: planWhen, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
+  window.FS_UI = { nearBlocks: nearBlocks, sightPoint: sightPoint, mailInbox: mailInbox, mailAddress: mailAddress, findPlaces: findPlaces, builder: builder, planWhen: planWhen, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
                    lifetimeHTML: lifetimeHTML, bindLifetime: bindLifetime, printExtra: printExtra, loadPlaces: loadPlaces, loadAirports: loadAirports, ensureTowns: ensureTowns, routeSVG: routeSVG,
                    searchPlaces: searchPlaces, searchAirports: searchAirports, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs,
                    sheet: sheet, closeSheet: closeSheet, dateFields: dateFields, readDate: readDate, shortArea: shortArea, stampName: stampName, CTX: CTX };

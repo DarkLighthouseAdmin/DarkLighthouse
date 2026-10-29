@@ -18,7 +18,20 @@
       return sessionStorage.getItem("mltl-google") === "1";
     } catch (e) { return false; }
   })();
-  var FLAGS = { testing: !!CFG.testing, google: !!CFG.google || GOOGLE_TRY, email: !!CFG.email };   // email codes need custom SMTP: off until then
+  // v110: ?emailcodes=1 shows "sign in with an email code" for this tab while the flag is off, so the SMTP setup can be
+  // tested live before everyone sees it; ?emailcodes=0 hides it again.
+  var EMAIL_TRY = (function () {
+    try {
+      var m = /[?&]emailcodes=([01])\b/.exec(location.search);
+      if (m) {
+        if (m[1] === "1") sessionStorage.setItem("mltl-emailcodes", "1"); else sessionStorage.removeItem("mltl-emailcodes");
+        var q = location.search.replace(/([?&])emailcodes=[01]&?/, "$1").replace(/[?&]$/, "");
+        history.replaceState(null, "", location.pathname + q + location.hash);
+      }
+      return sessionStorage.getItem("mltl-emailcodes") === "1";
+    } catch (e) { return false; }
+  })();
+  var FLAGS = { testing: !!CFG.testing, google: !!CFG.google || GOOGLE_TRY, email: !!CFG.email || EMAIL_TRY };   // email codes need custom SMTP: off until then
   var ROLE_NAME = { owner: "Organizer", adult: "Grown-up", kid: "Kid" };
 
   // ---------- sync settings on this phone (meta "sync") ----------
@@ -1045,8 +1058,8 @@
       '<p class="small muted">' + (upgrading ? "We'll send a 6-digit code. After that, you can get back into the family log on any phone." : "Use the email you added on your other phone. We'll send a 6-digit code.") + '</p>' +
       '<div class="field"><label for="em">Email</label><input id="em" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>' +
       '<div class="actions"><button class="btn btn-primary" id="esend">Send my code</button></div>' +
-      '<div class="field" id="otpbox" hidden><label for="otp">6-digit code</label><input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" class="codein" placeholder="123456"><div class="actions"><button class="btn btn-beacon" id="ever">Confirm</button></div></div>' +
-      '<p class="err" id="eerr" hidden></p><p class="hint">No code after a few minutes? Check spam. We can only send a few emails an hour while Family Sync is in testing, so an invite code is quickest.</p></div>';
+      '<div class="field" id="otpbox" hidden><label for="otp">Code from the email</label><input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" class="codein" placeholder="123456"><div class="actions"><button class="btn btn-beacon" id="ever">Confirm</button></div></div>' +
+      '<p class="err" id="eerr" hidden></p><p class="hint">No code after a few minutes? Check spam, then tap Send again. Lost your phone? Sign in here (or with Google) on the new one and your family log comes back from the cloud.</p></div>';
     var email = "";
     document.getElementById("esend").onclick = function () {
       var b = this; email = String(document.getElementById("em").value || "").trim().toLowerCase();
@@ -1058,7 +1071,7 @@
     };
     document.getElementById("ever").onclick = function () {
       var b = this, code = String(document.getElementById("otp").value || "").replace(/\D/g, ""), r;
-      if (code.length !== 6) return err("eerr", new Error("The code is 6 numbers."));
+      if (code.length < 6 || code.length > 10) return err("eerr", new Error("Type the numbers from the email (6 or more)."));   // v110: Supabase can be set to 6-10 digit codes
       err("eerr"); busy(b, true, "Checking…");
       remote().then(function (x) { r = x; return r.verifyCode(email, code, upgrading ? "email_change" : "email"); }).then(function (u) {
         if (upgrading) { var c = cfg(); c.anonymous = false; c.email = email; return save(c).then(function () { A.toast("Saved. You can sign in with " + email + " on any phone."); location.hash = "#/sync"; }); }

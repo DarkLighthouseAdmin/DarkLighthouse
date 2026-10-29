@@ -846,6 +846,11 @@
       // v79: a sight's stamp shows its type's picture (castle, ruin, viewpoint...); a famous landmark with its own drawing shows that
       var ty = typeOf(sx && sx.type), lm = sx && sx.ref && G["lm_" + sx.ref] ? "lm_" + sx.ref : "";
       d = { shape: "circle", border: lm ? "double" : pick(BORDERS, h2), ink: ty.ink, motif: lm || ty.motif, pose: h % 3, flip: false, font: "serif", label: ty.label.toUpperCase(), type: ty.id, landmark: !!lm };
+    } else if (kind === "region") {
+      // v110: a province / state of Canada, Australia, Mexico or Germany: its country's look, labelled PROVINCE / STATE
+      var rc = COUNTRY[String(area).split(".")[0]], RL = { CAN: "PROVINCE", AUS: "STATE", MEX: "ESTADO", DEU: "LAND" }[String(area).split(".")[0]] || "REGION";
+      if (rc) { rc = rc.split("|"); d = { shape: pick(SHAPES, h), border: rc[1], ink: inkOf(rc[2], h), motif: rc[3], font: rc[4], label: RL, pose: h % 3, flip: false }; }
+      else d = { shape: pick(SHAPES, h), border: pick(BORDERS, h2), ink: INK_LIST[(h >>> 5) % INK_LIST.length], motif: pick(GENERIC, h2 >>> 3), font: pick(FONT_KEYS, h >>> 11), label: RL, pose: h % 3, flip: false };
     } else {
       var c = COUNTRY[area];
       if (c) { c = c.split("|"); d = { shape: c[0], border: c[1], ink: inkOf(c[2], h), motif: c[3], font: c[4], label: c[5], pose: h % 3, flip: false, tuned: true }; }

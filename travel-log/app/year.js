@@ -69,6 +69,7 @@
   function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; }); }
   function stampName(s) {
     if (s.kind === "sight") return s.name || s.area;
+    if (s.kind === "region" && window.WK_PASSPORT) return window.WK_PASSPORT.regionName(s.area);   // v110
     if (s.kind === "park") { var p = M.parkById(s.area); return p ? p.name : s.area; }
     if (s.kind === "state") { var st = window.MLTL_MAPS.us.shapes.filter(function (x) { return x.id === s.area; })[0]; return st ? st.name : s.area; }
     var c = window.MLTL_MAPS.world.countries.filter(function (x) { return x.id === s.area; })[0]; return c ? c.name : s.area;

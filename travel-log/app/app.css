@@ -1205,3 +1205,18 @@ body.kidlock main a.btn[href*="/edit"], body.kidlock main [data-fs-stamp], body.
 .pinpad { display:grid; grid-template-columns:repeat(3, 1fr); gap:.6rem; max-width:300px; margin:.6rem auto; }
 .pinpad button { min-height:60px; font-size:1.5rem; font-weight:700; border-radius:16px; border:1px solid var(--line, #ddd); background:var(--card); color:inherit; cursor:pointer; }
 .kidcodesoff { margin-top:.5rem; }
+/* v110: book year picker */
+.bkyears { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; margin:.6rem 0; }
+.bkyears .chip { padding:.35rem .85rem; text-decoration:none; }
+.bkyears .chip.on { color:var(--ink); border-color:var(--kid); box-shadow:inset 0 0 0 1px var(--kid); }
+.nearitem.nearsight .nic { font-size:1.15rem; }
+/* v110: experience stamps */
+.exps .explist { list-style:none; padding:0; margin:.4rem 0; }
+.exps .expitem { display:flex; gap:.6rem; align-items:center; padding:.35rem 0; border-bottom:1px dashed rgba(31,42,51,.15); }
+.exps .expitem > span:nth-child(2) { flex:1; }
+.exps .expst { font-size:1.4rem; width:2.2rem; height:2.2rem; display:inline-flex; align-items:center; justify-content:center; border:2px dashed var(--kid); border-radius:50%; }
+.expchips .chip { padding:.35rem .75rem; }
+/* v110: moving notice, photo note, province line */
+.movenag { border-color: var(--beacon, #c8902a); }
+.photonote { margin-top: .6rem; }
+.regionline { margin: .3rem 0; }

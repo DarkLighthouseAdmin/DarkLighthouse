@@ -80,7 +80,7 @@ ok(M.ageOn(2016, "2026-07-14") === 10 && M.ageOn(null, "2026-07-14") === null, "
 
 // ---- badges ----
 const bs = M.badges(M.stats(a, [t1], MAPS.world)), got = id => bs.find(x => x.id === id).earned;
-ok(bs.length === 23, "23 badges for kids");
+ok(bs.length === 26, "26 badges for kids (v110: +3 experience badges)");
 ok(got("first-trip") && got("photo") && got("states-5") && !got("states-10"), "trip/photo/state badges");
 ok(got("scotland") && got("uk-4") && got("abroad") && got("continents-3") && !got("countries-5"), "Wee explorer, All four nations, Passport power");
 ok(got("park-1") && !got("junior-ranger"), "park badge, no ranger yet");
@@ -107,7 +107,7 @@ ok(ms.firstTripAge === null, "no 'age on first trip' for adults");
 ok(M.stats(a, [tFam], MAPS.world).firstTripAge === 10, "kids still get age on first trip");
 ok(ms.together === 2 && ms.trips === 2, "trips together counted per person");
 const mb = M.badges(ms), mg = id => mb.find(x => x.id === id);
-ok(mb.length === 22 && !mg("junior-ranger"), "adults skip the Junior Ranger badge");
+ok(mb.length === 25 && !mg("junior-ranger"), "adults skip the Junior Ranger badge");
 ok(mg("scotland").name === "Scotland calling" && mg("scotland").earned, "adults get 'Scotland calling', not 'Wee explorer'");
 ok(M.badges(M.stats(a, [], MAPS.world)).find(x => x.id === "scotland").name === "Wee explorer", "kids keep 'Wee explorer'");
 ok(mg("park-1").earned && mg("abroad").earned && !mg("together").earned, "adults earn the same badges");
@@ -2932,4 +2932,40 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/function memo\(key, make\) \{ var sig = dataSig\(\)/.test(app) && /memo: memo,/.test(app) && /memo\("sumline\|" \+ k\.id/.test(app), "v109: app keeps results until trips, people or settings change");
   ok(/mm\("yfam\|" \+ who_/.test(yr) && /mm\("ysum\|" \+ who_ \+ "\|" \+ year/.test(yr) && /A\(\)\.memo\("sharecard-home", bestNew\)/.test(sc), "v109: Year and the Home share nudge use the memo");
   ok(/M\.today\(\)/.test(app.slice(app.indexOf("function dataSig"), app.indexOf("function memo("))), "v109: the memo resets when the day changes");
+}
+{ // v110: date-line routes, sights in Near me, the full photo book by year, experiences, provinces, email codes, keep-alive, moving
+  const T = require("../travel-log/app/trips-core.js"), P = require("../travel-log/app/passport-core.js"), SC = require("../travel-log/app/sync-core.js");
+  const dl = T.dateLine({ lat: 21.3, lon: -157.9 }, { lat: 35.7, lon: 139.7 });
+  ok(dl && Math.abs(dl.a.lon) > 179.9 && Math.sign(dl.a.lon) === -1 && Math.sign(dl.b.lon) === 1 && dl.lat > 21 && dl.lat < 36, "v110: Honolulu to Tokyo crosses the date line (edge points)");
+  ok(T.dateLine({ lat: 40.7, lon: -74 }, { lat: 51.5, lon: -0.1 }) === null, "v110: New York to London doesn't");
+  ok(/dateLine\(/.test(read("trips-ui.js")) && /\bdl\b/.test(read("trips-ui.js")), "v110: the route map draws the two halves");
+  const rows = [{ names: ["Zz Test Falls"], lat: 40.001, lon: -75.001, type: "waterfall", rank: 5, country: "USA" }, { names: ["Far Away Tower"], lat: 40.05, lon: -75.1, type: "tower", rank: 9, country: "USA" }];
+  const ns = M.nearSights(rows, { lat: 40, lon: -75 }, {}, 8);
+  ok(ns.length === 1 && ns[0].row.names[0] === "Zz Test Falls" && ns[0].miles < 1, "v110: Near me lists sights within " + M.SIGHT_NEAR_MILES + " miles");
+  ok(/kind: "sight"/.test(read("near.js")) && /nearBlocks/.test(read("near.js")), "v110: Near me loads the nearby sights");
+  const bk = read("book.js");
+  ok(!/MAX_STAMP_PAGES|MAX_TRIPS|in the full book/.test(bk) && /PREVIEW_PAGES = 40/.test(bk) && /function bookYears/.test(bk) && /bkyears/.test(bk), "v110: photo book has every stamp and trip, with a year picker");
+  const t = { id: "t9", kidIds: ["k1", "k2"], date: "2025-07-01", route: [] };
+  const e1 = M.newExp({ kind: "hike", who: ["k1"], day: "2025-07-02" }), e2 = M.newExp({ kind: "swim" });
+  ok(M.addExp(t, e1) && M.addExp(t, e2) && !M.addExp(t, e1) && M.newExp({ kind: "skydive" }) === null, "v110: experiences add once, unknown kinds refused");
+  let c1 = M.expCounts("k1", [t]), c2 = M.expCounts("k2", [t]);
+  ok(c1.total === 2 && c2.total === 1 && c2.by.swim === 1 && /hike/i.test(M.expLine(c1)), "v110: experience counts per person (" + M.expLine(c1) + ")");
+  const t2 = JSON.parse(JSON.stringify(t)); M.removeExp(t2, e2.id, "2099-01-01T00:00:00Z");
+  SC.mergeTripPieces(t, t2);
+  ok(M.liveExps(t).length === 1 && t.exps.some(e => e.id === e2.id && e.gone), "v110: a removed experience stays removed after sync (kept, marked gone)");
+  ok(M.BADGES.some(b => b.id === "exp-1") && M.EXPS.length === 11, "v110: 11 experience kinds and new badges");
+  const tc = { id: "tc", kidIds: ["k"], date: "2025-07-01", route: [{ name: "Home", country: "USA", region: "PA" }, { name: "Banff", country: "CAN", region: "01", lat: 51.2, lon: -115.6 }, { name: "Calgary airport", country: "CAN", region: "AB", lat: 51.1, lon: -114 }, { name: "Vancouver", country: "CAN", region: "02" }] };
+  const st = P.stampsFor({ id: "k" }, [tc]);
+  ok(st.filter(s => s.kind === "region").map(s => s.area).join() === "CAN.01,CAN.02" && st.some(s => s.kind === "place" && s.area === "CAN"), "v110: Canada AND Alberta + British Columbia stamped (airport code AB counted once)");
+  const rc = P.regionCounts(st);
+  ok(rc.length === 1 && rc[0].n === 2 && rc[0].total === 13 && P.regionName("CAN.01") === "Alberta" && P.regionName("AUS.02") === "New South Wales", "v110: 2 of 13 provinces and territories");
+  ok(/PROVINCE/.test(P.stampSVG(st.find(s => s.area === "CAN.01"), "Alberta")), "v110: province stamps say PROVINCE");
+  ok(/kind === "region"\) return;/.test(read("stamp-who.js")), "v110: province stamps aren't edited by hand (no stray map entries)");
+  const sy = read("sync.js");
+  ok(/emailcodes=\(\[01\]\)/.test(sy) && /email: !!CFG\.email \|\| EMAIL_TRY/.test(sy) && /code\.length < 6 \|\| code\.length > 10/.test(sy), "v110: email codes testable per tab, 6-10 digits");
+  ok(/email: false/.test(read("sync-config.js")), "v110: email codes stay off for everyone until SMTP is set up");
+  const ka = fs.readFileSync(path.join(__dirname, "famstamp_keepalive.mjs"), "utf8");
+  ok(/rpc\/famstamp_usage/.test(ka) && !/service_role|sb_secret/.test(ka) && /cron:/.test(fs.readFileSync(path.join(__dirname, "ci", "famstamp-keepalive.yml"), "utf8")), "v110: keep-alive uses only the public key");
+  const ap = read("app.js");
+  ok(/var MOVE = \{ to: "", by: "" \}/.test(ap) && /moveBanner\(\) \+ backupBanner\(\)/.test(ap) && /full-size originals stay in your phone/.test(ap), "v110: moving notice (off) and the photo-size note");
 }

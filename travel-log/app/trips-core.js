@@ -451,6 +451,14 @@
     }
     return fit(PROJ.world, equalEarth(p.lon, p.lat));
   }
+  /** v110: a leg that crosses the date line (Honolulu -> Tokyo, Fiji -> Samoa) is drawn the short way: off one edge of the
+      world map and back in from the other. Returns null for a normal leg, else the two edge points (a's side, b's side). */
+  function dateLine(a, b) {
+    if (!hasLoc(a) || !hasLoc(b)) return null;
+    var d = b.lon - a.lon; if (Math.abs(d) <= 180) return null;
+    var bl = b.lon + (d > 0 ? -360 : 360), edge = d > 0 ? -180 : 180, t = (edge - a.lon) / (bl - a.lon), lat = a.lat + t * (b.lat - a.lat);
+    return { lat: lat, a: { lat: lat, lon: edge > 0 ? 179.99 : -179.99 }, b: { lat: lat, lon: edge > 0 ? -179.99 : 179.99 } };
+  }
   /** Which map to draw a route on: the US map when every located stop is in the 50 states, otherwise the world. */
   function routeMap(t) {
     var pts = (t.route || []).filter(hasLoc);
@@ -636,6 +644,6 @@
            airMinutes: airMinutes, fmtAir: fmtAir, crossesBorder: crossesBorder, CRUISE_MPH: CRUISE_MPH, GROUND_MIN_MI: GROUND_MIN_MI,
            cleanStays: cleanStays, cleanFavs: cleanFavs, cleanMoments: cleanMoments, cleanStory: cleanStory, cleanMemories: cleanMemories, MEM_PROMPTS: MEM_PROMPTS, cleanExtras: cleanExtras,
            routeFromLegacy: routeFromLegacy, syncLegacy: syncLegacy, nightsBetween: nightsBetween, summary: summary, areas: areas, isAdult: isAdult,
-           showAdult: showAdult, visibleFavs: visibleFavs, tripMiles: tripMiles, lifetime: lifetime, project: project, routeMap: routeMap, PROJ: PROJ,
+           showAdult: showAdult, visibleFavs: visibleFavs, tripMiles: tripMiles, lifetime: lifetime, project: project, dateLine: dateLine, routeMap: routeMap, PROJ: PROJ,
            hash: hash, rng: rng, makeStory: makeStory, splitSentences: splitSentences, wordCount: wordCount, longDate: longDate };
 });

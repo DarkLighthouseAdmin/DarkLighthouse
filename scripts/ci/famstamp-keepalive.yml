@@ -1,0 +1,18 @@
+# Famstamp keep-alive (v110). To turn on, copy this file to .github/workflows/famstamp-keepalive.yml (pushing a workflow
+# needs a GitHub token with the "workflow" scope, or add it in the GitHub web editor). Free for this use. A red run means
+# the database or photo storage is over 80% of the free plan, and GitHub emails the repo owner.
+name: Famstamp keep-alive
+on:
+  schedule:
+    - cron: "17 13 * * 1,4"   # Mondays and Thursdays, 9:17 AM New York (EDT)
+  workflow_dispatch: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: "scripts\ntravel-log/app/sync-config.js", sparse-checkout-cone-mode: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node scripts/famstamp_keepalive.mjs

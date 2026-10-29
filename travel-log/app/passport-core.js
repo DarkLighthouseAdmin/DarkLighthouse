@@ -76,6 +76,30 @@
     if (STATE_NAMES[u]) return u;
     return STATE_BY_NAME[v.toLowerCase().replace(/\s+/g, " ")] || "";
   }
+  // v110: provinces / states of a few big countries are their own stamps too (a trip to Banff stamps Canada AND Alberta).
+  // Keyed "CAN.01" (GeoNames admin1, same as the place search). Derived from trip stops only; nothing new is saved.
+  var REGIONS = {
+    CAN: { of: "provinces and territories", label: "PROVINCE", country: "Canada", names: {"01": "Alberta", "02": "British Columbia", "03": "Manitoba", "04": "New Brunswick", "05": "Newfoundland and Labrador", "07": "Nova Scotia", "08": "Ontario", "09": "Prince Edward Island", "10": "Quebec", "11": "Saskatchewan", "12": "Yukon", "13": "Northwest Territories", "14": "Nunavut"} },
+    AUS: { of: "states and territories", label: "STATE", country: "Australia", names: {"01": "Australian Capital Territory", "02": "New South Wales", "03": "Northern Territory", "04": "Queensland", "05": "South Australia", "06": "Tasmania", "07": "Victoria", "08": "Western Australia"} },
+    MEX: { of: "states", label: "ESTADO", country: "Mexico", names: {"01": "Aguascalientes", "02": "Baja California", "03": "Baja California Sur", "04": "Campeche", "05": "Chiapas", "06": "Chihuahua", "07": "Coahuila", "08": "Colima", "09": "Mexico City", "10": "Durango", "11": "Guanajuato", "12": "Guerrero", "13": "Hidalgo", "14": "Jalisco", "15": "México State", "16": "Michoacán", "17": "Morelos", "18": "Nayarit", "19": "Nuevo León", "20": "Oaxaca", "21": "Puebla", "22": "Querétaro", "23": "Quintana Roo", "24": "San Luis Potosí", "25": "Sinaloa", "26": "Sonora", "27": "Tabasco", "28": "Tamaulipas", "29": "Tlaxcala", "30": "Veracruz", "31": "Yucatán", "32": "Zacatecas"} },
+    DEU: { of: "states", label: "LAND", country: "Germany", names: {"01": "Baden-Württemberg", "02": "Bavaria", "03": "Bremen", "04": "Hamburg", "05": "Hesse", "06": "Lower Saxony", "07": "North Rhine-Westphalia", "08": "Rhineland-Palatinate", "09": "Saarland", "10": "Schleswig-Holstein", "11": "Brandenburg", "12": "Mecklenburg-Vorpommern", "13": "Saxony", "14": "Saxony-Anhalt", "15": "Thuringia", "16": "Berlin"} }
+  };
+  // airports carry the postal code (AB, NSW) instead of the GeoNames number
+  var REGION_ALIAS = { CAN: { AB: "01", BC: "02", MB: "03", NB: "04", NL: "05", NS: "07", ON: "08", PE: "09", QC: "10", SK: "11", YT: "12", NT: "13", NU: "14" },
+    AUS: { ACT: "01", NSW: "02", NT: "03", QLD: "04", SA: "05", TAS: "06", VIC: "07", WA: "08" } };
+  function regionKey(country, region) {
+    var R = REGIONS[country]; if (!R || !region) return "";
+    if (!R.names[region] && REGION_ALIAS[country]) region = REGION_ALIAS[country][region] || region;
+    return R.names[region] ? country + "." + region : "";
+  }
+  function regionName(area) { var a = String(area || "").split("."), R = REGIONS[a[0]]; return R && R.names[a[1]] ? R.names[a[1]] : String(area || ""); }
+  function regionInfo(area) { var a = String(area || "").split("."), R = REGIONS[a[0]]; return R ? { country: a[0], countryName: R.country, label: R.label, of: R.of, total: Object.keys(R.names).length } : null; }
+  /** "3 of 13 provinces and territories in Canada" lines for one person's stamps (only countries they have a region stamp in). */
+  function regionCounts(stamps) {
+    var by = {};
+    (stamps || []).forEach(function (s) { if (s.kind !== "region") return; var c = String(s.area).split(".")[0]; if (!REGIONS[c]) return; (by[c] = by[c] || {})[s.area] = 1; });
+    return Object.keys(by).sort().map(function (c) { var n = Object.keys(by[c]).length, R = REGIONS[c]; return { country: c, countryName: R.country, n: n, total: Object.keys(R.names).length, of: R.of }; });
+  }
   function pointAreas(p, parkStates) {
     var out = [];
     if (p.kind === "park" && p.ref) { out.push({ kind: "park", area: p.ref }); var st = parkStates && parkStates[p.ref]; if (st && st.length === 1) out.push({ kind: "state", area: st[0] }); }
@@ -96,6 +120,7 @@
       var via = p.arr && p.arr.code ? p.arr.code + (p.arr.city ? " " + T.airportCity(p.arr.city, p.arr.name, p.arr.code) : "") : p.name;
       var pa = pointAreas(p, parkStates);
       // v79: a sight stop (castle, viewpoint, beach...) is its own stamp too, and still counts for its country / state
+      var rk = regionKey(p.country, p.region); if (rk) pa.push({ kind: "region", area: rk });
       if (p.kind === "sight") pa.push({ kind: "sight", area: sightArea(p), name: p.name, type: p.type || "landmark", town: p.town || "", ref: p.ref || "", fame: p.fame || 0 });
       pa.forEach(function (a) {
         var k = a.kind + ":" + a.area;
@@ -119,6 +144,7 @@
     if (kind === "park") return "parks";
     if (kind === "state") return "states";
     if (kind === "sight") return "sights";
+    if (kind === "region") return "world";   // v110: next to its country
     return "world";
   }
   /** Every stamp in one person's passport, oldest first. Sources: trips they went on, stamps added by hand, and places colored
@@ -303,7 +329,7 @@
     if (b === "02-29" && mo === 2 && d === 28 && new Date(now.getFullYear(), 1, 29).getMonth() !== 1) return true;   // Feb 29 birthdays get Feb 28 in other years
     return +b.slice(0, 2) === mo && +b.slice(3) === d; }
 
-  return { newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits, sightArea: sightArea, sightSub: sightSub, drinkHidden: drinkHidden, section: section,
+  return { REGIONS: REGIONS, regionKey: regionKey, regionName: regionName, regionInfo: regionInfo, regionCounts: regionCounts, newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits, sightArea: sightArea, sightSub: sightSub, drinkHidden: drinkHidden, section: section,
            stampsFor: stampsFor, familyStamps: familyStamps, groupStamps: groupStamps, passportCounts: passportCounts, stateCode: stateCode, pages: pages, look: look, flag: flag, stampSVG: stampSVG, ISO32: ISO32, NATIONS: NATIONS, MAX_STAMPS: MAX_STAMPS, SHAPES: SHAPES,
            STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook, signTier: signTier, signInfo: SG.look, ID_FIELDS: ID_FIELDS, MONTHS: MONTHS, cleanBday: cleanBday, cleanIdPage: cleanIdPage, bdayText: bdayText, isBirthday: isBirthday,
            stampArtMode: function (id, art) { return SA.stateMode(id, art); }, stampDesign: SA.design, STATE_SYMBOLS: SA.SYM ? SA.SYM.DATA : null };

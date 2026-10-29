@@ -366,6 +366,7 @@
       continents: Object.keys(conts).length, continentNames: Object.keys(conts).sort(),
       parks: parkIds.length, parksTotal: PARKS.length, juniorRanger: jr,
       trips: mine.length, photos: mine.filter(function (t) { return t.photoId; }).length,
+      exps: expCounts(kid.id, trips).total, expKinds: expCounts(kid.id, trips).kinds,
       years: Object.keys(years).length, firstTrip: dates[0] || "", firstTripAge: isKid(kid) ? ageOn(kid.birthYear, dates[0] || "") : null
     };
   }
@@ -394,7 +395,11 @@
     { id: "road-trip", name: "Big road trip", desc: "Drive 500 miles on one trip", need: 500, key: "bigRoad" },
     { id: "miles-1000", name: "1,000 miles", desc: "Travel 1,000 miles", need: 1000, key: "miles" },
     { id: "miles-10000", name: "10,000 miles", desc: "Travel 10,000 miles", need: 10000, key: "miles" },
-    { id: "around-world", name: "Around the world", desc: "Travel 24,901 miles, once around the Earth", need: 24901, key: "miles" }
+    { id: "around-world", name: "Around the world", desc: "Travel 24,901 miles, once around the Earth", need: 24901, key: "miles" },
+    // v110: experience stamps
+    { id: "exp-1", name: "Adventurer", desc: "Stamp something you did on a trip: a hike, a show, a ski day", need: 1, key: "exps" },
+    { id: "exp-10", name: "Up for anything", desc: "Stamp 10 things you did on trips", need: 10, key: "exps" },
+    { id: "exp-kinds-5", name: "Try it all", desc: "Do 5 different kinds of things on trips", need: 5, key: "expKinds" }
   ];
   function badges(s) {
     var v = Object.assign({ scotlandN: s.scotland ? 1 : 0 }, s);
@@ -659,6 +664,29 @@
     });
     return out.sort(function (a, b) { return b.score - a.score; }).slice(0, n || 6);
   }
+  // ---------- v110: experience stamps ("What did you do?" on a trip: a hike, a concert, a ski day...) ----------
+  // Kept on the trip as t.exps = [{ id, kind, day, who: [personId], at }]; a removed one keeps { gone } so a merge can't bring it back.
+  var EXPS = [["hike", "🥾", "Hike", "hikes"], ["swim", "🏊", "Swim", "swims"], ["ski", "⛷️", "Ski day", "ski days"], ["snowboard", "🏂", "Snowboard day", "snowboard days"],
+              ["concert", "🎵", "Concert", "concerts"], ["game", "🏟️", "Big game", "big games"], ["festival", "🎪", "Festival", "festivals"], ["show", "🎭", "Show", "shows"],
+              ["cruise", "🛳️", "Cruise", "cruises"], ["camp", "🏕️", "Camping night", "camping nights"], ["themepark", "🎢", "Theme park day", "theme park days"]];
+  var EXP_BY = {}; EXPS.forEach(function (e) { EXP_BY[e[0]] = e; });
+  function newExp(o) {
+    o = o || {}; if (!EXP_BY[o.kind]) return null;
+    return { id: o.id || uid("exp"), kind: o.kind, day: /^\d{4}-\d{2}-\d{2}$/.test(o.day || "") ? o.day : "", who: (o.who || []).filter(function (x) { return typeof x === "string"; }).slice(0, 40), at: o.at || new Date().toISOString() };
+  }
+  function addExp(t, e) { if (!t || !e) return false; t.exps = Array.isArray(t.exps) ? t.exps : []; if (t.exps.some(function (x) { return x.id === e.id; })) return false; t.exps.push(e); return true; }
+  function removeExp(t, id, now) { var e = (t && t.exps || []).filter(function (x) { return x && x.id === id; })[0]; if (!e || e.gone) return false; now = now || new Date().toISOString(); e.gone = now; e.at = now; return true; }
+  function liveExps(t) { return (t && Array.isArray(t.exps) ? t.exps : []).filter(function (e) { return e && !e.gone && EXP_BY[e.kind]; }); }
+  /** How many of each experience one person has, from trips they went on (who empty = everyone on the trip). */
+  function expCounts(pid, trips) {
+    var by = {}, total = 0;
+    (trips || []).forEach(function (t) {
+      if (!t || t.deletedAt || t.planned === true || (t.kidIds || []).indexOf(pid) < 0) return;
+      liveExps(t).forEach(function (e) { if (e.who && e.who.length && e.who.indexOf(pid) < 0) return; by[e.kind] = (by[e.kind] || 0) + 1; total++; });
+    });
+    return { by: by, total: total, kinds: Object.keys(by).length };
+  }
+  function expLine(c) { return EXPS.filter(function (e) { return c.by[e[0]]; }).map(function (e) { var n = c.by[e[0]]; return e[1] + " " + n + " " + (n === 1 ? e[2].toLowerCase() : e[3]); }).join(" · "); }
   function isDraft(t) { return !!t && !t.deletedAt && (t.draft === true || DRAFT_RE.test(String(t.title || ""))); }
   function draftTrips(trips) { return (trips || []).filter(isDraft); }
   /** Mark a draft reviewed: draft off, "Draft:" taken off the name, and a fresh updatedAt so it syncs and wins over the file it came from. */
@@ -774,6 +802,22 @@
   var NEAR_MILES = 30;
   /** pt = { lat, lon }; d = the places list ({ rows, countries, admin }) or null; people = everyone in the log.
       stateAt (optional) = function (pt) -> US state id the point is inside. Returns { here: { name, region, country, countryName, miles } | null, items: [{ kind, id, name, miles, who: [ids that have it] }] } */
+  /** v110: sights (castles, aquariums, museums...) within about 3 miles of where you are, best first. rows = data/near rows;
+      stamped = { sightArea: [personId...] } for who already has each one. */
+  var SIGHT_NEAR_MILES = 3;
+  function nearSights(rows, pt, stamped, n) {
+    if (!pt || typeof pt.lat !== "number" || !T || !T.gcMiles) return [];
+    stamped = stamped || {}; var seen = {}, out = [];
+    (rows || []).forEach(function (r) {
+      if (!r || typeof r.lat !== "number" || Math.abs(r.lat - pt.lat) > 0.06 || Math.abs(r.lon - pt.lon) > 0.12) return;
+      var key = r.wd || String(r.names[0]).toLowerCase(); if (seen[key]) return;
+      var m = T.gcMiles(pt, r); if (m > SIGHT_NEAR_MILES) return;
+      seen[key] = 1;
+      var area = P && P.sightArea ? P.sightArea({ ref: r.wd || "", name: r.names[0], type: r.type || "landmark", country: r.country }) : key;
+      out.push({ row: r, area: area, miles: m < 0.15 ? 0 : Math.round(m * 10) / 10, who: (stamped[area] || []).slice(), score: (r.rank || 0) + (WANT_KID[r.type] || 0) - m * 20 });
+    });
+    return out.sort(function (a, b) { return b.score - a.score; }).slice(0, n || 8);
+  }
   function nearby(pt, d, people, radius, stateAt) {
     radius = radius || NEAR_MILES; people = people || [];
     if (!pt || typeof pt.lat !== "number" || typeof pt.lon !== "number" || !T || !T.gcMiles) return { here: null, items: [] };
@@ -830,7 +874,7 @@
   }
 
   return { newWant: newWant, addWant: addWant, heartWant: heartWant, didWant: didWant, wantGroups: wantGroups, wantSuggestions: wantSuggestions, wantKey: wantKey, WANT_MILES: WANT_MILES,
-           isPlanned: isPlanned, plannedTrips: plannedTrips, startPlanned: startPlanned, extraPhotoIds: extraPhotoIds, onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
+           isPlanned: isPlanned, plannedTrips: plannedTrips, startPlanned: startPlanned, extraPhotoIds: extraPhotoIds, onThisMonth: onThisMonth, onThisMonthLine: onThisMonthLine, MONTHS: MONTHS, familyCup: familyCup, nearby: nearby, EXPS: EXPS, newExp: newExp, addExp: addExp, removeExp: removeExp, liveExps: liveExps, expCounts: expCounts, expLine: expLine, nearSights: nearSights, SIGHT_NEAR_MILES: SIGHT_NEAR_MILES, NEAR_MILES: NEAR_MILES, upcoming: upcoming, onTripNow: onTripNow, countdownLine: countdownLine, tripEnd: tripEnd, dayDiff: dayDiff, onThisDay: onThisDay, onThisDayLine: onThisDayLine, addDays: addDays, isDraft: isDraft, draftTrips: draftTrips, reviewTrip: reviewTrip, BIN_DAYS: BIN_DAYS, tripLabel: tripLabel, binTrip: binTrip, unbinTrip: unbinTrip, splitTrips: splitTrips, binDaysLeft: binDaysLeft, tripFromBackup: tripFromBackup,
            APP_ID: APP_ID, BACKUP_VERSION: BACKUP_VERSION, PREF_KEYS: PREF_KEYS, cleanPrefs: cleanPrefs, addOnlyRestore: addOnlyRestore, PARKS: PARKS, ALL_PARKS: ALL_PARKS, parkById: parkById, parksIn: parksIn, parkSub: parkSub, PARK_SETS: PARK_SETS, COLORS: COLORS, UK_NATIONS: UK_NATIONS, ROLES: ROLES, validRole: validRole, isKid: isKid, RELATIONS: RELATIONS, NICK_MAX: NICK_MAX, defaultRel: defaultRel, validRel: validRel, relOf: relOf, relLabel: relLabel, who: who, realName: realName, isFollower: isFollower, followers: followers,
            newPerson: newPerson, countrySet: countrySet, whoBeen: whoBeen, familyStats: familyStats,
            US_STATE_TOTAL: US_STATE_TOTAL, COUNTRY_TOTAL: COUNTRY_TOTAL,

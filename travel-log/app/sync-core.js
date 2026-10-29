@@ -282,6 +282,19 @@
       });
       into.wants = wl;
     }
+    // v110: experience stamps from every phone are kept (by id); the newer copy wins, and a removed one stays removed
+    if (Array.isArray(from.exps) && from.exps.length) {
+      var el = Array.isArray(into.exps) ? into.exps : [], ei = {};
+      el.forEach(function (x, i) { if (x && x.id) ei[x.id] = i; });
+      from.exps.forEach(function (x) {
+        if (!x || !x.id) return;
+        if (!(x.id in ei)) { el.push(JSON.parse(JSON.stringify(x))); ei[x.id] = el.length - 1; changed = true; return; }
+        var a = el[ei[x.id]], gone = a.gone || x.gone;
+        if (newer(x.at, a.at) && JSON.stringify(x) !== JSON.stringify(a)) { a = el[ei[x.id]] = JSON.parse(JSON.stringify(x)); changed = true; }
+        if (gone && !a.gone) { a.gone = gone; changed = true; }
+      });
+      into.exps = el;
+    }
     return changed;
   }
   function mergePersonPieces(into, from) {

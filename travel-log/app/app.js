@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v109";
+  var VERSION = "v110";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -95,6 +95,7 @@
   function placeName(kind, id) {
     if (kind === "state") return STATE_NAME[id] || id;
     if (kind === "park") { var p = M.parkById(id); return p ? p.full : id; }
+    if (kind === "region" && window.WK_PASSPORT.regionName) return window.WK_PASSPORT.regionName(id);   // v110
     return (SHAPE[id] && SHAPE[id].name) || (COUNTRY[id] && COUNTRY[id].name) || id;
   }
   // v109: big logs (1,500 trips) made Home and the Year tab redo the same stamp math on every visit. memo(key, make) keeps
@@ -119,6 +120,29 @@
   }
   function travelerNames(ids) { return M.joinNames(names(ids)); }
 
+  // ---------- v110: before you move ----------
+  // This log lives in the browser's storage for THIS web address. If Famstamp ever moves to a new address, a phone that
+  // isn't on Family Sync would open an empty log there. Set MOVE.to (and .by) a few weeks before a move: every phone then
+  // sees "save a backup / turn on Family Sync before <date>", and the backup file restores on the new address.
+  // ?dls_move=new.example.com previews the notice in this tab only.
+  var MOVE = { to: "", by: "" };
+  function moveInfo() {
+    var to = MOVE.to, by = MOVE.by;
+    try {
+      var m = /[?&]dls_move=([a-z0-9.-]+)/i.exec(location.search); if (m) sessionStorage.setItem("fs-move-preview", m[1]);
+      var pv = sessionStorage.getItem("fs-move-preview"); if (pv && !to) { to = pv; by = by || ""; }
+    } catch (e) {}
+    if (!to || String(to).toLowerCase() === location.host.toLowerCase()) return null;
+    return { to: to, by: by };
+  }
+  function moveBanner() {
+    var mv = moveInfo(); if (!mv) return "";
+    var synced = !!(window.MLTL_SYNC && window.MLTL_SYNC.isOn && window.MLTL_SYNC.isOn());
+    return '<div class="nudge movenag" role="region" aria-label="Famstamp is moving"><b>🚚 Famstamp is moving to ' + esc(mv.to) + (mv.by ? " on " + esc(M.prettyDate(mv.by)) : "") + '.</b> ' +
+      '<span class="small">' + (synced ? "Your family log is in Family Sync, so it comes with you: sign in at the new address. Saving a backup file too is a good idea." :
+        "This log is stored for this web address only. Save a backup file now, then open it on the new address (Back up and restore → Restore) so nothing is left behind.") + '</span>' +
+      '<div class="actions"><button type="button" class="btn btn-primary" data-backup-now>Back up now</button></div></div>';
+  }
   // ---------- backup reminder ----------
   function backupBanner() {
     if (!M.backupDue({ lastBackupAt: state.meta.lastBackupAt, dismissedAt: state.meta.backupDismissedAt, trips: state.trips, people: state.kids })) return "";
@@ -277,7 +301,7 @@
     var html = '<h1>Color in every place your family goes, from the first road trip on.</h1>' +
       '<p class="lede">A travel map for each kid, and for the grown-ups too: states, countries and national parks, plus the little stories from every trip. ' +
       (window.MLTL_SYNC && window.MLTL_SYNC.isOn() ? "It's saved on this device and shared with your family log." : "It all stays right here on this device.") + '</p>';
-    html = backupBanner() + html;
+    html = moveBanner() + backupBanner() + html;
     if (window.FS_WELCOME) html = window.FS_WELCOME.homeHTML() + html;   // v93: first-time welcome (brand-new families only)
     if (state.kids.length) html += '<div class="homeadd">' + (state.kids.length === 1 ? '<a class="btn btn-beacon btn-big" id="homeadd" href="' + esc(UI().addTripHref(state.kids[0])) + '">' : '<button type="button" class="btn btn-beacon btn-big" id="homeadd" aria-haspopup="dialog">') +
       '<span aria-hidden="true">＋</span> Add a trip' + (state.kids.length === 1 ? '</a>' : '</button>') + '<a class="tapline small homeplan" href="#/plan">✈️ Plan a trip you\'re going on</a>' + '<span class="small muted">Stops, flights and miles, and everyone on it gets the stamps</span></div>';
@@ -1026,10 +1050,12 @@
   function viewBackup() {
     var last = state.meta.lastBackupAt;
     main.innerHTML = '<a class="back" href="#/">← Home</a><h1>Back up and restore</h1>' +
+      moveBanner() +
       '<p class="lede">' + esc((window.MLTL_SYNC && window.MLTL_SYNC.storageNote()) || "Your maps live only on this device. A backup file keeps them safe if the phone is lost, replaced or cleared.") + '</p>' +
       '<div class="panel" id="dlpanel"><h3>Download my Famstamp</h3><p class="muted small">One file with everything your family has here: people, trips and stops, stamps, notes and stories, photos, and your settings. Email it to yourself or save it to your cloud drive.</p>' +
       '<p class="small" id="lastbk">' + (last ? "Last backup file: " + esc(M.prettyDate(last.slice(0, 10))) : "No backup file yet.") + '</p>' +
-      '<div class="actions"><button class="btn btn-primary" id="bdown">⬇️ Download my Famstamp</button></div></div>' +
+      '<div class="actions"><button class="btn btn-primary" id="bdown">⬇️ Download my Famstamp</button></div>' +
+      '<p class="small muted photonote">📷 About photos: Famstamp keeps a smaller copy of each photo (about 1280 pixels on the long side), in this log, in Family Sync and in this file. Your full-size originals stay in your phone\'s own photo library, so keep backing that up the usual way.</p></div>' +
       (window.MLTL_IMPORT ? window.MLTL_IMPORT.backupCard() : "") +
       '<div class="panel" id="binpanel"><h3>Recently deleted</h3><p class="muted small">Deleted trips wait ' + M.BIN_DAYS + ' days before they\'re gone for good.</p><div class="actions"><a class="btn btn-ghost" href="#/deleted">🗑 Recently deleted (' + state.bin.length + ')</a></div></div>' +
       '<div class="panel" id="onetrip"><h3>Restore one trip</h3><p class="muted small">Pick a backup file, then tap Restore next to the trip you want back. Only that trip comes back; everyone\'s maps and passports stay as they are. It syncs to the family like a new edit.</p>' +

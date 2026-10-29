@@ -57,6 +57,7 @@
   function open(o) {
     var kind = o.kind, area = o.area, list = people(), id = whoAmI(), trips = S().trips, ctx = U().CTX;
     if (kind === "place" && area === "USA") return;
+    if (kind === "region") return;   // v110: province stamps come from trip stops only; who-was-there is set on the trip
     var hold = C.holders(list, trips, kind, area, ctx), page = o.page ? o.page.id : "";
     var on = C.startWith(list, hold, { mode: o.mode, synced: id.synced, me: id.me, page: page });
     var name = U().shortArea(kind, area), had = list.filter(function (p) { return hold[p.id]; }).map(function (p) { return p.id; });
