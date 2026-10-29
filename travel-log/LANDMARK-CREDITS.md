@@ -49,5 +49,11 @@ These landmark stamps are our own drawings, made by looking at reference photos 
 | Hagia Sophia (v116; also the Istanbul city stamp) | Q12506 | Famstamp | https://commons.wikimedia.org/wiki/File:Hagia_Sophia_Mars_2013.jpg |
 | Blue Mosque / Sultan Ahmed Mosque (v116) | Q80541 | Famstamp | https://commons.wikimedia.org/wiki/File:Exterior_of_Sultan_Ahmed_I_Mosque_in_Istanbul,_Turkey_002.jpg |
 | Sagrada Família (v116; also the Barcelona city stamp) | Q48435 | Famstamp | https://commons.wikimedia.org/wiki/File:Sagrada_Familia,_Barcelona_(P1170687).jpg |
+| Machu Picchu (v117; also the Cusco city stamp) | Q676203 | Famstamp | https://commons.wikimedia.org/wiki/File:Peru_Machu_Picchu_Sunrise.jpg |
+| Great Wall of China (v117; also the Beijing city stamp) | Q12501 | Famstamp | https://commons.wikimedia.org/wiki/File:The_Mutianyu_section_of_the_Great_Wall_of_China.jpg |
+| Petra, Al-Khazneh (v117) | Q5788 | Famstamp | https://commons.wikimedia.org/wiki/File:Al_Khazneh_Petra_edit_2.jpg |
+| Golden Gate Bridge (v117; also the San Francisco city stamp) | Q44440 | Famstamp | https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_2021.jpg |
+| Mount Rushmore (v117) | Q83497 | Famstamp | https://commons.wikimedia.org/wiki/File:Mount_Rushmore_detail_view.jpg |
+| Angkor Wat (v117) | Q43473 | Famstamp | https://commons.wikimedia.org/wiki/File:Angkor_Wat_with_its_reflection.jpg |
 
-Aliases (no new drawing): Vatican City Q237 and the Sistine Chapel Q2943 use St. Peter's Q12512; the Eilean Donan islet Q79182 uses the castle Q20816698; the Acropolis of Athens Q131013 uses the traced Parthenon Q10288 (credited above). Rome, Athens, Cairo, Istanbul, Barcelona and Edinburgh city stamps reuse their landmark's drawing.
+Aliases (no new drawing): Vatican City Q237 and the Sistine Chapel Q2943 use St. Peter's Q12512; the Eilean Donan islet Q79182 uses the castle Q20816698; the Acropolis of Athens Q131013 uses the traced Parthenon Q10288 (credited above). Rome, Athens, Cairo, Istanbul, Barcelona and Edinburgh city stamps reuse their landmark's drawing. v117: Angkor Q163607 uses Angkor Wat; Al-Khazneh Q1259626 uses Petra; Q65961372 (The Great Wall) uses the Great Wall. Cusco, Beijing and San Francisco city stamps reuse theirs.

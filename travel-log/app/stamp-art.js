@@ -848,7 +848,7 @@
       var ty = typeOf(sx && sx.type), lm = sx && sx.ref && G["lm_" + sx.ref] ? "lm_" + sx.ref : "";
       // v115: a stop saved without its Wikidata id: its exact name + country (from the stamp's area) can still find the drawing; never for pubs, food or stays
       if (!lm && sx && !sx.ref && API.LM_NAMES && !/^(pub|distillery|brewery|winery|station|airport|ferry|cruise|market|street|pin|playground|university|ski|campground|onsen)$/.test(ty.id)) { var lq = API.LM_NAMES[String(area || "").replace(/^[a-z]+-/, "")]; if (lq && G["lm_" + lq]) lm = "lm_" + lq; }
-      d = { shape: "circle", border: lm ? "double" : pick(BORDERS, h2), ink: lm && ty.ink === "#23262c" ? "#34507a" : ty.ink /* v115: near-black inks vanish on dark paper; a drawn landmark gets slate blue */, motif: lm || ty.motif, pose: h % 3, flip: false, font: "serif", label: ty.label.toUpperCase(), type: ty.id, landmark: !!lm };
+      d = { shape: "circle", border: lm ? "double" : pick(BORDERS, h2), ink: lm === "lm_Q44440" ? "#b0412e" /* v117: Golden Gate in International Orange */ : lm && (ty.ink === "#23262c" || ty.ink === "#3b4048") ? "#34507a" : ty.ink /* v115: near-black inks vanish on dark paper; a drawn landmark gets slate blue */, motif: lm || ty.motif, pose: h % 3, flip: false, font: "serif", label: ty.label.toUpperCase(), type: ty.id, landmark: !!lm };
     } else if (kind === "region") {
       // v110: a province / state of Canada, Australia, Mexico or Germany: its country's look, labelled PROVINCE / STATE
       var rc = COUNTRY[String(area).split(".")[0]], RL = { CAN: "PROVINCE", AUS: "STATE", MEX: "ESTADO", DEU: "LAND" }[String(area).split(".")[0]] || "REGION";
