@@ -72,7 +72,46 @@
   }
   function fmtBytes(b) { return b >= 1e9 ? (b / 1e9).toFixed(1) + " GB" : b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB"; }
 
-  if (typeof document === "undefined") return { search: search, tripText: tripText, norm: norm, shouldAsk: shouldAsk, notesSince: notesSince, fmtBytes: fmtBytes, NOTES: NOTES };
+  // ---------- v110: where a search result goes ----------
+  // Every place result opens its own page (#/place/<kind>/<id>): a state, country / UK nation, province, park, or a point
+  // (town, sight, airport) carried in the link. People open their page; trips open the trip.
+  var NATIONS = ["ENG", "SCT", "WLS", "NIR"];
+  function placeHref(r) {
+    if (!r) return "#/search";
+    if (r.kind === "area") { var a = String(r.area || "").split(":"); return "#/place/" + (a[0] === "state" ? "state" : "place") + "/" + encodeURIComponent(a[1] || ""); }
+    if (r.kind === "region" && r.area) return "#/place/region/" + encodeURIComponent(r.area);
+    if (r.kind === "park" && r.ref) return "#/place/park/" + encodeURIComponent(r.ref);
+    if (r.kind === "place" && r.country) {
+      if (r.country === "USA" && r.region) return "#/place/state/" + encodeURIComponent(r.region);
+      if (r.country === "GBR" && NATIONS.indexOf(r.region) >= 0) return "#/place/place/" + r.region;
+      return "#/place/place/" + encodeURIComponent(r.country);
+    }
+    var o = { n: r.name, k: r.kind === "sight" ? "sight" : "city" };
+    [["t", "type"], ["c", "country"], ["r", "region"], ["la", "lat"], ["lo", "lon"], ["s", "sub"], ["w", "ref"], ["f", "fame"], ["tw", "town"], ["a", "area"]].forEach(function (x) { if (r[x[1]] != null && r[x[1]] !== "") o[x[0]] = r[x[1]]; });
+    return "#/place/pt/" + encodeURIComponent(JSON.stringify(o));
+  }
+  function readPt(enc) {
+    try { var o = JSON.parse(decodeURIComponent(enc || "")); if (!o || typeof o.n !== "string") return null;
+      var p = { name: o.n.slice(0, 120), kind: o.k === "sight" ? "sight" : "city" };
+      [["t", "type"], ["c", "country"], ["r", "region"], ["s", "sub"], ["w", "ref"], ["tw", "town"], ["a", "area"]].forEach(function (x) { if (typeof o[x[0]] === "string") p[x[1]] = o[x[0]].slice(0, 160); });
+      if (typeof o.la === "number" && typeof o.lo === "number") { p.lat = o.la; p.lon = o.lo; }
+      if (typeof o.f === "number") p.fame = o.f;
+      return p;
+    } catch (e) { return null; }
+  }
+  /** One row per visit: stamps from the same trip (or the same hand-stamped day) are one visit with everyone who was there. */
+  function groupVisits(rows) {
+    var by = {}, out = [];
+    (rows || []).forEach(function (x) {
+      var s = x.stamp; if (!s || s.source === "map") return;
+      var key = s.tripId ? "t:" + s.tripId : "h:" + (s.date || "") + ":" + (s.id || "");
+      if (!s.tripId && s.date) key = "h:" + s.date;
+      var g = by[key]; if (!g) { g = by[key] = { date: s.date || "", end: s.end || "", tripId: s.tripId || "", trip: s.trip || "", source: s.source, who: [] }; out.push(g); }
+      if (g.who.indexOf(x.person) < 0) g.who.push(x.person);
+    });
+    return out.sort(function (a, b) { return !a.date ? 1 : !b.date ? -1 : a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+  }
+  if (typeof document === "undefined") return { placeHref: placeHref, readPt: readPt, groupVisits: groupVisits, search: search, tripText: tripText, norm: norm, shouldAsk: shouldAsk, notesSince: notesSince, fmtBytes: fmtBytes, NOTES: NOTES };
 
   // ---------- browser ----------
   function ls(k, v) { try { if (arguments.length > 1) { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } return localStorage.getItem(k); } catch (e) { return null; } }
@@ -89,6 +128,38 @@
   // ---------- search ----------
   function names() { var a = A(); return { state: function (id) { return a.placeName("state", id); }, place: function (id) { return a.placeName("place", id); }, park: function (id) { return a.placeName("park", id); } }; }
   var lastQ = "";
+  var searchSeq = 0;
+  function tripStamps(q, r) {
+    var U = window.FS_UI, a = A(); if (!U || !U.stampsOf) return;
+    var words = norm(q).split(" "), seen = {};
+    r.stamps.forEach(function (s) { seen[s.kind + ":" + s.id] = s; });
+    a.state.kids.forEach(function (k) {
+      U.stampsOf(k).forEach(function (s) {
+        if (s.source === "map") return;
+        var nm = U.stampName(s), key = s.kind + ":" + s.area; if (!nm) return;
+        var n = norm(nm + " " + s.area); if (!words.every(function (w) { return n.indexOf(w) >= 0; })) return;
+        var g = seen[key]; if (!g) { g = seen[key] = { kind: s.kind, id: s.area, name: nm, who: [], href: s.kind === "sight" ? placeHref({ kind: "sight", name: nm, type: s.type, ref: s.ref, town: s.town, area: s.area }) : "" }; r.stamps.push(g); }
+        if (!g.who.some(function (w) { return w.id === k.id; })) g.who.push({ id: k.id, name: k.name });
+      });
+    });
+    r.stamps.sort(function (x, y) { return x.name < y.name ? -1 : 1; });
+  }
+  // v110: places from the place search (states, countries, provinces, parks, towns, sights, airports), each to its own page
+  function placesFor(q, seq) {
+    var U = window.FS_UI, P = window.WK_PASSPORT; if (!U || !U.findPlaces) return;
+    U.findPlaces(q).then(function (list) {
+      if (seq !== searchSeq) return;
+      var box = document.getElementById("splaces"); if (!box) return;
+      var nq = norm(q), regs = [];
+      if (P && P.REGIONS && nq.length >= 3) Object.keys(P.REGIONS).forEach(function (c) { var R = P.REGIONS[c]; Object.keys(R.names).forEach(function (a) { if (regs.length < 3 && norm(R.names[a]).indexOf(nq) === 0) regs.push({ kind: "region", area: c + "." + a, name: R.names[a], sub: R.label.charAt(0) + R.label.slice(1).toLowerCase() + " · " + R.country }); }); });
+      // the USA is stamped state by state, so the country search list leaves it out; it still gets its own page
+      if (/^(us|usa|u s a|united states( of america)?|america)$/.test(nq) || (nq.length >= 4 && "united states of america".indexOf(nq) === 0)) regs.unshift({ kind: "area", area: "place:USA", name: "United States", sub: "Country · stamped state by state" });
+      var all = regs.concat(list || []); if (!all.length) { if (box.previousElementSibling && box.previousElementSibling.classList.contains("nolog")) box.innerHTML = '<p class="muted small">No places called that either. Try fewer letters.</p>'; return; }
+      var ic = function (r) { return r.kind === "area" ? (/^state:/.test(r.area) ? "🇺🇸" : "🌍") : r.kind === "region" ? "🗺️" : r.kind === "park" ? "🏞️" : r.kind === "sight" ? (r.type === "airport" ? "✈️" : "📍") : /·/.test(r.sub || "") && /^[A-Z]{3} · /.test(r.sub || "") ? "✈️" : "🏘️"; };
+      box.innerHTML = '<h2>Places</h2><ul class="sresl splaces">' + all.slice(0, 14).map(function (r) {
+        return '<li><a href="' + esc(placeHref(r)) + '" data-pkind="' + esc(r.kind) + '"><span aria-hidden="true">' + ic(r) + '</span> <b>' + esc(r.name) + '</b>' + (r.sub ? ' <span class="muted small">' + esc(r.sub) + '</span>' : "") + '</a></li>'; }).join("") + '</ul>';
+    }).catch(function () {});
+  }
   function searchView() {
     var a = A();
     a.main.innerHTML = '<a class="back" href="#/">← Home</a><h1>🔎 Search</h1>' +
@@ -98,18 +169,127 @@
     var draw = function () {
       lastQ = inp.value; var q = inp.value.trim();
       if (q.length < 2) { out.innerHTML = a.state.trips.length || a.state.kids.length ? '<p class="muted small">Type a place, a trip name, or something someone wrote in a journal, e.g. "pancakes" or "Utah".</p>' : '<div class="empty panel"><p>Nothing to search yet.</p><p class="small muted">Add a person and a trip, and everything you write shows up here.</p><a class="btn btn-primary" href="#/">Get started</a></div>'; return; }
-      var r = search(q, a.state.kids, a.state.trips, names()), n = r.people.length + r.trips.length + r.stamps.length;
-      if (!n) { out.innerHTML = '<p class="muted">No matches for “' + esc(q) + '”. Try fewer letters or another word.</p>'; return; }
-      out.innerHTML = '<p class="small muted">' + n + (n === 1 ? " match" : " matches") + '</p>' +
+      var r = search(q, a.state.kids, a.state.trips, names());
+      tripStamps(q, r);   // v110: stamps that come from trips (states, countries, provinces, parks, sights) are found too
+      var n = r.people.length + r.trips.length + r.stamps.length;
+      var seq = ++searchSeq;
+      if (!n) out.innerHTML = '<p class="muted small nolog">Nothing in your log matches “' + esc(q) + '” yet.</p><div id="splaces"></div>';
+      else out.innerHTML = '<p class="small muted">' + n + (n === 1 ? " match" : " matches") + ' in your log</p>' +
         (r.people.length ? '<h2>People</h2><ul class="sresl">' + r.people.map(function (p) { return '<li><a href="#/p/' + esc(p.id) + '">' + esc(p.name) + '</a></li>'; }).join("") + '</ul>' : "") +
         (r.trips.length ? '<h2>Trips and journals</h2><ul class="sresl">' + r.trips.slice(0, 60).map(function (x) { return '<li><a href="#/p/' + esc(x.kid) + '/trip/' + esc(x.id) + '"><b>' + esc(x.title) + '</b> <span class="muted small">' + esc(x.date) + '</span><br><span class="small">' + esc(x.snip) + '</span></a></li>'; }).join("") + '</ul>' : "") +
-        (r.stamps.length ? '<h2>Stamps</h2><ul class="sresl">' + r.stamps.slice(0, 60).map(function (s) { return '<li><a href="#/p/' + esc(s.who[0].id) + '/passport">' + esc(s.name) + '</a> <span class="muted small">' + esc(s.who.map(function (w) { return w.name; }).join(", ")) + '</span></li>'; }).join("") + '</ul>' : "");
+        (r.stamps.length ? '<h2>Stamps</h2><ul class="sresl">' + r.stamps.slice(0, 60).map(function (s) { return '<li><a href="' + esc(s.href || "#/place/" + s.kind + "/" + encodeURIComponent(s.id)) + '">' + esc(s.name) + '</a> <span class="muted small">' + esc(s.who.map(function (w) { return w.name; }).join(", ")) + '</span></li>'; }).join("") + '</ul>' : "") + '<div id="splaces"></div>';
+      placesFor(q, seq);
     };
     inp.oninput = function () { clearTimeout(t); t = setTimeout(draw, 120); };
     draw(); setTimeout(function () { inp.focus(); }, 50);
     track("search:open");
   }
   (window.FS_ROUTES = window.FS_ROUTES || []).push(function (h) { if (h[0] !== "search") return false; searchView(); return true; });
+  // ---------- v110: one place's own page ----------
+  function placeInfo(kind, id, pt) {
+    var a = A(), P = window.WK_PASSPORT, M = window.MLTL, MAPS = window.MLTL_MAPS;
+    if (kind === "state") { if (!MAPS.us.shapes.some(function (x) { return x.id === id; })) return null; return { stampKind: "state", area: id, name: a.placeName("state", id), sub: "US state", stop: { kind: "place", country: "USA", region: id }, canStamp: true }; }
+    if (kind === "place") {
+      var nat = NATIONS.indexOf(id) >= 0; if (!nat && !MAPS.world.countries.some(function (x) { return x.id === id; })) return null;
+      return { stampKind: "place", area: id, name: a.placeName("place", id), sub: nat ? "UK nation" : "Country", stop: nat ? { kind: "place", country: "GBR", region: id } : { kind: "place", country: id }, canStamp: !(id === "USA"), parent: nat ? "#/place/place/GBR" : "" };
+    }
+    if (kind === "region") { var ri = P.regionInfo(id); if (!ri || P.regionName(id) === id) return null; return { stampKind: "region", area: id, name: P.regionName(id), sub: ri.countryName, parent: "#/place/place/" + ri.country, stop: { kind: "place", country: ri.country, region: id.split(".")[1] } }; }
+    if (kind === "park") { var pk = M.parkById(id); if (!pk) return null; return { stampKind: "park", area: id, name: pk.full, sub: pk.states, park: pk, canStamp: true }; }
+    if (kind === "pt" && pt) {
+      var par = pt.country === "USA" && pt.region ? "#/place/state/" + pt.region : P.regionKey && P.regionKey(pt.country, pt.region) ? "#/place/region/" + P.regionKey(pt.country, pt.region) : pt.country === "GBR" && NATIONS.indexOf(pt.region) >= 0 ? "#/place/place/" + pt.region : pt.country ? "#/place/place/" + pt.country : "";
+      var o = { name: pt.name, sub: pt.sub || "", parent: par, stop: JSON.parse(JSON.stringify(pt)), pt: pt };
+      if (pt.kind === "sight") { o.stampKind = "sight"; o.area = pt.area || P.sightArea({ ref: pt.ref || "", name: pt.name, type: pt.type || "landmark", country: pt.country }); }
+      return o;
+    }
+    return null;
+  }
+  function placeView(kind, rawId) {
+    var a = A(), U = window.FS_UI, P = window.WK_PASSPORT, T = window.WK_TRIPS, M = window.MLTL, st = a.state;
+    var pt = kind === "pt" ? readPt(rawId) : null, id = kind === "pt" ? "" : decodeURIComponent(rawId || "");
+    var info = U && P ? placeInfo(kind, id, pt) : null;
+    var back = '<a class="back" href="#/search">← Search</a>';
+    if (!info) { a.main.innerHTML = back + '<h1>Place not found</h1><p class="muted">We couldn\'t find that place. Try searching again.</p>'; return; }
+    document.title = info.name + " · " + B().NAME;
+    var rows = [], mapOnly = [];
+    st.kids.forEach(function (k) {
+      if (info.stampKind) U.stampsOf(k).forEach(function (s) { if (s.kind === info.stampKind && s.area === info.area) rows.push({ person: k.id, stamp: s }); });
+      var bag = info.stampKind === "state" ? k.states : info.stampKind === "park" ? k.parks : info.stampKind === "place" ? k.places : null;
+      if (bag && bag[info.area] && !rows.some(function (r) { return r.person === k.id && r.stamp.source !== "map"; })) mapOnly.push(k.id);
+    });
+    if (info.pt && T.hasLoc(info.pt)) st.trips.forEach(function (t) {   // a town / airport / sight: trips that stopped within 15 miles
+      if (t.deletedAt || t.planned === true) return;
+      var stops = (T.stops ? T.stops(t.route) : (t.route || [])).slice(1);
+      if (!stops.some(function (p) { return T.hasLoc(p) && T.gcMiles(p, info.pt) < (info.pt.kind === "sight" && info.pt.type !== "airport" ? 1 : 15); })) return;
+      (t.kidIds || []).forEach(function (pid) { if (!rows.some(function (r) { return r.person === pid && r.stamp.tripId === t.id; })) rows.push({ person: pid, stamp: { tripId: t.id, trip: t.place, date: t.date || "", end: t.endDate || "", source: "trip" } }); });
+    });
+    if (kind === "place" && /^[A-Z]{3}$/.test(id)) st.trips.forEach(function (t) {   // a country: every trip with a stop in it (the USA is stamped by state)
+      if (t.deletedAt || t.planned === true) return;
+      if (!(t.route || []).slice(1).some(function (p) { return p && p.country === id; })) return;
+      (t.kidIds || []).forEach(function (pid) { if (!rows.some(function (r) { return r.person === pid && r.stamp.tripId === t.id; })) rows.push({ person: pid, stamp: { tripId: t.id, trip: t.place, date: t.date || "", end: t.endDate || "", source: "trip" } }); });
+    });
+    var visits = groupVisits(rows), n = visits.length, first = visits.length ? visits[visits.length - 1].date : "";
+    var stampObj = info.stampKind ? { kind: info.stampKind, area: info.area, date: first, who: [], name: info.pt ? info.pt.name : undefined, type: info.pt ? info.pt.type : undefined, ref: info.pt ? info.pt.ref : undefined }
+      : { kind: "place", area: (info.pt && info.pt.country) || "", date: first, who: [] };
+    var art = ""; try { art = P.stampSVG(stampObj, info.name, { kid: false }); } catch (e) {}
+    var planned = st.trips.filter(function (t) { return !t.deletedAt && t.planned === true; }).slice(0, 4);
+    var me = a.kidById(a.myPersonId && a.myPersonId()) || st.kids[0];
+    var tripLink = function (v) { var t = v.tripId ? st.trips.filter(function (x) { return x.id === v.tripId; })[0] : null; return t ? '<a href="#/p/' + esc(t.kidIds[0] || v.who[0]) + '/trip/' + esc(t.id) + '">' + esc(t.title || t.place || "Trip") + '</a>' : v.source === "hand" ? "Stamped by hand" : ""; };
+    a.main.innerHTML = back + '<div class="placepage" data-place="' + esc(kind + ":" + (info.area || info.name)) + '"><div class="placehead"><div class="bigstamp' + (n ? "" : " unstamped") + '">' + art + '</div><div><h1>' + esc(info.name) + '</h1>' +
+      '<p class="muted">' + esc(info.sub) + (info.parent ? ' · <a href="' + esc(info.parent) + '">in ' + esc(info.parent.indexOf("/state/") > 0 ? a.placeName("state", info.parent.split("/").pop()) : info.parent.indexOf("/region/") > 0 ? P.regionName(info.parent.split("/").pop()) : a.placeName("place", info.parent.split("/").pop())) + ' →</a>' : "") + '</p>' +
+      '<p class="vtimes"><b>' + (n ? "Visited " + (n === 1 ? "once" : n + " times") : mapOnly.length ? "Colored in, no visit dated yet" : "Not stamped yet") + '</b></p></div></div>' +
+      (n ? '<h2>Visits</h2><ul class="pvisitlist placevisits">' + visits.map(function (v) {
+        var d = P.fmtDate(v.date) ? P.fmtDate(v.date) + (v.end && v.end !== v.date ? " to " + P.fmtDate(v.end) : "") : "No date yet";
+        return '<li><b>' + esc(d) + '</b> <span class="small">' + tripLink(v) + '</span><br><span class="small muted">' + esc(a.travelerNames(v.who)) + '</span></li>'; }).join("") + '</ul>' : "") +
+      (mapOnly.length ? '<p class="small muted">Colored in on the map: ' + esc(a.travelerNames(mapOnly)) + '. Tap Stamp it to add when.</p>' : "") +
+      '<div class="panel placeacts"><h3>' + (n ? "Been again?" : "Been here?") + '</h3><div class="actions">' +
+        (info.canStamp ? '<button type="button" class="btn btn-primary" id="plstamp">🛂 ' + (n ? "Add a visit" : "Stamp it") + '</button><button type="button" class="btn btn-ghost" data-pltrip="new">🧳 Add a trip we took here</button>'
+          : '<button type="button" class="btn btn-primary" data-pltrip="new">🛂 ' + (n ? "Add a visit" : "Stamp it: add the trip") + '</button>') +
+      '</div><h3>Going?</h3><div class="actions">' + planned.map(function (t) { return '<button type="button" class="btn btn-ghost" data-pladd="' + esc(t.id) + '">➕ Add to “' + esc(t.title || t.place || "upcoming trip") + '”</button>'; }).join("") +
+        '<button type="button" class="btn btn-ghost" data-pltrip="plan">✈️ ' + (planned.length ? "Plan a new trip here" : "Add to a trip: plan one here") + '</button></div></div>' +
+      '<div id="plsights"></div></div>';
+    var stopOf = function () {
+      return U.loadPlaces().then(function (d) {
+        var s = Object.assign({ name: info.name }, info.stop);
+        if (info.park && U.parkPoint) s = U.parkPoint(d, info.park);
+        if (s.lat == null) { var b = null, reg = s.region; d.rows.forEach(function (r) { if (r.country === s.country && (!reg || r.admin1 === reg) && (!b || r.pop > b.pop)) b = r; }); if (b) { s.lat = b.lat; s.lon = b.lon; } }
+        return s;
+      });
+    };
+    var sb = document.getElementById("plstamp");
+    if (sb) sb.onclick = function () { if (!window.FS_WHO || !me) return a.toast("Add someone to the family first."); window.FS_WHO.open({ kind: info.stampKind, area: info.area, page: me, mode: "add", after: function () { placeView(kind, rawId); } }); };
+    Array.prototype.forEach.call(a.main.querySelectorAll("[data-pltrip]"), function (b) { b.onclick = function () { stopOf().then(function (s) { U.startTripTo(s, b.dataset.pltrip === "plan"); }); }; });
+    Array.prototype.forEach.call(a.main.querySelectorAll("[data-pladd]"), function (b) { b.onclick = function () {
+      var t = st.trips.filter(function (x) { return x.id === b.dataset.pladd; })[0]; if (!t) return;
+      stopOf().then(function (s) { t.route = t.route || []; if (t.route.length) s.mode = s.mode || "car"; t.route.push(s); return U.saveTrip(t); })
+        .then(function () { a.toast(info.name + " is on “" + (t.title || t.place || "the trip") + "”"); location.hash = "#/p/" + (t.kidIds[0] || me.id) + "/trip/" + t.id; });
+    }; });
+    sightsIn(info, stopOf);
+    track("place:open");
+  }
+  /** The best-known sights in a place (or within 15 miles of a town / sight / park), from the nearby-sights tiles. */
+  function sightsIn(info, stopOf) {
+    var U = window.FS_UI, P = window.WK_PASSPORT, T = window.WK_TRIPS, a = A(), box = document.getElementById("plsights"); if (!box || !U.nearBlocks) return;
+    var stamped = {}; a.state.kids.forEach(function (k) { U.stampsOf(k).forEach(function (s) { if (s.kind === "sight") stamped[s.area] = 1; }); });
+    Promise.all([stopOf(), U.loadPlaces()]).then(function (r) {
+      var c = r[0], d = r[1]; if (c.lat == null) return;
+      return U.nearBlocks(c).then(function (blocks) {
+        var whole = !info.pt && !info.park, code = info.stop && info.stop.region, seen = {}, list = [];
+        blocks.forEach(function (b) { (b.rows || []).forEach(function (row) {
+          if (!row || seen[row.wd || row.names[0]]) return;
+          if (whole) { if (row.country !== c.country) return; if (code && info.stampKind !== "place" && row.admin1 !== code && !(P.regionKey && P.regionKey(row.country, row.admin1) === info.area)) return; }
+          else if (T.gcMiles(c, row) > 15) return;
+          if (info.pt && row.names[0] === info.pt.name) return;
+          seen[row.wd || row.names[0]] = 1; list.push(row);
+        }); });
+        list.sort(function (x, y) { return (y.rank || 0) - (x.rank || 0); });
+        if (!list.length) return;
+        box.innerHTML = '<h2>Sights ' + (whole ? "in " : "near ") + esc(info.name) + '</h2><ul class="sresl plsightlist">' + list.slice(0, 8).map(function (row) {
+          var sp = U.sightPoint(d, row), ar = P.sightArea({ ref: sp.ref || "", name: sp.name, type: sp.type, country: sp.country });
+          return '<li><a href="' + esc(placeHref(sp)) + '">' + esc(sp.label || sp.name) + '</a> <span class="muted small">' + esc(sp.sub || "") + '</span>' + (stamped[ar] ? ' <span class="small">✓ stamped</span>' : "") + '</li>'; }).join("") + '</ul>';
+      });
+    }).catch(function () {});
+  }
+  (window.FS_ROUTES = window.FS_ROUTES || []).push(function (h) { if (h[0] !== "place" || !h[1]) return false; placeView(h[1], h.slice(2).join("/")); return true; });
   document.addEventListener("keydown", function (e) { if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "") && !e.ctrlKey && !e.metaKey) { e.preventDefault(); location.hash = "#/search"; } });
 
   // ---------- What's new ----------
@@ -208,5 +388,5 @@
   var start = function () { var m = document.getElementById("main") || (A() && A().main); if (m) mo.observe(m, { childList: true }); after(); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else setTimeout(start, 0);
 
-  return { search: search, tripText: tripText, norm: norm, shouldAsk: shouldAsk, notesSince: notesSince, fmtBytes: fmtBytes, NOTES: NOTES, soundOn: soundOn, maybeAsk: maybeAsk, storage: storage };
+  return { placeHref: placeHref, readPt: readPt, groupVisits: groupVisits, placeView: placeView, search: search, tripText: tripText, norm: norm, shouldAsk: shouldAsk, notesSince: notesSince, fmtBytes: fmtBytes, NOTES: NOTES, soundOn: soundOn, maybeAsk: maybeAsk, storage: storage };
 });

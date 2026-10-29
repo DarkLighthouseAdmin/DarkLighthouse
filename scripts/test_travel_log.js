@@ -2756,7 +2756,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(P.stampsFor(kid, [u], {}).some(s => s.area === "SCT"), "v101: once started, the trip's stamps come in");
   const w = JSON.parse(JSON.stringify(Object.assign({}, t, { date: "2026-10-01" }))); M.startPlanned(w, "2026-10-29"); ok(w.date === "2026-10-01", "v101: 'We went' keeps the trip's own past dates");
   ok(M.plannedTrips([{ id: "a", planned: true, date: "" }, { id: "b", planned: true, date: "2027-01-01" }, { id: "c" }]).map(x => x.id).join() === "b,a", "v101: planned trips sort soonest first, undated last");
-  ok(/opts\.plan \|\| fromWish\)\) \{ d\.planned = true;/.test(tui) && /"Where are you going\?"/.test(tui) && /"Who's going\?"/.test(tui) && /We're here: start the trip/.test(tui) && /We went! Stamp it/.test(tui), "v101: plan wording and the start button");
+  ok(/opts\.plan \|\| \(fromWish && \(!fromWish\.place \|\| fromWish\.plan\)\)\)\) \{ d\.planned = true;/.test(tui) && /"Where are you going\?"/.test(tui) && /"Who's going\?"/.test(tui) && /We're here: start the trip/.test(tui) && /We went! Stamp it/.test(tui), "v101: plan wording and the start button");
   ok(/c\("#\/plan", "✈️", "Plan a trip"/.test(nav) && /📅 Upcoming/.test(nav) && /h\[3\] === "plan"/.test(app) && /did you go\?/.test(app), "v101: Plan a trip in + Stamp, Trips and Home; Upcoming section; did-you-go card");
 }
 { // v102: "What we want to do": ideas, hearts, suggestions from our own sights, "We did it!" stamps, sync keeps every idea
@@ -2968,4 +2968,17 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/rpc\/famstamp_usage/.test(ka) && !/service_role|sb_secret/.test(ka) && /cron:/.test(fs.readFileSync(path.join(__dirname, "ci", "famstamp-keepalive.yml"), "utf8")), "v110: keep-alive uses only the public key");
   const ap = read("app.js");
   ok(/var MOVE = \{ to: "", by: "" \}/.test(ap) && /moveBanner\(\) \+ backupBanner\(\)/.test(ap) && /full-size originals stay in your phone/.test(ap), "v110: moving notice (off) and the photo-size note");
+}
+{ // v111: a search result opens the place's own page (not the passport)
+  const X = require(path.join(APP, "extras.js"));
+  ok(X.placeHref({ kind: "area", area: "state:UT" }) === "#/place/state/UT" && X.placeHref({ kind: "area", area: "place:JPN" }) === "#/place/place/JPN" &&
+    X.placeHref({ kind: "region", area: "CAN.01" }) === "#/place/region/CAN.01" && /^#\/place\/park\//.test(X.placeHref({ kind: "park", ref: "arches", name: "Arches" })), "v111: states, countries, provinces and parks get their own place link");
+  const h = X.placeHref({ kind: "sight", name: "Vesuvius", type: "volcano", country: "ITA", lat: 40.82, lon: 14.43, ref: "Q524", area: "sight:x" }), pt = X.readPt(h.replace("#/place/pt/", ""));
+  ok(/^#\/place\/pt\//.test(h) && pt && pt.name === "Vesuvius" && pt.type === "volcano" && pt.country === "ITA" && pt.lat === 40.82 && pt.area === "sight:x", "v111: a sight's place link carries its name, type, country, spot and stamp id");
+  ok(X.readPt("%7Bbad") === null || X.readPt("%7Bbad") === undefined || !X.readPt("%7Bbad").name, "v111: a broken place link is ignored");
+  const g = X.groupVisits([{ person: "a", stamp: { tripId: "t1", trip: "Canyon", date: "2025-06-10" } }, { person: "b", stamp: { tripId: "t1", trip: "Canyon", date: "2025-06-10" } },
+    { person: "a", stamp: { tripId: "t2", trip: "Salt Lake", date: "2023-08-02" } }, { person: "a", stamp: { source: "map", date: "" } }]);
+  ok(g.length === 2 && g[0].date === "2025-06-10" && g[0].who.length === 2, "v111: visits group by trip, newest first, map colouring skipped");
+  const ex = read("extras.js");
+  ok(/h\[0\] !== "place"/.test(ex) && /s\.href \|\| "#\/place\/"/.test(ex), "v111: search stamps link to the place page, not the passport");
 }

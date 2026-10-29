@@ -460,8 +460,12 @@
     else if (!old && st.meta.home) d.route = [{ name: st.meta.home, kind: "place" }];
     // v1.8: "Plan this trip" from the family wishlist: the dream place is the destination, the people who voted are going, not done yet
     var wishDest = null, fromWish = !old && window.FS_WISH && window.FS_WISH.take ? window.FS_WISH.take() : null;
+    // v110: "Add a visit" / "Plan a trip here" from a place page (search): that place is the destination
+    if (!old && !fromWish && pendingDest) { fromWish = { stop: pendingDest.stop, who: [], place: true, plan: pendingDest.plan }; }
+    pendingDest = null;
     if (fromWish) {
       var wd = copy(fromWish.stop); d.done = false; d.title = "Trip to " + wd.name; d.date = ""; d.plan = true;
+      if (fromWish.place && !fromWish.plan) { d.done = true; d.date = M.today(); delete d.plan; }   // v110: a visit you already made
       // the dream place is a stop, never the start: with no home saved yet, it's added right after they pick where they start
       if (d.route.length) { wd.mode = guessMode(d.route[0], wd); d.route.push(wd); }
       else { wishDest = wd; setTimeout(function () { A_.toast("Where do you start from? " + wd.name + " goes in next."); }, 400); }
@@ -469,7 +473,7 @@
       if (!d.kidIds.length) d.kidIds = [k.id];
     }
     // v101: "Plan a trip" (and "Plan this trip" from the wish list) makes an upcoming trip: no dates needed yet, no stamps until you go
-    if (!old && (opts.plan || fromWish)) { d.planned = true; d.done = false; d.date = ""; d.endDate = ""; }
+    if (!old && (opts.plan || (fromWish && (!fromWish.place || fromWish.plan)))) { d.planned = true; d.done = false; d.date = ""; d.endDate = ""; }
     var planning = d.planned === true;
     // v84: "Paste a booking": what we read from a flight or hotel confirmation fills in the new trip (the pasted text itself is never kept)
     var fromBooking = !old && !fromWish ? pendingBooking : null; pendingBooking = null;
@@ -2072,6 +2076,14 @@
   }
 
   // ---------- "+ Add a trip" on the home screen: one tap to the builder ----------
+  // v110: a place page starts a trip to that place (plan = an upcoming trip, else one you took)
+  var pendingDest = null;
+  function startTripTo(stop, plan) {
+    var st = S(), mine = st.meta && st.meta.sync && st.meta.sync.myPerson, k = A().kidById(mine) || st.kids[0];
+    if (!k) { A().toast("Add someone to the family first."); return; }
+    pendingDest = { stop: copy(stop), plan: !!plan };
+    var h = "#/p/" + k.id + "/trips/" + (plan ? "plan" : "new/all"); if (location.hash === h) A().route(); else location.hash = h;
+  }
   function addTripHref(p, all) { return "#/p/" + p.id + "/trips/new" + (all ? "/all" : ""); }
   function whoWentSheet() {
     var A_ = A(), kids = S().kids, me = S().meta.sync && S().meta.sync.myPerson;
@@ -2084,7 +2096,7 @@
       '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>');
   }
 
-  window.FS_UI = { nearBlocks: nearBlocks, sightPoint: sightPoint, mailInbox: mailInbox, mailAddress: mailAddress, findPlaces: findPlaces, builder: builder, planWhen: planWhen, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
+  window.FS_UI = { startTripTo: startTripTo, parkPoint: parkPoint, saveTrip: saveTrip, nearBlocks: nearBlocks, sightPoint: sightPoint, mailInbox: mailInbox, mailAddress: mailAddress, findPlaces: findPlaces, builder: builder, planWhen: planWhen, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
                    lifetimeHTML: lifetimeHTML, bindLifetime: bindLifetime, printExtra: printExtra, loadPlaces: loadPlaces, loadAirports: loadAirports, ensureTowns: ensureTowns, routeSVG: routeSVG,
                    searchPlaces: searchPlaces, searchAirports: searchAirports, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs,
                    sheet: sheet, closeSheet: closeSheet, dateFields: dateFields, readDate: readDate, shortArea: shortArea, stampName: stampName, CTX: CTX };

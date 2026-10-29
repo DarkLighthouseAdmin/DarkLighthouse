@@ -1220,3 +1220,11 @@ body.kidlock main a.btn[href*="/edit"], body.kidlock main [data-fs-stamp], body.
 .movenag { border-color: var(--beacon, #c8902a); }
 .photonote { margin-top: .6rem; }
 .regionline { margin: .3rem 0; }
+/* v110: a place's own page (from search) */
+.placehead { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.placehead .bigstamp { width: 140px; flex: none; }
+.placehead .bigstamp svg { width: 100%; height: auto; }
+.placehead .bigstamp.unstamped { opacity: .35; filter: grayscale(1); }
+.placehead h1 { margin: 0 0 .2rem; }
+.placeacts h3 { margin: .4rem 0; }
+.splaces a, .plsightlist a { text-decoration: none; }
