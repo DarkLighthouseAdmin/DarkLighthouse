@@ -75,6 +75,11 @@ def crumbs(trail):
           [{"@type": "ListItem", "position": i + 2, "name": n, "item": SITE + p} for i, (n, p) in enumerate(trail)]}
     return html_, ld
 
+# Guide and article pages are og:type=article so Pinterest shows them as article rich pins (needs og:site_name too).
+ARTICLE_PATHS = ("/travel/scotland/", "/travel/ireland/", "/travel/england/", "/travel/wales/", "/travel/gear/", "/travel/gifts/")
+def og_type(path):
+    return "article" if path.startswith(ARTICLE_PATHS) and path not in ("/travel/gear/", "/travel/gifts/") else "website"
+
 def head(path, title, desc, og, ld, section):
     url = SITE + path
     lds = "".join(f'\n  <script type="application/ld+json">\n{json.dumps(x, indent=1, ensure_ascii=False)}\n  </script>' for x in ld)
@@ -92,7 +97,7 @@ def head(path, title, desc, og, ld, section):
   <meta property="og:site_name" content="Dark Lighthouse Solutions" />
   <meta property="og:title" content="{e(title.split(' | ')[0])}" />
   <meta property="og:description" content="{e(desc)}" />
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content="{og_type(path)}" />
   <meta property="og:url" content="{url}" />
   <meta property="og:image" content="{SITE}{og}" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -155,7 +160,7 @@ def cta(slugs, heading, sub):
     </div>
 '''
 
-FREE = f'''    <div class="free">
+FREE = f'''    <div class="free" id="free-packing-checklist">
       <div><h2>Free: kids travel packing checklist</h2><p>Three printable pages: what to pack by age (baby, toddler, school-age), kids' clothes with counts for a weekend, 1 week or 2 weeks, and a plane & car bag list for travel day.</p></div>
       <a class="btn btn-beacon" href="{URLS["kids-travel-packing-checklist"]}">Get the free checklist</a>
     </div>
