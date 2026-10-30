@@ -410,7 +410,7 @@ ok(/@media \(max-width:479px\) \{\s*\.topbar:has\(\.navback:not\(\[hidden\]\)\):
   ok(LM && LM.ids.length >= 20, "landmarks: drawings registered (" + (LM ? LM.ids.length : 0) + ")");
   ok(LM.ids.every(q => /^Q\d+$/.test(q) && typeof SA.GLYPHS["lm_" + q] === "function" && /<path fill-rule="evenodd" d="M/.test(SA.GLYPHS["lm_" + q]())), "landmarks: every drawing is one ink shape keyed by its Wikidata id");
   ok(LM.ids.every(q => { const c = LM.credit(q); return c && c.name && c.artist && /^(CC0|Public domain|CC BY( \d\.\d)?( us)?)$/.test(c.license) && /^https:\/\/commons\.wikimedia\.org\/wiki\/File:/.test(c.page); }), "landmarks: every drawing has a free license (CC0 / PD / CC BY) and its credit");
-  ["Q243", "Q9202", "Q41225", "Q10285", "Q37200", "Q45178"].forEach(q => ok(LM.has(q), "landmarks: has a drawing for " + q + " (" + LM.credit(q).name + ")"));
+  ["Q243", "Q9202", "Q41225", "Q10285", "Q9141", "Q45178"] /* v119: Q37200 (Giza) moved from the traced icon to our own drawing, tested below */.forEach(q => ok(LM.has(q), "landmarks: has a drawing for " + q + " (" + LM.credit(q).name + ")"));
   const pt = (ref) => ({ kind: "sight", name: "Zz Eiffel Tower", type: "tower", country: "FRA", lat: 48.8583, lon: 2.2945, ref: ref });
   const L = require("../travel-log/app/log-core.js"), T = require("../travel-log/app/trips-core.js");
   const mom = L.newPerson({ name: "Zz Test Mom", role: "adult" });
@@ -3031,7 +3031,7 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(LM.own.every(q => { const g = SA.GLYPHS["lm_" + q](); return /<path|<rect|<circle/.test(g) && !/NaN|undefined|=>/.test(g); }), "v115: every own drawing renders (" + LM.own.length + ")");
   ok(LM.own.every(q => new RegExp("\\| " + q + " \\|").test(own) || /^Q(237|79182|131013)$/.test(q) || own.indexOf(q) >= 0), "v115: every own drawing is listed in LANDMARK-CREDITS.md 'Our own drawings' with its reference photo");
   ok(SA.GLYPHS.lm_Q237 === SA.GLYPHS.lm_Q12512 && SA.GLYPHS.lm_Q79182 === SA.GLYPHS.lm_Q20816698, "v115: Vatican City uses St Peter's; the Eilean Donan islet uses the castle");
-  ok(LM.ids.length >= 22 && LM.ids.every(q => LM.has(q)) && !LM.has("Q756268"), "v115: the traced-icon credit list is unchanged");
+  ok(LM.ids.length >= 20 /* v119: 22 minus the two Giza ids now drawn by us */ && LM.ids.every(q => LM.has(q)) && !LM.has("Q756268"), "v115: the traced-icon credit list is unchanged");
   const d = (area, type, ref) => SA.design("sight", area, "x", null, { kind: "sight", type, ref: ref || "" });
   ok(d("castle-stirling-castle-GBR", "castle").motif === "lm_Q756268" && d("cathedral-st-peter-s-basilica-VAT", "cathedral").motif === "lm_Q12512" && d("castle-stirling-castle-GBR", "castle").landmark, "v115: a stop saved without its id still gets the drawing by exact name + country");
   ok(d("pub-windsor-castle-GBR", "pub").motif !== "lm_Q42646" && d("castle-stirling-castle-USA", "castle").motif === "castle" && d("Q999999999", "castle", "Q999999999").motif === "castle", "v115: no drawing for a pub of the same name, another country, or an unknown id");
@@ -3066,4 +3066,13 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   const sp = read("spots-data.js");
   [["washington-dc", "Q35525"], ["dubai", "Q12495"], ["tokyo", "Q39231"], ["toronto", "Q134883"], ["seattle", "Q5317"], ["rio-de-janeiro", "Q79961"], ["new-delhi", "Q245347"], ["new-york", "Q9202"]].forEach(([id, q]) => ok(new RegExp('\\["' + id + '", [^\\]]*"lm_' + q + '"\\]').test(sp) && SA.GLYPHS["lm_" + q], "v118: " + id + " city stamp uses lm_" + q));
   ok(/\["paris", [^\]]*"c_eiffel"\]/.test(sp), "v118: Paris keeps its Eiffel Tower");
+}
+{ // v119: Giza redrawn in our own style: the complex (three pyramids, desert, the Sphinx), the Great Pyramid alone, and the Sphinx, each its own stamp; Khafre and Menkaure point at the complex
+  const SA = require("../travel-log/app/stamp-art.js"), LM = globalThis.FS_LANDMARKS;
+  ["Q12508", "Q37200", "Q130958"].forEach(q => { const g = SA.GLYPHS["lm_" + q] && SA.GLYPHS["lm_" + q](); ok(LM.own.indexOf(q) >= 0 && /<path/.test(g) && !/NaN|undefined/.test(g), "v119: own drawing for " + q); });
+  ok(SA.GLYPHS.lm_Q37200 !== SA.GLYPHS.lm_Q12508 && SA.GLYPHS.lm_Q130958 !== SA.GLYPHS.lm_Q12508 && SA.GLYPHS.lm_Q208358 === SA.GLYPHS.lm_Q12508 && SA.GLYPHS.lm_Q238623 === SA.GLYPHS.lm_Q12508, "v119: the Great Pyramid, the complex and the Sphinx are three different stamps; Khafre and Menkaure show the complex");
+  ok(LM.ids.indexOf("Q37200") < 0 && LM.ids.indexOf("Q12508") < 0 && !LM.has("Q37200") && !LM.credit("Q37200") && !LM.credit("Q208358"), "v119: the replaced traced Giza icon is no longer listed or credited");
+  [["ancient-great-pyramid-of-gizeh-EGY", "ancient", "lm_Q37200"], ["tomb-great-pyramid-of-giza-EGY", "tomb", "lm_Q37200"], ["ancient-pyramids-of-giza-EGY", "ancient", "lm_Q12508"], ["ancient-giza-pyramids-EGY", "ancient", "lm_Q12508"], ["monument-sphinx-EGY", "monument", "lm_Q130958"], ["ancient-great-sphinx-EGY", "ancient", "lm_Q130958"]].forEach(([a, t, m]) => ok(SA.design("sight", a, "x", null, { kind: "sight", type: t }).motif === m, "v119: name fallback " + a + " -> " + m));
+  ok(SA.design("sight", "Q130958", "x", null, { kind: "sight", type: "ancient", ref: "Q130958" }).motif === "lm_Q130958", "v119: the Sphinx by id");
+  ok(/\["cairo", [^\]]*"lm_Q37200"\]/.test(read("spots-data.js")), "v119: Cairo's city stamp picks up the new Giza drawing");
 }
