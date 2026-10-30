@@ -23,11 +23,16 @@
     "boundary/national_park": "park", "boundary/protected_area": "park", "highway/path": "trail", "route/hiking": "trail",
     "craft/distillery": "distillery", "craft/brewery": "brewery", "craft/winery": "winery", "amenity/pub": "pub", "amenity/bar": "pub", "amenity/biergarten": "pub",
     "man_made/lighthouse": "lighthouse", "man_made/bridge": "bridge", "bridge/yes": "bridge", "man_made/tower": "tower", "amenity/ferry_terminal": "ferry", "railway/station": "station", "public_transport/station": "station",
-    "building/cathedral": "cathedral", "amenity/place_of_worship": "cathedral", "building/castle": "castle"
+    "building/cathedral": "cathedral", "amenity/place_of_worship": "cathedral", "building/castle": "castle",
+    "amenity/marketplace": "market"   // v120
   };
+  // v120: a Christmas market in OpenStreetMap is a marketplace (or attraction / event) named as one, or tagged christmas:* (wiki.openstreetmap.org/wiki/Key:christmas)
+  var XMAS = /christmas market|xmas market|weihnachtsmarkt|christkindl|christkindel|striezelmarkt|march[eé]s? de no[eë]l|mercatin[oi] di natale|julmarknad|julemarked|joulumarkkinat|j[oõ]uluturg|kerstmarkt|v[aá]no[cč]n[ií] trh|vianočn[eé] trhy|jarmark bo[zż]onarodzeniowy|kar[aá]csonyi v[aá]s[aá]r|adventmarkt|christmas village|winter wonderland/i;
+  function isXmas(r) { var n = String(r.name || (r.display_name || "").split(",")[0] || ""), x = r.extratags || {}; return XMAS.test(n) || Object.keys(x).some(function (k) { return /^christmas(:|$)/.test(k); }); }
   var TOWNISH = { city: 1, town: 1, village: 1, hamlet: 1, suburb: 1, municipality: 1, borough: 1, quarter: 1, neighbourhood: 1, locality: 1, county: 0, state: 0, country: 0 };
   function typeFor(r) {
     var k = (r.category || r["class"] || "") + "/" + (r.type || "");
+    if (isXmas(r) && !/^(place|boundary|highway|railway|public_transport|natural|waterway)$/.test(r.category || r["class"] || "")) return "xmas";
     if (TYPE[k]) return TYPE[k];
     var c = r.category || r["class"];
     if (c === "historic") return "historic";

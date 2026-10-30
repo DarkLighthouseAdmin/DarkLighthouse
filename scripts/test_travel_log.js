@@ -3076,3 +3076,25 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(SA.design("sight", "Q130958", "x", null, { kind: "sight", type: "ancient", ref: "Q130958" }).motif === "lm_Q130958", "v119: the Sphinx by id");
   ok(/\["cairo", [^\]]*"lm_Q37200"\]/.test(read("spots-data.js")), "v119: Cairo's city stamp picks up the new Giza drawing");
 }
+{ // v120: Christmas markets - their own stamp type, a curated worldwide list, search words, OSM/Wikidata mapping, seasonal note
+  const SA = require("../travel-log/app/stamp-art.js"), PC = require("../travel-log/app/passport-core.js"), O = require("../travel-log/app/osm-core.js"), fs = require("fs"), path = require("path");
+  const t = SA.typeOf("xmas");
+  ok(t.id === "xmas" && t.label === "Christmas market" && t.motif === "xmasmarket" && t.group === "fun", "v120: Christmas market type, grouped with Fun and kids");
+  const d = SA.design("sight", "xmas-vienna-christmas-market-AUT", "Vienna Christmas Market", null, { kind: "sight", type: "xmas" });
+  ok(d.motif === "xmasmarket", "v120: a Christmas market stamp uses the Christmas market drawing");
+  const svg = PC.stampSVG ? PC.stampSVG({ kind: "sight", area: "xmas-x-AUT", type: "xmas", name: "Zz Test Market", who: [] }, "Zz Test Market", { kid: true }) : "<path";
+  ok(/<path/.test(svg) && !/NaN|undefined/.test(svg), "v120: the stamp draws cleanly");
+  ok(SA.typeOf("xmas").group !== "drinks" && /ty\.group === "drinks"/.test(read("passport-core.js")), "v120: Christmas markets show in Kid mode (only the drinks group is hidden from kids)");
+  const dir = path.join(__dirname, "../travel-log/app/data/sights"), idx = JSON.parse(fs.readFileSync(path.join(dir, "index.json"), "utf8"));
+  ok((idx.types.xmas || 0) >= 60 && idx.xmas === "v120", "v120: curated Christmas markets in the sights (" + idx.types.xmas + ")");
+  const tsv = fs.readFileSync(path.join(__dirname, "christmas_markets.tsv"), "utf8").split("\n").filter(l => l && l[0] !== "#").map(l => l.split("\t"));
+  ok(tsv.length >= 60 && tsv.length <= 120 && tsv.every(c => c.length === 8 && /^(Q\d+|-)$/.test(c[1]) && Math.abs(+c[2]) <= 90 && Math.abs(+c[3]) <= 180 && /^[A-Z]{3}$/.test(c[4])), "v120: the curated list is well formed");
+  const TW = require("../travel-log/app/towns-core.js"), find = (q, nm) => { const f = TW.fold(q); const k = TW.keyFor(f, idx), p = path.join(dir, k + ".json"); if (!fs.existsSync(p)) return []; return TW.match(f, TW.parse(JSON.parse(fs.readFileSync(p, "utf8"))), { limit: 40, words: true }).filter(h => h.row.type === "xmas"); };
+  [["christmas market", 9], ["weihnachtsmarkt", 9], ["christkindlmarkt", 3], ["christmas market vienna", 1], ["nuremberg christmas market", 1], ["weihnachtsmarkt koln", 1], ["striezelmarkt", 1], ["marche de noel de colmar", 1], ["winter wonderland", 1], ["christkindlmarket", 1], ["tivoli christmas market", 1], ["edinburgh's christmas", 1]].forEach(([q, n]) => { const h = find(q); ok(h.length >= n, "v120: search '" + q + "' finds Christmas markets (" + h.slice(0, 3).map(x => x.name).join(", ") + ")"); });
+  ok(O.typeFor({ category: "amenity", type: "marketplace", name: "Weihnachtsmarkt am Kölner Dom" }) === "xmas" && O.typeFor({ category: "tourism", type: "attraction", name: "Christmas Village" }) === "xmas" &&
+    O.typeFor({ category: "amenity", type: "marketplace", name: "Zz Test Farmers Market" }) === "market" && O.typeFor({ category: "place", type: "village", name: "Christmas Market" }) !== "xmas" &&
+    O.typeFor({ category: "amenity", type: "marketplace", name: "Zz Test", extratags: { "christmas:event": "market" } }) === "xmas", "v120: OpenStreetMap Christmas markets map to the type");
+  ok(/\("xmas", "Q57607"\)/.test(fs.readFileSync(path.join(__dirname, "enrich_sights.py"), "utf8")), "v120: Wikidata 'Christmas market' (Q57607) maps to the type");
+  const tu = read("trips-ui.js"), ex = read("extras.js");
+  ok(/x-\?mas/.test(tu) && /Seasonal: usually open late November to December/.test(ex), "v120: 'xmas' searches as 'christmas'; place pages say it is seasonal");
+}

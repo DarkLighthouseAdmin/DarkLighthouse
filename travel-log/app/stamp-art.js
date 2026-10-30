@@ -728,6 +728,23 @@
     amphi: function () { var s = P("M2 14 Q20 4 38 14 V34 Q20 42 2 34 Z"); [6, 12, 18, 24, 30].forEach(function (x) { s += P("M" + (x + 0.6) + " 20 Q" + (x + 2.6) + " 16.6 " + (x + 4.6) + " 20 V25 H" + (x + 0.6) + "Z M" + (x + 0.6) + " 29.5 Q" + (x + 2.6) + " 26.4 " + (x + 4.6) + " 29.5 V34 H" + (x + 0.6) + "Z", PAPER); });
       return s + S("M2 16 Q20 7 38 16", 0.8, PAPER) + S("M0 39 H40", 1.3); },
     onsen: function () { return P("M4 26 Q4 38 20 38 Q36 38 36 26 Z") + E(20, 26, 16, 3.2) + E(20, 26, 13, 2, 0, PAPER) + S("M12 21 Q9 17 12 13 T12 5 M20 21 Q17 17 20 13 T20 3 M28 21 Q25 17 28 13 T28 5", 1.7); },
+    xmasmarket: function () {   // v120: Christmas market - snowy wooden stalls, string lights, the tree with its star, a steaming mug
+    // the tree at the back, with a star and paper baubles
+    var tree = P("M20 4.6 L25.4 13 H23 L28 20.4 H25.4 L30 27.6 H10 L14.6 20.4 H12 L17 13 H14.6Z") + P("M18.6 27.4 H21.4 V31 H18.6Z") +
+      P("M20 0.6 L20.9 2.6 L23 2.8 L21.4 4.1 L21.9 6.2 L20 5.1 L18.1 6.2 L18.6 4.1 L17 2.8 L19.1 2.6Z") +
+      C(18.4, 12, 0.75, PAPER) + C(22, 17.6, 0.75, PAPER) + C(17, 21.6, 0.75, PAPER) + C(23.6, 24.6, 0.75, PAPER) + C(19.6, 25.6, 0.7, PAPER);
+    // two wooden stalls with snow on their roofs, an open counter and a steaming mug
+    var stall = function (x0, x1) { var m = (x0 + x1) / 2;
+      return P("M" + (x0 - 1.2) + " 22.6 L" + m + " 14 L" + (x1 + 1.2) + " 22.6Z") + P("M" + (x0 + 0.1) + " 20.9 L" + m + " 15.7 L" + (x1 - 0.1) + " 20.9 Q" + (x1 - 1.3) + " 22.6 " + (x1 - 2.4) + " 20.4 Q" + (x1 - 3.6) + " 22.2 " + (m + 2.6) + " 19.2 Q" + (m + 1.2) + " 20.6 " + m + " 18.4 Q" + (m - 1.2) + " 20.6 " + (m - 2.6) + " 19.2 Q" + (x0 + 3.6) + " 22.2 " + (x0 + 2.4) + " 20.4 Q" + (x0 + 1.3) + " 22.6 " + (x0 + 0.1) + " 20.9Z", PAPER) +
+        P("M" + x0 + " 22 H" + x1 + " V36 H" + x0 + "Z") + P("M" + (x0 + 1.4) + " 24 H" + (x1 - 1.4) + " V29.4 H" + (x0 + 1.4) + "Z", PAPER) +
+        S("M" + (x0 + 1.4) + " 32.4 H" + (x1 - 1.4) + " M" + (x0 + 1.4) + " 34.4 H" + (x1 - 1.4), 0.5, PAPER); };
+    var mug = P("M30.6 26.6 H33.8 V29.4 H30.6Z") + S("M33.8 27.4 Q35 27.6 33.8 28.8", 0.6) + S("M31.4 25.6 Q30.8 24.6 31.6 23.8 M33 25.6 Q32.4 24.6 33.2 23.8", 0.45);
+    var gift = P("M6.4 27 H10 V29.4 H6.4Z") + S("M8.2 27 V29.4 M8.2 27 Q7 25.6 6.8 26.6 M8.2 27 Q9.4 25.6 9.6 26.6", 0.45);
+    // string lights from stall to stall over the tree
+    var wire = S("M8 14.6 Q14 19 20 16.4 Q26 19 32 14.6", 0.5);
+    var bulbs = C(11, 17.7, 0.85) + C(14.6, 18.8, 0.85) + C(25.4, 18.8, 0.85) + C(29, 17.7, 0.85);
+    var snow = P("M0 36 Q10 34.6 20 35.8 Q30 37 40 35.4 V40 H0Z") + C(3, 6, 0.8) + C(9, 3, 0.6) + C(36, 5, 0.8) + C(31, 2.4, 0.6) + C(5, 11, 0.55) + C(37, 10.6, 0.55);
+    return tree + stall(1.6, 14.8) + stall(25.2, 38.4) + mug + gift + wire + bulbs + snow; },
     deck: function () { return P("M18.4 13 H21.6 L24 38 H16 Z") + P("M9 9 H31 L28 14 H12 Z") + S("M7 9 V5 H33 V9", 1.1) + S("M11 5 V9 M15 5 V9 M19 5 V9 M23 5 V9 M27 5 V9", 0.8) + P("M19.4 0.6 H20.6 V5 H19.4Z") +
       S("M17.4 20 H22.6 M17 27 H23", 0.8, PAPER) + S("M0 39 H40", 1.3); }
   };
@@ -760,7 +777,9 @@
     deck: ["Observation deck", "🔭", "deck", "#2b4f5e", "sights"],
     // v100: volcanoes, ski resorts, campgrounds, universities, airports and cruise ports
     volcano: ["Volcano", "🌋", "volcano", "#b02a2a", "nature"], ski: ["Ski resort", "⛷️", "ski", "#17608a", "fun"], campground: ["Campground", "🏕️", "tent", "#2f5d3a", "nature"],
-    university: ["University", "🎓", "mortarboard", "#5f35a0", "sights"], airport: ["Airport", "✈️", "plane", "#1f4f9e", "getting"], cruise: ["Cruise port", "🛳️", "ship", "#17608a", "getting"]
+    university: ["University", "🎓", "mortarboard", "#5f35a0", "sights"], airport: ["Airport", "✈️", "plane", "#1f4f9e", "getting"], cruise: ["Cruise port", "🛳️", "ship", "#17608a", "getting"],
+    // v120: Christmas markets (seasonal, family-friendly: grouped with Fun and kids, shown in Kid mode)
+    xmas: ["Christmas market", "🎄", "xmasmarket", "#b02a2a", "fun"]
   };
   function typeOf(t) { var x = TYPES[t] || TYPES.landmark; return { id: TYPES[t] ? t : "landmark", label: x[0], emoji: x[1], motif: x[2], ink: x[3], group: x[4] }; }
 

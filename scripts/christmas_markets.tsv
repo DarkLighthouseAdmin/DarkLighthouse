@@ -1,0 +1,109 @@
+# Famstamp v120: curated Christmas markets (scripts/add_christmas_markets.py). Coordinates: the market square (OpenStreetMap / Wikidata, checked by hand).
+# Wikidata ids where the market has its own item (CC0); '-' = none. fame floor = how well known it is (ranks it in search), used when Wikidata has fewer sitelinks.
+# english name	qid	lat	lon	iso3	town	local / other names (;)	fame floor
+Dresden Striezelmarkt	Q505688	51.0503	13.7378	DEU	Dresden	Striezelmarkt;Dresdner Striezelmarkt;Weihnachtsmarkt Dresden	30
+Nuremberg Christkindlesmarkt	Q832700	49.4540	11.0775	DEU	Nuremberg	Christkindlesmarkt;Nürnberger Christkindlesmarkt;Christkindlmarkt Nürnberg;Weihnachtsmarkt Nürnberg	32
+Strasbourg Christmas Market	Q1253609	48.5817	7.7506	FRA	Strasbourg	Christkindelsmärik;Marché de Noël de Strasbourg;Strasbourg Christkindelsmärik	30
+Vienna Christmas Market	-	48.2109	16.3577	AUT	Vienna	Wiener Christkindlmarkt;Christkindlmarkt Wien;Christkindlmarkt Rathausplatz;Wiener Weihnachtstraum;Weihnachtsmarkt Wien	28
+Schönbrunn Christmas Market	-	48.1857	16.3123	AUT	Vienna	Weihnachtsmarkt Schloss Schönbrunn;Christkindlmarkt Schönbrunn;Kultur- und Weihnachtsmarkt Schönbrunn	14
+Spittelberg Christmas Market	-	48.2034	16.3540	AUT	Vienna	Weihnachtsmarkt am Spittelberg;Christkindlmarkt Spittelberg	10
+Cologne Cathedral Christmas Market	-	50.9417	6.9573	DEU	Cologne	Weihnachtsmarkt am Kölner Dom;Kölner Weihnachtsmarkt;Weihnachtsmarkt Köln;Cologne Christmas Market	26
+Cologne Heart of Gold Christmas Market	-	50.9359	6.9497	DEU	Cologne	Heimat der Heinzel;Weihnachtsmarkt Altstadt Köln	10
+Frankfurt Christmas Market	Q1445063	50.1106	8.6821	DEU	Frankfurt am Main	Frankfurter Weihnachtsmarkt;Weihnachtsmarkt Frankfurt	20
+Leipzig Christmas Market	Q1524612	51.3404	12.3747	DEU	Leipzig	Leipziger Weihnachtsmarkt;Weihnachtsmarkt Leipzig	18
+Stuttgart Christmas Market	Q1254215	48.7758	9.1788	DEU	Stuttgart	Stuttgarter Weihnachtsmarkt;Weihnachtsmarkt Stuttgart	16
+Munich Christkindlmarkt	Q21064705	48.1374	11.5755	DEU	Munich	Münchner Christkindlmarkt;Christkindlmarkt am Marienplatz;Christkindlmarkt München;Weihnachtsmarkt München	22
+Augsburg Christkindlesmarkt	Q760527	48.3687	10.8985	DEU	Augsburg	Augsburger Christkindlesmarkt;Christkindlmarkt Augsburg;Weihnachtsmarkt Augsburg	10
+Rothenburg Reiterlesmarkt	Q131781707	49.3771	10.1792	DEU	Rothenburg ob der Tauber	Rothenburger Reiterlesmarkt;Reiterlesmarkt;Weihnachtsmarkt Rothenburg	14
+Regensburg Christkindlmarkt	Q131781532	49.0196	12.0965	DEU	Regensburg	Regensburger Christkindlmarkt;Christkindlmarkt Regensburg;Weihnachtsmarkt Regensburg	8
+Romantic Christmas Market at Thurn und Taxis Castle	Q56861859	49.0153	12.0962	DEU	Regensburg	Weihnachtsmarkt auf Schloss Thurn und Taxis;Romantischer Weihnachtsmarkt Thurn und Taxis	8
+Berlin Gendarmenmarkt Christmas Market	-	52.5137	13.3927	DEU	Berlin	WeihnachtsZauber Gendarmenmarkt;Weihnachtsmarkt Gendarmenmarkt;Weihnachtsmarkt Berlin	16
+Berlin Charlottenburg Palace Christmas Market	-	52.5206	13.2957	DEU	Berlin	Weihnachtsmarkt vor dem Schloss Charlottenburg;Weihnachtsmarkt Schloss Charlottenburg	8
+Berlin Breitscheidplatz Christmas Market	-	52.5050	13.3363	DEU	Berlin	Weihnachtsmarkt an der Gedächtniskirche;Weihnachtsmarkt Breitscheidplatz	8
+Hamburg Christmas Market	Q23041392	53.5503	9.9924	DEU	Hamburg	Hamburger Weihnachtsmarkt;Weihnachtsmarkt Rathausmarkt;Weihnachtsmarkt Hamburg	12
+Lübeck Christmas Market	Q1755650	53.8668	10.6859	DEU	Lübeck	Lübecker Weihnachtsmarkt;Lübecker Weihnachtsmärkte;Weihnachtsmarkt Lübeck	8
+Bremen Christmas Market	Q907938	53.0758	8.8072	DEU	Bremen	Bremer Weihnachtsmarkt;Weihnachtsmarkt Bremen	8
+Hanover Christmas Market	Q2555497	52.3717	9.7335	DEU	Hanover	Weihnachtsmarkt Hannover;Hannover Christmas Market	8
+Dortmund Christmas Market	Q59300342	51.5136	7.4653	DEU	Dortmund	Dortmunder Weihnachtsmarkt;Weihnachtsmarkt Dortmund	8
+Aachen Christmas Market	Q300764	50.7760	6.0838	DEU	Aachen	Aachener Weihnachtsmarkt;Weihnachtsmarkt Aachen	8
+Trier Christmas Market	Q1318623	49.7566	6.6413	DEU	Trier	Trierer Weihnachtsmarkt;Weihnachtsmarkt Trier	8
+Erfurt Christmas Market	Q1350247	50.9775	11.0237	DEU	Erfurt	Erfurter Weihnachtsmarkt;Weihnachtsmarkt Erfurt	8
+Magdeburg Christmas Market	Q15833336	52.1316	11.6380	DEU	Magdeburg	Magdeburger Weihnachtsmarkt;Weihnachtsmarkt Magdeburg	8
+Braunschweig Christmas Market	Q902007	52.2635	10.5214	DEU	Braunschweig	Braunschweiger Weihnachtsmarkt;Weihnachtsmarkt Braunschweig;Brunswick Christmas Market	6
+Bautzen Wenzelsmarkt	Q811925	51.1813	14.4241	DEU	Bautzen	Bautzener Wenzelsmarkt;Wenzelsmarkt;Weihnachtsmarkt Bautzen	6
+Chemnitz Christmas Market	Q43577889	50.8327	12.9205	DEU	Chemnitz	Chemnitzer Weihnachtsmarkt;Weihnachtsmarkt Chemnitz	6
+Freiberg Christmarkt	Q1295517	50.9177	13.3428	DEU	Freiberg	Freiberger Christmarkt;Weihnachtsmarkt Freiberg	6
+Esslingen Medieval and Christmas Market	Q57499344	48.7417	9.3076	DEU	Esslingen am Neckar	Esslinger Mittelaltermarkt & Weihnachtsmarkt;Esslinger Mittelaltermarkt und Weihnachtsmarkt;Weihnachtsmarkt Esslingen	8
+Ludwigsburg Baroque Christmas Market	Q1497955	48.8972	9.1925	DEU	Ludwigsburg	Ludwigsburger Barock-Weihnachtsmarkt;Barock-Weihnachtsmarkt;Weihnachtsmarkt Ludwigsburg	6
+Ulm Christmas Market	Q2475406	48.3985	9.9918	DEU	Ulm	Ulmer Weihnachtsmarkt;Weihnachtsmarkt Ulm	6
+Mainz Christmas Market	Q1276842	49.9993	8.2745	DEU	Mainz	Mainzer Weihnachtsmarkt;Weihnachtsmarkt Mainz	6
+Wiesbaden Twinkling Star Market	Q15854371	50.0822	8.2433	DEU	Wiesbaden	Wiesbadener Sternschnuppenmarkt;Sternschnuppenmarkt;Weihnachtsmarkt Wiesbaden;Wiesbaden Christmas Market	6
+Rostock Christmas Market	Q2167894	54.0886	12.1385	DEU	Rostock	Rostocker Weihnachtsmarkt;Weihnachtsmarkt Rostock	6
+Kiel Christmas Market	Q23786051	54.3221	10.1366	DEU	Kiel	Kieler Weihnachtsmarkt;Weihnachtsmarkt Kiel	4
+Heidelberg Christmas Market	-	49.4106	8.7100	DEU	Heidelberg	Heidelberger Weihnachtsmarkt;Weihnachtsmarkt Heidelberg	10
+Düsseldorf Christmas Market	-	51.2254	6.7724	DEU	Düsseldorf	Düsseldorfer Weihnachtsmarkt;Weihnachtsmarkt Düsseldorf	8
+Bad Salzuflen Christmas Dream	Q27926681	52.0866	8.7495	DEU	Bad Salzuflen	Bad Salzufler Weihnachtstraum;Weihnachtsmarkt Bad Salzuflen	4
+Colmar Christmas Market	-	48.0760	7.3580	FRA	Colmar	Marché de Noël de Colmar;Marchés de Noël de Colmar	18
+Kaysersberg Christmas Market	Q18745320	48.1387	7.2635	FRA	Kaysersberg	Marché de Noël de Kaysersberg;Christmas markets in Kaysersberg	8
+Riquewihr Christmas Market	-	48.1667	7.2978	FRA	Riquewihr	Marché de Noël de Riquewihr	8
+Reims Christmas Market	Q116337043	49.2539	4.0336	FRA	Reims	Marché de Noël de Reims;Christmas markets in Reims	6
+Montbéliard Christmas Market	Q3289884	47.5096	6.7985	FRA	Montbéliard	Marché de Noël de Montbéliard;Lumières de Noël Montbéliard	6
+Lille Christmas Market	-	50.6363	3.0630	FRA	Lille	Marché de Noël de Lille	6
+Salzburg Christkindlmarkt	-	47.7981	13.0469	AUT	Salzburg	Salzburger Christkindlmarkt;Christkindlmarkt Salzburg;Weihnachtsmarkt Salzburg;Salzburg Christmas Market	18
+Innsbruck Old Town Christmas Market	-	47.2685	11.3933	AUT	Innsbruck	Innsbrucker Christkindlmarkt;Christkindlmarkt Innsbruck;Weihnachtsmarkt Innsbruck;Innsbruck Christmas Market	12
+Linz Christmas Markets	Q1827156	48.3058	14.2862	AUT	Linz	Linzer Christkindlmärkte;Christkindlmarkt Linz;Weihnachtsmarkt Linz;Linz Christmas Market	6
+Graz Christmas Market	-	47.0713	15.4383	AUT	Graz	Grazer Adventmarkt;Christkindlmarkt Graz;Weihnachtsmarkt Graz;Advent in Graz	8
+Steyr Christkindlmarkt	Q131450241	48.0388	14.4194	AUT	Steyr	Steyrer Christkindlmarkt;Christkindlmarkt Steyr;Weihnachtsmarkt Steyr	4
+Basel Christmas Market	Q88383316	47.5574	7.5904	CHE	Basel	Basler Weihnachtsmarkt;Weihnachtsmarkt Basel	10
+Zurich Christkindlimarkt	Q15855932	47.3779	8.5403	CHE	Zurich	Zürcher Christkindli-Markt;Christkindlimarkt Zürich;Weihnachtsmarkt Zürich;Zurich Christmas Market	8
+Lucerne Christkindlimarkt	Q15833057	47.0502	8.3102	CHE	Lucerne	Luzerner Christkindlimarkt;Weihnachtsmarkt Luzern;Lucerne Christmas Market	4
+Montreux Noël	-	46.4320	6.9107	CHE	Montreux	Montreux Christmas Market;Marché de Noël de Montreux	10
+Bolzano Christmas Market	Q3854837	46.4988	11.3540	ITA	Bolzano	Bozner Christkindlmarkt;Mercatino di Natale di Bolzano;Christkindlmarkt Bozen;Weihnachtsmarkt Bozen	12
+Merano Christmas Market	Q1921101	46.6714	11.1600	ITA	Merano	Meraner Advent;Mercatino di Natale di Merano;Weihnachtsmarkt Meran	6
+Trento Christmas Market	-	46.0700	11.1210	ITA	Trento	Mercatino di Natale di Trento	6
+Prague Old Town Square Christmas Market	-	50.0875	14.4213	CZE	Prague	Vánoční trhy na Staroměstském náměstí;Prague Christmas Market;Vánoční trhy Praha	22
+Prague Wenceslas Square Christmas Market	-	50.0810	14.4280	CZE	Prague	Vánoční trhy na Václavském náměstí	8
+Bratislava Christmas Market	Q131351762	48.1436	17.1090	SVK	Bratislava	Vianočné trhy Bratislava	6
+Budapest Christmas Fair	-	47.4969	19.0507	HUN	Budapest	Vörösmarty tér karácsonyi vásár;Budapest Christmas Market;Vörösmarty Square Christmas Market	14
+Budapest Basilica Advent Feast	-	47.5007	19.0536	HUN	Budapest	Adventi Bazilika;Advent Feast at the Basilica	10
+Kraków Christmas Market	Q141613418	50.0617	19.9373	POL	Kraków	Jarmark Bożonarodzeniowy w Krakowie;Krakow Christmas Market	8
+Wrocław Christmas Market	-	51.1100	17.0320	POL	Wrocław	Jarmark Bożonarodzeniowy we Wrocławiu;Wroclaw Christmas Market	8
+Gdańsk Christmas Market	-	54.3497	18.6528	POL	Gdańsk	Jarmark Bożonarodzeniowy w Gdańsku;Gdansk Christmas Market	6
+Zagreb Advent	Q20527082	45.8131	15.9775	HRV	Zagreb	Advent u Zagrebu;Advent in Zagreb;Zagreb Christmas Market	14
+Tallinn Christmas Market	Q1254067	59.4372	24.7453	EST	Tallinn	Tallinna jõuluturg;Tallinner Weihnachtsmarkt	14
+Riga Christmas Market	Q134734292	56.9474	24.1065	LVA	Riga	Rīgas Ziemassvētku tirdziņš;Doma laukuma Ziemassvētku tirdziņš	8
+Vilnius Christmas Market	-	54.6858	25.2878	LTU	Vilnius	Kalėdų miestelis;Vilnius Cathedral Square Christmas Market	8
+Helsinki Christmas Market	Q124272082	60.1696	24.9520	FIN	Helsinki	Tuomaan markkinat;St Thomas Christmas Market;Helsingin joulumarkkinat	8
+Stockholm Old Town Christmas Market	-	59.3251	18.0708	SWE	Stockholm	Julmarknad på Stortorget;Stortorgets julmarknad;Gamla stan julmarknad	12
+Skansen Christmas Market	Q18332573	59.3263	18.1037	SWE	Stockholm	Julmarknad på Skansen;Skansens julmarknad	8
+Liseberg Christmas Market	-	57.6953	11.9915	SWE	Gothenburg	Jul på Liseberg;Lisebergs julmarknad	10
+Tivoli Christmas Market	-	55.6737	12.5681	DNK	Copenhagen	Jul i Tivoli;Tivoli julemarked;Tivoli Christmas	16
+Nyhavn Christmas Market	-	55.6799	12.5908	DNK	Copenhagen	Julemarked i Nyhavn;Nyhavn julemarked	8
+Oslo Christmas Market	-	59.9135	10.7380	NOR	Oslo	Jul i Vinterland;Julemarked Spikersuppa	8
+Brussels Winter Wonders	-	50.8476	4.3524	BEL	Brussels	Plaisirs d'Hiver;Winterpret;Brussels Christmas Market;Marché de Noël de Bruxelles	14
+Bruges Christmas Market	-	51.2089	3.2243	BEL	Bruges	Kerstmarkt Brugge;Brugge kerstmarkt	10
+Valkenburg Christmas Market	Q114250575	50.8650	5.8318	NLD	Valkenburg	Kerstmarkt Gemeentegrot;Christmas market Gemeentegrot;Kerstmarkt Valkenburg	6
+Edinburgh's Christmas	-	55.9520	-3.1960	GBR	Edinburgh	Edinburgh Christmas Market;Edinburgh's Christmas Market	18
+Hyde Park Winter Wonderland	Q27977663	51.5070	-0.1580	GBR	London	Winter Wonderland;Winter Wonderland London;London Christmas Market	20
+Southbank Centre Winter Market	-	51.5058	-0.1167	GBR	London	Southbank Winter Market;Winter Festival Southbank	6
+Manchester Christmas Markets	-	53.4791	-2.2449	GBR	Manchester	Manchester Christmas Market	14
+Birmingham Frankfurt Christmas Market	Q18712983	52.4795	-1.9026	GBR	Birmingham	Frankfurt Christmas Market Birmingham;Birmingham Christmas Market	8
+Lincoln Christmas Market	Q1253705	53.2340	-0.5380	GBR	Lincoln	Lincoln Christmas Market	10
+Bath Christmas Market	-	51.3811	-2.3597	GBR	Bath	Bath Christmas Market	12
+York St Nicholas Fair	-	53.9590	-1.0815	GBR	York	York Christmas Market;St Nicholas Fair	10
+Winchester Cathedral Christmas Market	Q114371254	51.0607	-1.3131	GBR	Winchester	Winchester Christmas Market	6
+Rochester Christmas Market	Q136450711	51.3887	0.5025	GBR	Rochester	Rochester Christmas Market	4
+Belfast Christmas Market	-	54.5964	-5.9301	GBR	Belfast	Belfast City Hall Christmas Market	8
+Chicago Christkindlmarket	Q1253718	41.8839	-87.6305	USA	Chicago	Christkindlmarket Chicago;Christkindlmarkt Chicago;Chicago Christmas Market	18
+Bryant Park Winter Village	-	40.7536	-73.9832	USA	New York City	Bank of America Winter Village;Winter Village at Bryant Park;New York Christmas Market;NYC Christmas Market	18
+Union Square Holiday Market	-	40.7359	-73.9906	USA	New York City	Union Square Holiday Market;Union Square Christmas Market	10
+Christmas Village in Philadelphia	Q7722775	39.9524	-75.1636	USA	Philadelphia	The Christmas Village in Philadelphia;Philadelphia Christmas Village;Philadelphia Christmas Market	10
+Denver Christkindl Market	-	39.7477	-104.9990	USA	Denver	Denver Christkindlmarket;Denver Christmas Market	6
+Carmel Christkindlmarkt	-	39.9714	-86.1288	USA	Carmel	Carmel Christmas Market	6
+Downtown Holiday Market Washington	-	38.8973	-77.0230	USA	Washington	Downtown DC Holiday Market;Washington Christmas Market	6
+Baltimore Christmas Village	-	39.2857	-76.6131	USA	Baltimore	Christmas Village in Baltimore	4
+Distillery Winter Village	-	43.6503	-79.3596	CAN	Toronto	Toronto Christmas Market;Distillery District Christmas Market	12
+Vancouver Christmas Market	-	49.2886	-123.1112	CAN	Vancouver	Vancouver Christmas Market	8
+Quebec City German Christmas Market	-	46.8130	-71.2075	CAN	Quebec City	Marché de Noël allemand de Québec;Quebec Christmas Market	8
+Santurantikuy	-	-13.5163	-71.9786	PER	Cusco	Santurantikuy Christmas Market;Cusco Christmas Market	6
+Tokyo Christmas Market	-	35.6731	139.7569	JPN	Tokyo	Hibiya Christmas Market;Christmas Market Hibiya	6

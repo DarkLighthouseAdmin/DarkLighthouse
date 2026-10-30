@@ -278,6 +278,7 @@
     var tripLink = function (v) { var t = v.tripId ? st.trips.filter(function (x) { return x.id === v.tripId; })[0] : null; return t ? '<a href="#/p/' + esc(t.kidIds[0] || v.who[0]) + '/trip/' + esc(t.id) + '">' + esc(t.title || t.place || "Trip") + '</a>' : v.source === "hand" ? "Stamped by hand" : ""; };
     a.main.innerHTML = back + '<div class="placepage" data-place="' + esc(kind + ":" + (info.area || info.name)) + '"><div class="placehead"><div class="bigstamp' + (n ? "" : " unstamped") + '">' + art + '</div><div><h1>' + esc(info.name) + '</h1>' +
       '<p class="muted">' + esc(info.sub) + (info.parent ? ' · <a href="' + esc(info.parent) + '">in ' + esc(info.parent.indexOf("/state/") > 0 ? a.placeName("state", info.parent.split("/").pop()) : info.parent.indexOf("/region/") > 0 ? P.regionName(info.parent.split("/").pop()) : a.placeName("place", info.parent.split("/").pop())) + ' →</a>' : "") + '</p>' +
+      (info.pt && info.pt.type === "xmas" ? '<p class="small seasonal">🎄 Seasonal: usually open late November to December (check this year\'s dates before you go)</p>' : "") +   // v120
       '<p class="vtimes"><b>' + (n ? "Visited " + (n === 1 ? "once" : n + " times") : mapOnly.length ? "Colored in, no visit dated yet" : "Not stamped yet") + '</b></p></div></div>' +
       (n ? '<h2>Visits</h2><ul class="pvisitlist placevisits">' + visits.map(function (v) {
         var d = P.fmtDate(v.date) ? P.fmtDate(v.date) + (v.end && v.end !== v.date ? " to " + P.fmtDate(v.end) : "") : "No date yet";

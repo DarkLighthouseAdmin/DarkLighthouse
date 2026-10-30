@@ -46,6 +46,7 @@ CLASSES = [
   ("abbey", "Q160742"), ("monastery", "Q44613 Q1128397 Q54074585 Q844619"), ("shrine", "Q697295"),
   ("cistern", "Q838858 Q93429857"), ("tomb", "Q162875 Q381885 Q16190649 Q180927 Q200141"), ("amphitheater", "Q7362268 Q54831"),
   ("palace", "Q16560 Q53536964 Q4156067"), ("castle", "Q23413 Q751876 Q17715832"), ("fort", "Q1785071 Q57831 Q88291 Q677678 Q57821"),
+  ("xmas", "Q57607"),   # v120: Christmas market (before the general market classes)
   ("market", "Q219760 Q510177 Q2080521 Q330284 Q37654"), ("square", "Q174782 Q2997369"), ("oldtown", "Q676050"),
   ("onsen", "Q655311 Q177380 Q1004887"), ("tower", "Q1440300 Q853854 Q200334 Q11303 Q12518"),
   ("monument", "Q143912 Q4989906 Q5003624 Q179700 Q82117"), ("ancient", "Q839954 Q15661340"), ("ruin", "Q109607"),

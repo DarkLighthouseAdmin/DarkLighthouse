@@ -67,7 +67,8 @@
       .then(function (j) { L.index = j; return j; }).catch(function (e) { L.loading.index = null; throw e; });
     return L.loading.index;
   }
-  function layerKey(L, q) { return L.index ? TW.keyFor(String(q || "").split(",")[0], L.index) : ""; }
+  function xmasQ(s) { return String(s || "").replace(/\bx-?mas\b/gi, "christmas"); }   // v120: "xmas market" finds the Christmas markets
+  function layerKey(L, q) { return L.index ? TW.keyFor(xmasQ(q).split(",")[0], L.index) : ""; }
   function ensureLayer(L, q) {
     return layerIndex(L).then(function () {
       var k = layerKey(L, q); if (!k || L.files[k]) return false;
@@ -104,7 +105,7 @@
   function typeEmoji(t) { var SA = window.WK_STAMPART; return SA && SA.typeOf ? SA.typeOf(t).emoji : "📍"; }
   function sightPoint(d, r, typed) {
     var SA = window.WK_STAMPART, ty = SA && SA.typeOf ? SA.typeOf(r.type) : { id: r.type || "landmark", label: "Sight", emoji: "📍" };
-    var name = typed && typed !== r.names[0] && TW.fold(typed).indexOf(TW.fold(r.names[0])) < 0 ? typed : r.names[0];
+    var name = typed && typed !== r.names[0] && TW.fold(typed).indexOf(TW.fold(r.names[0])) < 0 && !(r.type === "xmas" && /christmas market/i.test(typed)) ? typed : r.names[0];   // v120: "Christmas Market <town>" is a search alias, show the real name
     var where = subOf(d, r.country, r.admin1), famous = (r.rank || 0) >= FAMOUS;
     var o = { name: name, kind: "sight", type: ty.id, lat: r.lat, lon: r.lon, country: r.country, region: regionOf(r.country, r.admin1),
       sub: ty.label + " · " + (r.town ? r.town + ", " : "") + where, label: ty.emoji + " " + name };
@@ -136,7 +137,7 @@
   }
   // "St Andrews" / "St. Andrews" / "Saint Andrews", "Mt" / "Mount", "Ft" / "Fort" all find the same town
   function normQ(s) {
-    s = String(s || "");
+    s = xmasQ(s);
     if (TW) return s.split(",").map(function (x) { return TW.fold(x); }).join(", ");   // v78: accents optional (Koln = Köln), punctuation-proof
     return s.toLowerCase().replace(/\b(st|saint|ste)\.?(\s|-)/g, "saint ").replace(/\bmt\.?(\s|-)/g, "mount ").replace(/\bft\.?(\s|-)/g, "fort ").replace(/\s+/g, " ");
   }
@@ -193,7 +194,8 @@
         pt._exact = h.exact; pt._famous = (r.rank || 0) >= FAMOUS; pt._score = 2 + Math.min(r.rank || 0, 120) / 12; pt._i = 100 + ns++; cities.push(pt);
       });
       cities.sort(function (a, b) { return (b._exact - a._exact) || ((b._famous ? 1 : 0) - (a._famous ? 1 : 0)) || (b._score - a._score) || (a._i - b._i); });
-      var nsight = 0; cities = cities.filter(function (c) { return c.kind !== "sight" || ++nsight <= 5; });
+      var nsight = 0, scap = /^(christmas market|weihnachtsmarkt|christkindl|marche de noel|julmarknad|julemarked|kerstmarkt)/.test(head) ? 9 : 5;   // v120: a market search shows more markets
+      cities = cities.filter(function (c) { return c.kind !== "sight" || ++nsight <= scap; });
     }
     cities.forEach(function (c) { delete c._pop; delete c._exact; delete c._i; delete c._score; delete c._famous; });
     if (near) cities = cities.filter(function (p) { return p.country === near; }).concat(cities.filter(function (p) { return p.country !== near; }));
