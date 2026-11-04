@@ -176,6 +176,19 @@
     { k: ["cotswolds"], name: "Cotswolds", lat: 51.83, lon: -1.83, country: "GBR", admin1: "ENG" }];
   /** Cities, towns and national parks matching what they typed ("Edinburgh", "inver", "portland, me", "zion").
       near = the country of the stop before, whose matches come first ("Glencoe" after Edinburgh is the Scottish one). */
+  /** Places in the country of the last stop come first, but (v122) a big city with exactly the typed name (Nassau, Bahamas;
+      London, England) is not pushed under small same-named towns: it goes first when the best same-country match is a small
+      town (under 20,000), else right after it (Paris, Texas then Paris, France on a Texas road trip). */
+  var BIG_CITY = 100000, SMALL_TOWN = 20000;
+  function nearFirst(cities, near, head) {
+    var fh = TW ? TW.fold(head) : String(head).toLowerCase(), ex = function (c) { return c._exact != null ? !!c._exact : (TW ? TW.fold(c.name) : String(c.name).toLowerCase()) === fh; };
+    var same = cities.filter(function (p) { return p.country === near; }), other = cities.filter(function (p) { return p.country !== near; });
+    var big = other.filter(function (p) { return p.kind !== "sight" && ex(p) && (p._pop || 0) >= BIG_CITY; }).slice(0, 2);
+    if (!big.length) return same.concat(other);
+    other = other.filter(function (p) { return big.indexOf(p) < 0; });
+    var top = same[0], keepTop = top && top.kind !== "sight" && ex(top) && (top._pop || 0) >= SMALL_TOWN;
+    return keepTop ? [top].concat(big, same.slice(1), other) : big.concat(same, other);
+  }
   function searchPlaces(q, d, near) {
     q = normQ(q.trim()); if (q.length < 2) return [];
     var parts = q.split(","), head = parts[0].trim(), tail = (parts[1] || "").trim(), out = [];
@@ -228,8 +241,8 @@
       var nsight = 0, scap = /^(christmas market|weihnachtsmarkt|christkindl|marche de noel|julmarknad|julemarked|kerstmarkt)/.test(head) ? 9 : 5;   // v120: a market search shows more markets
       cities = cities.filter(function (c) { return c.kind !== "sight" || ++nsight <= scap; });
     }
+    if (near) cities = nearFirst(cities, near, head);
     cities.forEach(function (c) { delete c._pop; delete c._exact; delete c._i; delete c._score; delete c._famous; delete c._lvl; });
-    if (near) cities = cities.filter(function (p) { return p.country === near; }).concat(cities.filter(function (p) { return p.country !== near; }));
     // v100: airports by their code ("MCO", "JFK") or by name with "airport" in it, stamped as an airport sight
     var air = airportPoints(d, head), list = out.concat(cities).slice(0, Math.max(9, nParks + 6));
     return air.code ? whole.concat(air.list, list) : whole.concat(list, air.list);

@@ -92,8 +92,15 @@
   }
 
   // ---- the bars ----
+  // v122: a place page lights the tab you came from (Home via the passport, Trips via a trip, Map otherwise), never More
+  var lastTab = "";
+  function navTab(hash) {
+    var h = parts(hash)[0] || "", t = tabOf(hash);
+    if (h !== "place") { lastTab = t; return t; }
+    return lastTab === "home" || lastTab === "trips" || lastTab === "map" ? lastTab : "map";
+  }
   function tabsHTML() {
-    var cur = tabOf(location.hash), h = parts(location.hash)[0] || "";
+    var cur = navTab(location.hash), h = parts(location.hash)[0] || "";
     function t(id, href, ic, label, curNow) { return '<a href="' + href + '" class="nt-' + id + '"' + (curNow ? ' aria-current="page"' : "") + '><span class="ic" aria-hidden="true">' + ic + '</span><span class="tl">' + label + '</span></a>'; }
     if (grandView()) return t("hl", "#/highlights", "✨", "Highlights", h === "highlights" || h === "") + t("recap", "#/recap", "📬", "Weekly recap", h === "recap") + t("news", "#/news", "💬", "Reactions &amp; news", h === "news");
     if (kidMode()) { var kk = window.FS_KIDLOCK.kid(); return t("home", "#/kidmode", "🏠", "Home", h === "kidmode") + t("map", "#/p/" + esc(kk) + "/us", "🗺️", "My map", cur === "map") + t("games", "#/games", "🎲", "Games", h === "games") + t("pass", "#/p/" + esc(kk) + "/passport", "🛂", "Passport", /\/passport/.test(location.hash)); }

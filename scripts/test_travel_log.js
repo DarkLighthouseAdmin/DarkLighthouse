@@ -3127,3 +3127,11 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/id="ttitle"/.test(tu) && /class="field tname"/.test(tu), "v121: trip name box is shown, not hidden under a fold");
   ok(/max-width:560px/.test(read("app.css")) && /\.gprintgrid/.test(read("app.css")), "v121: printable games fit a phone");
 }
+
+// ---- v122 ----
+{
+  ok(!fs.existsSync(path.join(__dirname, "..", "travel-log", "download", "famstamp.apk")), "v122: the last old public APK (/travel-log/download/famstamp.apk) is removed");
+  const tu = read("trips-ui.js"), nav = read("nav.js");
+  ok(/function nearFirst/.test(tu) && /cities = nearFirst\(cities, near, head\)/.test(tu) && /BIG_CITY = 100000/.test(tu), "v122: a big city of the typed name is not buried under small towns in the last stop's country (Nassau, Bahamas)");
+  ok(/function navTab/.test(nav) && /h !== "place"/.test(nav) && /var cur = navTab\(location\.hash\)/.test(nav), "v122: place pages light the tab you came from, not More");
+}
