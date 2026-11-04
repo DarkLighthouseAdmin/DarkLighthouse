@@ -10,14 +10,14 @@
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#0e1c2a" />
   <!-- /dls-head-meta -->
-  <title>Renewal Radar: Subscription &amp; Free Trial Tracker for Firefox and Edge</title>
-  <meta name="description" content="A private browser extension that tracks your subscriptions and free trials, shows your real monthly total, and reminds you before every charge. Free, with a one-time $7 Pro." />
+  <title>Renewal Radar: Subscription &amp; Free Trial Tracker for Chrome</title>
+  <meta name="description" content="A free, private Chrome extension that tracks your subscriptions and free trials, shows your real monthly total, and reminds you before every charge. Free, with a one-time $7 Pro." />
   <meta name="author" content="Dark Lighthouse Solutions" />
   <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://darklighthousesolutions.com/renewal-radar/" />
   <meta property="og:site_name" content="Dark Lighthouse Solutions" />
-  <meta property="og:title" content="Renewal Radar: Subscription &amp; Free Trial Tracker for Firefox and Edge" />
-  <meta property="og:description" content="A private browser extension that tracks your subscriptions and free trials, shows your real monthly total, and reminds you before every charge. Free, with a one-time $7 Pro." />
+  <meta property="og:title" content="Renewal Radar: Subscription &amp; Free Trial Tracker for Chrome" />
+  <meta property="og:description" content="A free, private Chrome extension that tracks your subscriptions and free trials, shows your real monthly total, and reminds you before every charge. Free, with a one-time $7 Pro." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://darklighthousesolutions.com/renewal-radar/" />
   <meta property="og:image" content="https://darklighthousesolutions.com/renewal-radar/img/og.jpg" />
@@ -27,7 +27,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Renewal Radar","applicationCategory":"FinanceApplication","operatingSystem":"Firefox, Microsoft Edge","description":"Browser extension that tracks subscriptions and free trials and reminds you before each charge. Data stays in your browser.","offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free"},{"@type":"Offer","price":"7.00","priceCurrency":"USD","name":"Pro (one-time)"}],"author":{"@type":"Organization","name":"Dark Lighthouse Solutions","url":"https://darklighthousesolutions.com/"}}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Renewal Radar","applicationCategory":"FinanceApplication","operatingSystem":"Chrome","downloadUrl":"https://chromewebstore.google.com/detail/renewal-radar-subscriptio/adgmhdjogpkjmnfdoahpnkclaombjdfm","description":"Browser extension that tracks subscriptions and free trials and reminds you before each charge. Data stays in your browser.","offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free"},{"@type":"Offer","price":"7.00","priceCurrency":"USD","name":"Pro (one-time)"}],"author":{"@type":"Organization","name":"Dark Lighthouse Solutions","url":"https://darklighthousesolutions.com/"}}
   </script>
 <style>
     :root { --ink:#1f2a33; --muted:#5b6b73; --cream:#f7f3ea; --card:#fffdf8; --sage:#6f8f7a; --sage-deep:#3f5f4c;
@@ -134,11 +134,10 @@
     <div><h1>Renewal Radar</h1>
     <p class="lede">A little browser extension that keeps an eye on your subscriptions and free trials, so you stop finding $14.99 charges you forgot about.</p></div></div>
     <div class="actions">
-      <span class="soon">Chrome: coming soon</span>
-      <span class="soon">Firefox: coming soon</span>
-      <span class="soon">Microsoft Edge: coming soon</span>
+      <a class="btn btn-primary" href="https://chromewebstore.google.com/detail/renewal-radar-subscriptio/adgmhdjogpkjmnfdoahpnkclaombjdfm" rel="noopener" data-cws="1">Add to Chrome, free</a>
       <a class="btn btn-beacon" href="https://buy.polar.sh/polar_cl_8uoHdB7lnHSgTsGEGVU83azBFdiaP4jwN3jpR2Hiiif">Get Pro for $7</a>
     </div>
+    <p class="muted" style="margin-top:.6rem">Free in Chrome. Microsoft Edge and Brave can install it from the Chrome Web Store too. A Firefox version isn't ready yet.</p>
     <div id="thanks" class="callout"><strong>Thanks! Your Renewal Radar Pro license key is in your email from Polar (check spam).</strong> You can also find it anytime in your <a href="https://polar.sh/dark-lighthouse-solutions/portal">Polar customer portal</a>. <a href="/renewal-radar/thanks/">How to unlock Pro</a></div>
   </header>
 
@@ -191,6 +190,7 @@
     <p><a href="/renewal-radar/">Renewal Radar</a> · <a href="/renewal-radar/privacy/">Privacy policy</a> · <a href="/tools/">Free tools</a> · <a href="/templates/">Money templates</a></p>
     <p style="margin-top:.4rem"><strong>Dark Lighthouse Solutions</strong> · Pro licenses sold via Polar (merchant of record). Questions or a lost key? <a href="mailto:admin@darklighthousesolutions.com">admin@darklighthousesolutions.com</a></p>
   </footer>
+  <script>document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e.target.closest("a[data-cws]"):null;if(a&&typeof gtag==="function")gtag("event","add_to_chrome_click",{item_name:"Renewal Radar",transport_type:"beacon"});},true);</script>
   <!-- ga4-checkout-click -->
   <script>
     document.addEventListener("click", function (e) {
