@@ -311,6 +311,11 @@
     .hub2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; margin-top:1.2rem; }
     .hub2 a { display:block; background:var(--card); border:1px solid var(--line); border-top:5px solid var(--sage-deep); border-radius:16px; padding:1.2rem; text-decoration:none; color:var(--ink); }
     .hub2 a:hover { border-top-color:var(--beacon); } .hub2 h2 { margin:0 0 .35rem; font-size:1.35rem; } .hub2 p { color:var(--muted); } .hub2 .go { display:inline-block; margin-top:.6rem; font-weight:600; color:var(--sage-deep); }
+    .hub2 .rrcard { background:var(--card); border:1px solid var(--line); border-top:5px solid var(--sage-deep); border-radius:16px; padding:1.2rem; color:var(--ink); }
+    .hub2 .rrcard h2 { margin:0 0 .35rem; font-size:1.35rem; } .hub2 .rrcard p { color:var(--muted); }
+    .hub2 .rrcard .rr-actions { display:flex; gap:.9rem; align-items:center; flex-wrap:wrap; margin-top:.7rem; } .hub2 .rrcard a { display:inline-block; border:0; border-radius:10px; padding:0; background:none; }
+    .hub2 .rrcard a.btn { background:var(--sage-deep); color:#fff; padding:.65rem 1.15rem; } .hub2 .rrcard a.btn:hover { background:var(--sage); }
+    .hub2 .rrcard .go { font-weight:600; color:var(--sage-deep); text-decoration:none; }
     .fav { grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
     .list2 { columns:2 240px; margin:.6rem 0 0 1.1rem; } .list2 li { margin:.25rem 0; break-inside:avoid; }
   </style>
@@ -330,7 +335,7 @@
     <div class="hub2">
       <a href="/templates/"><h2>Templates &amp; planners</h2><p>15 spreadsheets, printables and bundles, with previews and what's inside each one.</p><span class="go">Browse templates →</span></a>
       <a href="/tools/"><h2>Free calculators</h2><p>Budget by paycheck, debt payoff, sinking funds, grocery, moving and wedding budgets.</p><span class="go">Open the calculators →</span></a>
-      <a href="/renewal-radar/"><h2>Renewal Radar</h2><p>A small browser extension for subscriptions and free trials. <strong>Coming soon.</strong></p><span class="go">Take a look →</span></a>
+      <div class="rrcard"><h2>Renewal Radar</h2><p>A free Chrome extension that tracks subscriptions and free trials and reminds you before each charge. No account, no bank login.</p><p class="rr-actions"><a class="btn btn-primary" href="https://chromewebstore.google.com/detail/renewal-radar-subscriptio/adgmhdjogpkjmnfdoahpnkclaombjdfm" rel="noopener" data-cws="1">Add to Chrome, free</a> <a class="go" href="/renewal-radar/">Learn more →</a></p></div>
     </div>
 
     <h2>Free calculators</h2>
@@ -478,5 +483,6 @@
       gtag("event", "begin_checkout", { item_name: name, link_url: a.href, transport_type: "beacon" });
     }, true);
   </script>
+  <script>document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e.target.closest("a[data-cws]"):null;if(a&&typeof gtag==="function")gtag("event","add_to_chrome_click",{item_name:"Renewal Radar",transport_type:"beacon"});},true);</script>
 </body>
 </html>
