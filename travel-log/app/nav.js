@@ -14,6 +14,7 @@
   function tabOf(hash) {
     var h = parts(hash), a = h[0] || "";
     if (a === "") return "home";
+    if ((a === "p" || a === "kid" || a === "family") && h[1] && (h[2] === "passport" || a === "family" && h[1] === "passport")) return "home";   // v121: the passport opens from Home, so Home lights up
     if (a === "map" || a === "family" && (!h[1] || h[1] === "signs") || a === "together" || a === "near") return "map";
     if ((a === "p" || a === "kid") && h[1]) { var t = h[2] || "us"; if (MAPSUB[t] || t === "signs" || t === "print") return "map"; if (t === "trips" || t === "trip") return "trips"; return "more"; }
     if (a === "trips" || a === "fieldtrips" || a === "journal" || a === "import" || a === "where" || a === "games") return "trips";

@@ -274,18 +274,13 @@ ok(M.backupNudge("2999-01-01T00:00:00Z", [t1, t2, t1]) === 0, "no nudge right af
 // ---- Android download page + Digital Asset Links ----
 {
   const ROOT = path.join(__dirname, "..");
-  const apk = path.join(APP, "download", "famstamp.apk"), oldApk = path.join(APP, "download", "my-lifetime-travel-log.apk");
-  ok(fs.existsSync(oldApk) && fs.readFileSync(oldApk).equals(fs.readFileSync(apk)), "old APK link still works and serves the same Famstamp build");
-  ok(fs.readFileSync(path.join(APP, "download", "wanderkin.apk")).equals(fs.readFileSync(apk)), "the short-lived wanderkin.apk link serves the newest Famstamp build too");
-  ok(fs.existsSync(apk), "APK is in /travel-log/app/download/");
-  const size = fs.statSync(apk).size, head = fs.readFileSync(apk).subarray(0, 4);
-  ok(size > 100e3 && size < 25e6, "APK size is sane and well under GitHub limits: " + size);
-  ok(head[0] === 0x50 && head[1] === 0x4b, "APK is a zip (PK header)");
+  // v121: the old public APK files are gone (Famstamp moves to Google Play); nothing on the site may link to an .apk
+  ["famstamp.apk", "my-lifetime-travel-log.apk", "wanderkin.apk"].forEach(function (f) { ok(!fs.existsSync(path.join(APP, "download", f)), "old APK removed from /travel-log/app/download/: " + f); });
   const dl = fs.readFileSync(path.join(APP, "download", "index.html"), "utf8");
   ok(/<meta name="robots" content="noindex/.test(dl), "download page is noindex");
-  ok(/href="famstamp\.apk" download/.test(dl), "download button points at famstamp.apk");
-  ok(/<title>Get Famstamp on Android<\/title>/.test(dl) && /Version 1\.3\.1/.test(dl) && !/Lifetime Travel Log/.test(dl), "download page says Famstamp 1.3.1");
-  ok((dl.match(/<li>/g) || []).length === 3 && /Allow from this source/.test(dl), "3 install steps incl. allow from this source");
+  ok(!/\.apk/i.test(dl) && /href="\.\.\/"/.test(dl), "download page links no APK, only the web app");
+  ok(/<title>Get Famstamp on Android<\/title>/.test(dl) && /Google Play/.test(dl) && !/Lifetime Travel Log/.test(dl), "download page says Famstamp is coming to Google Play");
+  ok((dl.match(/<li>/g) || []).length === 3 && /Add to Home screen/.test(dl), "3 add-to-home-screen steps");
   ok(/iPhone/.test(dl) && /Add to Home Screen/.test(dl), "iPhone note");
   ok(!/https?:\/\//.test(dl) && !/<script/.test(dl), "download page loads nothing from other sites, no scripts");
   const al = JSON.parse(fs.readFileSync(path.join(ROOT, ".well-known", "assetlinks.json"), "utf8"));
@@ -841,6 +836,10 @@ const linked = [];
     else if (/\.(html|xml|txt)$/.test(e.name) && /travel-log\/app/.test(fs.readFileSync(p, "utf8").replace(/<script src="\/travel-log\/app\/brand\.js"><\/script>/g, ""))) linked.push(path.relative(path.join(__dirname, ".."), p));
   }
 })(path.join(__dirname, ".."));
+// v121: /travel-log/ (the address printed on the games sheets) is only a noindex redirect into the app, not a listing
+{ const ri = linked.indexOf(path.join("travel-log", "index.html"));
+  if (ri >= 0) { const rh = fs.readFileSync(path.join(__dirname, "..", "travel-log", "index.html"), "utf8"); linked.splice(ri, 1);
+    ok(/http-equiv="refresh" content="0; url=\/travel-log\/app\/"/.test(rh) && /name="robots" content="noindex/.test(rh) && !/<script/.test(rh), "/travel-log/ is a noindex, script-free redirect to the app"); } }
 ok(linked.length === 0, "no site page links to the app yet: " + linked.join(", "));
 
 
@@ -3097,4 +3096,34 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/\("xmas", "Q57607"\)/.test(fs.readFileSync(path.join(__dirname, "enrich_sights.py"), "utf8")), "v120: Wikidata 'Christmas market' (Q57607) maps to the type");
   const tu = read("trips-ui.js"), ex = read("extras.js");
   ok(/x-\?mas/.test(tu) && /Seasonal: usually open late November to December/.test(ex), "v120: 'xmas' searches as 'christmas'; place pages say it is seasonal");
+}
+
+// ---- v121: audit fixes ----
+{
+  const P = require("../travel-log/app/passport-core.js"), Y = require("../travel-log/app/year.js"), T = require("../travel-log/app/trips-core.js");
+  const c = P.passportCounts([{ kind: "region", area: "CAN.01", name: "Alberta", date: "2025-01-01" }, { kind: "place", area: "CAN", name: "Canada", date: "2025-01-01" }, { kind: "place", area: "FRA", name: "France", date: "2024-01-01" }]);
+  ok(c.countries === 2 && c.regions === 1, "v121: a province stamp is counted as a province, not a country (cover matches the Countries tab)");
+  ok(/provinces and regions/.test(read("trips-ui.js")), "v121: the passport cover line names provinces separately");
+  const trips = [{ id: "a", date: "2025-06-01" }, { id: "b", date: "2027-03-01", planned: true }, { id: "c", date: "2026-12-20" }, { id: "d", date: "2024-02-02", deletedAt: 1 }];
+  ok(JSON.stringify(Y.years([], trips, [], "2026-11-04")) === '["2025"]', "v121: the year card skips planned, future and deleted trips");
+  ok(Y.tookPlace(trips[0], "2026-11-04") && !Y.tookPlace(trips[1], "2026-11-04") && !Y.tookPlace(trips[2], "2026-11-04"), "v121: tookPlace");
+  ok(Y.defaultYear(["2026", "2025"], 2026) === "2026" && Y.defaultYear(["2025"], 2026) === "2025", "v121: the year card opens on this year, else the newest year with trips");
+  const home = { name: "Orlando", kind: "place", country: "USA", lat: 28.5, lon: -81.4 };
+  const cruise = [home, { name: "Port Canaveral", kind: "sight", type: "cruise", country: "USA", lat: 28.4, lon: -80.6 }, { name: "Nassau", kind: "place", country: "BHS", lat: 25.05, lon: -77.35 }, { name: "Port Canaveral", kind: "sight", type: "cruise", country: "USA", lat: 28.4, lon: -80.6 }];
+  ok(T.transitStop(cruise[1]) && !T.transitStop(cruise[2]), "v121: airports, ports and stations are transit stops");
+  ok(T.mainDest(cruise.map(p => ({ place: p }))) === "Nassau" || T.mainDest(cruise) === "Nassau", "v121: a cruise trip is named after Nassau, not the port");
+  const sights = JSON.parse(fs.readFileSync(path.join(APP, "data", "sights", "index.json"), "utf8")), towns = JSON.parse(fs.readFileSync(path.join(APP, "data", "towns", "index.json"), "utf8"));
+  ok(Array.isArray(towns.keys) && towns.keys.indexOf("jf") < 0 && towns.keys.indexOf("lo") >= 0 && towns.keys.every(k => fs.existsSync(path.join(APP, "data", "towns", k + ".json"))), "v121: towns index lists its files, so 'JFK' asks for no missing file");
+  ok(Array.isArray(sights.keys) && sights.keys.every(k => fs.existsSync(path.join(APP, "data", "sights", k + ".json"))) && sights.keys.indexOf("type-drinks") < 0, "v121: sights index lists its files");
+  const dr = JSON.parse(fs.readFileSync(path.join(APP, "data", "sights", "type-drinks.json"), "utf8"));
+  ok(dr.key === "type-drinks" && dr.rows.length > 1000, "v121: breweries, wineries and distilleries index for 'brewery Asheville' searches");
+  const tu = read("trips-ui.js"), ex = read("extras.js"), nav = read("nav.js"), sa = read("stamp-art.js");
+  ok(/function catQuery/.test(tu) && /catQuery: catQuery/.test(tu) && /kidOn\(\) \? null : catQuery/.test(tu), "v121: drink + town searches, grown-ups only");
+  ok(/PARK_SPOTS/.test(tu) && /Old Faithful/.test(tu) && /Province · Canada/.test(tu), "v121: Old Faithful and Canadian provinces in Add a stop");
+  ok(/famHead/.test(tu), "v121: a famous sight beats a small town of the same name (Harvard)");
+  ok(/dupOf/.test(ex), "v121: the same place as a stamp and a sight shows once");
+  ok(/h\[2\] === "passport"/.test(nav) && /return "home";/.test(nav), "v121: Home lights up on passport pages");
+  ok(/ferry: \["Ferry port", "⛴️", "ferry"/.test(sa) && /^\s+ferry: function/m.test(sa), "v121: the ferry port has its own drawing");
+  ok(/id="ttitle"/.test(tu) && /class="field tname"/.test(tu), "v121: trip name box is shown, not hidden under a fold");
+  ok(/max-width:560px/.test(read("app.css")) && /\.gprintgrid/.test(read("app.css")), "v121: printable games fit a phone");
 }

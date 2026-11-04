@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v120";
+  var VERSION = "v121";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -329,7 +329,7 @@
         '</span><br><span class="small">Pick two or more people to see the trips you shared →</span></span></a>';
     }
     if (state.kids.length && window.FS_WISH) html += window.FS_WISH.card();
-    if (state.kids.length) html += '<a class="panel familycard" href="#/year"><span class="fam-ic" aria-hidden="true">🎉</span><span><h3>Our ' + new Date().getFullYear() + ' in stamps</h3><span class="small">Make a card of this year\'s trips and stamps to share →</span></span></a>';
+    if (state.kids.length) html += '<a class="panel familycard" href="#/year"><span class="fam-ic" aria-hidden="true">🎉</span><span><h3>Our ' + (window.FS_YEAR && window.FS_YEAR.homeYear ? window.FS_YEAR.homeYear() : new Date().getFullYear()) + ' in stamps</h3><span class="small">Make a card of the year\'s trips and stamps to share →</span></span></a>';
     if (window.MLTL_SYNC) html += window.MLTL_SYNC.homeCard();
     html += '<div class="panel book"><span class="cover" aria-hidden="true">My Lifetime Travel Log</span><div>' +
             '<h3>Like paper too?</h3><p class="small muted">The matching paperback, My Lifetime Travel Log, has the same maps to color, all 64 parks and 40 trip pages, for the shelf. ' +

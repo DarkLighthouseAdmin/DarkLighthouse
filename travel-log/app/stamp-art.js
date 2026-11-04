@@ -152,6 +152,8 @@
     arches: function () { var s = P("M2 38 V10 Q20 3 38 10 V38 Z"); [6, 15, 24].forEach(function (x) { s += P("M" + x + " 38 V31 Q" + (x + 3.6) + " 27 " + (x + 7.2) + " 31 V38 Z", PAPER) + P("M" + x + " 24 V19 Q" + (x + 3.6) + " 15.4 " + (x + 7.2) + " 19 V24 Z", PAPER); }); return s + S("M2 26.6 H38 M2 14 Q20 9 38 14", 1, PAPER); },
     temple: function () { var s = P("M3 13 L20 4 L37 13 Z") + P("M4 14 H36 V17 H4 Z M3 35 H37 V39 H3 Z"); [6, 12.6, 19.2, 25.8, 32.4].forEach(function (x) { s += P("M" + x + " 18 H" + (x + 3.2) + " V34 H" + x + " Z"); }); return s; },
     ship: function () { return P("M2 26 Q4 35 12 35 H28 Q36 35 38 26 Q30 29 20 29 Q10 29 2 26 Z") + P("M2 26 L0 21 L3 23 Z M38 26 L40 20 L37 23 Z") + S("M20 28 V3", 1.6) + P("M10 6 H30 L29 22 H11 Z") + S("M10 14 H30 M20 6 V22", 0.9, PAPER) + C(9, 28.6, 1, PAPER) + C(15, 29.6, 1, PAPER) + C(25, 29.6, 1, PAPER) + C(31, 28.6, 1, PAPER) + S("M0 38 Q5 36 10 38 T20 38 T30 38 T40 38", 1.3); },
+    // v121: a car ferry (flat hull, open car deck with a car, bridge on top, ramp down to the dock), so a ferry port no longer looks like a cruise port
+    ferry: function () { return P("M1 25 H33 L31 32 Q30 34 27 34 H5 Q2 34 1.4 31 Z") + P("M33 25 L40 31 L39 32.4 L32.4 27 Z") + P("M4 13 H27 V20 H4 Z") + P("M8 7 H22 V12 H8 Z") + P("M23 3 H26 V12 H23 Z") + S("M6 16.4 H25 M10 9.4 H20", 1.1, PAPER) + S("M3 20.6 V25 M28 20.6 V25", 1.3) + P("M9 24.4 Q9 21 12 21 H18 Q21 21 21.4 24.4 Z") + C(12, 24.6, 1.3, PAPER) + C(18.6, 24.6, 1.3, PAPER) + S("M0 38 Q5 36 10 38 T20 38 T30 38 T40 38", 1.3) + S("M33 37 H40", 1.6); },
     peaks: function () { return P("M-1 38 L12 14 L18 24 L26 8 L41 38 Z") + P("M12 14 L15.6 20.6 L13.4 19.6 L11.6 21.4 L9.6 18.6 Z M26 8 L31 17.6 L28.6 16.6 L26 19 L23.4 16.6 L21 18 Z", PAPER) + S("M4 33 L10 29 M24 32 L32 26", 0.9, PAPER); },
     edelweiss: function () { return S("M20 39 V24", 1.6) + E(15, 33, 5, 1.6, -30) + E(25, 31, 5, 1.6, 30) + petals(20, 16, 9, 8.6, 2.6, 6.4, 0) + petals(20, 16, 9, 8.6, 1, 4, 0, PAPER) + C(20, 16, 3.6) + C(18.6, 15, 0.8, PAPER) + C(21.6, 17, 0.8, PAPER); },
     geyser: function () { return P("M14 38 Q16 26 18 16 Q14 14 15 9 Q15 4 20 4 Q25 4 25 9 Q26 14 22 16 Q24 26 26 38 Z") + C(11, 10, 4) + C(29, 10, 4) + C(13.6, 4.6, 3) + C(26.4, 4.6, 3) + S("M18 13 V35", 1, PAPER) + P("M0 38 Q20 32 40 38 V40 H0 Z"); },
@@ -764,7 +766,7 @@
     waterpark: ["Water park", "🌊", "wave", "#1f4f9e", "fun"], playground: ["Playground", "🛝", "swing", "#b02a2a", "fun"],
     distillery: ["Distillery", "🥃", "still", "#8a4a17", "drinks"], brewery: ["Brewery", "🍺", "mug", "#6c3a1f", "drinks"], winery: ["Winery", "🍇", "grapes", "#83388a", "drinks"],
     pub: ["Pub", "🍺", "pint", "#6c3a1f", "drinks"], lighthouse: ["Lighthouse", "🚨", "lighthouse", "#b02a2a", "sights"],
-    ferry: ["Ferry port", "⛴️", "ship", "#1f4f9e", "getting"], station: ["Train station", "🚉", "train", "#3b4048", "getting"], drive: ["Scenic drive", "🛣️", "road", "#4a6a24", "getting"],
+    ferry: ["Ferry port", "⛴️", "ferry", "#1f4f9e", "getting"], station: ["Train station", "🚉", "train", "#3b4048", "getting"], drive: ["Scenic drive", "🛣️", "road", "#4a6a24", "getting"],
     stadium: ["Stadium", "🏟️", "stadium", "#2b7340", "fun"], film: ["Film location", "🎬", "clapper", "#23262c", "sights"], bridge: ["Bridge", "🌉", "bridge", "#2b4f5e", "sights"],
     pin: ["Pinned place", "📍", "pin", "#b02a2a", "sights"],
     // v94: places of worship (each its own stamp; they count like every sight) and more of the world's sights

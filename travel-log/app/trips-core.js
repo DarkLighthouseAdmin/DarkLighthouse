@@ -313,8 +313,12 @@
   }
   /** What the trip was "to": a trip abroad that stayed in one country or UK nation is "Scotland" / "France" (one stop abroad keeps its
       town, "Paris"); a trip across countries is the longest stay, else the first stop abroad. Trips at home: the last stop, as before. */
+  var TRANSIT = { airport: 1, cruise: 1, ferry: 1, station: 1 };
+  /** v121: an airport, cruise port, ferry port or train station is how you got there, not where you went. */
+  function transitStop(p) { return !!p && p.kind === "sight" && !!TRANSIT[p.type]; }
   function mainDest(route) {
-    var r = stops(route); if (!r.length) return "";
+    var all = stops(route); if (!all.length) return "";
+    var r = [all[0]].concat(all.slice(1).filter(function (p) { return !transitStop(p); })); if (r.length < 2) r = all;   // v121: name it after a real place
     var last = r[r.length - 1].name, home = r[0];
     if (r.length < 2 || !home.country) return last;
     var abroad = r.slice(1).filter(function (p) { return p.country && p.country !== home.country; });
@@ -640,7 +644,7 @@
 
   return { EARTH_MI: EARTH_MI, KM_PER_MI: KM_PER_MI, AROUND_WORLD: AROUND_WORLD, MAX_POINTS: MAX_POINTS, MAX_STAYS: MAX_STAYS, MAX_FAVS: MAX_FAVS,
            MODES: MODES, MODE: MODE, STAY_TYPES: STAY_TYPES, FAV_CATS: FAV_CATS, FAV: FAV, US_STATES: US_STATES,
-           gcMiles: gcMiles, legMiles: legMiles, airportCity: airportCity, mustFly: mustFly, sameStop: sameStop, stops: stops, relink: relink, moveStop: moveStop, insertStop: insertStop, mainDest: mainDest, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
+           gcMiles: gcMiles, legMiles: legMiles, transitStop: transitStop, airportCity: airportCity, mustFly: mustFly, sameStop: sameStop, stops: stops, relink: relink, moveStop: moveStop, insertStop: insertStop, mainDest: mainDest, fitSize: fitSize, TRIP_BUDGET: TRIP_BUDGET, hasLoc: hasLoc, fmtDist: fmtDist, cleanPoint: cleanPoint, cleanRoute: cleanRoute, cleanAirport: cleanAirport, cleanBack: cleanBack,
            airMinutes: airMinutes, fmtAir: fmtAir, crossesBorder: crossesBorder, CRUISE_MPH: CRUISE_MPH, GROUND_MIN_MI: GROUND_MIN_MI,
            cleanStays: cleanStays, cleanFavs: cleanFavs, cleanMoments: cleanMoments, cleanStory: cleanStory, cleanMemories: cleanMemories, MEM_PROMPTS: MEM_PROMPTS, cleanExtras: cleanExtras,
            routeFromLegacy: routeFromLegacy, syncLegacy: syncLegacy, nightsBetween: nightsBetween, summary: summary, areas: areas, isAdult: isAdult,

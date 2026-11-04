@@ -68,7 +68,12 @@
     return L.loading.index;
   }
   function xmasQ(s) { return String(s || "").replace(/\bx-?mas\b/gi, "christmas"); }   // v120: "xmas market" finds the Christmas markets
-  function layerKey(L, q) { return L.index ? TW.keyFor(xmasQ(q).split(",")[0], L.index) : ""; }
+  function layerKey(L, q) {
+    if (!L.index) return "";
+    var k = TW.keyFor(xmasQ(q).split(",")[0], L.index);
+    if (k && Array.isArray(L.index.keys)) { if (!L.have) { L.have = {}; L.index.keys.forEach(function (x) { L.have[x] = 1; }); } if (!L.have[k]) return ""; }   // v121: no file for it, so don't ask (no 404)
+    return k;
+  }
   function ensureLayer(L, q) {
     return layerIndex(L).then(function () {
       var k = layerKey(L, q); if (!k || L.files[k]) return false;
@@ -128,6 +133,25 @@
     return res;
   }
   function cityPoint(d, r) { return { name: r.name, kind: "city", lat: r.lat, lon: r.lon, country: r.country, region: regionOf(r.country, r.admin1), sub: subOf(d, r.country, r.admin1) }; }
+  // v121: famous spots inside a national park ("Old Faithful", "Half Dome") are stops in that park and earn its park stamp
+  var PARK_SPOTS = [
+    ["Old Faithful", "yellowstone", ["old faithful"]], ["Grand Prismatic Spring", "yellowstone", ["grand prismatic"]], ["Lower Falls of the Yellowstone", "yellowstone", ["lower falls", "grand canyon of the yellowstone"]],
+    ["Half Dome", "yosemite", ["half dome"]], ["El Capitan", "yosemite", ["el capitan"]], ["Yosemite Falls", "yosemite", ["yosemite falls"]], ["Glacier Point", "yosemite", ["glacier point"]], ["Tunnel View", "yosemite", ["tunnel view"]],
+    ["Angels Landing", "zion", ["angels landing", "angel's landing"]], ["The Narrows", "zion", ["the narrows", "zion narrows"]],
+    ["Delicate Arch", "arches", ["delicate arch"]], ["Going-to-the-Sun Road", "glacier", ["going to the sun", "going-to-the-sun"]],
+    ["Cades Cove", "great-smoky-mountains", ["cades cove"]], ["Clingmans Dome", "great-smoky-mountains", ["clingmans dome", "kuwohi"]],
+    ["Jenny Lake", "grand-teton", ["jenny lake"]], ["Cadillac Mountain", "acadia", ["cadillac mountain"]], ["Trail Ridge Road", "rocky-mountain", ["trail ridge"]],
+    ["Hurricane Ridge", "olympic", ["hurricane ridge"]], ["Kīlauea", "hawaii-volcanoes", ["kilauea", "kīlauea"]], ["Bright Angel Trail", "grand-canyon", ["bright angel"]], ["Bryce Amphitheater", "bryce-canyon", ["bryce amphitheater"]]];
+  function parkSpots(d, head) {
+    if (head.length < 4) return [];
+    var out = [];
+    PARK_SPOTS.forEach(function (x) {
+      if (!x[2].some(function (k) { return k.indexOf(head) === 0; })) return;
+      var p = M.ALL_PARKS.filter(function (q) { return q.id === x[1]; })[0]; if (!p) return;
+      var o = parkPoint(d, p); o.name = x[0]; o.sub = "In " + p.full + " · " + p.states; out.push(o);
+    });
+    return out;
+  }
   function parkPoint(d, p) {
     var ll = (d && d.parks[p.id]) || (p.lat != null ? [p.lat, p.lon] : null), st = p.states.split(/,\s*/);
     var o = { name: p.full, kind: "park", ref: p.id, country: "USA", sub: p.states };
@@ -158,7 +182,7 @@
     // v99: a whole UK nation, US state or country comes first when its name is typed ("Scotland", "Wales", "Florida", "Japan")
     var whole = !tail && head.length >= 3 ? wholePlaces(d, head) : [];
     M.ALL_PARKS.forEach(function (p) { var n = p.full.toLowerCase(); if (n.indexOf(head) === 0 || (head.length > 3 && n.indexOf(head) > 0)) out.push(parkPoint(d, p)); });
-    out = out.slice(0, 3);
+    out = parkSpots(d, head).concat(out).slice(0, 3);
     var al = ALIASES.filter(function (a) { return a.k.some(function (k) { return k.indexOf(head) === 0 && (head.length >= 3 || k === head); }); });
     al.forEach(function (a) { out.push(cityPoint(d, a)); });
     var nParks = out.length, cities = [];
@@ -193,11 +217,18 @@
         if (tail && (normQ(pt.sub).indexOf(tail) < 0 && (r.admin1 || "").toLowerCase() !== tail && r.country.toLowerCase() !== tail)) return;
         pt._exact = h.exact; pt._famous = (r.rank || 0) >= FAMOUS; pt._score = 2 + Math.min(r.rank || 0, 120) / 12; pt._i = 100 + ns++; cities.push(pt);
       });
-      cities.sort(function (a, b) { return (b._exact - a._exact) || ((b._famous ? 1 : 0) - (a._famous ? 1 : 0)) || (b._score - a._score) || (a._i - b._i); });
+      // v121: a famous sight named like the typed word ("Harvard" -> Harvard University) goes above a small town of that exact name
+      var fh = TW.fold(head), famHead = cities.some(function (c) { return c.kind === "sight" && c._famous && TW.fold(c.name).indexOf(fh) === 0; });
+      var lvl = function (c) {
+        if (c._exact) return c.kind === "sight" || !famHead || (c._pop || 0) >= 50000 ? 3 : 2;
+        return famHead && c.kind === "sight" && c._famous && TW.fold(c.name).indexOf(fh) === 0 ? 2.5 : 0;
+      };
+      cities.forEach(function (c) { c._lvl = lvl(c); });
+      cities.sort(function (a, b) { return (b._lvl - a._lvl) || ((b._famous ? 1 : 0) - (a._famous ? 1 : 0)) || (b._score - a._score) || (a._i - b._i); });
       var nsight = 0, scap = /^(christmas market|weihnachtsmarkt|christkindl|marche de noel|julmarknad|julemarked|kerstmarkt)/.test(head) ? 9 : 5;   // v120: a market search shows more markets
       cities = cities.filter(function (c) { return c.kind !== "sight" || ++nsight <= scap; });
     }
-    cities.forEach(function (c) { delete c._pop; delete c._exact; delete c._i; delete c._score; delete c._famous; });
+    cities.forEach(function (c) { delete c._pop; delete c._exact; delete c._i; delete c._score; delete c._famous; delete c._lvl; });
     if (near) cities = cities.filter(function (p) { return p.country === near; }).concat(cities.filter(function (p) { return p.country !== near; }));
     // v100: airports by their code ("MCO", "JFK") or by name with "airport" in it, stamped as an airport sight
     var air = airportPoints(d, head), list = out.concat(cities).slice(0, Math.max(9, nParks + 6));
@@ -212,6 +243,13 @@
     }
     ["ENG", "SCT", "WLS", "NIR"].forEach(function (c) { var n = d.admin["GBR." + c]; if (n) add(n, "GBR", c, "UK nation"); });
     Object.keys(d.admin).forEach(function (k) { var m = /^USA\.([A-Z]{2})$/.exec(k); if (m) add(d.admin[k], "USA", m[1], "US state"); });
+    // v121: provinces and states that earn their own stamp (Alberta, Ontario, Bavaria, Queensland, Jalisco) as whole-place stops too
+    var RSUB = { CAN: "Province · Canada", AUS: "State · Australia", MEX: "State · Mexico", DEU: "State · Germany" };
+    Object.keys(d.admin).forEach(function (k) {
+      var m = /^(CAN|AUS|MEX|DEU)\.(\d{2})$/.exec(k); if (!m) return;
+      var nm = P && P.regionName ? P.regionName(k) : d.admin[k]; if (!nm || nm === k) nm = d.admin[k];
+      add(nm, m[1], m[2], m[1] === "CAN" && /Territor|Yukon/.test(nm) ? "Territory · Canada" : RSUB[m[1]]);
+    });
     Object.keys(d.countries).forEach(function (c) { add(d.countries[c], c, "", "Country"); });
     hits.sort(function (a, b) { return (b._exact - a._exact) || (a._o - b._o); });
     return hits.slice(0, 3).map(function (h) {
@@ -238,7 +276,50 @@
     });
     return out;
   }
+  // v121: "brewery Asheville", "Napa winery", "wineries in Sonoma": a drink-stop word plus a town lists those stops near that town
+  // (from data/sights/type-drinks.json, made by scripts/build_type_index.py), after the town itself. Grown-ups only.
+  var CAT_WORDS = [[/^(breweries|brewery|brewpubs?|craft beer|beer|brewing)$/, "brewery"], [/^(wineries|winery|vineyards?|wine tasting|wine country|wine)$/, "winery"], [/^(distillery|distilleries|whisky|whiskey|bourbon|bourbon trail)$/, "distillery"]];
+  function catQuery(q) {
+    var w = normQ(q || "").replace(/,/g, " ").split(/\s+/).filter(Boolean); if (w.length < 2) return null;
+    function kind(words) { var t = words.join(" "); for (var i = 0; i < CAT_WORDS.length; i++) if (CAT_WORDS[i][0].test(t)) return CAT_WORDS[i][1]; return ""; }
+    function town(words) { while (words.length && /^(in|near|around|at|of|the)$/.test(words[0])) words = words.slice(1); while (words.length && /^(in|near|around|area)$/.test(words[words.length - 1])) words = words.slice(0, -1); return words.join(" "); }
+    for (var n = 2; n >= 1; n--) {
+      if (w.length > n) { var a = kind(w.slice(0, n)), ta = town(w.slice(n)); if (a && ta.length >= 2) return { type: a, town: ta }; }
+      if (w.length > n) { var b = kind(w.slice(-n)), tb = town(w.slice(0, -n)); if (b && tb.length >= 2) return { type: b, town: tb }; }
+    }
+    return null;
+  }
+  var DRINKS = null;
+  function loadDrinks() {
+    if (!DRINKS) DRINKS = fetch(SIGHTS.dir + "type-drinks.json").then(function (r) { if (!r.ok) throw new Error("offline"); return r.json(); })
+      .then(function (j) { var f = TW.parse(j); Object.keys(f.admin).forEach(function (a) { TOWNS.admin[a] = TOWNS.admin[a] || f.admin[a]; }); Object.keys(f.countries).forEach(function (c) { TOWNS.countries[c] = TOWNS.countries[c] || f.countries[c]; }); return f; })
+      .catch(function (e) { DRINKS = null; throw e; });
+    return DRINKS;
+  }
+  var CAT_MILES = 25;
+  /** Drink stops of one type within CAT_MILES of a point, nearest first (a famous one a little further can come first). */
+  function typeNear(f, type, pt, d, max) {
+    if (!f || !pt || typeof pt.lat !== "number") return [];
+    return f.rows.filter(function (r) { return r.type === type && Math.abs(r.lat - pt.lat) < 0.5 && Math.abs(r.lon - pt.lon) < 0.7; })
+      .map(function (r) { return { r: r, m: T.gcMiles(pt, r) }; }).filter(function (x) { return x.m <= CAT_MILES; })
+      .sort(function (a, b) { return (a.m - (a.r.rank || 0) / 10) - (b.m - (b.r.rank || 0) / 10); })
+      .slice(0, max || 8).map(function (x) { return sightPoint(d, x.r); });
+  }
+  function kidOn() { try { return !!(window.FS_KIDLOCK && window.FS_KIDLOCK.on()); } catch (e) { return false; } }
   function findPlaces(q) {
+    var c = kidOn() ? null : catQuery(q);
+    if (!c) return findPlacesPlain(q);
+    return Promise.all([findPlacesPlain(c.town), loadDrinks().catch(function () { return null; }), loadPlaces()]).then(function (r) {
+      var towns = r[0] || [], center = towns.filter(function (p) { return p.lat != null && p.kind !== "sight"; })[0] || null;
+      var near = typeNear(r[1], c.type, center, r[2], 8);
+      var label = { brewery: "breweries", winery: "wineries", distillery: "distilleries" }[c.type];
+      if (center) near.forEach(function (p) { p.sub = p.sub + " · near " + center.name; });
+      var out = (center ? [center] : []).concat(near, towns.filter(function (p) { return p !== center; }));
+      out = out.slice(0, 14); out.catQuery = { type: c.type, label: label, town: center ? center.name : c.town, found: near.length };
+      return out;
+    });
+  }
+  function findPlacesPlain(q) {
     return Promise.all([loadPlaces(), loadAirports().catch(function () { return null; }), ensureTowns(q)]).then(function (r) {
       var d = r[0], aps = r[1], nq = normQ((q || "").trim()); if (nq.length < 2) return [];
       var out = areaPoints(d, nq.split(",")[0].trim()).concat(searchPlaces(q, d).filter(function (p) { return p.kind !== "place"; }));   // v99: whole places come from areaPoints here
@@ -510,6 +591,8 @@
       '<div class="results" id="presults" role="listbox"></div></div>' +
       '<label class="check small"><input type="checkbox" id="tround"' + (d.roundTrip ? " checked" : "") + '> Round trip (came back home at the end)</label>' +
       '<div class="btotal" id="btotal"></div><div id="bfly" class="bfly"></div></div>' +
+      // v121: the trip name sits in plain sight (it was folded away, so most trips got named after a stop, even an airport)
+      '<div class="field tname"><label for="ttitle">Trip name <span class="muted small">(optional: we\'ll use the gray name if you leave it blank)</span></label><input id="ttitle" type="text" maxlength="80" value="' + esc(d.title || "") + '" placeholder="e.g. Scotland 2026, Smokies RV trip"></div>' +
       '<div class="bsec"><h3>When?</h3>' + (planning ? '<p class="small muted planhint">Dates not set yet? That\'s fine. Pick them when you know, and Home counts down to the trip.</p>' : d.plan ? '<p class="small muted planhint">Pick your dates and Home counts down to the trip. While you\'re there, tap Stamp a stop.</p>' : "") + '<div class="fields"><div class="field"><label for="tdate">Start</label><input id="tdate" type="date" value="' + esc(d.date || "") + '"></div>' +
       '<div class="field"><label for="tend">End <span class="muted small">(optional)</span></label><input id="tend" type="date" value="' + esc(d.endDate || "") + '"></div>' +
       '<div class="field"><label for="tnights">Or how many nights?</label><input id="tnights" type="number" inputmode="numeric" min="0" max="999" value="' + (typeof d.nights === "number" ? d.nights : "") + '" placeholder="e.g. 7"></div></div>' +
@@ -524,8 +607,7 @@
       '<details class="bsec more"' + (d.photoId ? " open" : "") + '><summary>📷 Photo</summary><div class="field"><input id="tphoto" type="file" accept="image/*" aria-label="Photo"><p class="small muted">' +
       esc((window.MLTL_SYNC && window.MLTL_SYNC.photoNote()) || "We shrink it and keep it only on this device. Location data in the photo is removed.") + '</p>' +
       '<img id="tprev" class="photo-prev" alt="" hidden>' + (d.photoId ? '<button type="button" class="btn btn-ghost" id="trmphoto" style="margin-top:.5rem">Remove photo</button>' : "") + '</div></details>' +
-      '<details class="bsec more"' + (d.title || d.who ? " open" : "") + '><summary>✏️ Name, who else, map</summary>' +
-      '<div class="field"><label for="ttitle">Trip name (optional)</label><input id="ttitle" type="text" maxlength="80" value="' + esc(d.title || "") + '" placeholder="e.g. Scotland 2026, Smokies RV trip"></div>' +
+      '<details class="bsec more"' + (d.who ? " open" : "") + '><summary>✏️ Who else, map</summary>' +
       '<div class="field"><label for="twho">Anyone else along?</label><input id="twho" type="text" maxlength="120" value="' + esc(d.who || "") + '" placeholder="e.g. cousins, the Smiths, the dog"></div>' +
       '<div class="field"><label for="tmark">Color in one more place on the map? <span class="muted small">Stops above color in on their own</span></label><select id="tmark">' + A_.markOptions(d.mark) + '</select></div></details>' +
       (old && M.isDraft(old) ? '<div class="panel draftzone"><h3>From your photos</h3><p class="small muted">We made this trip from your photo dates and places. Fix anything that\'s off, then mark it reviewed.</p>' +
@@ -551,8 +633,13 @@
     var replaceAt = null, undoStop = null;   // v95: "Change place" / "Change" start swaps a stop; undoStop = the last removed stop
     var insertAt = null;   // v80: "Add a stop here" puts the next pick between two stops
     function setRoute(res) { Array.prototype.splice.apply(d.route, [0, d.route.length].concat(res.route)); res.changed.forEach(function (i) { var p = d.route[i]; if (i > 0 && p.mode === "plane") fillAirports(d.route[i - 1], p); }); if (!planes()) d.back = null; flyPick.ti = 0; }
+    function namePlaceholder() {   // v121: the gray name shows what the trip will be called if the name is left blank
+      var ti = document.getElementById("ttitle"); if (!ti) return;
+      var guess = d.route && d.route.length ? T.mainDest(d.route) : "";
+      ti.placeholder = guess || "e.g. Scotland 2026, Smokies RV trip";
+    }
     function renderRoute() {
-      var r = d.route;
+      var r = d.route; setTimeout(namePlaceholder, 0);
       if (insertAt != null && (insertAt < 1 || insertAt >= r.length)) insertAt = null;
       routeEl.innerHTML = r.map(function (p, i) {
         var leg = "";
@@ -1518,7 +1605,7 @@
   function plural(n, one, many) { return n + " " + (n === 1 ? one : many || one + "s"); }
   /** v94: "12 of 50 states + DC · 9 countries · 3 parks · 14 sights": unique places. */
   function coverLine(c) {
-    return [c.states + " of 50 states" + (c.dc ? " + DC" : ""), plural(c.countries, "country", "countries") + (c.nations ? " (+ " + plural(c.nations, "UK nation") + ")" : ""), plural(c.parks, "park"), c.sights ? plural(c.sights, "sight") : ""].filter(Boolean).join(" · ");
+    return [c.states + " of 50 states" + (c.dc ? " + DC" : ""), plural(c.countries, "country", "countries") + (c.nations ? " (+ " + plural(c.nations, "UK nation") + ")" : ""), c.regions ? plural(c.regions, "province or region", "provinces and regions") : "", plural(c.parks, "park"), c.sights ? plural(c.sights, "sight") : ""].filter(Boolean).join(" · ");
   }
   /** v94: "202 state visits · 31 country visits": every visit, repeats included. */
   function visitLine(c) {
@@ -2104,6 +2191,6 @@
 
   window.FS_UI = { startTripTo: startTripTo, parkPoint: parkPoint, saveTrip: saveTrip, nearBlocks: nearBlocks, sightPoint: sightPoint, mailInbox: mailInbox, mailAddress: mailAddress, findPlaces: findPlaces, builder: builder, planWhen: planWhen, whoWentSheet: whoWentSheet, addTripHref: addTripHref, detail: detail, tripCard: tripCard, passport: passport, passportFamily: passportFamily, askDate: askDate, celebrate: celebrate,
                    lifetimeHTML: lifetimeHTML, bindLifetime: bindLifetime, printExtra: printExtra, loadPlaces: loadPlaces, loadAirports: loadAirports, ensureTowns: ensureTowns, routeSVG: routeSVG,
-                   searchPlaces: searchPlaces, searchAirports: searchAirports, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs,
+                   searchPlaces: searchPlaces, searchAirports: searchAirports, catQuery: catQuery, stampsOf: stampsOf, unitToggle: unitToggle, stopSpeech: stopSpeech, signs: signs,
                    sheet: sheet, closeSheet: closeSheet, dateFields: dateFields, readDate: readDate, shortArea: shortArea, stampName: stampName, CTX: CTX };
 })();

@@ -182,9 +182,21 @@
       if (/^(us|usa|u s a|united states( of america)?|america)$/.test(nq) || (nq.length >= 4 && "united states of america".indexOf(nq) === 0)) regs.unshift({ kind: "area", area: "place:USA", name: "United States", sub: "Country · stamped state by state" });
       var spots = spotMatches(q, 6).map(function (it) { return { kind: "spot", spot: it, name: it.name, sub: spotSub(it) }; });
       var byName = function (x) { var n = norm(x.name); return nq.split(" ").every(function (w) { return n.indexOf(w) >= 0; }); };
+      // v121: the same place found as a Parks-tab stamp and as a sight (JFK hub + JFK airport, Guinness Storehouse pub + museum) shows once, as the stamp
+      var near1 = function (a, b) { return typeof a.lat === "number" && typeof b.lat === "number" && Math.abs(a.lat - b.lat) < 0.02 && Math.abs(a.lon - b.lon) < 0.03; };
+      var dupOf = function (r) {
+        if (!r || r.kind !== "sight") return false;
+        return spots.some(function (x) { var it = x.spot || {}; if (!near1(it, r)) return false;
+          if (it.extra === "airport") return r.type === "airport" && new RegExp("\\b" + String(it.id || "").slice(-3).toUpperCase() + "\\b").test((r.name || "") + " " + (r.sub || ""));
+          return norm(it.name) === norm(r.name); });
+      };
+      var cq0 = list && list.catQuery;
+      list = (list || []).filter(function (r) { return !dupOf(r) && !(r.kind === "sight" && /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(r.name || "")); });   // v121: also hide sights whose only name is a web address
+      list.catQuery = cq0;
       var all = regs.concat(spots.filter(byName), list || [], spots.filter(function (x) { return !byName(x); }));   // a Parks-tab stamp found only by its town goes last if (!all.length) { if (box.previousElementSibling && box.previousElementSibling.classList.contains("nolog")) box.innerHTML = '<p class="muted small">No places called that either. Try fewer letters.</p>'; return; }
       var ic = function (r) { if (r.kind === "spot") return r.spot.extra === "airport" ? "✈️" : SPOT_IC[r.spot.cat] || "📍"; return r.kind === "area" ? (/^state:/.test(r.area) ? "🇺🇸" : "🌍") : r.kind === "region" ? "🗺️" : r.kind === "park" ? "🏞️" : r.kind === "sight" ? (r.type === "airport" ? "✈️" : "📍") : /·/.test(r.sub || "") && /^[A-Z]{3} · /.test(r.sub || "") ? "✈️" : "🏘️"; };
-      box.innerHTML = '<h2>Places</h2><ul class="sresl splaces">' + all.slice(0, 18).map(function (r) {
+      var cq = list && list.catQuery, cqNote = cq && !cq.found ? '<p class="muted small catnote">No ' + esc(cq.label) + ' near ' + esc(cq.town) + ' in our list yet. Been to one? Add it to a trip with “Use as our own place”.</p>' : "";
+      box.innerHTML = '<h2>Places</h2>' + cqNote + '<ul class="sresl splaces">' + all.slice(0, 18).map(function (r) {
         return '<li><a href="' + esc(r.kind === "spot" ? spotHref(r.spot) : placeHref(r)) + '" data-pkind="' + esc(r.kind) + '"><span aria-hidden="true">' + ic(r) + '</span> <b>' + esc(r.name) + '</b>' + (r.sub ? ' <span class="muted small">' + esc(r.sub) + '</span>' : "") + '</a></li>'; }).join("") + '</ul>';
     }).catch(function () {});
   }

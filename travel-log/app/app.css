@@ -1232,3 +1232,11 @@ body.kidlock main a.btn[href*="/edit"], body.kidlock main [data-fs-stamp], body.
 .placehead h1 { margin: 0 0 .2rem; }
 .placeacts h3 { margin: .4rem 0; }
 .splaces a, .plsightlist a { text-decoration: none; }
+/* v121: printable game sheets fit a phone screen (the printed page keeps 4 columns) */
+@media screen and (max-width:560px) {
+  .gsheet { padding:14px; }
+  .gprintgrid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .gprintgrid.g-alpha { grid-template-columns:repeat(5, minmax(0, 1fr)); }
+  .gprintgrid.g-hunt { grid-template-columns:minmax(0, 1fr); }
+  .gprintgrid .gbox, .gsheet .gname, .gsheet .gfoot { min-width:0; overflow-wrap:anywhere; }
+}

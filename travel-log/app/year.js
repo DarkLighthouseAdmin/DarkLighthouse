@@ -10,12 +10,15 @@
   var CTX = { parkStates: M && M.PARK_STATES };
 
   function jr() { if (typeof window !== "undefined") return window.FS_JOURNAL || null; try { return require("./journal.js"); } catch (e) { return null; } }
-  /** Every year that has at least one dated stamp or trip, newest first. */
-  function years(people, trips, fam) {
-    var ys = {};
-    (trips || []).forEach(function (t) { if (/^\d{4}/.test(t.date || "")) ys[t.date.slice(0, 4)] = 1; });
-    (fam || P.familyStamps(people, trips, CTX)).forEach(function (s) { if (/^\d{4}/.test(s.date || "")) ys[s.date.slice(0, 4)] = 1; });
-    people.forEach(function (p) { Object.keys(p.parks || {}).forEach(function (id) { var at = p.parks[id] && p.parks[id].at; if (/^\d{4}/.test(at || "")) ys[at.slice(0, 4)] = 1; }); });
+  /** v121: a trip counts for the year card only once it has happened: not deleted, not planned, not dated in the future. */
+  function today() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function tookPlace(t, now) { return !!t && !t.deletedAt && t.planned !== true && /^\d{4}/.test(t.date || "") && String(t.date).slice(0, 10) <= (now || today()); }
+  /** Every year that has at least one dated stamp or trip that already happened, newest first. */
+  function years(people, trips, fam, now) {
+    var ys = {}, cut = now || today();
+    (trips || []).forEach(function (t) { if (tookPlace(t, cut)) ys[t.date.slice(0, 4)] = 1; });
+    (fam || P.familyStamps(people, trips, CTX)).forEach(function (s) { if (/^\d{4}/.test(s.date || "") && String(s.date).slice(0, 10) <= cut) ys[s.date.slice(0, 4)] = 1; });
+    people.forEach(function (p) { Object.keys(p.parks || {}).forEach(function (id) { var at = p.parks[id] && p.parks[id].at; if (/^\d{4}/.test(at || "") && String(at).slice(0, 10) <= cut) ys[at.slice(0, 4)] = 1; }); });
     return Object.keys(ys).sort().reverse();
   }
 
@@ -38,7 +41,7 @@
     stamps.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     var n = { state: 0, place: 0, park: 0 }, states = {};
     stamps.forEach(function (s) { n[s.kind] = (n[s.kind] || 0) + 1; if (s.kind === "state") states[s.area] = 1; });
-    var tr = (trips || []).filter(function (t) { return !t.deletedAt && String(t.date || "").slice(0, 4) === year && (t.kidIds || []).some(function (id) { return ids.indexOf(id) >= 0; }); });
+    var tr = (trips || []).filter(function (t) { return tookPlace(t) && String(t.date || "").slice(0, 4) === year && (t.kidIds || []).some(function (id) { return ids.indexOf(id) >= 0; }); });
     // v52: miles, nights, flights, the farthest trip, and how many places were new to everyone (no earlier dated stamp)
     var T = M && M.T, miles = 0, nights = 0, flights = 0, far = null;
     tr.forEach(function (t) {
@@ -56,7 +59,10 @@
              journal: jr() ? jr().yearBits(people, trips, year) : { pages: 0, quotes: [], bests: [] } };   // v63: the kids' journal pages   // the nine most recent
   }
 
-  if (typeof document === "undefined") return { years: years, summary: summary };
+  /** v121: the year the card opens on: this year if it has stamps, otherwise the latest year that does (never a planned year). */
+  function defaultYear(ys, now) { now = String(now || new Date().getFullYear()); return ys.indexOf(now) >= 0 ? now : ys[0] || now; }
+
+  if (typeof document === "undefined") return { years: years, summary: summary, defaultYear: defaultYear, tookPlace: tookPlace };
 
   // ---------- screen ----------
   var esc = M.esc, main = document.getElementById("main"), lastBlob = null, lastURL = null, cardKey = "", drawTok = 0;
@@ -157,7 +163,7 @@
     var mm = app.memo || function (k, f) { return f(); }, who_ = one ? one.id : "";
     var fam = mm("yfam|" + who_, function () { return P.familyStamps(people, st.trips, CTX); });
     var ys = mm("yys|" + who_, function () { return years(people, st.trips, fam); }), now = String(new Date().getFullYear());
-    var year = view.year && ys.indexOf(view.year) >= 0 ? view.year : (ys.indexOf(now) >= 0 ? now : ys[0] || now);
+    var year = view.year && ys.indexOf(view.year) >= 0 ? view.year : defaultYear(ys, now);
     var back = one ? "#/p/" + esc(one.id) + "/stats" : "#/";
     var who = '<div class="field"><label for="yr-who">Whose year</label><select id="yr-who"><option value="">The whole family</option>' +
       st.kids.map(function (k) { return '<option value="' + esc(k.id) + '"' + (one && one.id === k.id ? " selected" : "") + '>' + esc(window.MLTL.who(k)) + '</option>'; }).join("") + '</select></div>';
@@ -206,5 +212,11 @@
     if (w) w.onchange = function () { location.hash = w.value ? "#/year/" + w.value : "#/year"; };
     if (y) y.onchange = function () { view.year = y.value; view(one ? one.id : ""); };
   }
-  return { years: years, summary: summary, view: view, draw: draw };
+  /** v121: the year the Home card names ("Our 2025 in stamps"), the same one the card opens on. */
+  function homeYear() {
+    var app = A(), st = app.state, mm = app.memo || function (k, f) { return f(); };
+    var fam = mm("yfam|", function () { return P.familyStamps(st.kids.slice(), st.trips, CTX); });
+    return defaultYear(mm("yys|", function () { return years(st.kids.slice(), st.trips, fam); }));
+  }
+  return { years: years, summary: summary, view: view, draw: draw, defaultYear: defaultYear, tookPlace: tookPlace, homeYear: homeYear };
 });

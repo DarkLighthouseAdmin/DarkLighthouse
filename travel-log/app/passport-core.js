@@ -206,12 +206,13 @@
   /** v94: what a passport adds up to: unique places and every visit. US states are the 50 (DC is noted on its own); other
       countries' regions never count as states. */
   function passportCounts(list) {
-    var g = groupStamps(list), c = { states: 0, dc: false, stateVisits: 0, countries: 0, countryVisits: 0, parks: 0, parkVisits: 0, sights: 0, sightVisits: 0, nations: 0, places: g.length, visits: 0 };
+    var g = groupStamps(list), c = { states: 0, dc: false, stateVisits: 0, countries: 0, countryVisits: 0, parks: 0, parkVisits: 0, sights: 0, sightVisits: 0, nations: 0, regions: 0, regionVisits: 0, places: g.length, visits: 0 };
     g.forEach(function (x) {
       c.visits += x.count;
       if (x.kind === "state") { if (STATES50.indexOf(x.area) >= 0) c.states++; else if (x.area === "DC") c.dc = true; c.stateVisits += x.count; }
       else if (x.kind === "park") { c.parks++; c.parkVisits += x.count; }
       else if (x.kind === "sight") { c.sights++; c.sightVisits += x.count; }
+      else if (x.kind === "region") { c.regions++; c.regionVisits += x.count; }   // v121: a province (Bavaria, Ontario) is not a country
       else if (NATIONS.indexOf(x.area) >= 0) { c.nations++; c.countryVisits += x.count; }
       else { c.countries++; c.countryVisits += x.count; }
     });
