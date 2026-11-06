@@ -396,6 +396,12 @@
     .btn-primary:hover { background:var(--sage); }
     .details { font-weight:600; font-size:.92rem; color:var(--sage-deep); text-decoration:none; } .details:hover { text-decoration:underline; }
     .card-soon { opacity:.75; border-style:dashed; }
+
+    .seasonal-picks { margin: 0 0 0.5rem; }
+    .seasonal-picks .sub { margin-bottom: 1.1rem; }
+    .seasonal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.2rem; }
+    .seasonal-grid .card { border: 2px solid var(--beacon); }
+    .seasonal-note { font-size: 0.9rem; color: var(--muted); margin: 0.6rem 0 0; }
     .soon { font-size:.85rem; font-weight:600; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:.25rem .7rem; }
     .thanks { display:none; background:#e6f4ec; border:1px solid var(--ok); color:#174d33; border-radius:12px; padding:1rem 1.2rem; margin-top:1.5rem; }
     .thanks.show { display:block; }
@@ -428,6 +434,52 @@
   </header>
 
   <main class="wrap">
+    <section class="seasonal-picks" aria-labelledby="seasonal-heading">
+      <h2 id="seasonal-heading">Holiday &amp; New Year picks</h2>
+      <p class="sub">Three that match right now: gift budgets before Black Friday, paycheck budgets for January, and a binder that works as a gift.</p>
+      <div class="grid seasonal-grid">
+        <article class="card" id="seasonal-holiday" data-group="sheet">
+          <a class="thumb" href="/templates/holiday-gift-budget-planner/" aria-label="Holiday Gift &amp; Budget Planner">
+            <img src="/assets/money/holiday-gift-budget-planner/1.jpg" alt="Holiday Gift &amp; Budget Planner preview" loading="lazy" width="1000" height="750" /><span class="badge">Before Black Friday</span>
+          </a>
+          <div class="card-body">
+            <h3><a href="/templates/holiday-gift-budget-planner/" style="color:inherit;text-decoration:none">Holiday Gift &amp; Budget Planner</a></h3>
+            <p>One season budget, gift list, Black Friday deal tracker and ship-by countdowns. Free calculator and printable if you want to try first.</p>
+            <a class="details" href="/tools/holiday-budget-calculator/">Free holiday budget calculator →</a>
+            <a class="details" href="/templates/free-holiday-gift-budget-printable/">Free one-page printable →</a>
+            <div class="buy-row"><span class="price">$9</span>
+              <a class="btn btn-primary" href="https://buy.polar.sh/polar_cl_gT1ljVekoFSNAKv9wiqxkZjPiV2bjSfMJ05Ro2HDgo0" rel="nofollow">Buy now</a></div>
+          </div>
+        </article>
+        <article class="card" id="seasonal-paycheck" data-group="sheet">
+          <a class="thumb" href="/templates/budget-by-paycheck/" aria-label="Budget by Paycheck">
+            <img src="/assets/money/budget-by-paycheck/1.jpg" alt="Budget by Paycheck preview" loading="lazy" width="1000" height="750" /><span class="badge">New Year ready</span>
+          </a>
+          <div class="card-body">
+            <h3><a href="/templates/budget-by-paycheck/" style="color:inherit;text-decoration:none">Budget by Paycheck</a></h3>
+            <p>Plan which bill comes out of which paycheck. Built for weekly, biweekly or semi-monthly pay. Free calculator to try the idea.</p>
+            <a class="details" href="/tools/budget-by-paycheck-calculator/">Free paycheck calculator →</a>
+            <a class="details" href="/templates/budget-by-paycheck/">What's inside &amp; FAQ →</a>
+            <div class="buy-row"><span class="price">$9</span>
+              <a class="btn btn-primary" href="https://buy.polar.sh/polar_cl_IDt8omcfjZP2XL6ZdEfU4Et9sxk9gVGPctab70qC8Ia" rel="nofollow">Buy now</a></div>
+          </div>
+        </article>
+        <article class="card" id="seasonal-binder" data-group="printable">
+          <a class="thumb" href="/templates/just-in-case-binder/" aria-label="The Just-In-Case Binder">
+            <img src="/assets/money/just-in-case-binder/1.jpg" alt="The Just-In-Case Binder preview" loading="lazy" width="1000" height="750" /><span class="badge">Launch price</span>
+          </a>
+          <div class="card-body">
+            <h3><a href="/templates/just-in-case-binder/" style="color:inherit;text-decoration:none">The Just-In-Case Binder</a></h3>
+            <p>62 pages so your family knows where everything is. Works as a gift and as a New Year "get organized" buy. Fillable PDF or print.</p>
+            <a class="details" href="/templates/just-in-case-binder/">What's inside &amp; FAQ →</a>
+            <div class="buy-row"><span class="price">$12 <s>reg $17</s></span>
+              <a class="btn btn-primary" href="https://buy.polar.sh/polar_cl_lrxKc8rXXaHLuzku13SU2BgNFLAjRtz0XsGsg2Izq5h" rel="nofollow">Buy now</a></div>
+          </div>
+        </article>
+      </div>
+      <p class="seasonal-note">Same products as below; this strip just puts the seasonal ones first. Free tools stay free.</p>
+    </section>
+
     <h2 id="bundles">Bundles</h2>
     <p class="sub">The best value if you want more than one.</p>
     <div class="grid">
