@@ -11,14 +11,14 @@ ROOT = Path(__file__).resolve().parent.parent
 SITE = "https://darklighthousesolutions.com"
 URLS = {k: (v if isinstance(v, str) else v["checkout_url"]) for k, v in json.load(open("/workspace/polar-push/checkout-urls.json")).items()}
 PRODUCTS = {
-  "debt-payoff-dashboard": ("Debt Payoff Dashboard", 14, "Type in your cards. Get your payoff order, monthly plan, debt-free date and interest saved, automatically."),
-  "sheets-bundle-5": ("Money Spreadsheet Bundle (all 5)", 29, "Debt Payoff Dashboard, Budget by Paycheck, Sinking Funds, Seller Profit Tracker and Expense & Invoice Log. $54 bought separately."),
-  "wedding-planner-budget": ("Wedding Planner & Budget", 14, "Budget vs actual vs paid, payments due, guest list and RSVPs, seating, vendors and a 12-month checklist in one Google Sheet."),
-  "sinking-funds": ("Sinking Funds Tracker", 7, "Set goals and due dates. It works out the monthly amount and tracks progress for up to 15 funds."),
-  "budget-by-paycheck": ("Budget by Paycheck", 9, "Add your paychecks and bills. It assigns each bill to the right paycheck and shows what's left from each one."),
-  "meal-planner-grocery-list": ("Meal Planner & Grocery List", 11, "Plan the week's meals and the grocery list writes itself: repeats merged, pantry staples skipped, sorted by aisle."),
+  "debt-payoff-dashboard": ("Debt Payoff Dashboard", 8, "Type in your cards. Get your payoff order, monthly plan, debt-free date and interest saved, automatically."),
+  "sheets-bundle-5": ("Money Spreadsheet Bundle (all 5)", 17, "Debt Payoff Dashboard, Budget by Paycheck, Sinking Funds, Seller Profit Tracker and Expense & Invoice Log. $28 bought separately."),
+  "wedding-planner-budget": ("Wedding Planner & Budget", 9, "Budget vs actual vs paid, payments due, guest list and RSVPs, seating, vendors and a 12-month checklist in one Google Sheet."),
+  "sinking-funds": ("Sinking Funds Tracker", 5, "Set goals and due dates. It works out the monthly amount and tracks progress for up to 15 funds."),
+  "budget-by-paycheck": ("Budget by Paycheck", 5, "Add your paychecks and bills. It assigns each bill to the right paycheck and shows what's left from each one."),
+  "meal-planner-grocery-list": ("Meal Planner & Grocery List", 5, "Plan the week's meals and the grocery list writes itself: repeats merged, pantry staples skipped, sorted by aisle."),
   "monthly-budget-snapshot": ("Monthly Budget Snapshot", 0, "A free one-page monthly budget: income, bills, spending and savings, with over-budget and unpaid bills flagged."),
-  "moving-planner": ("Moving Planner & Checklist", 12, "Timeline, budget, box inventory, address changes and utilities for a move, in one spreadsheet."),
+  "moving-planner": ("Moving Planner & Checklist", 5, "Timeline, budget, box inventory, address changes and utilities for a move, in one spreadsheet."),
 }
 e = html.escape
 
