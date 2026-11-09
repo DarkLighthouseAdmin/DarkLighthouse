@@ -220,7 +220,8 @@ MONEY_ORDER = ["life-admin-bundle", "sheets-bundle-5", "planner-plus-sheets-bund
                "wedding-planner-budget", "just-in-case-binder", "debt-free-2027-planner", "seller-profit-tracker", "business-expense-invoice-log"]
 CALCS = [("/tools/budget-by-paycheck-calculator/", "Budget by paycheck calculator"), ("/tools/debt-payoff-calculator/", "Debt payoff calculator"),
          ("/tools/sinking-funds-calculator/", "Sinking funds calculator"), ("/tools/grocery-budget-calculator/", "Grocery budget calculator"),
-         ("/tools/moving-cost-calculator/", "Moving cost calculator"), ("/tools/wedding-budget-calculator/", "Wedding budget calculator")]
+         ("/tools/moving-cost-calculator/", "Moving cost calculator"), ("/tools/wedding-budget-calculator/", "Wedding budget calculator"),
+         ("/travel/tools/daily-travel-budget-calculator/", "Daily travel budget calculator")]
 
 def money(M):
     order = MONEY_ORDER + [s for s in M if s not in MONEY_ORDER]
