@@ -13,10 +13,10 @@ e = html.escape
 AFF = json.load(open(ROOT / "travel/affiliates.json"))["links"]
 
 TP = {  # slug: (name, price, short, image dir)
- "trip-planner-travel-budget": ("Trip Planner & Travel Budget", 12, "Budget in any currency, how much to save each paycheck, a day-by-day itinerary, bookings and packing in one Google Sheet."),
- "family-travel-kids-planner": ("Family Travel with Kids Planner", 12, "Passport expiry checker, a gentle jet-lag plan, packing by age, day pacing and an emergency info page."),
- "scotland-trip-planner": ("Scotland Trip Planner", 14, "Pick where you sleep each night; it fills in drive times, flags long days and budgets in pounds. Sample 7, 10 and 14-night routes."),
- "travel-planner-bundle": ("Travel Planner Bundle (all 3)", 24, "Trip Planner, Family Travel with Kids and the Scotland Trip Planner. $38 bought separately."),
+ "trip-planner-travel-budget": ("Trip Planner & Travel Budget", 5, "Budget in any currency, how much to save each paycheck, a day-by-day itinerary, bookings and packing in one Google Sheet."),
+ "family-travel-kids-planner": ("Family Travel with Kids Planner", 5, "Passport expiry checker, a gentle jet-lag plan, packing by age, day pacing and an emergency info page."),
+ "scotland-trip-planner": ("Scotland Trip Planner", 9, "Pick where you sleep each night; it fills in drive times, flags long days and budgets in pounds. Sample 7, 10 and 14-night routes."),
+ "travel-planner-bundle": ("Travel Planner Bundle (all 3)", 15, "Trip Planner, Family Travel with Kids and the Scotland Trip Planner. $19 bought separately."),
  "kids-travel-packing-checklist": ("Kids Travel Packing Checklist", 0, "Free 3-page printable: packing by age, kids' clothes with counts, and a plane & car bag page for travel day."),
 }
 
@@ -1447,7 +1447,7 @@ def gift_head(path, title, desc, headline, faq, crumb_name, extra_ld=()):
 def gift_planner_box():
     return f'''    <aside class="packbox" id="holiday-planner">
       <h3>Keeping track of it all</h3>
-      <p>If you're buying for a lot of people this year, our <a href="{URLS["holiday-gift-budget-planner"]}">Holiday Gift &amp; Budget Planner</a> ($9, Google Sheets or Excel) holds one budget for gifts, food, travel and decor, tracks every gift from idea to bought, shipped and wrapped, and counts down ship-by dates. <a href="/templates/#holiday-gift-budget-planner">See what's inside</a>.</p>
+      <p>If you're buying for a lot of people this year, our <a href="{URLS["holiday-gift-budget-planner"]}">Holiday Gift &amp; Budget Planner</a> ($5, Google Sheets or Excel) holds one budget for gifts, food, travel and decor, tracks every gift from idea to bought, shipped and wrapped, and counts down ship-by dates. <a href="/templates/#holiday-gift-budget-planner">See what's inside</a>.</p>
     </aside>
 '''
 def gift_table(slug):
@@ -1541,7 +1541,7 @@ def build_gifts_hub():
   </header>
   <main class="wrap">
     <div class="hub">
-{cards}      <a href="/templates/#holiday-gift-budget-planner"><h2>Holiday Gift &amp; Budget Planner</h2><p>$9 Google Sheet: one budget for the season and a gift list from idea to wrapped.</p></a>
+{cards}      <a href="/templates/#holiday-gift-budget-planner"><h2>Holiday Gift &amp; Budget Planner</h2><p>$5 Google Sheet: one budget for the season and a gift list from idea to wrapped.</p></a>
     </div>
 {faq_html(GIFT_HUB_FAQ)}  </main>
 ''' + foot(aff=True) + "</body>\n</html>\n"
@@ -1563,7 +1563,7 @@ PL_BULLETS = {
  "trip-planner-travel-budget": ["Costs in any currency, converted for you", "Paycheck-by-paycheck savings plan", "Itinerary, bookings & confirmations, packing list", "Dashboard + a phone tab"],
  "family-travel-kids-planner": ["Passport expiry check against your return date", "Bedtime shift plan for jet lag", "Kids packing list by age", "Day pacing, emergency info, budget & savings"],
  "scotland-trip-planner": ["Route Builder: 21 places, drive times, long-day flags", "Sample 7, 10 and 14-night routes", "Booking timeline from your arrival date", "Budget in £ with the ETA and Edinburgh levy built in"],
- "travel-planner-bundle": ["All three planners above", "All the printables and Excel files", "Save $14 vs buying separately"],
+ "travel-planner-bundle": ["All three planners above", "All the printables and Excel files", "Save $4 vs buying separately"],
 }
 def build_planners():
     path = "/travel/planners/"

@@ -86,7 +86,7 @@ const submit = d => d.getElementById("f").dispatchEvent(new d.defaultView.Event(
   ok(d.getElementById("err").classList.contains("show") && d.getElementById("out").innerHTML === "" && d.getElementById("meals").getAttribute("aria-invalid") === "true", "grocery: 30 meals rejected + marked");
   ok(errors.length === 0, "grocery: no console errors " + errors.join(" | "));
   let names = Array.from(d.querySelectorAll('article.pcard h3')).map(h => h.textContent);
-  ok(names.join() === "Meal Planner & Grocery List,Monthly Budget Snapshot" && d.querySelector('#get-monthly-budget-snapshot .price').textContent === "Free" && /Get it free/.test(d.querySelector('#get-monthly-budget-snapshot a.btn').textContent), "grocery: CTA = Meal Planner ($11) + free Snapshot");
+  ok(names.join() === "Meal Planner & Grocery List,Monthly Budget Snapshot" && d.querySelector('#get-monthly-budget-snapshot .price').textContent === "Free" && /Get it free/.test(d.querySelector('#get-monthly-budget-snapshot a.btn').textContent), "grocery: CTA = Meal Planner ($5) + free Snapshot");
   let a2 = d.querySelector('#get-meal-planner-grocery-list a.btn'); a2.addEventListener("click", ev => ev.preventDefault()); a2.dispatchEvent(new w.MouseEvent("click", { bubbles: true, cancelable: true }));
   let bc2 = events.find(e => e[1] === "begin_checkout"); ok(bc2 && bc2[2].item_name === "Meal Planner & Grocery List" && /TbDugdiTQy48/.test(bc2[2].link_url), "grocery: begin_checkout for Meal Planner");
   // Moving
@@ -138,7 +138,7 @@ const submit = d => d.getElementById("f").dispatchEvent(new d.defaultView.Event(
   setF("biweekly"); d.getElementById("first").value = "2020-01-01"; submit(d);
   ok(d.getElementById("err").classList.contains("show"), "paycheck: past payday rejected");
   ok(errors.length === 0, "paycheck: no console errors " + errors.join(" | "));
-  ok(Array.from(d.querySelectorAll('article.pcard h3')).map(h => h.textContent).join() === "Budget by Paycheck,Money Spreadsheet Bundle (all 5)" && /IDt8omcfjZP2/.test(d.querySelector('#get-budget-by-paycheck a.btn').href), "paycheck: CTA = Budget by Paycheck ($9) + bundle");
+  ok(Array.from(d.querySelectorAll('article.pcard h3')).map(h => h.textContent).join() === "Budget by Paycheck,Money Spreadsheet Bundle (all 5)" && /IDt8omcfjZP2/.test(d.querySelector('#get-budget-by-paycheck a.btn').href), "paycheck: CTA = Budget by Paycheck ($5) + bundle");
   // Fix suggestion in the browser: deterministic overload with an earlier check that has room
   d.getElementById("first").value = iso(F); d.getElementById("amount").value = "1200"; d.querySelector('input[name="months"][value="1"]').checked = true;
   d.querySelectorAll(".rm").forEach(b => b.click());

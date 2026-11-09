@@ -16,16 +16,16 @@ MKT = Path("/workspace/marketing")
 
 # slug, name, price, was/compare, group, badge
 PRODUCTS = [
-  ("sheets-bundle-5", "Money Spreadsheet Bundle (all 5)", 29, "was $54", "bundle", "Best value"),
-  ("planner-plus-sheets-bundle", "Debt-Free Bundle: Planner + 5 Spreadsheets", 34, "was $66", "bundle", "Best value"),
-  ("wedding-planner-budget", "Wedding Planner & Budget", 14, None, "sheet", "New"),
-  ("just-in-case-binder", "The Just-In-Case Binder", 12, "reg $17", "printable", "Launch price"),
-  ("debt-payoff-dashboard", "Debt Payoff Dashboard", 14, None, "sheet", None),
-  ("budget-by-paycheck", "Budget by Paycheck", 9, None, "sheet", None),
-  ("sinking-funds", "Sinking Funds Tracker", 7, None, "sheet", None),
-  ("seller-profit-tracker", "Etsy Seller Profit Tracker", 12, None, "sheet", None),
-  ("business-expense-invoice-log", "Small Business Expense & Invoice Log", 12, None, "sheet", None),
-  ("debt-free-2027-planner", "2027 Digital Budget Planner (GoodNotes)", 12, None, "planner", None),
+  ("sheets-bundle-5", "Money Spreadsheet Bundle (all 5)", 17, "was $28", "bundle", "Best value"),
+  ("planner-plus-sheets-bundle", "Debt-Free Bundle: Planner + 5 Spreadsheets", 19, "was $33", "bundle", "Best value"),
+  ("wedding-planner-budget", "Wedding Planner & Budget", 9, None, "sheet", "New"),
+  ("just-in-case-binder", "The Just-In-Case Binder", 12, None, "printable", None),
+  ("debt-payoff-dashboard", "Debt Payoff Dashboard", 8, None, "sheet", None),
+  ("budget-by-paycheck", "Budget by Paycheck", 5, None, "sheet", None),
+  ("sinking-funds", "Sinking Funds Tracker", 5, None, "sheet", None),
+  ("seller-profit-tracker", "Etsy Seller Profit Tracker", 5, None, "sheet", None),
+  ("business-expense-invoice-log", "Small Business Expense & Invoice Log", 5, None, "sheet", None),
+  ("debt-free-2027-planner", "2027 Digital Budget Planner (GoodNotes)", 5, None, "planner", None),
 ]
 # Newer products with no listing kit: short text here, images from /workspace/marketing/pins-new
 # (cards/<slug>-cover.png = 4:3 card cover, <prefix>-pin-N.png = gallery photos, <slug>/pin-N.jpg = Pinterest pins).
@@ -38,8 +38,8 @@ EXTRA = {
 _i = [p[0] for p in PRODUCTS].index("just-in-case-binder") + 1
 PRODUCTS[_i:_i] = [
   ("monthly-budget-snapshot", "Monthly Budget Snapshot", 0, None, "sheet", "Free"),
-  ("meal-planner-grocery-list", "Meal Planner & Grocery List", 11, None, "sheet", "New"),
-  ("moving-planner", "Moving Planner & Checklist", 12, None, "sheet", "New"),
+  ("meal-planner-grocery-list", "Meal Planner & Grocery List", 5, None, "sheet", "New"),
+  ("moving-planner", "Moving Planner & Checklist", 5, None, "sheet", "New"),
 ]
 # On Polar but no download attached yet -> shown as "coming soon", no buy button.
 COMING_SOON = []
