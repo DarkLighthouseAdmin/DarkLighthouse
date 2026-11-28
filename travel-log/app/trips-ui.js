@@ -116,6 +116,12 @@
       sub: ty.label + " · " + (r.town ? r.town + ", " : "") + where, label: ty.emoji + " " + name };
     if (r.town) o.town = r.town; if (r.wd) o.ref = r.wd; if (r.rank) o.fame = Math.min(999, r.rank); if (famous) o.badge = "⭐ Famous landmark";
     if (r.unesco) { o.unesco = true; o.sub += " · UNESCO World Heritage"; }
+    var pk = (window.WK_PASSPORT && window.WK_PASSPORT.parkOfSight && window.WK_PASSPORT.parkOfSight(r)) || r.park || "";
+    if (pk) {   // v124: named park features name the park in the subtitle and carry the park id so a visit stamps it
+      var park = M.ALL_PARKS.filter(function (q) { return q.id === pk; })[0];
+      o.park = pk;
+      if (park) o.sub = ty.label + " · In " + park.full + (r.town ? " · " + r.town + ", " : " · ") + where;
+    }
     return o;
   }
   function airportPoints(d, head) {

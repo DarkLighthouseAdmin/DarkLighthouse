@@ -1,0 +1,25 @@
+# Famous named features inside US national parks that were missing as their own sights (v124).
+# name|aliases	lat	lon	ISO3	admin1	type	town	fame	wd	park
+# Coordinates, Wikidata ids and sitelink counts from Wikidata (CC0). Additive only; nothing is removed.
+Old Faithful|Old Faithful Geyser	44.4605	-110.8281	USA	WY	geyser		34	Q858794	yellowstone
+Yosemite Falls|Yosemite Fall	37.7550	-119.5973	USA	CA	waterfall	Yosemite Valley	40	Q491677	yosemite
+The Narrows|Zion Narrows|The Narrows Zion	37.3067	-112.9477	USA	UT	canyon	Springdale	8	Q3029053	zion
+Cades Cove	35.5942	-83.8419	USA	TN	historic	Townsend	5	Q5016395	great-smoky-mountains
+Hurricane Ridge	47.9770	-123.5180	USA	WA	viewpoint	Port Angeles	3	Q5948285	olympic
+Bryce Amphitheater|Bryce Amphitheatre|Main Bryce Amphitheater	37.6264	-112.1508	USA	UT	canyon	Bryce Canyon City	1	Q105097228	bryce-canyon
+Lower Falls of the Yellowstone River|Lower Falls of the Yellowstone|Lower Yellowstone Falls	44.7180	-110.4964	USA	WY	waterfall		1	Q105337493	yellowstone
+Trail Ridge Road|Trail Ridge	40.4315	-105.7959	USA	CO	drive	Estes Park	5	Q1411684	rocky-mountain
+Grand Canyon of the Yellowstone	44.7167	-110.4967	USA	WY	canyon		10	Q1542533	yellowstone
+Artist Point|Artist Point Overlook	44.7213	-110.4794	USA	WY	viewpoint		5	Q4801234	yellowstone
+Tower Fall|Tower Falls	44.8938	-110.3872	USA	WY	waterfall		7	Q377832	yellowstone
+Bridalveil Fall|Bridalveil Falls	37.7168	-119.6465	USA	CA	waterfall	Yosemite Valley	16	Q2360422	yosemite
+Vernal Fall|Vernal Falls	37.7274	-119.5440	USA	CA	waterfall	Yosemite Valley	15	Q2620166	yosemite
+Nevada Fall|Nevada Falls	37.7253	-119.5328	USA	CA	waterfall	Yosemite Valley	17	Q38586	yosemite
+Mariposa Grove	37.5097	-119.6017	USA	CA	historic	Wawona	12	Q2717697	yosemite
+Balanced Rock	38.7006	-109.5642	USA	UT	monument	Moab	6	Q3525243	arches
+General Sherman|General Sherman Tree|Sherman Tree	36.5817	-118.7514	USA	CA	landmark	Three Rivers	41	Q152482	sequoia
+Logan Pass	48.6967	-113.7180	USA	MT	viewpoint		5	Q2981963	glacier
+Newfound Gap	35.6111	-83.4250	USA	TN	viewpoint		3	Q7017800	great-smoky-mountains
+Thunder Hole	44.3203	-68.1878	USA	ME	landmark	Bar Harbor	1	Q33605185	acadia
+Jordan Pond	44.3318	-68.2551	USA	ME	lake	Bar Harbor	3	Q6276889	acadia
+Weeping Rock	37.2723	-112.9363	USA	UT	viewpoint	Springdale	1	Q14912288	zion

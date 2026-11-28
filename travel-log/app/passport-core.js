@@ -100,9 +100,70 @@
     (stamps || []).forEach(function (s) { if (s.kind !== "region") return; var c = String(s.area).split(".")[0]; if (!REGIONS[c]) return; (by[c] = by[c] || {})[s.area] = 1; });
     return Object.keys(by).sort().map(function (c) { var n = Object.keys(by[c]).length, R = REGIONS[c]; return { country: c, countryName: R.country, n: n, total: Object.keys(R.names).length, of: R.of }; });
   }
+  // v124: a named feature inside a US national park (Old Faithful, Half Dome, Mesa Arch...) also earns that park's stamp
+  var PARK_SIGHTS = [
+    { park: "yellowstone", wd: "Q858794", names: ["old faithful", "old faithful geyser"], st: "WY" },
+    { park: "yellowstone", wd: "Q1422831", names: ["grand prismatic spring"], st: "WY MT" },
+    { park: "yellowstone", wd: "Q105337493", names: ["lower falls of the yellowstone river", "lower falls of the yellowstone", "lower yellowstone falls"], st: "WY" },
+    { park: "yellowstone", wd: "Q1542533", names: ["grand canyon of the yellowstone"], st: "WY" },
+    { park: "yellowstone", wd: "Q4801234", names: ["artist point", "artist point overlook"], st: "WY" },
+    { park: "yellowstone", wd: "Q377832", names: ["tower fall", "tower falls"], st: "WY" },
+    { park: "yosemite", wd: "Q925252", names: ["half dome"], st: "CA" },
+    { park: "yosemite", wd: "Q1124852", names: ["el capitan"], st: "CA" },
+    { park: "yosemite", wd: "Q3108318", names: ["glacier point"], st: "CA" },
+    { park: "yosemite", wd: "Q2433474", names: ["tunnel view"], st: "CA" },
+    { park: "yosemite", wd: "Q491677", names: ["yosemite falls", "yosemite fall"], st: "CA" },
+    { park: "yosemite", wd: "Q2360422", names: ["bridalveil fall", "bridalveil falls"], st: "CA" },
+    { park: "yosemite", wd: "Q2620166", names: ["vernal fall", "vernal falls"], st: "CA" },
+    { park: "yosemite", wd: "Q38586", names: ["nevada fall", "nevada falls"], st: "CA" },
+    { park: "yosemite", wd: "Q2717697", names: ["mariposa grove"], st: "CA" },
+    { park: "zion", wd: "Q2563959", names: ["angels landing"], st: "UT" },
+    { park: "zion", wd: "Q3029053", names: ["the narrows", "zion narrows", "the narrows zion"], st: "UT" },
+    { park: "zion", wd: "Q14912288", names: ["weeping rock"], st: "UT" },
+    { park: "arches", wd: "Q2300616", names: ["delicate arch"], st: "UT" },
+    { park: "arches", wd: "Q3525243", names: ["balanced rock"], st: "UT" },
+    { park: "canyonlands", wd: "Q6821049", names: ["mesa arch"], st: "UT" },
+    { park: "glacier", wd: "Q3109921", names: ["going-to-the-sun road", "going to the sun road"], st: "MT" },
+    { park: "glacier", wd: "Q2981963", names: ["logan pass"], st: "MT" },
+    { park: "great-smoky-mountains", wd: "Q685166", names: ["clingmans dome"], st: "NC TN" },
+    { park: "great-smoky-mountains", wd: "Q5016395", names: ["cades cove"], st: "TN" },
+    { park: "great-smoky-mountains", wd: "Q7017800", names: ["newfound gap"], st: "TN NC" },
+    { park: "grand-teton", wd: "Q743054", names: ["jenny lake"], st: "WY" },
+    { park: "acadia", wd: "Q1025202", names: ["cadillac mountain"], st: "ME" },
+    { park: "acadia", wd: "Q33605185", names: ["thunder hole"], st: "ME" },
+    { park: "acadia", wd: "Q6276889", names: ["jordan pond"], st: "ME" },
+    { park: "olympic", wd: "Q5948285", names: ["hurricane ridge"], st: "WA" },
+    { park: "hawaii-volcanoes", wd: "Q188698", names: ["kilauea"], st: "HI" },
+    { park: "grand-canyon", wd: "Q3644685", names: ["bright angel trail"], st: "AZ" },
+    { park: "bryce-canyon", wd: "Q105097228", names: ["bryce amphitheater", "bryce amphitheatre", "main bryce amphitheater"], st: "UT" },
+    { park: "rocky-mountain", wd: "Q1411684", names: ["trail ridge road", "trail ridge"], st: "CO" },
+    { park: "sequoia", wd: "Q152482", names: ["general sherman", "general sherman tree", "sherman tree"], st: "CA" }
+  ];
+  function foldName(s) {
+    s = String(s == null ? "" : s).toLowerCase();
+    if (s.normalize) s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return s.replace(/['’`]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  }
+  /** Parent US national park for a sight stop or a sights-file row, or "". Never guesses across states (El Capitan in Texas stays in Texas). */
+  function parkOfSight(p) {
+    if (!p) return "";
+    if (p.park) return p.park;
+    var wd = p.wd || p.ref || "", names = p.names || [p.name || ""], st = p.admin1 || p.region || "";
+    var folds = names.map(foldName);
+    for (var i = 0; i < PARK_SIGHTS.length; i++) {
+      var x = PARK_SIGHTS[i];
+      if (x.wd && wd && x.wd === wd) return x.park;
+      if (p.country && p.country !== "USA") continue;
+      if (x.st && st && x.st.split(" ").indexOf(st) < 0) continue;
+      if (x.names.some(function (n) { return folds.indexOf(n) >= 0; })) return x.park;
+    }
+    return "";
+  }
   function pointAreas(p, parkStates) {
     var out = [];
     if (p.kind === "park" && p.ref) { out.push({ kind: "park", area: p.ref }); var st = parkStates && parkStates[p.ref]; if (st && st.length === 1) out.push({ kind: "state", area: st[0] }); }
+    var pk = p.kind === "sight" ? parkOfSight(p) : "";
+    if (pk && !out.some(function (a) { return a.kind === "park" && a.area === pk; })) out.push({ kind: "park", area: pk });
     if (p.country === "USA") { var sc = stateCode(p.region); if (sc && !out.some(function (a) { return a.kind === "state" && a.area === sc; })) out.push({ kind: "state", area: sc }); }
     else if (p.country === "GBR") { if (NATIONS.indexOf(p.region) >= 0) out.push({ kind: "place", area: p.region }); }
     else if (p.country) out.push({ kind: "place", area: p.country });
@@ -330,7 +391,7 @@
     if (b === "02-29" && mo === 2 && d === 28 && new Date(now.getFullYear(), 1, 29).getMonth() !== 1) return true;   // Feb 29 birthdays get Feb 28 in other years
     return +b.slice(0, 2) === mo && +b.slice(3) === d; }
 
-  return { REGIONS: REGIONS, regionKey: regionKey, regionName: regionName, regionInfo: regionInfo, regionCounts: regionCounts, newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, tripVisits: tripVisits, sightArea: sightArea, sightSub: sightSub, drinkHidden: drinkHidden, section: section,
+  return { REGIONS: REGIONS, regionKey: regionKey, regionName: regionName, regionInfo: regionInfo, regionCounts: regionCounts, newStamp: newStamp, cleanStamps: cleanStamps, cleanDate: cleanDate, fmtDate: fmtDate, addDays: addDays, pointAreas: pointAreas, parkOfSight: parkOfSight, tripVisits: tripVisits, sightArea: sightArea, sightSub: sightSub, drinkHidden: drinkHidden, section: section,
            stampsFor: stampsFor, familyStamps: familyStamps, groupStamps: groupStamps, passportCounts: passportCounts, stateCode: stateCode, pages: pages, look: look, flag: flag, stampSVG: stampSVG, ISO32: ISO32, NATIONS: NATIONS, MAX_STAMPS: MAX_STAMPS, SHAPES: SHAPES,
            STATES50: STATES50, signsFor: signsFor, signCount: signCount, signSVG: signSVG, signLook: signLook, signTier: signTier, signInfo: SG.look, ID_FIELDS: ID_FIELDS, MONTHS: MONTHS, cleanBday: cleanBday, cleanIdPage: cleanIdPage, bdayText: bdayText, isBirthday: isBirthday,
            stampArtMode: function (id, art) { return SA.stateMode(id, art); }, stampDesign: SA.design, STATE_SYMBOLS: SA.SYM ? SA.SYM.DATA : null };

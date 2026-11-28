@@ -34,6 +34,7 @@
     if (c[8]) r.rank = +c[8] || 0;
     if (c[9]) r.wd = c[9];
     if (c[10] === "U") r.unesco = true;   // v97: UNESCO World Heritage (Wikidata P1435)
+    if (c[11] && /^[a-z0-9-]+$/.test(c[11])) r.park = c[11];   // v124: parent national park (Old Faithful -> yellowstone)
     return r;
   }
   function parse(j) {

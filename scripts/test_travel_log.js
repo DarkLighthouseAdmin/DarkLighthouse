@@ -3147,3 +3147,27 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/\.sresl a\{[^}]*min-height:44px/.test(css) && /\.navsearch \{ min-width:44px; min-height:44px/.test(css), "v123: search rows and the top Search button are 44px tap targets");
   ok(/html\[data-theme="dark"\] \.stampopt \{ background:#121a21; \}/.test(dk), "v123: + Stamp choices are dark cards in dark mode (were white with light text)");
 }
+
+// ---- v124 (Nov 28): famous park features get their own sight pages and still stamp the parent park ----
+{
+  const P = require("../travel-log/app/passport-core.js");
+  const of = P.parkOfSight({ kind: "sight", name: "Old Faithful", ref: "Q858794", country: "USA", region: "WY" });
+  ok(of === "yellowstone", "v124: Old Faithful is in Yellowstone");
+  ok(P.parkOfSight({ kind: "sight", name: "Half Dome", ref: "Q925252", country: "USA", region: "CA" }) === "yosemite", "v124: Half Dome is in Yosemite");
+  ok(P.parkOfSight({ kind: "sight", name: "Mesa Arch", ref: "Q6821049", country: "USA", region: "UT" }) === "canyonlands", "v124: Mesa Arch is in Canyonlands");
+  ok(P.parkOfSight({ kind: "sight", name: "El Capitan", country: "USA", region: "TX" }) === "", "v124: El Capitan in Texas is not Yosemite");
+  ok(P.parkOfSight({ kind: "sight", name: "El Capitan", ref: "Q1124852", country: "USA", region: "CA" }) === "yosemite", "v124: El Capitan in California is Yosemite");
+  const areas = P.pointAreas({ kind: "sight", name: "Old Faithful", type: "geyser", ref: "Q858794", country: "USA", region: "WY", park: "yellowstone" });
+  ok(areas.some(a => a.kind === "park" && a.area === "yellowstone") && areas.some(a => a.kind === "state" && a.area === "WY"), "v124: an Old Faithful stop stamps Yellowstone and Wyoming");
+  const tsv = fs.readFileSync(path.join(__dirname, "park_sights.tsv"), "utf8").split("\n").filter(l => l && l[0] !== "#").map(l => l.split("\t"));
+  ok(tsv.length >= 20 && tsv.some(c => c[0].startsWith("Old Faithful") && c[8] === "Q858794" && c[9] === "yellowstone"), "v124: park_sights.tsv lists Old Faithful in Yellowstone");
+  const names = ["Old Faithful", "Yosemite Falls", "The Narrows", "Cades Cove", "Hurricane Ridge", "Bryce Amphitheater", "Lower Falls of the Yellowstone River", "Trail Ridge Road", "Grand Canyon of the Yellowstone", "Artist Point", "Tower Fall", "Bridalveil Fall", "Vernal Fall", "Nevada Fall", "Mariposa Grove", "Balanced Rock", "General Sherman", "Logan Pass", "Newfound Gap", "Thunder Hole", "Jordan Pond", "Weeping Rock"];
+  ok(names.every(n => tsv.some(c => c[0].split("|")[0] === n)), "v124: all 22 curated park features are in the tsv");
+  const idx = JSON.parse(read("data/sights/index.json"));
+  ok(idx.parksights === "v124" && idx.sights >= 231193, "v124: sights index notes the park-feature pass (" + idx.sights + ")");
+  const ol = JSON.parse(read("data/sights/ol.json"));
+  ok(/\tQ858794\t\tyellowstone$/m.test(ol.rows) && /^Old Faithful\|Old Faithful Geyser\t/.test(ol.rows.split("\n").filter(l => l.startsWith("Old Faithful|"))[0] || ""), "v124: Old Faithful geyser row is in the ol shard, with its park id");
+  ok(/["t", "type"].*["pk", "park"]/.test(read("extras.js")) && /c\[11\]/.test(read("towns-core.js")) && /o\.park = pk/.test(read("trips-ui.js")), "v124: search links, sight rows and trip stops carry the parent park");
+  const ex = read("extras.js");
+  ok(/info\.park \? ' · <a href="#\/place\/park\/'/.test(ex), "v124: a park feature's place page links to the parent park");
+}

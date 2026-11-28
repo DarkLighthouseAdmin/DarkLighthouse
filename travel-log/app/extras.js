@@ -87,13 +87,13 @@
       return "#/place/place/" + encodeURIComponent(r.country);
     }
     var o = { n: r.name, k: r.kind === "sight" ? "sight" : "city" };
-    [["t", "type"], ["c", "country"], ["r", "region"], ["la", "lat"], ["lo", "lon"], ["s", "sub"], ["w", "ref"], ["f", "fame"], ["tw", "town"], ["a", "area"]].forEach(function (x) { if (r[x[1]] != null && r[x[1]] !== "") o[x[0]] = r[x[1]]; });
+    [["t", "type"], ["c", "country"], ["r", "region"], ["la", "lat"], ["lo", "lon"], ["s", "sub"], ["w", "ref"], ["f", "fame"], ["tw", "town"], ["a", "area"], ["pk", "park"]].forEach(function (x) { if (r[x[1]] != null && r[x[1]] !== "") o[x[0]] = r[x[1]]; });
     return "#/place/pt/" + encodeURIComponent(JSON.stringify(o));
   }
   function readPt(enc) {
     try { var o = JSON.parse(decodeURIComponent(enc || "")); if (!o || typeof o.n !== "string") return null;
       var p = { name: o.n.slice(0, 120), kind: o.k === "sight" ? "sight" : "city" };
-      [["t", "type"], ["c", "country"], ["r", "region"], ["s", "sub"], ["w", "ref"], ["tw", "town"], ["a", "area"]].forEach(function (x) { if (typeof o[x[0]] === "string") p[x[1]] = o[x[0]].slice(0, 160); });
+      [["t", "type"], ["c", "country"], ["r", "region"], ["s", "sub"], ["w", "ref"], ["tw", "town"], ["a", "area"], ["pk", "park"]].forEach(function (x) { if (typeof o[x[0]] === "string") p[x[1]] = o[x[0]].slice(0, 160); });
       if (typeof o.la === "number" && typeof o.lo === "number") { p.lat = o.la; p.lon = o.lo; }
       if (typeof o.f === "number") p.fame = o.f;
       return p;
@@ -252,6 +252,8 @@
     if (kind === "pt" && pt) {
       var par = pt.country === "USA" && pt.region ? "#/place/state/" + pt.region : P.regionKey && P.regionKey(pt.country, pt.region) ? "#/place/region/" + P.regionKey(pt.country, pt.region) : pt.country === "GBR" && NATIONS.indexOf(pt.region) >= 0 ? "#/place/place/" + pt.region : pt.country ? "#/place/place/" + pt.country : "";
       var o = { name: pt.name, sub: pt.sub || "", parent: par, stop: JSON.parse(JSON.stringify(pt)), pt: pt };
+      var pk = pt.park || (P.parkOfSight && P.parkOfSight(pt)) || "";
+      if (pk) { var park = window.MLTL.ALL_PARKS.filter(function (q) { return q.id === pk; })[0]; if (park) { o.park = park; o.stop.park = pk; } }
       if (pt.kind === "sight") { o.stampKind = "sight"; o.area = pt.area || P.sightArea({ ref: pt.ref || "", name: pt.name, type: pt.type || "landmark", country: pt.country }); }
       return o;
     }
@@ -295,7 +297,7 @@
     var me = a.kidById(a.myPersonId && a.myPersonId()) || st.kids[0];
     var tripLink = function (v) { var t = v.tripId ? st.trips.filter(function (x) { return x.id === v.tripId; })[0] : null; return t ? '<a href="#/p/' + esc(t.kidIds[0] || v.who[0]) + '/trip/' + esc(t.id) + '">' + esc(t.title || t.place || "Trip") + '</a>' : v.source === "hand" ? "Stamped by hand" : ""; };
     a.main.innerHTML = back + '<div class="placepage" data-place="' + esc(kind + ":" + (info.area || info.name)) + '"><div class="placehead"><div class="bigstamp' + (n ? "" : " unstamped") + '">' + art + '</div><div><h1>' + esc(info.name) + '</h1>' +
-      '<p class="muted">' + esc(info.sub) + (info.parent ? ' · <a href="' + esc(info.parent) + '">in ' + esc(info.parent.indexOf("/state/") > 0 ? a.placeName("state", info.parent.split("/").pop()) : info.parent.indexOf("/region/") > 0 ? P.regionName(info.parent.split("/").pop()) : a.placeName("place", info.parent.split("/").pop())) + ' →</a>' : "") + '</p>' +
+      '<p class="muted">' + esc(info.sub) + (info.park ? ' · <a href="#/place/park/' + esc(info.park.id) + '">in ' + esc(info.park.full) + ' →</a>' : "") + (info.parent ? ' · <a href="' + esc(info.parent) + '">in ' + esc(info.parent.indexOf("/state/") > 0 ? a.placeName("state", info.parent.split("/").pop()) : info.parent.indexOf("/region/") > 0 ? P.regionName(info.parent.split("/").pop()) : a.placeName("place", info.parent.split("/").pop())) + ' →</a>' : "") + '</p>' +
       (info.pt && info.pt.type === "xmas" ? '<p class="small seasonal">🎄 Seasonal: usually open late November to December (check this year\'s dates before you go)</p>' : "") +   // v120
       '<p class="vtimes"><b>' + (n ? "Visited " + (n === 1 ? "once" : n + " times") : mapOnly.length ? "Colored in, no visit dated yet" : "Not stamped yet") + '</b></p></div></div>' +
       (n ? '<h2>Visits</h2><ul class="pvisitlist placevisits">' + visits.map(function (v) {
