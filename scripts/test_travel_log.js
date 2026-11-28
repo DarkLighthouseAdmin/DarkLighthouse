@@ -3135,3 +3135,15 @@ ok(/keep whatever someone is typing/.test(read("more.js")) && /n\.value = keep\.
   ok(/function nearFirst/.test(tu) && /cities = nearFirst\(cities, near, head\)/.test(tu) && /BIG_CITY = 100000/.test(tu), "v122: a big city of the typed name is not buried under small towns in the last stop's country (Nassau, Bahamas)");
   ok(/function navTab/.test(nav) && /h !== "place"/.test(nav) && /var cur = navTab\(location\.hash\)/.test(nav), "v122: place pages light the tab you came from, not More");
 }
+
+// ---- v123 (Nov 28 polish pass) ----
+{
+  const ex = read("extras.js"), nav = read("nav.js"), app = read("app.js"), css = read("app.css"), dk = read("dark.css");
+  ok(/\n\s+if \(!all\.length\) \{ box\.innerHTML = /.test(ex), "v123: 'No places called that either' empty state runs (it was stuck inside a comment)");
+  ok(/r\.kind === "park" && \/\^In \/\.test\(r\.sub/.test(ex), "v123: a park spot that is also a sight (Delicate Arch) shows once, as the sight with its own page");
+  ok((ex.match(/Looking up places…/g) || []).length === 2 && /Finding sights nearby…/.test(ex), "v123: place search and place pages show a loading line");
+  ok(/if \(h === "search"\) return lastTab \|\| "home"/.test(nav), "v123: Search lights the tab you came from, not More");
+  ok(/class="quickrow"/.test(app) && /#\/family\/passport/.test(app) && /Where to next\?/.test(app), "v123: Home has one-tap Passport / Wish list / Our year for families already using the app");
+  ok(/\.sresl a\{[^}]*min-height:44px/.test(css) && /\.navsearch \{ min-width:44px; min-height:44px/.test(css), "v123: search rows and the top Search button are 44px tap targets");
+  ok(/html\[data-theme="dark"\] \.stampopt \{ background:#121a21; \}/.test(dk), "v123: + Stamp choices are dark cards in dark mode (were white with light text)");
+}

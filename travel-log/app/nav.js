@@ -96,6 +96,7 @@
   var lastTab = "";
   function navTab(hash) {
     var h = parts(hash)[0] || "", t = tabOf(hash);
+    if (h === "search") return lastTab || "home";   // v123: Search sits at the top, so the tab you came from stays lit (it used to light More)
     if (h !== "place") { lastTab = t; return t; }
     return lastTab === "home" || lastTab === "trips" || lastTab === "map" ? lastTab : "map";
   }
@@ -127,6 +128,7 @@
       var s = document.createElement("a"); s.id = "navsearch"; s.className = "toplink navsearch"; s.href = "#/search"; s.innerHTML = '<span aria-hidden="true">🔎</span><span class="tl">Search</span>'; tr.appendChild(s);
       var mo = document.createElement("a"); mo.id = "navmore"; mo.className = "toplink navmore"; mo.href = "#/more"; mo.textContent = "More"; tr.appendChild(mo);
     }
+    var ns = document.getElementById("navsearch"); if (ns) { if ((parts(location.hash)[0] || "") === "search") ns.setAttribute("aria-current", "page"); else ns.removeAttribute("aria-current"); }
     youreOn();
   }
   function youreOn() {

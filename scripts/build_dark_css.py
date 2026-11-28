@@ -14,7 +14,7 @@ import colorsys, os, re
 APP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "travel-log", "app")
 SRC = ["app.css", "sync.css", "import.css", "map.css"]
 PRE = 'html[data-theme="dark"]'
-PAPER = re.compile(r"\.(pbook|ppage|idpage|cover|cert|certview|pcpage|pccard|pcpages|signcard|signsvg|signbook|bigsign|fxsign|jpage|bjpage|bpage|bookpages|bcover|bookpdf|book|stamp[a-z-]*|fstamps|pkstamp|kastamp|qstamp|newstamp|nt-stamp|bcstamps|btstamps|stposter[a-z]*|stampfx|fxstamp|sharecard|postcard)\b")
+PAPER = re.compile(r"\.(pbook|ppage|idpage|cover|cert|certview|pcpage|pccard|pcpages|signcard|signsvg|signbook|bigsign|fxsign|jpage|bjpage|bpage|bookpages|bcover|bookpdf|book|stamp(?!opts?\b)[a-z-]*|fstamps|pkstamp|kastamp|qstamp|newstamp|nt-stamp|bcstamps|btstamps|stposter[a-z]*|stampfx|fxstamp|sharecard|postcard)\b")
 PROPS = re.compile(r"^(background|background-color|background-image|color|border|border-top|border-bottom|border-left|border-right|border-color|outline|outline-color|box-shadow|fill|stroke|caret-color|text-decoration-color|accent-color)$")
 COLOR = re.compile(r"#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|\bwhite\b|\bblack\b")
 SURF = (0.10, 0.20)   # lightness range dark surfaces land in

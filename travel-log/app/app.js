@@ -7,7 +7,7 @@
   // Swap in the Amazon link once the paperback is live. Until then the link shows a "coming soon" note.
   var BOOK_URL = null;
   // Shown at the bottom of Settings (Back up page). Keep in step with CACHE in sw.js ("mltl-v66" -> "v66").
-  var VERSION = "v122";
+  var VERSION = "v123";
 
   // ---------- storage ----------
   // Each family log on this phone is its own database; "mltl" is the original one (see the logs list in sync-core.js).
@@ -298,7 +298,12 @@
     }).catch(function () { toast("Couldn't save. Is the device out of space?"); });
   }
   function viewHome() {
-    var html = '<h1>Color in every place your family goes, from the first road trip on.</h1>' +
+    // v123: families already using the app get a short greeting and one-tap links to passports, the wish list and the year (Search is the box right above) instead of the big intro
+    var used = state.kids.length && state.trips.some(function (t) { return !t.deletedAt; });
+    var pw = state.kids.length === 1 ? state.kids[0] : null, ppHref = pw ? "#/p/" + esc(pw.id) + "/passport" : "#/family/passport";
+    var html = used ? '<h1 class="homehi">Where to next?</h1>' +
+      '<nav class="quickrow" aria-label="Shortcuts"><a class="qbtn" href="' + ppHref + '"><span aria-hidden="true">🛂</span> ' + (pw ? "Passport" : "Passports") + '</a><a class="qbtn" href="#/family/wishes"><span aria-hidden="true">⭐</span> Wish list</a><a class="qbtn" href="#/year"><span aria-hidden="true">🎉</span> Our year</a></nav>'
+      : '<h1>Color in every place your family goes, from the first road trip on.</h1>' +
       '<p class="lede">A travel map for each kid, and for the grown-ups too: states, countries and national parks, plus the little stories from every trip. ' +
       (window.MLTL_SYNC && window.MLTL_SYNC.isOn() ? "It's saved on this device and shared with your family log." : "It all stays right here on this device.") + '</p>';
     html = moveBanner() + backupBanner() + html;

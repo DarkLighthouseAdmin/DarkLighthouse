@@ -193,12 +193,18 @@
       var cq0 = list && list.catQuery;
       list = (list || []).filter(function (r) { return !dupOf(r) && !(r.kind === "sight" && /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(r.name || "")); });   // v121: also hide sights whose only name is a web address
       list.catQuery = cq0;
-      var all = regs.concat(spots.filter(byName), list || [], spots.filter(function (x) { return !byName(x); }));   // a Parks-tab stamp found only by its town goes last if (!all.length) { if (box.previousElementSibling && box.previousElementSibling.classList.contains("nolog")) box.innerHTML = '<p class="muted small">No places called that either. Try fewer letters.</p>'; return; }
+      // v123: a famous spot inside a park (Delicate Arch) that is also a sight shows once, as the sight, so it opens its own page
+      var sightNames = {}; list.forEach(function (r) { if (r.kind === "sight") sightNames[norm(r.name)] = 1; });
+      list = list.filter(function (r) { return !(r.kind === "park" && /^In /.test(r.sub || "") && sightNames[norm(r.name)]); });
+      list.catQuery = cq0;
+      var all = regs.concat(spots.filter(byName), list || [], spots.filter(function (x) { return !byName(x); }));   // a Parks-tab stamp found only by its town goes last
+      if (!all.length) { box.innerHTML = box.previousElementSibling && box.previousElementSibling.classList.contains("nolog") ? '<p class="muted small">No places called that either. Check the spelling or try fewer letters.</p>' : ""; return; }   // v123: this empty state was stuck inside a comment
       var ic = function (r) { if (r.kind === "spot") return r.spot.extra === "airport" ? "✈️" : SPOT_IC[r.spot.cat] || "📍"; return r.kind === "area" ? (/^state:/.test(r.area) ? "🇺🇸" : "🌍") : r.kind === "region" ? "🗺️" : r.kind === "park" ? "🏞️" : r.kind === "sight" ? (r.type === "airport" ? "✈️" : "📍") : /·/.test(r.sub || "") && /^[A-Z]{3} · /.test(r.sub || "") ? "✈️" : "🏘️"; };
       var cq = list && list.catQuery, cqNote = cq && !cq.found ? '<p class="muted small catnote">No ' + esc(cq.label) + ' near ' + esc(cq.town) + ' in our list yet. Been to one? Add it to a trip with “Use as our own place”.</p>' : "";
       box.innerHTML = '<h2>Places</h2>' + cqNote + '<ul class="sresl splaces">' + all.slice(0, 18).map(function (r) {
         return '<li><a href="' + esc(r.kind === "spot" ? spotHref(r.spot) : placeHref(r)) + '" data-pkind="' + esc(r.kind) + '"><span aria-hidden="true">' + ic(r) + '</span> <b>' + esc(r.name) + '</b>' + (r.sub ? ' <span class="muted small">' + esc(r.sub) + '</span>' : "") + '</a></li>'; }).join("") + '</ul>';
-    }).catch(function () {});
+      box.removeAttribute("aria-busy");
+    }).catch(function () { var box = document.getElementById("splaces"); if (box && seq === searchSeq) { box.removeAttribute("aria-busy"); box.innerHTML = '<p class="muted small">Couldn\'t look up places just now. Check your connection and try again.</p>'; } });
   }
   function searchView() {
     var a = A();
@@ -208,16 +214,16 @@
     var inp = document.getElementById("sq"), out = document.getElementById("sres"), t;
     var draw = function () {
       lastQ = inp.value; var q = inp.value.trim();
-      if (q.length < 2) { out.innerHTML = a.state.trips.length || a.state.kids.length ? '<p class="muted small">Type a place, a trip name, or something someone wrote in a journal, e.g. "pancakes" or "Utah".</p>' : '<div class="empty panel"><p>Nothing to search yet.</p><p class="small muted">Add a person and a trip, and everything you write shows up here.</p><a class="btn btn-primary" href="#/">Get started</a></div>'; return; }
+      if (q.length < 2) { out.innerHTML = a.state.trips.length || a.state.kids.length ? '<p class="muted small">Type a place, a trip name, or something someone wrote in a journal, e.g. "pancakes" or "Utah".</p>' : '<div class="empty panel"><p>Search any place: a country, a town, a castle, a park.</p><p class="small muted">Once you add a person and a trip, your trips, stamps and journals show up here too.</p><a class="btn btn-primary" href="#/add">Add someone</a></div>'; return; }
       var r = search(q, a.state.kids, a.state.trips, names());
       tripStamps(q, r);   // v110: stamps that come from trips (states, countries, provinces, parks, sights) are found too
       var n = r.people.length + r.trips.length + r.stamps.length;
       var seq = ++searchSeq;
-      if (!n) out.innerHTML = '<p class="muted small nolog">Nothing in your log matches “' + esc(q) + '” yet.</p><div id="splaces"></div>';
+      if (!n) out.innerHTML = '<p class="muted small nolog">Nothing in your log matches “' + esc(q) + '” yet.</p><div id="splaces" aria-busy="true"><p class="muted small sload">Looking up places…</p></div>';
       else out.innerHTML = '<p class="small muted">' + n + (n === 1 ? " match" : " matches") + ' in your log</p>' +
         (r.people.length ? '<h2>People</h2><ul class="sresl">' + r.people.map(function (p) { return '<li><a href="#/p/' + esc(p.id) + '">' + esc(p.name) + '</a></li>'; }).join("") + '</ul>' : "") +
         (r.trips.length ? '<h2>Trips and journals</h2><ul class="sresl">' + r.trips.slice(0, 60).map(function (x) { return '<li><a href="#/p/' + esc(x.kid) + '/trip/' + esc(x.id) + '"><b>' + esc(x.title) + '</b> <span class="muted small">' + esc(x.date) + '</span><br><span class="small">' + esc(x.snip) + '</span></a></li>'; }).join("") + '</ul>' : "") +
-        (r.stamps.length ? '<h2>Stamps</h2><ul class="sresl">' + r.stamps.slice(0, 60).map(function (s) { return '<li><a href="' + esc(s.href || "#/place/" + s.kind + "/" + encodeURIComponent(s.id)) + '">' + esc(s.name) + '</a> <span class="muted small">' + esc(s.who.map(function (w) { return w.name; }).join(", ")) + '</span></li>'; }).join("") + '</ul>' : "") + '<div id="splaces"></div>';
+        (r.stamps.length ? '<h2>Stamps</h2><ul class="sresl">' + r.stamps.slice(0, 60).map(function (s) { return '<li><a href="' + esc(s.href || "#/place/" + s.kind + "/" + encodeURIComponent(s.id)) + '"><b>' + esc(s.name) + '</b> <span class="muted small">' + esc(s.who.map(function (w) { return w.name; }).join(", ")) + '</span></a></li>'; }).join("") + '</ul>' : "") + '<div id="splaces" aria-busy="true"><p class="muted small sload">Looking up places…</p></div>';
       placesFor(q, seq);
     };
     inp.oninput = function () { clearTimeout(t); t = setTimeout(draw, 120); };
@@ -301,7 +307,7 @@
           : '<button type="button" class="btn btn-primary" data-pltrip="new">🛂 ' + (n ? "Add a visit" : "Stamp it: add the trip") + '</button>') +
       '</div><h3>Going?</h3><div class="actions">' + planned.map(function (t) { return '<button type="button" class="btn btn-ghost" data-pladd="' + esc(t.id) + '">➕ Add to “' + esc(t.title || t.place || "upcoming trip") + '”</button>'; }).join("") +
         '<button type="button" class="btn btn-ghost" data-pltrip="plan">✈️ ' + (planned.length ? "Plan a new trip here" : "Add to a trip: plan one here") + '</button></div></div>' +
-      '<div id="plsights"></div></div>';
+      '<div id="plsights" aria-busy="true"><p class="muted small sload">Finding sights nearby…</p></div></div>';
     var stopOf = function () {
       return U.loadPlaces().then(function (d) {
         var s = Object.assign({ name: info.name }, info.stop);
@@ -331,7 +337,7 @@
     var U = window.FS_UI, P = window.WK_PASSPORT, T = window.WK_TRIPS, a = A(), box = document.getElementById("plsights"); if (!box || !U.nearBlocks) return;
     var stamped = {}; a.state.kids.forEach(function (k) { U.stampsOf(k).forEach(function (s) { if (s.kind === "sight") stamped[s.area] = 1; }); });
     Promise.all([stopOf(), U.loadPlaces()]).then(function (r) {
-      var c = r[0], d = r[1]; if (c.lat == null) return;
+      var c = r[0], d = r[1]; if (c.lat == null) { box.innerHTML = ""; return; }
       return U.nearBlocks(c).then(function (blocks) {
         var whole = !info.pt && !info.park, code = info.stop && info.stop.region, seen = {}, list = [];
         blocks.forEach(function (b) { (b.rows || []).forEach(function (row) {
@@ -342,12 +348,13 @@
           seen[row.wd || row.names[0]] = 1; list.push(row);
         }); });
         list.sort(function (x, y) { return (y.rank || 0) - (x.rank || 0); });
-        if (!list.length) return;
+        box.removeAttribute("aria-busy");
+        if (!list.length) { box.innerHTML = ""; return; }
         box.innerHTML = '<h2>Sights ' + (whole ? "in " : "near ") + esc(info.name) + '</h2><ul class="sresl plsightlist">' + list.slice(0, 8).map(function (row) {
           var sp = U.sightPoint(d, row), ar = P.sightArea({ ref: sp.ref || "", name: sp.name, type: sp.type, country: sp.country });
-          return '<li><a href="' + esc(placeHref(sp)) + '">' + esc(sp.label || sp.name) + '</a> <span class="muted small">' + esc(sp.sub || "") + '</span>' + (stamped[ar] ? ' <span class="small">✓ stamped</span>' : "") + '</li>'; }).join("") + '</ul>';
+          return '<li><a href="' + esc(placeHref(sp)) + '"><b>' + esc(sp.label || sp.name) + '</b> <span class="muted small">' + esc(sp.sub || "") + '</span>' + (stamped[ar] ? ' <span class="small">✓ stamped</span>' : "") + '</a></li>'; }).join("") + '</ul>';
       });
-    }).catch(function () {});
+    }).catch(function () { var b = document.getElementById("plsights"); if (b) b.innerHTML = ""; });
   }
   (window.FS_ROUTES = window.FS_ROUTES || []).push(function (h) { if (h[0] !== "place" || !h[1]) return false; placeView(h[1], h.slice(2).join("/")); return true; });
   document.addEventListener("keydown", function (e) { if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "") && !e.ctrlKey && !e.metaKey) { e.preventDefault(); location.hash = "#/search"; } });

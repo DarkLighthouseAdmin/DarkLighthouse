@@ -207,6 +207,7 @@ html[data-theme="dark"] .navback { border:1px solid rgba(41,61,86,0.35); }
 html[data-theme="dark"] .youreon { background:#131c25; }
 html[data-theme="dark"] .pchips a { background:#121a21; }
 html[data-theme="dark"] .mapseg a { background:#121a21; }
+html[data-theme="dark"] .stampopt { background:#121a21; }
 html[data-theme="dark"] .morelist { background:#121a21; }
 html[data-theme="dark"] .tyear { color:var(--muted, #ccd2d9); }
 html[data-theme="dark"] pre.errlog { background:#262014; }
@@ -226,6 +227,7 @@ html[data-theme="dark"] .kidtile { border:3px solid var(--line, #2f4357); box-sh
 html[data-theme="dark"] .kidchip { border:2px solid var(--line, #2f4357); }
 html[data-theme="dark"] .pinpad button { border:1px solid var(--line, #2f4357); }
 html[data-theme="dark"] .exps .expitem { border-bottom:1px dashed rgba(230,236,242,0.15); }
+html[data-theme="dark"] .quickrow .qbtn { background:#121a21; }
 /* sync.css */
 html[data-theme="dark"] .syncpill { background:rgba(19,27,39,0.12); }
 html[data-theme="dark"] .syncstate .syncpill { background:#17241a; color:var(--sage-ink) !important; }
